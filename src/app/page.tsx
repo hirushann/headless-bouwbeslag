@@ -2,102 +2,194 @@ import Image from "next/image";
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start font-sans max-w-[1440px] relative mx-auto">
+      <div className="my-4 flex gap-5 w-full">
+        <div className="bg-[#FFFFFF] shadow-[0px_20px_24px_0px_#0000000A] rounded-[4px] w-[25%]">
+          <div className="border-b border-[#F1F1F1] flex items-center p-4">
+            <h2 className="font-bold text-[22px]">All Categories</h2>
+          </div>
+          <div>
+            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
+              <input type="radio" name="my-accordion-2" />
+              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Accessoires</div>
+              <div className="collapse-content text-sm">
+                <ul>
+                  <li>Accessoires 2</li>
+                  <li>Accessoires 3</li>
+                  <li>Accessoires 4</li>
+                </ul>
+              </div>
+            </div>
+            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
+              <input type="radio" name="my-accordion-2" />
+              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Bevestigingsmaterialen</div>
+              <div className="collapse-content text-sm">
+                <ul>
+                  <li>Bevestigingsmaterialen 2</li>
+                  <li>Bevestigingsmaterialen 3</li>
+                  <li>Bevestigingsmaterialen 4</li>
+                </ul>
+              </div>
+            </div> 
+            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
+              <input type="radio" name="my-accordion-2" />
+              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Binnendeurbeslag</div>
+              <div className="collapse-content text-sm">
+                <ul>
+                  <li>Binnendeurbeslag 2</li>
+                  <li>Binnendeurbeslag 3</li>
+                  <li>Binnendeurbeslag 4</li>
+                </ul>
+              </div>
+            </div>
+            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
+              <input type="radio" name="my-accordion-2" />
+              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Brievenbussen</div>
+              <div className="collapse-content text-sm">
+                <ul>
+                  <li>Brievenbussen 2</li>
+                  <li>Brievenbussen 3</li>
+                  <li>Brievenbussen 4</li>
+                </ul>
+              </div>
+            </div>
+            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
+              <input type="radio" name="my-accordion-2" />
+              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Buitendeurbeslag en veiligheidsbeslag</div>
+              <div className="collapse-content text-sm">
+                <ul>
+                  <li>Buitendeurbeslag en veiligheidsbeslag 2</li>
+                  <li>Buitendeurbeslag en veiligheidsbeslag 3</li>
+                  <li>Buitendeurbeslag en veiligheidsbeslag 4</li>
+                </ul>
+              </div>
+            </div>
+            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
+              <input type="radio" name="my-accordion-2" />
+              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Cilinders</div>
+              <div className="collapse-content text-sm">
+                <ul>
+                  <li>Cilinders 2</li>
+                  <li>Cilinders 3</li>
+                  <li>Cilinders 4</li>
+                </ul>
+              </div>
+            </div>
+            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
+              <input type="radio" name="my-accordion-2" />
+              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Deurgrepen</div>
+              <div className="collapse-content text-sm">
+                <ul>
+                  <li>Deurgrepen 2</li>
+                  <li>Deurgrepen 3</li>
+                  <li>Deurgrepen 4</li>
+                </ul>
+              </div>
+            </div>
+            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
+              <input type="radio" name="my-accordion-2" />
+              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Deursluiters</div>
+              <div className="collapse-content text-sm">
+                <ul>
+                  <li>Deursluiters 2</li>
+                  <li>Deursluiters 3</li>
+                  <li>Deursluiters 4</li>
+                </ul>
+              </div>
+            </div>
+            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
+              <input type="radio" name="my-accordion-2" />
+              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Bevestigingsmaterialen</div>
+              <div className="collapse-content text-sm">
+                <ul>
+                  <li>Bevestigingsmaterialen 2</li>
+                  <li>Bevestigingsmaterialen 3</li>
+                  <li>Bevestigingsmaterialen 4</li>
+                </ul>
+              </div>
+            </div>
+            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
+              <input type="radio" name="my-accordion-2" />
+              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Binnendeurbeslag</div>
+              <div className="collapse-content text-sm">
+                <ul>
+                  <li>Binnendeurbeslag 2</li>
+                  <li>Binnendeurbeslag 3</li>
+                  <li>Binnendeurbeslag 4</li>
+                </ul>
+              </div>
+            </div>
+            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
+              <input type="radio" name="my-accordion-2" />
+              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Cilinders</div>
+              <div className="collapse-content text-sm">
+                <ul>
+                  <li>Cilinders 2</li>
+                  <li>Cilinders 3</li>
+                  <li>Cilinders 4</li>
+                </ul>
+              </div>
+            </div>
+            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
+              <input type="radio" name="my-accordion-2" />
+              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Deurgrepen</div>
+              <div className="collapse-content text-sm">
+                <ul>
+                  <li>Deurgrepen 2</li>
+                  <li>Deurgrepen 3</li>
+                  <li>Deurgrepen 4</li>
+                </ul>
+              </div>
+            </div>
+            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
+              <input type="radio" name="my-accordion-2" />
+              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Deursluiters</div>
+              <div className="collapse-content text-sm">
+                <ul>
+                  <li>Deursluiters 2</li>
+                  <li>Deursluiters 3</li>
+                  <li>Deursluiters 4</li>
+                </ul>
+              </div>
+            </div>
+            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
+              <input type="radio" name="my-accordion-2" />
+              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Bevestigingsmaterialen</div>
+              <div className="collapse-content text-sm">
+                <ul>
+                  <li>Bevestigingsmaterialen 2</li>
+                  <li>Bevestigingsmaterialen 3</li>
+                  <li>Bevestigingsmaterialen 4</li>
+                </ul>
+              </div>
+            </div>
+            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
+              <input type="radio" name="my-accordion-2" />
+              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Binnendeurbeslag</div>
+              <div className="collapse-content text-sm">
+                <ul>
+                  <li>Binnendeurbeslag 2</li>
+                  <li>Binnendeurbeslag 3</li>
+                  <li>Binnendeurbeslag 4</li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        <div className="w-[75%] h-[80vh] bg-[linear-gradient(270deg,#1422AC_0%,#00074B_100.82%)] rounded-sm overflow-hidden relative flex items-center">
+          <div className="w-1/2 pl-12 flex flex-col gap-3">
+            <h1 className="text-white font-bold text-6xl leading-[120%]">Excellent detailed design!</h1>
+            <p className="font-normal text-xl leading-[32px] text-white">Concept collections for door, window and furniture fittings.</p>
+            <button className="flex gap-2 items-center bg-[#0066FF] rounded-sm py-4.5 px-7 w-max uppercase">
+              <span className="font-bold text-sm text-white leading-[22px]">Toevoegen aan winkelwagen</span>
+              <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#ffffff"><path d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z"/></svg></span>
+            </button>
+          </div>
+          <div className="w-1/2 flex items-center justify-center">
+            <Image className="w-full h-full object-contain object-right rotate-340" src="/herobg.png" alt="" width={300} height={100} />
+          </div>
+        </div>
+      </div>
+    </main>
   );
 }

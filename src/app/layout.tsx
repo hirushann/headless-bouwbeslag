@@ -1,15 +1,9 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { DM_Sans } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const dmsans = DM_Sans({
+  variable: "--font-dm-sans",
 });
 
 export const metadata: Metadata = {
@@ -24,10 +18,153 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${dmsans.variable} font-sans antialiased`} >
+        <div className="bg-[#F7F7F7] w-full">
+          <div className="shadow-[0px_4px_40px_0px_#00000012] bg-white w-full p-2">
+            <div className="max-w-[1440px] mx-auto relative flex justify-between items-center w-full">
+              <div className="flex justify-start items-center gap-3 w-3/4 font-sans text-sm">
+                <div className="flex gap-1 items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z"/></svg>
+                  <span className="font-normal">Best prices guaranteed</span>
+                </div>
+                <div className="flex gap-1 items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z"/></svg>
+                  <span>Money back guarantee</span>
+                </div>
+                <div className="flex gap-1 items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z"/></svg>
+                  <span>Largest range in Europe</span>
+                </div>
+                <div className="flex gap-1 items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z"/></svg>
+                  <span>30-day return policy</span>
+                </div>
+              </div>
+
+              <div className="w-1/4 flex justify-end items-center">
+                <img className="w-full" src="/header-top-pay.png" alt="" />
+              </div>
+            </div>
+          </div>
+          <div className="max-w-[1440px] mx-auto flex justify-between items-center py-4 font-sans">
+            <div>
+              <img className="w-64" src="/logo.png" alt="" />
+            </div>
+            <div className="flex justify-center items-center w-[30%]">
+              <div className="join w-full border border-[#E2E2E2] rounded-[4px]">
+                <div className="w-full rounded-[5px]">
+                  <label className="input validator w-full border-0 rounded-[5px]">
+                    <input type="email" placeholder="Search something..." required />
+                  </label>
+                  <div className="validator-hint hidden">Search something...</div>
+                </div>
+                <button className="btn bg-[#2332C51A] rounded-[4px]">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#0066FF"><path d="M480 272C480 317.9 465.1 360.3 440 394.7L566.6 521.4C579.1 533.9 579.1 554.2 566.6 566.7C554.1 579.2 533.8 579.2 521.3 566.7L394.7 440C360.3 465.1 317.9 480 272 480C157.1 480 64 386.9 64 272C64 157.1 157.1 64 272 64C386.9 64 480 157.1 480 272zM272 416C351.5 416 416 351.5 416 272C416 192.5 351.5 128 272 128C192.5 128 128 192.5 128 272C128 351.5 192.5 416 272 416z"/></svg>
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center gap-5">
+              <div className="flex">
+                <div className="indicator">
+                  <span className="indicator-item badge badge-secondary text-xs font-bold bg-blue-800 rounded-full border-0 text-white">03</span>
+                  <button className="">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#808D9A"><path d="M24 48C10.7 48 0 58.7 0 72C0 85.3 10.7 96 24 96L69.3 96C73.2 96 76.5 98.8 77.2 102.6L129.3 388.9C135.5 423.1 165.3 448 200.1 448L456 448C469.3 448 480 437.3 480 424C480 410.7 469.3 400 456 400L200.1 400C188.5 400 178.6 391.7 176.5 380.3L171.4 352L475 352C505.8 352 532.2 330.1 537.9 299.8L568.9 133.9C572.6 114.2 557.5 96 537.4 96L124.7 96L124.3 94C119.5 67.4 96.3 48 69.2 48L24 48zM208 576C234.5 576 256 554.5 256 528C256 501.5 234.5 480 208 480C181.5 480 160 501.5 160 528C160 554.5 181.5 576 208 576zM432 576C458.5 576 480 554.5 480 528C480 501.5 458.5 480 432 480C405.5 480 384 501.5 384 528C384 554.5 405.5 576 432 576z"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div className="flex gap-1.5 items-center">
+                <div className="tooltip tooltip-bottom flex" data-tip="Need any help?">
+                  <button className="m-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#000000"><path d="M528 320C528 205.1 434.9 112 320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320zM64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576C178.6 576 64 461.4 64 320zM320 240C302.3 240 288 254.3 288 272C288 285.3 277.3 296 264 296C250.7 296 240 285.3 240 272C240 227.8 275.8 192 320 192C364.2 192 400 227.8 400 272C400 319.2 364 339.2 344 346.5L344 350.3C344 363.6 333.3 374.3 320 374.3C306.7 374.3 296 363.6 296 350.3L296 342.2C296 321.7 310.8 307 326.1 302C332.5 299.9 339.3 296.5 344.3 291.7C348.6 287.5 352 281.7 352 272.1C352 254.4 337.7 240.1 320 240.1zM288 432C288 414.3 302.3 400 320 400C337.7 400 352 414.3 352 432C352 449.7 337.7 464 320 464C302.3 464 288 449.7 288 432z"/></svg>
+                  </button>
+                </div>
+                <span className="font-medium text-base">Help</span>
+              </div>
+              <select defaultValue="Pick a font" className="select select-ghost font-medium text-base !border-0 focus:border-0 !outline-0 !box-shadow-none">
+                <option disabled={false}>My Account</option>
+                <option>All Orders</option>
+                <option>Shipping Addresses</option>
+                <option>Logout</option>
+              </select>
+            </div>
+          </div>
+          <div className="bg-[#1C2530] shadow-[0px_4px_40px_0px_#00000012] w-full">
+            <div className="max-w-[1440px] relative mx-auto flex justify-between items-center">
+              <div className="flex justify-start items-center">
+                <div className="bg-[#0066FF] flex gap-1 py-4 px-5 w-max items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="25" height="25" fill="#ffffff"><path d="M96 96C113.7 96 128 110.3 128 128L128 464C128 472.8 135.2 480 144 480L544 480C561.7 480 576 494.3 576 512C576 529.7 561.7 544 544 544L144 544C99.8 544 64 508.2 64 464L64 128C64 110.3 78.3 96 96 96zM192 160C192 142.3 206.3 128 224 128L416 128C433.7 128 448 142.3 448 160C448 177.7 433.7 192 416 192L224 192C206.3 192 192 177.7 192 160zM224 240L352 240C369.7 240 384 254.3 384 272C384 289.7 369.7 304 352 304L224 304C206.3 304 192 289.7 192 272C192 254.3 206.3 240 224 240zM224 352L480 352C497.7 352 512 366.3 512 384C512 401.7 497.7 416 480 416L224 416C206.3 416 192 401.7 192 384C192 366.3 206.3 352 224 352z"/></svg>
+                  <span className="text-white font-normal text-sm">All Categories</span>
+                </div>
+                <div className="flex gap-1 py-4 px-5 w-max items-center">
+                  <span className="text-white font-normal text-sm">Interior door fittings</span>
+                </div>
+                <div className="flex gap-1 py-4 px-5 w-max items-center">
+                  <span className="text-white font-normal text-sm">Exterior door fittings</span>
+                </div>
+                <div className="flex gap-1 py-4 px-5 w-max items-center">
+                  <span className="text-white font-normal text-sm">Window hardware</span>
+                </div>
+                <div className="flex gap-1 py-4 px-5 w-max items-center">
+                  <span className="text-white font-normal text-sm">Sliding door hardware</span>
+                </div>
+                <div className="flex gap-1 py-4 px-5 w-max items-center">
+                  <span className="text-white font-normal text-sm">Assortment</span>
+                </div>
+              </div>
+              <div className="flex justify-start items-center">
+                <div className="flex gap-1 py-4 px-5 w-max items-center">
+                  <span className="text-white font-normal text-sm">Blog</span>
+                </div>
+                <div className="bg-[#2B394A] flex gap-1 py-4 px-5 w-max items-center">
+                  <span className="text-white font-normal text-sm">Request a quote</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {children}
+
+        <footer className="footer sm:footer-horizontal bg-base-200 text-base-content p-10 font-sans">
+          <aside>
+            <svg
+              width="50"
+              height="50"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+              fillRule="evenodd"
+              clipRule="evenodd"
+              className="fill-current">
+              <path
+                d="M22.672 15.226l-2.432.811.841 2.515c.33 1.019-.209 2.127-1.23 2.456-1.15.325-2.148-.321-2.463-1.226l-.84-2.518-5.013 1.677.84 2.517c.391 1.203-.434 2.542-1.831 2.542-.88 0-1.601-.564-1.86-1.314l-.842-2.516-2.431.809c-1.135.328-2.145-.317-2.463-1.229-.329-1.018.211-2.127 1.231-2.456l2.432-.809-1.621-4.823-2.432.808c-1.355.384-2.558-.59-2.558-1.839 0-.817.509-1.582 1.327-1.846l2.433-.809-.842-2.515c-.33-1.02.211-2.129 1.232-2.458 1.02-.329 2.13.209 2.461 1.229l.842 2.515 5.011-1.677-.839-2.517c-.403-1.238.484-2.553 1.843-2.553.819 0 1.585.509 1.85 1.326l.841 2.517 2.431-.81c1.02-.33 2.131.211 2.461 1.229.332 1.018-.21 2.126-1.23 2.456l-2.433.809 1.622 4.823 2.433-.809c1.242-.401 2.557.484 2.557 1.838 0 .819-.51 1.583-1.328 1.847m-8.992-6.428l-5.01 1.675 1.619 4.828 5.011-1.674-1.62-4.829z"></path>
+            </svg>
+            <p>
+              ACME Industries Ltd.
+              <br />
+              Providing reliable tech since 1992
+            </p>
+          </aside>
+          <nav>
+            <h6 className="footer-title">Services</h6>
+            <a className="link link-hover">Branding</a>
+            <a className="link link-hover">Design</a>
+            <a className="link link-hover">Marketing</a>
+            <a className="link link-hover">Advertisement</a>
+          </nav>
+          <nav>
+            <h6 className="footer-title">Company</h6>
+            <a className="link link-hover">About us</a>
+            <a className="link link-hover">Contact</a>
+            <a className="link link-hover">Jobs</a>
+            <a className="link link-hover">Press kit</a>
+          </nav>
+          <nav>
+            <h6 className="footer-title">Legal</h6>
+            <a className="link link-hover">Terms of use</a>
+            <a className="link link-hover">Privacy policy</a>
+            <a className="link link-hover">Cookie policy</a>
+          </nav>
+        </footer>
       </body>
     </html>
   );
