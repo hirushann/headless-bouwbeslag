@@ -190,6 +190,29 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      <div className="flex gap-6 items-center font-sans mb-4">
+        <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
+          <Image className="" src="/card1icon.png" alt="" width={48} height={48} />
+          <h2 className="text-[#1C2530] font-semibold text-lg">Guaranteed the cheapest</h2>
+          <p className="text-[#3D4752] font-normal text-sm">Find this product cheaper elsewhere? We'll match the price and give you an extra 10% discount.</p>
+        </div>
+        <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
+          <Image className="" src="/card2icon.png" alt="" width={48} height={48} />
+          <h2 className="text-[#1C2530] font-semibold text-lg">30-day return policy</h2>
+          <p className="text-[#3D4752] font-normal text-sm">Return your order within 30 days and you will receive a refund of the amount you paid.</p>
+        </div>
+        <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
+          <Image className="" src="/card3icon.png" alt="" width={48} height={48} />
+          <h2 className="text-[#1C2530] font-semibold text-lg">Pay safely and quickly</h2>
+          <p className="text-[#3D4752] font-normal text-sm">You can choose and pay for your preferred payment method via our PSP Mollie.</p>
+        </div>
+        <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
+          <Image className="" src="/card4icon.png" alt="" width={48} height={48} />
+          <h2 className="text-[#1C2530] font-semibold text-lg">Renowned brands</h2>
+          <p className="text-[#3D4752] font-normal text-sm">We sell renowned brands such as JNF, GPF, Mauer, Mi Satori, M&T, Zoo Hardware</p>
+        </div>
+      </div>
     </main>
   );
 }
