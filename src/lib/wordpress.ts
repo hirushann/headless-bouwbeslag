@@ -1,0 +1,12 @@
+import axios from "axios";
+
+const wpApi = axios.create({
+  baseURL: "http://staging-plugin-test.test/wp-json/wp/v2",
+});
+
+export const fetchPosts = async (perPage: number = 5) => {
+  const res = await wpApi.get("/posts", {
+    params: { per_page: perPage, _embed: true },
+  });
+  return res.data;
+};

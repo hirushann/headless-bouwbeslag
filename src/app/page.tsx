@@ -1,216 +1,472 @@
+"use client";
+
 import Image from "next/image";
+import { useRef, useEffect, useState } from "react";
+import api from "@/lib/woocommerce";
+import ProductCard from "@/components/ProductCard";
+import { fetchPosts } from "@/lib/wordpress";
+interface Post {
+  id: number;
+  date: string;
+  title: { rendered: string };
+  excerpt: { rendered: string };
+  slug: string;
+  _embedded?: {
+    "wp:featuredmedia"?: { source_url: string }[];
+  };
+}
+
+interface Product {
+  id: number;
+  name: string;
+  images: { src: string }[];
+  price: string;
+  regular_price: string;
+  sale_price: string;
+  slug: string;
+}
+
+interface Category {
+  id: number;
+  name: string;
+  parent: number;
+}
 
 export default function Home() {
-  return (
-    <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start font-sans max-w-[1440px] relative mx-auto">
-      <div className="my-4 flex gap-5 w-full">
-        <div className="bg-[#FFFFFF] shadow-[0px_20px_24px_0px_#0000000A] rounded-[4px] w-[25%]">
-          <div className="border-b border-[#F1F1F1] flex items-center p-4">
-            <h2 className="font-bold text-[22px]">All Categories</h2>
-          </div>
-          <div>
-            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
-              <input type="radio" name="my-accordion-2" />
-              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Accessoires</div>
-              <div className="collapse-content text-sm">
-                <ul>
-                  <li>Accessoires 2</li>
-                  <li>Accessoires 3</li>
-                  <li>Accessoires 4</li>
-                </ul>
-              </div>
-            </div>
-            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
-              <input type="radio" name="my-accordion-2" />
-              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Bevestigingsmaterialen</div>
-              <div className="collapse-content text-sm">
-                <ul>
-                  <li>Bevestigingsmaterialen 2</li>
-                  <li>Bevestigingsmaterialen 3</li>
-                  <li>Bevestigingsmaterialen 4</li>
-                </ul>
-              </div>
-            </div> 
-            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
-              <input type="radio" name="my-accordion-2" />
-              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Binnendeurbeslag</div>
-              <div className="collapse-content text-sm">
-                <ul>
-                  <li>Binnendeurbeslag 2</li>
-                  <li>Binnendeurbeslag 3</li>
-                  <li>Binnendeurbeslag 4</li>
-                </ul>
-              </div>
-            </div>
-            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
-              <input type="radio" name="my-accordion-2" />
-              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Brievenbussen</div>
-              <div className="collapse-content text-sm">
-                <ul>
-                  <li>Brievenbussen 2</li>
-                  <li>Brievenbussen 3</li>
-                  <li>Brievenbussen 4</li>
-                </ul>
-              </div>
-            </div>
-            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
-              <input type="radio" name="my-accordion-2" />
-              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Buitendeurbeslag en veiligheidsbeslag</div>
-              <div className="collapse-content text-sm">
-                <ul>
-                  <li>Buitendeurbeslag en veiligheidsbeslag 2</li>
-                  <li>Buitendeurbeslag en veiligheidsbeslag 3</li>
-                  <li>Buitendeurbeslag en veiligheidsbeslag 4</li>
-                </ul>
-              </div>
-            </div>
-            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
-              <input type="radio" name="my-accordion-2" />
-              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Cilinders</div>
-              <div className="collapse-content text-sm">
-                <ul>
-                  <li>Cilinders 2</li>
-                  <li>Cilinders 3</li>
-                  <li>Cilinders 4</li>
-                </ul>
-              </div>
-            </div>
-            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
-              <input type="radio" name="my-accordion-2" />
-              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Deurgrepen</div>
-              <div className="collapse-content text-sm">
-                <ul>
-                  <li>Deurgrepen 2</li>
-                  <li>Deurgrepen 3</li>
-                  <li>Deurgrepen 4</li>
-                </ul>
-              </div>
-            </div>
-            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
-              <input type="radio" name="my-accordion-2" />
-              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Deursluiters</div>
-              <div className="collapse-content text-sm">
-                <ul>
-                  <li>Deursluiters 2</li>
-                  <li>Deursluiters 3</li>
-                  <li>Deursluiters 4</li>
-                </ul>
-              </div>
-            </div>
-            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
-              <input type="radio" name="my-accordion-2" />
-              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Bevestigingsmaterialen</div>
-              <div className="collapse-content text-sm">
-                <ul>
-                  <li>Bevestigingsmaterialen 2</li>
-                  <li>Bevestigingsmaterialen 3</li>
-                  <li>Bevestigingsmaterialen 4</li>
-                </ul>
-              </div>
-            </div>
-            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
-              <input type="radio" name="my-accordion-2" />
-              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Binnendeurbeslag</div>
-              <div className="collapse-content text-sm">
-                <ul>
-                  <li>Binnendeurbeslag 2</li>
-                  <li>Binnendeurbeslag 3</li>
-                  <li>Binnendeurbeslag 4</li>
-                </ul>
-              </div>
-            </div>
-            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
-              <input type="radio" name="my-accordion-2" />
-              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Cilinders</div>
-              <div className="collapse-content text-sm">
-                <ul>
-                  <li>Cilinders 2</li>
-                  <li>Cilinders 3</li>
-                  <li>Cilinders 4</li>
-                </ul>
-              </div>
-            </div>
-            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
-              <input type="radio" name="my-accordion-2" />
-              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Deurgrepen</div>
-              <div className="collapse-content text-sm">
-                <ul>
-                  <li>Deurgrepen 2</li>
-                  <li>Deurgrepen 3</li>
-                  <li>Deurgrepen 4</li>
-                </ul>
-              </div>
-            </div>
-            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
-              <input type="radio" name="my-accordion-2" />
-              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Deursluiters</div>
-              <div className="collapse-content text-sm">
-                <ul>
-                  <li>Deursluiters 2</li>
-                  <li>Deursluiters 3</li>
-                  <li>Deursluiters 4</li>
-                </ul>
-              </div>
-            </div>
-            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
-              <input type="radio" name="my-accordion-2" />
-              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Bevestigingsmaterialen</div>
-              <div className="collapse-content text-sm">
-                <ul>
-                  <li>Bevestigingsmaterialen 2</li>
-                  <li>Bevestigingsmaterialen 3</li>
-                  <li>Bevestigingsmaterialen 4</li>
-                </ul>
-              </div>
-            </div>
-            <div className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
-              <input type="radio" name="my-accordion-2" />
-              <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">Binnendeurbeslag</div>
-              <div className="collapse-content text-sm">
-                <ul>
-                  <li>Binnendeurbeslag 2</li>
-                  <li>Binnendeurbeslag 3</li>
-                  <li>Binnendeurbeslag 4</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="w-[75%] h-[80vh] bg-[linear-gradient(270deg,#1422AC_0%,#00074B_100.82%)] rounded-sm overflow-hidden relative flex items-center">
-          <div className="w-1/2 pl-12 flex flex-col gap-3">
-            <h1 className="text-white font-bold text-6xl leading-[120%]">Excellent detailed design!</h1>
-            <p className="font-normal text-xl leading-[32px] text-white">Concept collections for door, window and furniture fittings.</p>
-            <button className="flex gap-2 items-center bg-[#0066FF] rounded-sm py-4.5 px-7 w-max uppercase">
-              <span className="font-bold text-sm text-white leading-[22px]">Toevoegen aan winkelwagen</span>
-              <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#ffffff"><path d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z"/></svg></span>
-            </button>
-          </div>
-          <div className="w-1/2 flex items-center justify-center">
-            <Image className="w-full h-full object-contain object-right rotate-340" src="/herobg.png" alt="" width={300} height={100} />
-          </div>
-        </div>
-      </div>
+  // WooCommerce products for Best Sellers
+  const [products, setProducts] = useState<Product[]>([]);
+  // WooCommerce categories
+  const [categories, setCategories] = useState<Category[]>([]);
+  // Wordpress posts for blog
+  const [posts, setPosts] = useState<Post[]>([]);
+  // Fetch Wordpress posts for blog
+  useEffect(() => {
+    let cancelled = false;
+    fetchPosts(3)
+      .then((res) => {
+        console.log("Posts with embed:", res);
+        if (!cancelled) setPosts(res);
+      })
+      .catch(() => setPosts([]));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  // Fetch WooCommerce categories
+  useEffect(() => {
+    let cancelled = false;
+    api.get("products/categories", { per_page: 50 })
+      .then((res: any) => {
+        if (!cancelled) {
+          setCategories(res.data);
+        }
+      })
+      .catch(() => setCategories([]));
+    return () => { cancelled = true; }
+  }, []);
 
-      <div className="flex gap-6 items-center font-sans mb-4">
-        <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
-          <Image className="" src="/card1icon.png" alt="" width={48} height={48} />
-          <h2 className="text-[#1C2530] font-semibold text-lg">Guaranteed the cheapest</h2>
-          <p className="text-[#3D4752] font-normal text-sm">Find this product cheaper elsewhere? We'll match the price and give you an extra 10% discount.</p>
+  // Carousel 1 (Best Sellers)
+  const trackRef1 = useRef<HTMLDivElement>(null);
+  const [atStart1, setAtStart1] = useState(true);
+  const [atEnd1, setAtEnd1] = useState(false);
+
+  useEffect(() => {
+    const el = trackRef1.current;
+    if (!el) return;
+    const onScroll = () => {
+      const { scrollLeft, scrollWidth, clientWidth } = el;
+      setAtStart1(scrollLeft <= 1);
+      setAtEnd1(scrollLeft + clientWidth >= scrollWidth - 1);
+    };
+    onScroll();
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+    // Depend on products so it recalculates when products change
+  }, [products]);
+
+  const scrollByPage1 = (dir: 1 | -1) => {
+    const el = trackRef1.current;
+    if (!el) return;
+    const card = el.querySelector("div.snap-start") as HTMLElement;
+    const amount = card ? card.offsetWidth + 16 : 300; // 16px gap assumed
+    el.scrollBy({ left: dir * amount, behavior: "smooth" });
+  };
+  // Fetch WooCommerce products for carousel 1
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get("products", { per_page: 10 })
+      .then((res: any) => {
+        if (!cancelled) {
+          setProducts(res.data);
+          console.log("Fetched products count:", res.data.length);
+        }
+      })
+      .catch((err: any) => {
+        if (!cancelled) {
+          setProducts([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Carousel 2 (New Arrivals)
+  const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
+  const trackRef2 = useRef<HTMLDivElement>(null);
+  const [atStart2, setAtStart2] = useState(true);
+  const [atEnd2, setAtEnd2] = useState(false);
+
+  useEffect(() => {
+    const el = trackRef2.current;
+    if (!el) return;
+    const onScroll = () => {
+      const { scrollLeft, scrollWidth, clientWidth } = el;
+      setAtStart2(scrollLeft <= 1);
+      setAtEnd2(scrollLeft + clientWidth >= scrollWidth - 1);
+    };
+    onScroll();
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+    // Depend on recommendedProducts so it recalculates when products change
+  }, [recommendedProducts]);
+
+  const scrollByPage2 = (dir: 1 | -1) => {
+    const el = trackRef2.current;
+    if (!el) return;
+    const card = el.querySelector("div.snap-start") as HTMLElement;
+    const amount = card ? card.offsetWidth + 16 : 300;
+    el.scrollBy({ left: dir * amount, behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get("products", { featured: true, per_page: 10 }) // fetch featured products
+      .then((res: any) => {
+        if (!cancelled) {
+          setRecommendedProducts(res.data);
+        }
+      })
+      .catch(() => setRecommendedProducts([]));
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start font-sans bg-[#F5F5F5]">
+      <div className="max-w-[1440px] relative mx-auto">
+        <div className="my-4 flex gap-5 w-full">
+          <div className="bg-[#FFFFFF] shadow-[0px_20px_24px_0px_#0000000A] rounded-[4px] w-[25%]">
+            <div className="border-b border-[#F1F1F1] flex items-center p-4">
+              <h2 className="font-bold text-[22px]">All Categories</h2>
+            </div>
+            <div>
+              {categories.filter(cat => cat.parent === 0).map((cat) => (
+                <div key={cat.id} className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
+                  <input type="radio" name="my-accordion-2" />
+                  <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">{cat.name}</div>
+                  <div className="collapse-content text-sm">
+                    <ul>
+                      {categories.filter(sub => sub.parent === cat.id).map((sub) => (
+                        <li key={sub.id}>{sub.name}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="w-[75%] h-[80vh] bg-[linear-gradient(270deg,#1422AC_0%,#00074B_100.82%)] rounded-sm overflow-hidden relative flex items-center">
+            <div className="w-1/2 pl-12 flex flex-col gap-3">
+              <h1 className="text-white font-bold text-6xl leading-[120%]">Excellent detailed design!</h1>
+              <p className="font-normal text-xl leading-[32px] text-white">Concept collections for door, window and furniture fittings.</p>
+              <button className="flex gap-2 items-center bg-[#0066FF] rounded-sm py-4.5 px-7 w-max uppercase">
+                <span className="font-bold text-sm text-white leading-[22px]">Toevoegen aan winkelwagen</span>
+                <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#ffffff"><path d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z"/></svg></span>
+              </button>
+            </div>
+            <div className="w-1/2 flex items-center justify-center">
+              <Image className="w-full h-full object-contain object-right rotate-340" src="/herobg.png" alt="" width={300} height={100} />
+            </div>
+          </div>
         </div>
-        <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
-          <Image className="" src="/card2icon.png" alt="" width={48} height={48} />
-          <h2 className="text-[#1C2530] font-semibold text-lg">30-day return policy</h2>
-          <p className="text-[#3D4752] font-normal text-sm">Return your order within 30 days and you will receive a refund of the amount you paid.</p>
+
+        <div className="flex gap-6 items-center font-sans mb-4">
+          <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
+            <Image className="" src="/card1icon.png" alt="" width={48} height={48} />
+            <h2 className="text-[#1C2530] font-semibold text-lg">Guaranteed the cheapest</h2>
+            <p className="text-[#3D4752] font-normal text-sm">Find this product cheaper elsewhere? We'll match the price and give you an extra 10% discount.</p>
+          </div>
+          <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
+            <Image className="" src="/card2icon.png" alt="" width={48} height={48} />
+            <h2 className="text-[#1C2530] font-semibold text-lg">30-day return policy</h2>
+            <p className="text-[#3D4752] font-normal text-sm">Return your order within 30 days and you will receive a refund of the amount you paid.</p>
+          </div>
+          <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
+            <Image className="" src="/card3icon.png" alt="" width={48} height={48} />
+            <h2 className="text-[#1C2530] font-semibold text-lg">Pay safely and quickly</h2>
+            <p className="text-[#3D4752] font-normal text-sm">You can choose and pay for your preferred payment method via our PSP Mollie.</p>
+          </div>
+          <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
+            <Image className="" src="/card4icon.png" alt="" width={48} height={48} />
+            <h2 className="text-[#1C2530] font-semibold text-lg">Renowned brands</h2>
+            <p className="text-[#3D4752] font-normal text-sm">We sell renowned brands such as JNF, GPF, Mauer, Mi Satori, M&T, Zoo Hardware</p>
+          </div>
         </div>
-        <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
-          <Image className="" src="/card3icon.png" alt="" width={48} height={48} />
-          <h2 className="text-[#1C2530] font-semibold text-lg">Pay safely and quickly</h2>
-          <p className="text-[#3D4752] font-normal text-sm">You can choose and pay for your preferred payment method via our PSP Mollie.</p>
+
+        {/* Best Sellers Carousel */}
+        <div className="w-full py-10">
+          <div className="flex justify-between items-center mb-2">
+            <h2 className="text-3xl font-bold text-[#1C2530]">Our best selling products</h2>
+            <div className="flex gap-2">
+              <button onClick={() => scrollByPage1(-1)} disabled={atStart1} className="btn btn-circle disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0066FF] hover:text-white" aria-label="Previous" type="button">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="currentColor" className="transition-colors"><path d="M201.4 297.4C188.9 309.9 188.9 330.2 201.4 342.7L361.4 502.7C373.9 515.2 394.2 515.2 406.7 502.7C419.2 490.2 419.2 469.9 406.7 457.4L269.3 320L406.6 182.6C419.1 170.1 419.1 149.8 406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3L201.3 297.3z"/></svg>
+              </button>
+              <button onClick={() => scrollByPage1(1)} disabled={atEnd1} className="btn btn-circle disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0066FF] hover:text-white" aria-label="Next" type="button">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="currentColor" className="transition-colors"><path d="M439.1 297.4C451.6 309.9 451.6 330.2 439.1 342.7L279.1 502.7C266.6 515.2 246.3 515.2 233.8 502.7C221.3 490.2 221.3 469.9 233.8 457.4L371.2 320L233.9 182.6C221.4 170.1 221.4 149.8 233.9 137.3C246.4 124.8 266.7 124.8 279.2 137.3L439.2 297.3z"/></svg>
+              </button>
+            </div>
+          </div>
+          <p className="text-[#3D4752] mb-8">Check our best seller products on bouwbeslag.nl website right now</p>
+          <div className="relative">
+            <div ref={trackRef1} className="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 no-scrollbar" style={{ scrollbarWidth: 'none' }}>
+              {products.map((p) => (
+                <div key={p.id} className="snap-start shrink-0 w-[24%]">
+                  <ProductCard product={p} />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
-          <Image className="" src="/card4icon.png" alt="" width={48} height={48} />
-          <h2 className="text-[#1C2530] font-semibold text-lg">Renowned brands</h2>
-          <p className="text-[#3D4752] font-normal text-sm">We sell renowned brands such as JNF, GPF, Mauer, Mi Satori, M&T, Zoo Hardware</p>
+
+        {/* Recommended Products Carousel */}
+        <div className="w-full py-10">
+          <div className="flex justify-between items-center mb-2">
+            <h2 className="text-3xl font-bold text-[#1C2530]">Recommended for you</h2>
+            <div className="flex gap-2">
+              <button onClick={() => scrollByPage2(-1)} disabled={atStart2} className="btn btn-circle disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0066FF] hover:text-white" aria-label="Previous" type="button">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20"fill="currentColor" className="transition-colors"><path d="M201.4 297.4C188.9 309.9 188.9 330.2 201.4 342.7L361.4 502.7C373.9 515.2 394.2 515.2 406.7 502.7C419.2 490.2 419.2 469.9 406.7 457.4L269.3 320L406.6 182.6C419.1 170.1 419.1 149.8 406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3L201.3 297.3z"/></svg>
+              </button>
+              <button onClick={() => scrollByPage2(1)} disabled={atEnd2} className="btn btn-circle disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0066FF] hover:text-white" aria-label="Next" type="button">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20"fill="currentColor" className="transition-colors"><path d="M439.1 297.4C451.6 309.9 451.6 330.2 439.1 342.7L279.1 502.7C266.6 515.2 246.3 515.2 233.8 502.7C221.3 490.2 221.3 469.9 233.8 457.4L371.2 320L233.9 182.6C221.4 170.1 221.4 149.8 233.9 137.3C246.4 124.8 266.7 124.8 279.2 137.3L439.2 297.3z"/></svg>
+              </button>
+            </div>
+          </div>
+          <p className="text-[#3D4752] mb-8">Check our best seller products on bouwbeslag.nl website right now</p>
+          <div className="relative">
+            <div ref={trackRef2} className="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 no-scrollbar" style={{ scrollbarWidth: 'none' }}>
+              {recommendedProducts.map((p) => (
+                <div key={p.id} className="snap-start shrink-0 w-[24%]">
+                  <ProductCard product={p} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Shop by Categories */}
+        <div className="w-full py-10">
+          <div className="flex justify-between items-center mb-2">
+            <h2 className="text-3xl font-bold text-[#1C2530]">Shop by categories</h2>
+            <div className="flex gap-2 items-center">
+              <button className="border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">View All</button>
+            </div>
+          </div>
+          <p className="text-[#3D4752] mb-8">Check all our categories to get what you needs</p>
+          <div className="relative">
+            <div className="grid grid-cols-5 gap-5">
+              {categories.filter(cat => cat.parent === 0).map((cat: any) => (
+                <div key={cat.id} className="border border-[#DBE3EA] rounded-sm p-4 shadow-[0px_20px_24px_0px_#0000000A] relative flex flex-col h-full">
+                  <Image
+                    className="mb-3 rounded-sm"
+                    src={cat.image?.src || "/default-fallback-image.png"}
+                    alt={cat.name}
+                    width={300}
+                    height={100}
+                  />
+                  <div className="mb-3 relative">
+                    <p className="font-semibold text-[#1C2530] text-xl">{cat.name}</p>
+                    <div>
+                      {categories
+                        .filter((sub: any) => sub.parent === cat.id)
+                        .slice(0, 3)
+                        .map((sub: any) => (
+                          <div
+                            key={sub.id}
+                            className="flex items-center justify-between mt-2 font-normal text-[#1C2530] text-base hover:underline cursor-pointer hover:text-[#0066FF]"
+                          >
+                            <span>{sub.name}</span>
+                            <span>{sub.count}</span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                  <div className="w-full mt-auto">
+                    <button className="!w-full border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">
+                      View all {cat.name}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Read our blog */}
+        <div className="w-full py-10">
+          <div className="flex justify-between items-center mb-2">
+            <h2 className="text-3xl font-bold text-[#1C2530]">Read our blog</h2>
+            <div className="flex gap-2 items-center">
+              <button className="border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">View All</button>
+            </div>
+          </div>
+          <p className="text-[#3D4752] mb-8">Check our latest article to get meaningfull content or tips for shopping</p>
+          <div className="relative">
+            <div className="grid grid-cols-3 gap-5">
+              {posts.map((post) => (
+                <div key={post.id}>
+                  <Image
+                    className="mb-3 rounded-sm h-[250px] w-full object-cover"
+                    src={
+                      post._embedded?.["wp:featuredmedia"]?.[0]?.source_url ||
+                      post._embedded?.["wp:featuredmedia"]?.[0]?.media_details?.sizes?.full?.source_url ||
+                      "/default-fallback-image.png"
+                    }
+                    alt={post.title.rendered}
+                    width={500}
+                    height={200}
+                  />
+                  <div className="flex flex-col gap-2">
+                    <p className="text-[#0066FF] font-normal text-sm">
+                      {new Date(post.date).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </p>
+                    <p
+                      className="text-[#1C2530] font-semibold text-xl"
+                      dangerouslySetInnerHTML={{ __html: post.title.rendered }}
+                    />
+                    <p
+                      className="text-[#3D4752] font-normal text-sm"
+                      dangerouslySetInnerHTML={{ __html: post.excerpt.rendered }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Content */}
+        <div className="w-full py-10">
+          <div className="flex flex-col gap-6 mb-12">
+            <h3 className="text-[#1C2530] font-semibold text-2xl">The importance of quality door hardware</h3>
+            <p className="text-[#3D4752] font-normal text-base">Door handles are essential in every home. They make opening and closing doors easy and contribute to the overall appearance of your interior. Because door handles are part of the door hardware, the choice of materials and finish is important. At Bouwbeslag.com, you'll find a wide range of high-quality door handles in various styles and materials.</p>
+            <p className="text-[#3D4752] font-normal text-base">A door handle is a long-term investment. If you choose high-quality materials, you'll benefit from years of smooth operation and a look that perfectly complements your home. In addition to the design, it's important to consider the dimensions, finish, and durability of the hardware. This allows you to optimally combine functionality and aesthetics.</p>
+          </div>
+
+          <div className="flex flex-col gap-6 mb-12">
+            <h3 className="text-[#1C2530] font-semibold text-2xl">A door handle in all shapes and sizes</h3>
+            <p className="text-[#3D4752] font-normal text-base">At Bouwbeslag.com, you'll find door handles with rosettes, backplates, keyholes (PC), toilet locks, blinds, and special security hardware for exterior doors. The materials range from stainless steel and brass to aluminum and bronze. For those looking for minimal maintenance, scratch-resistant materials like stainless steel or titanium are the best choice. Color also plays a role: choose classic silver, sleek black, or a striking finish that matches your interior style.</p>
+          </div>
+
+          <div className="flex flex-col gap-6 mb-12">
+            <h3 className="text-[#1C2530] font-semibold text-2xl">A door handle in all shapes and sizes</h3>
+            <p className="text-[#3D4752] font-normal text-base">At Bouwbeslag.com, you'll find door handles with rosettes, backplates, keyholes (PC), toilet locks, blinds, and special security hardware for exterior doors. The materials range from stainless steel and brass to aluminum and bronze. For those looking for minimal maintenance, scratch-resistant materials like stainless steel or titanium are the best choice. Color also plays a role: choose classic silver, sleek black, or a striking finish that matches your interior style.</p>
+            <ul className="pl-0 space-y-2 text-[#3D4752] font-medium text-base">
+              <li className="flex items-start gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z"/></svg>
+                Unscrew the existing door handles and escutcheons or backplates.
+              </li>
+              <li className="flex items-start gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z"/></svg>
+                Pull the door handle pin out of the lock case and remove the old hardware.
+              </li>
+              <li className="flex items-start gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z"/></svg>
+                Insert the new pin through the lock and install the new hardware.
+              </li>
+              <li className="flex items-start gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z"/></svg>
+                Screw in the escutcheons or backplates and place the door handles firmly on the pin.
+              </li>
+              <li className="flex items-start gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z"/></svg>
+                Test the function: check that the door handle moves smoothly and the door closes properly.
+              </li>
+            </ul>
+          </div>
+
+          <div className="flex flex-col gap-6 mb-12">
+            <h3 className="text-[#1C2530] font-semibold text-2xl">Innovation and safety</h3>
+            <p className="text-[#3D4752] font-normal text-base">With modern door handles, you combine security and ease of use. For exterior doors, security hardware with anti-drill protection is essential to keep burglars out. Our range also includes smart door handles that can be opened with Bluetooth, Wi-Fi, fingerprint scanner, card, or PIN code. These innovative solutions offer added convenience and a sense of security in your home.</p>
+          </div>
+
+          <div className="flex flex-col mb-12 p-6 bg-[#FFFFFF] rounded-lg">
+            <div className="mb-5">
+              <h3 className="text-[#1C2530] font-semibold text-2xl">Frequently asked questions about door handles</h3>
+            </div>
+            <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
+              <input type="radio" name="my-accordion-1" defaultChecked />
+              <div className="collapse-title font-semibold flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z"/></svg>
+                What types of door handles are there?
+              </div>
+              <div className="collapse-content text-sm">With modern door handles, you combine security and ease of use. For exterior doors, security hardware with anti-drill protection is essential to keep burglars out. Our range also includes smart door handles that can be opened with Bluetooth, Wi-Fi, fingerprint scanner, card, or PIN code. These innovative solutions offer added convenience and a sense of security in your home.</div>
+            </div>
+            <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
+              <input type="radio" name="my-accordion-1" />
+              <div className="collapse-title font-semibold flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z"/></svg>
+                How do I choose the right door handle for my door?
+              </div>
+              <div className="collapse-content text-sm">With modern door handles, you combine security and ease of use. For exterior doors, security hardware with anti-drill protection is essential to keep burglars out. Our range also includes smart door handles that can be opened with Bluetooth, Wi-Fi, fingerprint scanner, card, or PIN code. These innovative solutions offer added convenience and a sense of security in your home.</div>
+            </div>
+            <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
+              <input type="radio" name="my-accordion-1" />
+              <div className="collapse-title font-semibold flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z"/></svg>
+                What is the difference between door handle, door handle and doorknob?
+              </div>
+              <div className="collapse-content text-sm">With modern door handles, you combine security and ease of use. For exterior doors, security hardware with anti-drill protection is essential to keep burglars out. Our range also includes smart door handles that can be opened with Bluetooth, Wi-Fi, fingerprint scanner, card, or PIN code. These innovative solutions offer added convenience and a sense of security in your home.</div>
+            </div>
+            <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
+              <input type="radio" name="my-accordion-1" />
+              <div className="collapse-title font-semibold flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z"/></svg>
+                How do I remove an old door handle?
+              </div>
+              <div className="collapse-content text-sm">With modern door handles, you combine security and ease of use. For exterior doors, security hardware with anti-drill protection is essential to keep burglars out. Our range also includes smart door handles that can be opened with Bluetooth, Wi-Fi, fingerprint scanner, card, or PIN code. These innovative solutions offer added convenience and a sense of security in your home.</div>
+            </div>
+            <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
+              <input type="radio" name="my-accordion-1" />
+              <div className="collapse-title font-semibold flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z"/></svg>
+                Can any door fittings be placed on any door?
+              </div>
+              <div className="collapse-content text-sm">With modern door handles, you combine security and ease of use. For exterior doors, security hardware with anti-drill protection is essential to keep burglars out. Our range also includes smart door handles that can be opened with Bluetooth, Wi-Fi, fingerprint scanner, card, or PIN code. These innovative solutions offer added convenience and a sense of security in your home.</div>
+            </div>
+            <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
+              <input type="radio" name="my-accordion-1" />
+              <div className="collapse-title font-semibold flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z"/></svg>
+                What is blind door fittings or a blind door handle?
+              </div>
+              <div className="collapse-content text-sm">With modern door handles, you combine security and ease of use. For exterior doors, security hardware with anti-drill protection is essential to keep burglars out. Our range also includes smart door handles that can be opened with Bluetooth, Wi-Fi, fingerprint scanner, card, or PIN code. These innovative solutions offer added convenience and a sense of security in your home.</div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-6 mb-12">
+            <h3 className="text-[#1C2530] font-semibold text-2xl">A door handle in all shapes and sizes</h3>
+            <p className="text-[#3D4752] font-normal text-base">At Bouwbeslag.com, you'll find door handles with rosettes, backplates, keyholes (PC), toilet locks, blinds, and special security hardware for exterior doors. The materials range from stainless steel and brass to aluminum and bronze. For those looking for minimal maintenance, scratch-resistant materials like stainless steel or titanium are the best choice. Color also plays a role: choose classic silver, sleek black, or a striking finish that matches your interior style.</p>
+          </div>
         </div>
       </div>
     </main>
