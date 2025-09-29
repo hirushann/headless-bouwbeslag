@@ -296,7 +296,7 @@ export default function SearchPage({ searchParams }: Params) {
 
           {/* Main Content */}
           <main className="flex-1">
-            <div className="flex justify-between items-start mt-8">
+            <div className="flex justify-between items-start mt-8 mb-4">
               <div>
                 <h1 className="text-base font-medium text-[#4F4F4F]">{products.length} results found</h1>
               </div>

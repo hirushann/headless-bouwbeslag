@@ -10,3 +10,10 @@ export const fetchPosts = async (perPage: number = 5) => {
   });
   return res.data;
 };
+
+export const fetchCategories = async () => {
+  const res = await wpApi.get("/categories", {
+    params: { per_page: 100, _fields: "id,name,slug" },
+  });
+  return res.data;
+};
