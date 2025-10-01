@@ -171,21 +171,37 @@ export default function Home() {
               <h2 className="font-bold text-[22px]">All Categories</h2>
             </div>
             <div>
-              {categories.filter(cat => cat.parent === 0).map((cat) => (
-                <div key={cat.id} className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
-                  <input type="radio" name="my-accordion-2" />
-                  <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">{cat.name}</div>
-                  <div className="collapse-content text-sm">
-                    <ul>
-                      {categories.filter(sub => sub.parent === cat.id).map((sub) => (
-                        <li key={sub.id} className="hover:underline cursor-pointer text-[#0066FF]">
-                          <Link href={`/categories/${sub.slug}`}>{sub.name}</Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              ))}
+              {categories.filter(cat => cat.parent === 0).map((cat) => {
+                const subcategories = categories.filter(sub => sub.parent === cat.id);
+                if (subcategories.length > 0) {
+                  return (
+                    <div key={cat.id} className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
+                      <input type="radio" name="my-accordion-2" />
+                      <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">{cat.name}</div>
+                      <div className="collapse-content text-sm">
+                        <ul>
+                          {subcategories.map((sub) => (
+                            <li key={sub.id} className="hover:underline cursor-pointer text-[#0066FF]">
+                              <Link href={`/categories/${sub.slug}`}>{sub.name}</Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div key={cat.id} className="border-b border-[#F5F5F5] !rounded-0">
+                      <Link
+                        href={`/categories/${cat.slug}`}
+                        className="block font-normal text-sm text-[#3D4752] py-3 px-4 hover:underline"
+                      >
+                        {cat.name}
+                      </Link>
+                    </div>
+                  );
+                }
+              })}
             </div>
           </div>
 

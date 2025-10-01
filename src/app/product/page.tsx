@@ -4,14 +4,15 @@ import Link from "next/link";
 import Image from "next/image";
 
 const ProductPage = () => {
-  const [selectedImage, setSelectedImage] = useState('/mainprodimg.png');
+  const [selectedImage, setSelectedImage] = useState('/afbeelding.png');
   const [quantity, setQuantity] = useState(1);
 
   const thumbnails = [
-    '/thumbnail1.png',
-    '/thumbnail2.png',
-    '/thumbnail3.png',
-    '/thumbnail3.png',
+    '/top.jpg',
+    '/right.jpg',
+    '/Front_orthographic.jpg',
+    '/2partsPosed-depth.jpg',
+    '/afbeelding.png',
   ];
 
   const colours = [

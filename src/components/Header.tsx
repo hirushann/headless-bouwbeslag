@@ -44,6 +44,19 @@ export default function Header() {
 
   const router = useRouter();
   const [query, setQuery] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const checkLogin = () => {
+      if (typeof window !== "undefined") {
+        const token = localStorage.getItem("token");
+        setIsLoggedIn(!!token);
+      }
+    };
+    checkLogin();
+    window.addEventListener("storage", checkLogin);
+    return () => window.removeEventListener("storage", checkLogin);
+  }, []);
 
   return (
     <div className="bg-[#F7F7F7] w-full">
@@ -121,12 +134,59 @@ export default function Header() {
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-7"><path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
             </button>
           </div>
-          <select defaultValue="Pick a font" className="select select-ghost font-medium text-base !border-0 focus:border-0 !outline-0 !box-shadow-none hidden lg:block">
-            <option disabled={false}>My Account</option>
-            <option>All Orders</option>
-            <option>Shipping Addresses</option>
-            <option>Logout</option>
-          </select>
+          {/* My Account Dropdown */}
+          {!isLoggedIn ? (
+            <select
+              className="select select-ghost font-medium text-base !border-0 focus:border-0 !outline-0 !box-shadow-none hidden lg:block"
+              defaultValue="account"
+              onChange={(e) => {
+                if (e.target.value === "login") {
+                  router.push("/account/login");
+                }
+                // Always reset to "account"
+                e.target.value = "account";
+              }}
+            >
+              <option value="account" disabled>
+                My Account
+              </option>
+              <option value="login">Login</option>
+            </select>
+          ) : (
+            <select
+              className="select select-ghost font-medium text-base !border-0 focus:border-0 !outline-0 !box-shadow-none hidden lg:block cursor-pointer"
+              // defaultValue="account"
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === "account") {
+                  router.push("/account");
+                } else if (val === "orders") {
+                  router.push("/account?tab=orders");
+                } else if (val === "addresses") {
+                  router.push("/account?tab=addresses");
+                } else if (val === "details") {
+                  router.push("/account?tab=details");
+                } else if (val === "logout") {
+                  if (typeof window !== "undefined") {
+                    localStorage.clear();
+                    setIsLoggedIn(false);
+                    router.push("/");
+                  }
+                }
+                // Always reset to "account"
+                e.target.value = "account";
+              }}
+            >
+              <option className="cursor-pointer" value="account" disabled>
+                My Account
+              </option>
+              {/* <option className="cursor-pointer" value="account">My Account</option> */}
+              <option className="cursor-pointer" value="orders">Orders</option>
+              <option className="cursor-pointer" value="addresses">Addresses</option>
+              <option className="cursor-pointer" value="details">Account Details</option>
+              <option className="cursor-pointer" value="logout">Logout</option>
+            </select>
+          )}
         </div>
       </div>
       <div className="bg-[#1C2530] shadow-[0px_4px_40px_0px_#00000012] w-full">
