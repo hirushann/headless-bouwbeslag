@@ -1,11 +1,19 @@
 "use client";
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, use } from 'react';
+import api from "@/lib/woocommerce";
 import Link from "next/link";
 import Image from "next/image";
+import axios from "axios";
+import { fetchMedia } from "@/lib/wordpress";
 
-const ProductPage = () => {
+const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
   const [selectedImage, setSelectedImage] = useState('/afbeelding.png');
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [thumbIndex, setThumbIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [selectedDiscount, setSelectedDiscount] = useState<number | null>(null);
+  const [product, setProduct] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   const thumbnails = [
     '/top.jpg',
@@ -38,12 +46,107 @@ const ProductPage = () => {
   ];
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const thumbsRef = useRef<HTMLDivElement>(null);
 
   const scrollBy = (offset: number) => {
     if (scrollRef.current) {
       scrollRef.current.scrollBy({ left: offset, behavior: 'smooth' });
     }
   };
+  const scrollThumbsBy = (offset: number) => {
+    if (thumbsRef.current) {
+      thumbsRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+    }
+  };
+
+  const { slug } = use(params);
+  useEffect(() => {
+    setLoading(true);
+    api
+      .get("products", { slug })
+      .then(async (response: any) => {
+        console.log("WooCommerce product by slug:", response.data);
+        if (Array.isArray(response.data) && response.data.length > 0) {
+          const productData = response.data[0];
+          const res = await api.get(`products/${productData.id}`);
+          if (res?.data) {
+            const productData = res.data;
+            let mainImageUrl: string | undefined = undefined;
+            const mainImageMeta = productData.meta_data?.find(
+              (m: any) => m.key === "main_carousel_image"
+            );
+            if (mainImageMeta?.value) {
+              try {
+                const media = await fetchMedia(mainImageMeta.value);
+                if (media?.source_url) {
+                  mainImageUrl = media.source_url;
+                  setSelectedImage(media.source_url);
+                }
+              } catch (err) {
+                console.error("Error fetching main carousel image:", err);
+              }
+            }
+            setProduct(productData);
+            // Extract gallery images from productData.images
+            if (Array.isArray(productData.images) && productData.images.length > 0) {
+              let imgs = productData.images
+                .filter((img: any) => !!img?.src)
+                .map((img: any) => img.src);
+              // Ensure main image is at the start if not already present
+              if (mainImageUrl && !imgs.includes(mainImageUrl)) {
+                imgs = [mainImageUrl, ...imgs];
+              }
+              setGalleryImages(imgs);
+              // If no selectedImage has been chosen (or it's default), set it to first gallery image
+              setSelectedImage((prev) =>
+                (!prev || prev === '/afbeelding.png') && imgs.length > 0 ? imgs[0] : prev
+              );
+            } else {
+              // If galleryImages empty, but mainImageUrl exists, use it
+              if (mainImageUrl) {
+                setGalleryImages([mainImageUrl]);
+              } else {
+                setGalleryImages([]);
+              }
+            }
+          }
+        } else {
+          setProduct(null);
+          setGalleryImages([]);
+        }
+      })
+      .catch((error: any) => {
+        console.error("Error fetching product:", error);
+        setProduct(null);
+        setGalleryImages([]);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [slug]);
+
+  const productTitle =
+    product?.meta_data?.find((m: any) => m.key === "crucial_data_product_name")?.value ||
+    product?.name ||
+    "";
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[300px]">
+        <span>Loading product details...</span>
+      </div>
+    );
+  }
+
+  // Optionally, you could use product data below instead of hardcoded.
+  // For now, just render the existing page if product is found.
+  if (!product) {
+    return (
+      <div className="flex justify-center items-center min-h-[300px]">
+        <span>Product not found.</span>
+      </div>
+    );
+  }
 
   return (
     <div className='bg-[#F5F5F5] font-sans'>
@@ -63,28 +166,53 @@ const ProductPage = () => {
             <div className="flex flex-col lg:flex-row gap-8">
                 {/* Left side: Images */}
                 <div className="lg:w-1/2">
-                    <img
-                        src={selectedImage}
-                        alt="Main Product"
-                        className="w-full h-auto rounded-lg object-cover mb-4"
-                    />
-                    <div className="grid grid-cols-4 gap-4">
-                        {thumbnails.map((thumb, idx) => (
-                        <button
-                            key={idx}
-                            onClick={() => setSelectedImage(thumb)}
-                            className={`border rounded-md overflow-hidden w-full h-full flex-shrink-0 ${
-                            selectedImage === thumb ? 'border-blue-600' : 'border-gray-300'
-                            }`}
-                            aria-label={`Thumbnail ${idx + 1}`}
-                        >
-                            <img
-                            src={thumb}
-                            alt={`Thumbnail ${idx + 1}`}
-                            className="w-full h-full object-cover"
-                            />
-                        </button>
-                        ))}
+                    <img src={selectedImage} alt="Main Product" className="w-full h-auto rounded-lg object-cover mb-4" />
+                    {/* Thumbnails Carousel with slice-based logic */}
+                    <div className="flex items-center gap-2 mt-2">
+                      <button type="button" onClick={() => setThumbIndex((prev) => Math.max(0, prev - 1))} className="w-8 h-8 flex items-center justify-center rounded-full border border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer" aria-label="Previous thumbnails" disabled={thumbIndex === 0} style={{ opacity: thumbIndex === 0 ? 0.5 : 1 }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                      </button>
+                      <div className="grid grid-cols-4 gap-4 pb-1 w-[90%]">
+                        {(galleryImages && galleryImages.length > 0
+                          ? galleryImages
+                          : thumbnails
+                        )
+                          .slice(thumbIndex, thumbIndex + 4)
+                          .map((thumb, idx) => {
+                            // Use global index for aria-label and key
+                            const globalIdx = thumbIndex + idx;
+                            return (
+                              <button key={globalIdx} onClick={() => setSelectedImage(thumb)} className={`border rounded-md overflow-hidden flex-shrink-0 ${selectedImage === thumb ? 'border-blue-600' : 'border-gray-300'}`} aria-label={`Thumbnail ${globalIdx + 1}`} type="button">
+                                <img src={thumb} alt={`Thumbnail ${globalIdx + 1}`} className="w-full h-full object-cover" />
+                              </button>
+                            );
+                          })}
+                      </div>
+                      <button type="button"
+                        onClick={() =>
+                          setThumbIndex((prev) =>
+                            Math.min(
+                              (galleryImages && galleryImages.length > 0 ? galleryImages.length : thumbnails.length) - 4,
+                              prev + 1
+                            )
+                          )
+                        }
+                        className="w-8 h-8 flex items-center justify-center rounded-full border border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer"
+                        aria-label="Next thumbnails"
+                        disabled={
+                          thumbIndex >=
+                          ((galleryImages && galleryImages.length > 0 ? galleryImages.length : thumbnails.length) - 4)
+                        }
+                        style={{
+                          opacity:
+                            thumbIndex >=
+                            ((galleryImages && galleryImages.length > 0 ? galleryImages.length : thumbnails.length) - 4)
+                              ? 0.5
+                              : 1,
+                        }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                      </button>
                     </div>
                     <div className='text-[#1C2530] font-bold text-3xl mt-8'>
                         <h3>Handig om dij te bestellen</h3>
@@ -106,40 +234,89 @@ const ProductPage = () => {
                     </div>
                     {/* Title and Brand */}
                     <div>
-                        <h1 className="text-3xl font-bold text-[#1C2530]">Premium Door Handle</h1>
+                        <h1 className="text-3xl font-bold text-[#1C2530]">{productTitle}</h1>
                     </div>
 
                     {/* Price and Discount */}
-                    <div className="flex items-center gap-4">
-                        <p className="text-3xl font-bold text-[#0066FF]">€12.99</p>
-                        <p className="text-lg font-normal line-through text-[#212121]">€15.99</p>
-                        <div className="tooltip tooltip-right" data-tip="Deze korting is gebaseerd op de adviesprijs van €100,00">
-                            <button className="bg-[#FF5E00] px-[12px] py-[5px] rounded-sm text-white text-[13px] font-bold cursor-pointer">40% OFF</button>
+                    {(() => {
+                      // Helper to get meta_data value by key
+                      const getMeta = (key: string) =>
+                        product?.meta_data?.find((m: any) => m.key === key)?.value;
+                      // Get advised and sale price from meta_data
+                      const advisedRaw = getMeta("crucial_data_unit_price");
+                      const saleRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
+                      const currency = product.currency_symbol || "රු";
+                      const advised = advisedRaw !== undefined && advisedRaw !== null && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
+                      const sale = saleRaw !== undefined && saleRaw !== null && !isNaN(parseFloat(saleRaw)) ? parseFloat(saleRaw) : null;
+                      let discountPercent: number | null = null;
+                      if (advised && sale && advised > 0) {
+                        discountPercent = Math.round(((advised - sale) / advised) * 100);
+                      }
+                      return (
+                        <div className="flex items-center gap-4">
+                          {sale !== null && sale !== undefined ? (
+                            <>
+                              <span className="text-3xl font-bold text-[#0066FF]">
+                                {currency}
+                                {sale.toFixed(2)}
+                              </span>
+                              {advised !== null && discountPercent !== null && advised > sale ? (
+                                <div
+                                  className="tooltip tooltip-right"
+                                  data-tip={`Discount from ${currency}${advised.toFixed(2)}`}
+                                >
+                                  <button className="bg-[#FF5E00] px-[12px] py-[5px] rounded-sm text-white text-[13px] font-bold cursor-pointer">
+                                    {discountPercent}% OFF
+                                  </button>
+                                </div>
+                              ) : null}
+                              <button className='bg-[#5ca139] px-[12px] py-[5px] rounded-sm text-white text-[13px] font-bold cursor-pointer'>Cheapest Price in the Market</button>
+                            </>
+                          ) : (
+                            advised !== null ? (
+                              <span className="text-3xl font-bold text-[#0066FF]">
+                                {currency}
+                                {advised.toFixed(2)}
+                              </span>
+                            ) : (
+                              <span className="text-3xl font-bold text-[#0066FF]">
+                                Price not available
+                              </span>
+                            )
+                          )}
                         </div>
-                    </div>
+                      );
+                    })()}
 
                     {/* Features */}
-                    <div>
-                        <h2 className="font-semibold text-lg mb-2">Key Features:</h2>
-                        <ul className="list-none list-inside text-gray-700 space-y-1">
-                            <li className="flex items-center gap-2">
-                                <span><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="#03B955" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg></span>
-                                <span>Premium RVS construction with Bronze PVD coating</span>
-                            </li>
-                            <li className="flex items-center gap-2">
-                                <span><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="#03B955" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg></span>
-                                <span>Suitable for door thickness 38-43mm</span>
-                            </li>
-                            <li className="flex items-center gap-2">
-                                <span><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="#03B955" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg></span>
-                                <span>Includes mounting hardware and square spindle</span>
-                            </li>
-                            <li className="flex items-center gap-2">
-                                <span><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="#03B955" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg></span>
-                                <span>Ergonomic oval design for comfortable grip</span>
-                            </li>
-                        </ul>
-                    </div>
+                    {(() => {
+                      const usps = [];
+                      if (product?.meta_data) {
+                        for (let i = 1; i <= 8; i++) {
+                          const usp = product.meta_data.find((m: any) => m.key === `description_usp_${i}`)?.value;
+                          if (usp) {
+                            usps.push(usp);
+                          }
+                        }
+                      }
+                      if (usps.length === 0) return null;
+                      return (
+                        <div>
+                          <ul className="list-none list-inside text-gray-700 space-y-2">
+                            {usps.map((usp, idx) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <span>
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="#03B955" className="size-6">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                  </svg>
+                                </span>
+                                <span>{usp}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    })()}
 
                     {/* Colour Swatches */}
                     <div className="flex gap-2 items-center">
@@ -178,33 +355,58 @@ const ProductPage = () => {
                         </div>
                     </div>
 
-                    {/* Volume Discount Section */}
-                    <div className="bg-white border border-white rounded-lg p-4 flex items-center gap-8">
-                        <h2 className="font-semibold text-lg">Volume discount:</h2>
-                        <div className="flex gap-8 items-start">
+                    {/* Volume Discount Section */} 
+                    {(() => {
+                      if (!product?.meta_data) return null;
+                      const discounts: { quantity: number; percentage: number }[] = [];
+                      for (let i = 1; i <= 3; i++) {
+                        const qRaw = product.meta_data.find((m: any) => m.key === `crucial_data_discounts_discount_quantity_${i}`)?.value;
+                        const pRaw = product.meta_data.find((m: any) => m.key === `crucial_data_discounts_discount_percentage_${i}`)?.value;
+                        const q = qRaw && !isNaN(parseInt(qRaw)) ? parseInt(qRaw) : null;
+                        const p = pRaw && !isNaN(parseInt(pRaw)) ? parseInt(pRaw) : null;
+                        if (q !== null && p !== null) {
+                          discounts.push({ quantity: q, percentage: p });
+                        }
+                      }
+                      if (discounts.length === 0) return null;
+                      // Handler for discount selection (radio-like behavior)
+                      const handleDiscountChange = (idx: number, d: { quantity: number }) => {
+                        if (selectedDiscount === idx) {
+                          setSelectedDiscount(null);
+                          setQuantity(1);
+                        } else {
+                          setSelectedDiscount(idx);
+                          setQuantity(d.quantity);
+                        }
+                      };
+                      return (
+                        <div className="bg-white border border-white rounded-lg p-4 flex items-center gap-8">
+                          <h2 className="font-semibold text-lg">Volume discount:</h2>
+                          <div className="flex gap-8 items-start">
                             <div>
-                                <p className='mb-1 text-[#3D4752] font-medium text-lg'>Quantity:</p>
-                                <label className="text-[#3D4752] font-normal text-base flex items-center gap-2">
-                                    <input type="checkbox" className="w-4 h-4 !border-[#DCDCDC] !rounded-[3px]" />
-                                    10
+                              <p className='mb-1 text-[#3D4752] font-medium text-lg'>Quantity:</p>
+                              {discounts.map((d, idx) => (
+                                <label key={idx} className="text-[#3D4752] font-normal text-base flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    className="w-4 h-4 !border-[#DCDCDC] !rounded-[3px]"
+                                    checked={selectedDiscount === idx}
+                                    onChange={() => handleDiscountChange(idx, d)}
+                                  />
+                                  {d.quantity}
                                 </label>
-                                <label className="text-[#3D4752] font-normal text-base flex items-center gap-2">
-                                    <input type="checkbox" className="w-4 h-4 !border-[#DCDCDC] !rounded-[3px]" />
-                                    50
-                                </label>
-                                <label className="text-[#3D4752] font-normal text-base flex items-center gap-2">
-                                    <input type="checkbox" className="w-4 h-4 !border-[#DCDCDC] !rounded-[3px]" />
-                                    100
-                                </label>
+                              ))}
                             </div>
                             <div>
-                                <p className='mb-1 text-[#3D4752] font-medium text-lg'>Discount</p>
-                                <p className='text-[#03B955] font-medium text-base'>5%</p>
-                                <p className='text-[#03B955] font-medium text-base'>10%</p>
-                                <p className='text-[#03B955] font-medium text-base'>15%</p>
+                              <p className='mb-1 text-[#3D4752] font-medium text-lg'>Discount</p>
+                              {discounts.map((d, idx) => (
+                                <p key={idx} className='text-[#03B955] font-medium text-base'>{d.percentage}%</p>
+                              ))}
                             </div>
+                          </div>
                         </div>
-                    </div>
+                      );
+                    })()}
 
                     <div className='bg-[#E4EFFF] py-3 px-5 rounded-md'> 
                         <p className='text-[#3D4752] font-normal text-base'>Become a business customer and benefit from competitive purchase prices! <a href="#" className='text-[#0066FF] font-bold'>Click here</a> to request an account</p>
@@ -213,7 +415,43 @@ const ProductPage = () => {
                     {/* Quantity Selector and Add to Cart */}
                     <div className="flex items-center gap-4 mt-4 justify-between">
                         <div className='w-3/12 flex justify-center items-center'>
-                            <p className="text-3xl font-bold text-[#1C2530]">€12.99</p>
+                            <p className="text-3xl font-bold text-[#1C2530]">
+                              {(() => {
+                                const getMeta = (key: string) =>
+                                  product?.meta_data?.find((m: any) => m.key === key)?.value;
+                                const advisedRaw = getMeta("crucial_data_unit_price");
+                                const saleRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
+                                const currency = product.currency_symbol || "€";
+                                const advised =
+                                  advisedRaw && !isNaN(parseFloat(advisedRaw))
+                                    ? parseFloat(advisedRaw)
+                                    : null;
+                                const sale =
+                                  saleRaw && !isNaN(parseFloat(saleRaw))
+                                    ? parseFloat(saleRaw)
+                                    : null;
+                                let basePrice = sale ?? advised ?? 0;
+
+                                // Apply volume discount if selected
+                                if (selectedDiscount !== null) {
+                                  const discountRaw = product?.meta_data?.find(
+                                    (m: any) =>
+                                      m.key === `crucial_data_discounts_discount_percentage_${selectedDiscount + 1}`
+                                  )?.value;
+                                  const discount =
+                                    discountRaw && !isNaN(parseFloat(discountRaw))
+                                      ? parseFloat(discountRaw)
+                                      : 0;
+                                  if (discount > 0) {
+                                    basePrice = basePrice - (basePrice * discount) / 100;
+                                  }
+                                }
+
+                                const totalPrice = basePrice * quantity;
+
+                                return `${currency}${totalPrice.toFixed(2)}`;
+                              })()}
+                            </p>
                         </div>
 
                         <div className="flex border border-[#EDEDED] shadow-xs rounded-sm overflow-hidden bg-white w-3/12">

@@ -17,3 +17,8 @@ export const fetchCategories = async () => {
   });
   return res.data;
 };
+
+export const fetchMedia = async (id: number | string) => {
+  const res = await wpApi.get(`/media/${id}`);
+  return res.data;
+};
