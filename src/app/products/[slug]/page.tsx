@@ -1,12 +1,15 @@
 "use client";
 import React, { useState, useRef, useEffect, use } from 'react';
+import toast from "react-hot-toast";
 import api from "@/lib/woocommerce";
 import Link from "next/link";
 import Image from "next/image";
-import axios from "axios";
+import ProductCard from "@/components/ProductCard";
+import { useCartStore } from "@/lib/cartStore";
 import { fetchMedia } from "@/lib/wordpress";
 
 const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
+  const addItem = useCartStore((state) => state.addItem);
   const [selectedImage, setSelectedImage] = useState('/afbeelding.png');
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [thumbIndex, setThumbIndex] = useState(0);
@@ -14,14 +17,37 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
   const [selectedDiscount, setSelectedDiscount] = useState<number | null>(null);
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [technicalDrawingUrl, setTechnicalDrawingUrl] = useState<string | null>(null);
 
-  const thumbnails = [
-    '/top.jpg',
-    '/right.jpg',
-    '/Front_orthographic.jpg',
-    '/2partsPosed-depth.jpg',
-    '/afbeelding.png',
-  ];
+  // Related products state
+  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
+  // Matching accessories products state
+  const [matchingProducts, setMatchingProducts] = useState<any[]>([]);
+  const [matchingKnobroseKeys, setMatchingKnobRoseProducts] = useState<any[]>([]);
+  const [matchingRoseKeys, setMatchingRoseKeys] = useState<any[]>([]);
+  const [pcroseKeys, setPcRoseKeys] = useState<any[]>([]);
+  const [blindtoiletroseKeys, setblindtoiletroseKeys] = useState<any[]>([]);
+  const [musthaveprodKeys, setMusthaveprodKeys] = useState<any[]>([]);
+
+  const accessoriesRef = useRef<HTMLDivElement>(null);
+  const knobroseRef = useRef<HTMLDivElement>(null);
+  const keyrosesRef = useRef<HTMLDivElement>(null);
+  const cillinderrosesRef = useRef<HTMLDivElement>(null);
+  const blindrosesRef = useRef<HTMLDivElement>(null);
+  const mustneedRef = useRef<HTMLDivElement>(null);
+
+  
+  const scrollCarousel = (ref: React.RefObject<HTMLDivElement>, direction: "left" | "right") => {
+    if (ref.current) {
+      const amount = direction === "left" ? -340 : 340;
+      ref.current.scrollBy({ left: amount, behavior: "smooth" });
+    }
+  };
+
+  const [manualPdf, setManualPdf] = useState<string | null>(null);
+  const [installationGuide, setInstallationGuide] = useState<string | null>(null);
+  const [certificate, setCertificate] = useState<string | null>(null);
+  const [careInstructions, setCareInstructions] = useState<string | null>(null);
 
   const colours = [
     { name: 'Red', colorCode: 'bg-red-600' },
@@ -39,23 +65,31 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
     { id: 6, name: 'Model C', image: '/mainprodimg.png' },
   ];
 
-  const volumeDiscounts = [
-    { quantity: '1-9', price: '€10.00' },
-    { quantity: '10-49', price: '€9.00' },
-    { quantity: '50+', price: '€8.00' },
-  ];
-
   const scrollRef = useRef<HTMLDivElement>(null);
   const thumbsRef = useRef<HTMLDivElement>(null);
+  // Ref for "Vergelijk dit product" accordion
+  // State for matching roses
+  const [matchingRoses, setMatchingRoses] = useState<any[]>([]);
+  const vergelijkRef = useRef<HTMLDetailsElement>(null);
 
   const scrollBy = (offset: number) => {
     if (scrollRef.current) {
       scrollRef.current.scrollBy({ left: offset, behavior: 'smooth' });
     }
   };
-  const scrollThumbsBy = (offset: number) => {
-    if (thumbsRef.current) {
-      thumbsRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+
+  const scrollToSection = (id: string) => {
+  const el = document.getElementById(id);
+  if (el) {
+      const yOffset = -30;
+      const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+
+      window.scrollTo({ top: y, behavior: "smooth" });
+
+      el.classList.add("highlight-section");
+      setTimeout(() => {
+        el.classList.remove("highlight-section");
+      }, 5000);
     }
   };
 
@@ -86,44 +120,257 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                 console.error("Error fetching main carousel image:", err);
               }
             }
+
+            const technicalDrawingMeta = productData.meta_data?.find((m: any) => m.key === "assets_technical_drawing");
+            if (technicalDrawingMeta?.value) {
+              try {
+                const media = await fetchMedia(technicalDrawingMeta.value);
+                if (media?.source_url) {
+                  setTechnicalDrawingUrl(media.source_url);
+                }
+              } catch (err) {
+                console.error("Error fetching technical drawing image:", err);
+              }
+            }
             setProduct(productData);
-            // Extract gallery images from productData.images
+
+
+            // This match to "Matching accessories"
+            const matchingKeys = [
+              "related_matching_product_1",
+              "related_matching_product_2",
+              "related_matching_product_3",
+              "related_matching_product_4",
+            ];
+            const matchingSkus = matchingKeys
+              .map(key => productData.meta_data?.find((m: any) => m.key === key)?.value)
+              .filter(v => v && String(v).trim() !== "");
+            if (matchingSkus.length > 0) {
+              Promise.all(
+                matchingSkus.map((sku: string) =>
+                  api.get("products", { sku }).then(res => Array.isArray(res.data) && res.data[0] ? res.data[0] : null).catch(() => null)
+                )
+              ).then(mps => {
+                setMatchingProducts(mps.filter(mp => !!mp));
+              });
+            } else {
+              setMatchingProducts([]);
+            }
+
+
+            // This match to "Matching Roses"
+            const matchingKnobroseKeys = [
+              "related_matching_knobrose_1",
+              "related_matching_knobrose_2",
+              "related_matching_knobrose_3",
+              "related_matching_knobrose_4",
+            ];
+            const matchingKnobRoseSkus = matchingKnobroseKeys
+              .map(key => productData.meta_data?.find((m: any) => m.key === key)?.value)
+              .filter(v => v && String(v).trim() !== "");
+            if (matchingKnobRoseSkus.length > 0) {
+              Promise.all(
+                matchingKnobRoseSkus.map((sku: string) =>
+                  api.get("products", { sku }).then(res => Array.isArray(res.data) && res.data[0] ? res.data[0] : null).catch(() => null)
+                )
+              ).then(mps => {
+                setMatchingKnobRoseProducts(mps.filter(mp => !!mp));
+              });
+            } else {
+              setMatchingKnobRoseProducts([]);
+            }
+
+
+            // This match to "Matching Keyroses"
+            const roseKeys = [
+              "related_matching_keyrose_1",
+              "related_matching_keyrose_2",
+              "related_matching_keyrose_3",
+              "related_matching_keyrose_4",
+            ];
+            const roseSkus = roseKeys
+              .map(key => productData.meta_data?.find((m: any) => m.key === key)?.value)
+              .filter(v => v && String(v).trim() !== "");
+            if (roseSkus.length > 0) {
+              Promise.all(
+                roseSkus.map((sku: string) =>
+                  api.get("products", { sku }).then(res => Array.isArray(res.data) && res.data[0] ? res.data[0] : null).catch(() => null)
+                )
+              ).then(mrs => {
+                setMatchingRoseKeys(mrs.filter(mr => !!mr));
+              });
+            } else {
+              setMatchingRoseKeys([]);
+            }
+
+
+            // This matches to "Matching cilinder roses"
+            const pcroseKeys = [
+              "related_matching_pcrose_1",
+              "related_matching_pcrose_2",
+              "related_matching_pcrose_3",
+              "related_matching_pcrose_4",
+            ];
+            const pcroseSkus = pcroseKeys
+              .map(key => productData.meta_data?.find((m: any) => m.key === key)?.value)
+              .filter(v => v && String(v).trim() !== "");
+
+            if (pcroseSkus.length > 0) {
+              Promise.all(
+                pcroseSkus.map((sku: string) =>
+                  api
+                    .get("products", { sku })
+                    .then(res =>
+                      Array.isArray(res.data) && res.data[0] ? res.data[0] : null
+                    )
+                    .catch(() => null)
+                )
+              ).then(mps => {
+                setPcRoseKeys(mps.filter(mp => !!mp));
+              });
+            } else {
+              setPcRoseKeys([]);
+            }
+
+
+            // This matches to "blind roses"
+            const toiletroseKeys = [
+              "related_matching_toiletrose_1",
+              "related_matching_toiletrose_2",
+              "related_matching_toiletrose_3",
+              "related_matching_toiletrose_4",
+            ];
+            const toilroseSkus = toiletroseKeys
+              .map(key => productData.meta_data?.find((m: any) => m.key === key)?.value)
+              .filter(v => v && String(v).trim() !== "");
+
+            if (toilroseSkus.length > 0) {
+              Promise.all(
+                toilroseSkus.map((sku: string) =>
+                  api
+                    .get("products", { sku })
+                    .then(res =>
+                      Array.isArray(res.data) && res.data[0] ? res.data[0] : null
+                    )
+                    .catch(() => null)
+                )
+              ).then(mps => {
+                setblindtoiletroseKeys(mps.filter(mp => !!mp));
+              });
+            } else {
+              setblindtoiletroseKeys([]);
+            }
+
+
+            // This matches to "Must Need"
+            const musthaveprodKeys = [
+              "related_must_have_products_1",
+              "related_must_have_products_2",
+              "related_must_have_products_3",
+              "related_must_have_products_4",
+            ];
+            const musthaveprodSkus = musthaveprodKeys
+              .map(key => productData.meta_data?.find((m: any) => m.key === key)?.value)
+              .filter(v => v && String(v).trim() !== "");
+
+            if (musthaveprodSkus.length > 0) {
+              Promise.all(
+                musthaveprodSkus.map((sku: string) =>
+                  api
+                    .get("products", { sku })
+                    .then(res =>
+                      Array.isArray(res.data) && res.data[0] ? res.data[0] : null
+                    )
+                    .catch(() => null)
+                )
+              ).then(mps => {
+                setMusthaveprodKeys(mps.filter(mp => !!mp));
+              });
+            } else {
+              setMusthaveprodKeys([]);
+            }
+
+
             if (Array.isArray(productData.images) && productData.images.length > 0) {
               let imgs = productData.images
                 .filter((img: any) => !!img?.src)
                 .map((img: any) => img.src);
-              // Ensure main image is at the start if not already present
               if (mainImageUrl && !imgs.includes(mainImageUrl)) {
                 imgs = [mainImageUrl, ...imgs];
               }
               setGalleryImages(imgs);
-              // If no selectedImage has been chosen (or it's default), set it to first gallery image
               setSelectedImage((prev) =>
                 (!prev || prev === '/afbeelding.png') && imgs.length > 0 ? imgs[0] : prev
               );
             } else {
-              // If galleryImages empty, but mainImageUrl exists, use it
               if (mainImageUrl) {
                 setGalleryImages([mainImageUrl]);
               } else {
                 setGalleryImages([]);
               }
             }
+            if (productData.related_ids && Array.isArray(productData.related_ids) && productData.related_ids.length > 0) {
+              Promise.all(
+                productData.related_ids.map((id: number) =>
+                  api.get(`products/${id}`).then(res => res?.data).catch(() => null)
+                )
+              ).then(relateds => {
+                setRelatedProducts(relateds.filter(rp => !!rp));
+              });
+            } else {
+              setRelatedProducts([]);
+            }
           }
         } else {
           setProduct(null);
           setGalleryImages([]);
+          setRelatedProducts([]);
+          setMatchingProducts([]);
+          setMatchingRoses([]);
         }
       })
       .catch((error: any) => {
         console.error("Error fetching product:", error);
         setProduct(null);
         setGalleryImages([]);
+        setRelatedProducts([]);
+        setMatchingProducts([]);
+        setMatchingRoses([]);
       })
       .finally(() => {
         setLoading(false);
       });
   }, [slug]);
+
+  useEffect(() => {
+    const pdfMeta = product?.meta_data?.find(m => m.key === "assets_manual_pdf");
+    if (pdfMeta?.value) {
+      fetchMedia(pdfMeta.value).then(media =>
+        setManualPdf(media?.source_url || null)
+      );
+    }
+
+    const installMeta = product?.meta_data?.find(m => m.key === "assets_installation_guide");
+    if (installMeta?.value) {
+      fetchMedia(installMeta.value).then(media =>
+        setInstallationGuide(media?.source_url || null)
+      );
+    }
+
+    const certMeta = product?.meta_data?.find(m => m.key === "assets_product_certificate");
+    if (certMeta?.value) {
+      fetchMedia(certMeta.value).then(media =>
+        setCertificate(media?.source_url || null)
+      );
+    }
+
+    const careMeta = product?.meta_data?.find(m => m.key === "assets_care_instructions");
+    if (careMeta?.value) {
+      fetchMedia(careMeta.value).then(media =>
+        setCareInstructions(media?.source_url || null)
+      );
+    }
+  }, [product]);
 
   const productTitle =
     product?.meta_data?.find((m: any) => m.key === "crucial_data_product_name")?.value ||
@@ -138,8 +385,6 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
     );
   }
 
-  // Optionally, you could use product data below instead of hardcoded.
-  // For now, just render the existing page if product is found.
   if (!product) {
     return (
       <div className="flex justify-center items-center min-h-[300px]">
@@ -150,7 +395,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
 
   return (
     <div className='bg-[#F5F5F5] font-sans'>
-        <div className="max-w-[1440px] mx-auto py-8">
+        <div className="max-w-[1440px] mx-auto py-8 px-5 lg:px-0">
             <div className="text-sm text-gray-500 mb-6 flex items-center gap-2">
                 <Link href="/" className="hover:underline flex items-center gap-1 text-black">
                     <span>
@@ -217,12 +462,29 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                     <div className='text-[#1C2530] font-bold text-3xl mt-8'>
                         <h3>Handig om dij te bestellen</h3>
                         <div className='grid grid-cols-3 gap-4 mt-4'>
-                            <button className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching accessories</button>
-                            <button className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching roses</button>
-                            <button className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching keyroses</button>
-                            <button className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching cilinderosses</button>
-                            <button className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching blind roses</button>
-                            <button className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Must need</button>
+                          {matchingProducts.length > 0 && (
+                            <button onClick={() => scrollToSection("accessories-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching accessories</button>
+                          )}
+                          {matchingKnobroseKeys.length > 0 && (
+                            <button onClick={() => scrollToSection("knobroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching roses</button>
+                          )}
+                          {matchingRoseKeys.length > 0 && (
+                            <button onClick={() => scrollToSection("matchingroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching keyroses</button>
+                          )}
+                          {pcroseKeys.length > 0 && (
+                            <button onClick={() => scrollToSection("pcroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching cilinderosses</button>
+                          )}
+                          {blindtoiletroseKeys.length > 0 && (
+                            <button onClick={() => scrollToSection("blindtoiletroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching blind roses</button>
+                          )}
+                          {musthaveprodKeys.length > 0 && (
+                            <button onClick={() => scrollToSection("musthaveprod-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Must need</button>
+                          )}
+                            
+                            
+                            
+                            
+                            
                         </div>
                     </div>
                 </div>
@@ -270,7 +532,17 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                                   </button>
                                 </div>
                               ) : null}
-                              <button className='bg-[#5ca139] px-[12px] py-[5px] rounded-sm text-white text-[13px] font-bold cursor-pointer'>Cheapest Price in the Market</button>
+                              <button
+                                className='bg-[#5ca139] px-[12px] py-[5px] rounded-sm text-white text-[13px] font-bold cursor-pointer'
+                                onClick={() => {
+                                  if (vergelijkRef.current) {
+                                    vergelijkRef.current.open = true;
+                                    vergelijkRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+                                  }
+                                }}
+                              >
+                                We are the cheapest
+                              </button>
                             </>
                           ) : (
                             advised !== null ? (
@@ -463,7 +735,43 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                         </div>
 
                         <div className='w-6/12'>
-                            <button type="button" className="flex-1 bg-blue-600 text-white px-6 py-4 rounded-sm hover:bg-blue-700 transition font-semibold flex items-center justify-center gap-3 w-full">
+                            <button
+                              type="button"
+                              className="flex-1 bg-blue-600 text-white px-6 py-4 rounded-sm hover:bg-blue-700 transition font-semibold flex items-center justify-center gap-3 w-full"
+                              onClick={() => {
+                                addItem({
+                                  id: product.id,
+                                  name: product.name,
+                                  price: (() => {
+                                    const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
+                                    const advisedRaw = getMeta("crucial_data_unit_price");
+                                    const saleRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
+                                    const advised = advisedRaw && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
+                                    const sale = saleRaw && !isNaN(parseFloat(saleRaw)) ? parseFloat(saleRaw) : null;
+                                    let basePrice = sale ?? advised ?? 0;
+                                    if (selectedDiscount !== null) {
+                                      const discountRaw = product?.meta_data?.find(
+                                        (m: any) => m.key === `crucial_data_discounts_discount_percentage_${selectedDiscount + 1}`
+                                      )?.value;
+                                      const discount =
+                                        discountRaw && !isNaN(parseFloat(discountRaw))
+                                          ? parseFloat(discountRaw)
+                                          : 0;
+                                      if (discount > 0) {
+                                        basePrice = basePrice - (basePrice * discount) / 100;
+                                      }
+                                    }
+                                    return basePrice;
+                                  })(),
+                                  quantity,
+                                  image: product?.images?.[0]?.src || "/afbeelding.png",
+                                });
+                                toast.success("Product added to cart!", {
+                                  duration: 3000,
+                                  position: "top-right",
+                                });
+                              }}
+                            >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="white" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>
                                 ADD TO CART
                             </button>
@@ -478,10 +786,13 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                     <div>
                         <p className='text-[#212121] font-medium text-lg mb-3'>Need Help?</p>
                         <div className='flex gap-3 items-center justify-center'>
-                            <button className='border border-[#0066FF] rounded-sm py-2.5 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors'>
+                            <a
+                              href={`mailto:info@example.com?subject=${encodeURIComponent(productTitle)}`}
+                              className='border border-[#0066FF] rounded-sm py-2.5 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors'
+                            >
                                 <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-5 transition-colors"><path d="M1.5 8.67v8.58a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3V8.67l-8.928 5.493a3 3 0 0 1-3.144 0L1.5 8.67Z" /><path d="M22.5 6.908V6.75a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3v.158l9.714 5.978a1.5 1.5 0 0 0 1.572 0L22.5 6.908Z" /></svg></span>
                                 Mail us
-                            </button>
+                            </a>
                             <button className='border border-[#0066FF] rounded-sm py-2 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors'>
                                 <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" fill="currentColor" className="size-6"><path d="M476.9 161.1C435 119.1 379.2 96 319.9 96C197.5 96 97.9 195.6 97.9 318C97.9 357.1 108.1 395.3 127.5 429L96 544L213.7 513.1C246.1 530.8 282.6 540.1 319.8 540.1L319.9 540.1C442.2 540.1 544 440.5 544 318.1C544 258.8 518.8 203.1 476.9 161.1zM319.9 502.7C286.7 502.7 254.2 493.8 225.9 477L219.2 473L149.4 491.3L168 423.2L163.6 416.2C145.1 386.8 135.4 352.9 135.4 318C135.4 216.3 218.2 133.5 320 133.5C369.3 133.5 415.6 152.7 450.4 187.6C485.2 222.5 506.6 268.8 506.5 318.1C506.5 419.9 421.6 502.7 319.9 502.7zM421.1 364.5C415.6 361.7 388.3 348.3 383.2 346.5C378.1 344.6 374.4 343.7 370.7 349.3C367 354.9 356.4 367.3 353.1 371.1C349.9 374.8 346.6 375.3 341.1 372.5C308.5 356.2 287.1 343.4 265.6 306.5C259.9 296.7 271.3 297.4 281.9 276.2C283.7 272.5 282.8 269.3 281.4 266.5C280 263.7 268.9 236.4 264.3 225.3C259.8 214.5 255.2 216 251.8 215.8C248.6 215.6 244.9 215.6 241.2 215.6C237.5 215.6 231.5 217 226.4 222.5C221.3 228.1 207 241.5 207 268.8C207 296.1 226.9 322.5 229.6 326.2C232.4 329.9 268.7 385.9 324.4 410C359.6 425.2 373.4 426.5 391 423.9C401.7 422.3 423.8 410.5 428.4 397.5C433 384.5 433 373.4 431.6 371.1C430.3 368.6 426.6 367.2 421.1 364.5z"/></svg></span>
                                 WhatsApp
@@ -496,7 +807,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
             </div>
 
             <div className='mt-8'>
-                <div className="grid grid-cols-2 gap-5 h-full">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 h-full">
                     <div className='flex flex-col gap-5'>
                         {/* first row left accordion */}
                         <div className="bg-white rounded-lg border border-white">
@@ -507,22 +818,24 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                                     <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
                                 </summary>
                                 <div className="px-6 pb-4 text-[#3D4752] space-y-4 font-normal text-base">
-                                    <p>
-                                        The Premium Bronze Door Handle Set represents the perfect fusion of contemporary design and exceptional functionality. Crafted from high-grade stainless steel and finished with a durable Bronze PVD coating, this handle set delivers both aesthetic appeal and long-lasting performance.
-                                    </p>
-                                    <p>
-                                        Each handle features an ergonomic oval design that provides comfortable grip and smooth operation. The bronze finish adds warmth and sophistication to any interior, making it ideal for modern homes, offices, and commercial spaces. The handles are spring-loaded for consistent return to horizontal position.
-                                    </p>
-                                    <p>
-                                        This professional-grade door hardware meets Class 4 durability standards according to EN1906:2012, ensuring reliable performance even in high-traffic environments. The set includes everything needed for installation: two handles, rosettes, mounting screws, and an 8x8mm square spindle.
-                                    </p>
-                                    <div className="bg-[#E3EEFF] text-gray-800 p-5 rounded-lg border-0">
-                                        <p className="font-semibold text-gray-900 text-lg">Installation Tip:</p>
-                                        <p className="text-base text-normal">
-                                            Due to the extended handle design, we recommend using painter's tape to protect the spindle during installation. 
-                                            Insert patent screws through the base rosette before mounting to prevent damage to the bronze finish.
+                                  {(() => {
+                                    const desc = product?.meta_data?.find((m: any) => m.key === "description_description")?.value;
+                                    if (!desc) return null;
+                                    return desc
+                                      .split(/\n\s*\n/)
+                                      .map((para: string, idx: number) => (
+                                        <p key={idx} className="mb-4 leading-relaxed">
+                                          {para.trim()}
                                         </p>
-                                    </div>
+                                      ));
+                                  })()}
+                                  <div className="bg-[#E3EEFF] text-gray-800 p-5 rounded-lg border-0">
+                                    <p className="font-semibold text-gray-900 text-lg">Installation Tip:</p>
+                                    <p className="text-base text-normal">
+                                      Due to the extended handle design, we recommend using painter's tape to protect the spindle during installation. 
+                                      Insert patent screws through the base rosette before mounting to prevent damage to the bronze finish.
+                                    </p>
+                                  </div>
                                 </div>
                             </details>
                         </div>
@@ -596,7 +909,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
 
                         {/* third row left accordion */}
                         <div className="bg-white rounded-lg border border-white">
-                            <details className="group">
+                            <details className="group" ref={vergelijkRef}>
                                 <summary className="flex justify-between items-center cursor-pointer px-6 py-5 font-semibold text-xl text-[#1C2530]">
                                     Vergelijk dit product met andere winkels
                                     <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
@@ -605,19 +918,40 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                                 <div className="px-6 pb-4 text-gray-700 space-y-4">
                                     <div className='mt-1 flex flex-col gap-3'>
                                         <p className='text-[#3D4752] font-normal text-base'>Wij helpen je graag: dit product staat ook bekend onder artikelnummers:</p>
-                                        <div className='flex gap-4 flex-wrap w-full'>
-                                            <div className="border border-[#E7ECF3] bg-[#F3F8FF] py-[3px] px-2.5 rounded-sm w-max text-[#3D4752] font-normal text-sm">BDH-OV-130-BZ</div>
-                                            <div className="border border-[#E7ECF3] bg-[#F3F8FF] py-[3px] px-2.5 rounded-sm w-max text-[#3D4752] font-normal text-sm">OVAL-1741-PRO-8MM</div>
-                                            <div className="border border-[#E7ECF3] bg-[#F3F8FF] py-[3px] px-2.5 rounded-sm w-max text-[#3D4752] font-normal text-sm">DH-BRONZE-CLASSIC</div>
-                                            <div className="border border-[#E7ECF3] bg-[#F3F8FF] py-[3px] px-2.5 rounded-sm w-max text-[#3D4752] font-normal text-sm">RVS-HANDLE-OV-BZ</div>
-                                            <div className="border border-[#E7ECF3] bg-[#F3F8FF] py-[3px] px-2.5 rounded-sm w-max text-[#3D4752] font-normal text-sm">DOOR-HANDLE-130-OVAL</div>
-                                        </div>
+                                        {(() => {
+                                          if (!product?.meta_data) return null;
+                                          const keys = [
+                                            "crucial_data_product_sku",
+                                            "crucial_data_product_ean_code",
+                                            "crucial_data_product_bol_ean_code",
+                                            "crucial_data_product_factory_sku",
+                                            "crucial_data_product_alternate_sku_1",
+                                            "crucial_data_product_alternate_sku_2",
+                                          ];
+                                          const values = keys
+                                            .map((key) => product.meta_data.find((m: any) => m.key === key)?.value)
+                                            .filter((v) => v !== undefined && v !== null && String(v).trim() !== "");
+                                          if (values.length === 0) return null;
+                                          return (
+                                            <div className='flex gap-4 flex-wrap w-full'>
+                                              {values.map((value: string, idx: number) => (
+                                                <div
+                                                  key={idx}
+                                                  className="border border-[#E7ECF3] bg-[#F3F8FF] py-[3px] px-2.5 rounded-sm w-max text-[#3D4752] font-normal text-sm"
+                                                >
+                                                  {value}
+                                                </div>
+                                              ))}
+                                            </div>
+                                          );
+                                        })()}
                                     </div>
                                 </div>
                             </details>
                         </div>
 
                         {/* fourth row left accordion */}
+                        {(manualPdf || installationGuide || certificate || careInstructions) && (
                         <div className="bg-white rounded-lg border border-white">
                             <details className="group">
                                 <summary className="flex justify-between items-center cursor-pointer px-6 py-5 font-semibold text-xl text-[#1C2530]">
@@ -629,47 +963,57 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                                     <div className='flex flex-col gap-4'>
                                         <p className='text-[#3D4752] font-normal text-base'>Download technical drawings, installation guides, and product certificates.</p>
                                         <div className='grid grid-cols-2 gap-4'>
+                                            {manualPdf && (
                                             <div className='bg-[#F3F8FF] rounded-sm p-4 flex items-center justify-between'>
                                                 <div>
                                                     <p className='text-[#1C2530] font-semibold text-base'>Technical Drawing</p>
                                                     <p className='text-[#3D4752] font-normal text-xs'>CAD file with dimensions</p>
                                                 </div>
                                                 <div>
-                                                    <button className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Download</button>
+                                                    <a href={manualPdf} target="_blank" rel="noopener noreferrer" className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Download</a>
                                                 </div>
                                             </div>
+                                            )}
+
+                                            {installationGuide && (
                                             <div className='bg-[#F3F8FF] rounded-sm p-4 flex items-center justify-between'>
                                                 <div>
                                                     <p className='text-[#1C2530] font-semibold text-base'>Installation Guide</p>
                                                     <p className='text-[#3D4752] font-normal text-xs'>Step-by-step PDF guide</p>
                                                 </div>
                                                 <div>
-                                                    <button className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Download</button>
+                                                    <a href={installationGuide} target="_blank" rel="noopener noreferrer" className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Download</a>
                                                 </div>
                                             </div>
+                                            )}
+                                            {certificate && (
                                             <div className='bg-[#F3F8FF] rounded-sm p-4 flex items-center justify-between'>
                                                 <div>
                                                     <p className='text-[#1C2530] font-semibold text-base'>Product Certificate</p>
                                                     <p className='text-[#3D4752] font-normal text-xs'>EN1906:2012 compliance</p>
                                                 </div>
                                                 <div>
-                                                    <button className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Download</button>
+                                                    <a href={certificate} target="_blank" rel="noopener noreferrer" className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Download</a>
                                                 </div>
                                             </div>
+                                            )}
+                                            {careInstructions && (
                                             <div className='bg-[#F3F8FF] rounded-sm p-4 flex items-center justify-between'>
                                                 <div>
                                                     <p className='text-[#1C2530] font-semibold text-base'>Care Instructions</p>
                                                     <p className='text-[#3D4752] font-normal text-xs'>Maintenance guidelines</p>
                                                 </div>
                                                 <div>
-                                                    <button className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Download</button>
+                                                    <a href={careInstructions} target="_blank" rel="noopener noreferrer" className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Download</a>
                                                 </div>
                                             </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
                             </details>
                         </div>
+                        )}
 
                         {/* fifth row left accordion */}
                         <div className="bg-white rounded-lg border border-white">
@@ -697,7 +1041,11 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                                     <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
                                 </summary>
                                 <div className="px-6 pb-4 text-gray-700 space-y-4">
-                                    <img src="/technicaldrawings.png" alt="" />
+                                    {technicalDrawingUrl ? (
+                                      <img src={technicalDrawingUrl} alt="Technical drawing" className="w-full h-auto rounded-md" />
+                                    ) : (
+                                      <p className="text-sm text-gray-500">No technical drawing available.</p>
+                                    )}
                                 </div>
                             </details>
                         </div>
@@ -768,47 +1116,380 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                         </div>
 
                         {/* fourth row right accordion */}
-                        <div className="bg-white rounded-lg border border-white">
-                            <details className="group">
+                        {/* FAQ Accordion - Dynamic rendering */}
+                        {(() => {
+                          // Collect FAQ pairs from meta_data
+                          const faqs: { question: string; answer: string }[] = [];
+                          if (product?.meta_data) {
+                            for (let i = 1; i <= 8; i++) {
+                              const q = product.meta_data.find((m: any) => m.key === `description_faq_${i}_question`)?.value;
+                              const a = product.meta_data.find((m: any) => m.key === `description_faq_${i}_answer`)?.value;
+                              if (
+                                q &&
+                                typeof q === "string" &&
+                                q.trim() !== "" &&
+                                a &&
+                                typeof a === "string" &&
+                                a.trim() !== ""
+                              ) {
+                                faqs.push({ question: q.trim(), answer: a.trim() });
+                              }
+                            }
+                          }
+                          if (faqs.length === 0) return null;
+                          // JSON-LD schema markup
+                          const faqSchema = {
+                            "@context": "https://schema.org",
+                            "@type": "FAQPage",
+                            "mainEntity": faqs.map((faq) => ({
+                              "@type": "Question",
+                              "name": faq.question,
+                              "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": faq.answer,
+                              },
+                            })),
+                          };
+                          return (
+                            <div className="bg-white rounded-lg border border-white">
+                              <details className="group">
                                 <summary className="flex justify-between items-center cursor-pointer px-6 py-5 font-semibold text-xl text-[#1C2530]">
-                                    FAQ’s
-                                    <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
-                                    <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
+                                  FAQ’s
+                                  <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
+                                  <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
                                 </summary>
                                 <div className="px-6 pb-4 text-gray-700 space-y-4">
-                                    <div className="collapse collapse-arrow border-0 border-base-300 !p-0">
-                                        <input type="radio" name="my-accordion-2" defaultChecked />
-                                        <div className="collapse-title text-[#3D4752] text-lg font-semibold p-2">Is Manufacturing defects in materials and workmanship?</div>
-                                        <div className="collapse-content text-[#808D9A] text-normal text-sm p-2">Manufacturing defects in materials and workmanship Manufacturing defects in materials and workmanshipManufacturing defects in materials and workmanshipManufacturing defects in materials and workmanshipManufacturing defects in materials and workmanshipManufacturing defects in materials and workmanshipManufacturing defects</div>
+                                  {/* FAQ accordion items */}
+                                  {faqs.map((faq, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="collapse collapse-arrow border-0 border-base-300 !p-0"
+                                    >
+                                      <input
+                                        type="radio"
+                                        name="faq-accordion"
+                                        defaultChecked={idx === 0}
+                                      />
+                                      <div className="collapse-title text-[#3D4752] text-lg font-semibold p-2">
+                                        {faq.question}
+                                      </div>
+                                      <div className="collapse-content text-[#808D9A] text-normal text-sm p-2">
+                                        {faq.answer}
+                                      </div>
                                     </div>
-                                    <div className="collapse collapse-arrow border-0 border-base-300 !p-0">
-                                        <input type="radio" name="my-accordion-2" />
-                                        <div className="collapse-title text-[#3D4752] text-lg font-semibold p-2">Is Manufacturing defects in materials and workmanship?</div>
-                                        <div className="collapse-content text-[#808D9A] text-normal text-sm p-2">Manufacturing defects in materials and workmanship Manufacturing defects in materials and workmanshipManufacturing defects in materials and workmanshipManufacturing defects in materials and workmanshipManufacturing defects in materials and workmanshipManufacturing defects in materials and workmanshipManufacturing defects</div>
-                                    </div>
-                                    <div className="collapse collapse-arrow border-0 border-base-300 !p-0">
-                                        <input type="radio" name="my-accordion-2" />
-                                        <div className="collapse-title text-[#3D4752] text-lg font-semibold p-2">Is Manufacturing defects in materials and workmanship?</div>
-                                        <div className="collapse-content text-[#808D9A] text-normal text-sm p-2">Manufacturing defects in materials and workmanship Manufacturing defects in materials and workmanshipManufacturing defects in materials and workmanshipManufacturing defects in materials and workmanshipManufacturing defects in materials and workmanshipManufacturing defects in materials and workmanshipManufacturing defects</div>
-                                    </div>
-                                    <div className="collapse collapse-arrow border-0 border-base-300 !p-0">
-                                        <input type="radio" name="my-accordion-2" />
-                                        <div className="collapse-title text-[#3D4752] text-lg font-semibold p-2">Is Manufacturing defects in materials and workmanship?</div>
-                                        <div className="collapse-content text-[#808D9A] text-normal text-sm p-2">Manufacturing defects in materials and workmanship Manufacturing defects in materials and workmanshipManufacturing defects in materials and workmanshipManufacturing defects in materials and workmanshipManufacturing defects in materials and workmanshipManufacturing defects in materials and workmanshipManufacturing defects</div>
-                                    </div>
-                                    <div className="collapse collapse-arrow border-0 border-base-300 !p-0">
-                                        <input type="radio" name="my-accordion-2" />
-                                        <div className="collapse-title text-[#3D4752] text-lg font-semibold p-2">Is Manufacturing defects in materials and workmanship?</div>
-                                        <div className="collapse-content text-[#808D9A] text-normal text-sm p-2">Manufacturing defects in materials and workmanship Manufacturing defects in materials and workmanshipManufacturing defects in materials and workmanshipManufacturing defects in materials and workmanshipManufacturing defects in materials and workmanshipManufacturing defects in materials and workmanshipManufacturing defects</div>
-                                    </div>
+                                  ))}
+                                  {/* JSON-LD FAQ Schema */}
+                                  <script
+                                    type="application/ld+json"
+                                    // @ts-ignore
+                                    dangerouslySetInnerHTML={{
+                                      __html: JSON.stringify(faqSchema),
+                                    }}
+                                  />
                                 </div>
-                            </details>
-                        </div>
+                              </details>
+                            </div>
+                          );
+                        })()}
                     </div>
                 </div>
             </div>
             
             <div></div>
+        </div>
+
+        <div className='bg-white py-4'>
+          <div className='max-w-[1440px] mx-auto py-8'>
+            <div className='grid grid-cols-2 gap-8'>
+              {matchingProducts && matchingProducts.length > 0 && (
+                <div id="accessories-section" className='bg-[#F7F7F7] rounded-md p-5'>
+                  <div className='flex justify-between items-center mb-5'>
+                    <div className='flex flex-col gap-2'>
+                      <p className='text-[#1C2530] font-bold text-3xl'>Matching accessories</p>
+                      <p className='text-[#3D4752] font-normal text-base'>Check out matching accessories from bouwbeslag.nl</p>
+                    </div>
+                    {matchingProducts.length > 2 && (
+                      <div className='flex gap-5 items-center justify-between'>
+                        <button
+                          className='bg-[#e6e6e6] cursor-pointer hover:bg-[#c4c0c0] rounded-full p-2 flex text-black'
+                          onClick={() => scrollCarousel(accessoriesRef, "left")}
+                          aria-label="Scroll matching products left"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+                        </button>
+                        <button
+                          className='bg-[#0066FF] rounded-full p-2 flex text-white'
+                          onClick={() => scrollCarousel(accessoriesRef, "right")}
+                          aria-label="Scroll matching products right"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="relative">
+                      <div
+                        ref={accessoriesRef}
+                        className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 scroll-smooth"
+                        style={{ scrollSnapType: "x mandatory" }}
+                      >
+                        {matchingProducts.map((mp) => (
+                          <div
+                            key={mp.id}
+                            className="flex-shrink-0 w-[320px] snap-start"
+                            style={{ scrollSnapAlign: "start" }}
+                          >
+                            <ProductCard product={mp} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {matchingKnobroseKeys && matchingKnobroseKeys.length > 0 && (
+                <div id="knobroses-section" className='bg-[#F7F7F7] rounded-md p-5'>
+                  <div className='flex justify-between items-center mb-5'>
+                    <div className='flex flex-col gap-2'>
+                      <p className='text-[#1C2530] font-bold text-3xl'>Matching roses</p>
+                      <p className='text-[#3D4752] font-normal text-base'>Check out Matching roses from bouwbeslag.nl</p>
+                    </div>
+                    {matchingKnobroseKeys.length > 2 && (
+                      <div className='flex gap-5 items-center justify-between'>
+                        <button
+                          className='bg-[#e6e6e6] cursor-pointer hover:bg-[#c4c0c0] rounded-full p-2 flex text-black'
+                          onClick={() => scrollCarousel(knobroseRef, "left")}
+                          aria-label="Scroll matching products left"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+                        </button>
+                        <button
+                          className='bg-[#0066FF] rounded-full p-2 flex text-white'
+                          onClick={() => scrollCarousel(knobroseRef, "right")}
+                          aria-label="Scroll matching products right"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="relative">
+                      <div
+                        ref={knobroseRef}
+                        className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 scroll-smooth"
+                        style={{ scrollSnapType: "x mandatory" }}
+                      >
+                        {matchingKnobroseKeys.map((mkk) => (
+                          <div
+                            key={mkk.id}
+                            className="flex-shrink-0 w-[320px] snap-start"
+                            style={{ scrollSnapAlign: "start" }}
+                          >
+                            <ProductCard product={mkk} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {matchingRoseKeys && matchingRoseKeys.length > 0 && (
+                <div id="matchingroses-section" className='bg-[#F7F7F7] rounded-md p-5'>
+                  <div className='flex justify-between items-center mb-5'>
+                    <div className='flex flex-col gap-2'>
+                      <p className='text-[#1C2530] font-bold text-3xl'>Matching keyroses</p>
+                      <p className='text-[#3D4752] font-normal text-base'>Check out Matching keyroses from bouwbeslag.nl</p>
+                    </div>
+                    {matchingRoseKeys.length > 2 && (
+                      <div className='flex gap-5 items-center justify-between'>
+                        <button
+                          className='bg-[#e6e6e6] cursor-pointer hover:bg-[#c4c0c0] rounded-full p-2 flex text-black'
+                          onClick={() => scrollCarousel(keyrosesRef, "left")}
+                          aria-label="Scroll matching products left"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+                        </button>
+                        <button
+                          className='bg-[#0066FF] rounded-full p-2 flex text-white'
+                          onClick={() => scrollCarousel(keyrosesRef, "right")}
+                          aria-label="Scroll matching products right"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="relative">
+                      <div
+                        ref={keyrosesRef}
+                        className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 scroll-smooth"
+                        style={{ scrollSnapType: "x mandatory" }}
+                      >
+                        {matchingRoseKeys.map((mrk) => (
+                          <div
+                            key={mrk.id}
+                            className="flex-shrink-0 w-[320px] snap-start"
+                            style={{ scrollSnapAlign: "start" }}
+                          >
+                            <ProductCard product={mrk} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {pcroseKeys && pcroseKeys.length > 0 && (
+                <div id="pcroses-section" className='bg-[#F7F7F7] rounded-md p-5'>
+                  <div className='flex justify-between items-center mb-5'>
+                    <div className='flex flex-col gap-2'>
+                      <p className='text-[#1C2530] font-bold text-3xl'>Matching cilinderosses</p>
+                      <p className='text-[#3D4752] font-normal text-base'>Check out Matching cilinderosses from bouwbeslag.nl</p>
+                    </div>
+                    {pcroseKeys.length > 2 && (
+                      <div className='flex gap-5 items-center justify-between'>
+                        <button
+                          className='bg-[#e6e6e6] cursor-pointer hover:bg-[#c4c0c0] rounded-full p-2 flex text-black'
+                          onClick={() => scrollCarousel(cillinderrosesRef, "left")}
+                          aria-label="Scroll matching products left"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+                        </button>
+                        <button
+                          className='bg-[#0066FF] rounded-full p-2 flex text-white'
+                          onClick={() => scrollCarousel(cillinderrosesRef, "right")}
+                          aria-label="Scroll matching products right"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="relative">
+                      <div
+                        ref={cillinderrosesRef}
+                        className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 scroll-smooth"
+                        style={{ scrollSnapType: "x mandatory" }}
+                      >
+                        {pcroseKeys.map((pk) => (
+                          <div
+                            key={pk.id}
+                            className="flex-shrink-0 w-[320px] snap-start"
+                            style={{ scrollSnapAlign: "start" }}
+                          >
+                            <ProductCard product={pk} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {blindtoiletroseKeys && blindtoiletroseKeys.length > 0 && (
+                <div id="blindtoiletroses-section" className='bg-[#F7F7F7] rounded-md p-5'>
+                  <div className='flex justify-between items-center mb-5'>
+                    <div className='flex flex-col gap-2'>
+                      <p className='text-[#1C2530] font-bold text-3xl'>Matching blind roses</p>
+                      <p className='text-[#3D4752] font-normal text-base'>Check out Matching blind roses from bouwbeslag.nl</p>
+                    </div>
+                    {blindtoiletroseKeys.length > 2 && (
+                      <div className='flex gap-5 items-center justify-between'>
+                        <button
+                          className='bg-[#e6e6e6] cursor-pointer hover:bg-[#c4c0c0] rounded-full p-2 flex text-black'
+                          onClick={() => scrollCarousel(blindrosesRef, "left")}
+                          aria-label="Scroll matching products left"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+                        </button>
+                        <button
+                          className='bg-[#0066FF] rounded-full p-2 flex text-white'
+                          onClick={() => scrollCarousel(blindrosesRef, "right")}
+                          aria-label="Scroll matching products right"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="relative">
+                      <div
+                        ref={blindrosesRef}
+                        className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 scroll-smooth"
+                        style={{ scrollSnapType: "x mandatory" }}
+                      >
+                        {blindtoiletroseKeys.map((btk) => (
+                          <div
+                            key={btk.id}
+                            className="flex-shrink-0 w-[320px] snap-start"
+                            style={{ scrollSnapAlign: "start" }}
+                          >
+                            <ProductCard product={btk} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {musthaveprodKeys && musthaveprodKeys.length > 0 && (
+                <div id="musthaveprod-section" className='bg-[#F7F7F7] rounded-md p-5'>
+                  <div className='flex justify-between items-center mb-5'>
+                    <div className='flex flex-col gap-2'>
+                      <p className='text-[#1C2530] font-bold text-3xl'>Must need</p>
+                      <p className='text-[#3D4752] font-normal text-base'>Check out Must need from bouwbeslag.nl</p>
+                    </div>
+                    {musthaveprodKeys.length > 2 && (
+                      <div className='flex gap-5 items-center justify-between'>
+                        <button
+                          className='bg-[#e6e6e6] cursor-pointer hover:bg-[#c4c0c0] rounded-full p-2 flex text-black'
+                          onClick={() => scrollCarousel(mustneedRef, "left")}
+                          aria-label="Scroll matching products left"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+                        </button>
+                        <button
+                          className='bg-[#0066FF] rounded-full p-2 flex text-white'
+                          onClick={() => scrollCarousel(mustneedRef, "right")}
+                          aria-label="Scroll matching products right"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="relative">
+                      <div
+                        ref={mustneedRef}
+                        className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 scroll-smooth"
+                        style={{ scrollSnapType: "x mandatory" }}
+                      >
+                        {musthaveprodKeys.map((mhk) => (
+                          <div
+                            key={mhk.id}
+                            className="flex-shrink-0 w-[320px] snap-start"
+                            style={{ scrollSnapAlign: "start" }}
+                          >
+                            <ProductCard product={mhk} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
     </div>
   );

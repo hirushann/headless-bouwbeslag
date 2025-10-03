@@ -30,3 +30,9 @@ body {
   top: 1.3rem;
   right: 20px;
 }
+
+.highlight-section {
+  outline: 2px solid #0066FF;
+  outline-offset: 4px;
+  transition: outline 0.3s ease-in-out;
+}
