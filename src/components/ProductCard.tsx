@@ -20,7 +20,7 @@ export default function ProductCard({ product }: { product: any }) {
 
   const addItem = useCartStore((state) => state.addItem);
 
-  console.log("Rendering ProductCard:", product.name, "ID:", product.id);
+  // console.log("Rendering ProductCard:", product.name, "ID:", product.id);
 
   return (
     <div className="snap-start shrink-0 w-[100%] border border-[#E2E2E2] rounded-sm shadow-sm bg-[#F7F7F7] flex flex-col h-full">

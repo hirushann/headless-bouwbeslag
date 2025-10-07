@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
 import { useCartStore } from "@/lib/cartStore";
 
 export default function ShopProductCard({ product }: { product: any }) {
@@ -19,18 +20,25 @@ export default function ShopProductCard({ product }: { product: any }) {
 
   const addItem = useCartStore((state) => state.addItem);
 
-  console.log("Rendering ProductCard:", product.name, "ID:", product.id);
+  // console.log("Rendering ProductCard:", product.name, "ID:", product.id);
 
   return (
     <div className="snap-start shrink-0 w-[100%] border border-[#E2E2E2] rounded-lg shadow-sm bg-[#F7F7F7] flex flex-col h-full">
-        <div className="relative h-48 bg-white rounded-tl-lg rounded-tr-lg overflow-hidden">
+        <Link href={`/products/${product.slug}`} className="relative h-48 bg-white rounded-tl-lg rounded-tr-lg overflow-hidden">
             <Image src={product.images?.[0]?.src || "/placeholder.png"} alt={product.name || "Product image"} fill className="object-contain"/>
-        </div>
+
+            {/* Dynamic stock badge */}
+            {product.stock_status === "instock" ? (
+                <span className="absolute top-2 left-2 bg-white border border-green-500 text-green-600 text-xs px-2 py-1 rounded-full">In stock</span>
+            ) : (
+                <span className="absolute top-2 left-2 bg-white border border-red-500 text-red-600 text-xs px-2 py-1 rounded-full">Out of stock</span>
+            )}
+        </Link>
 
       <div className="p-4 flex flex-col flex-1">
-        <h3 className="text-base font-medium mb-1 line-clamp-2 text-[#1C2530]">
+        <Link href={`/products/${product.slug}`} className="text-lg font-medium mb-1 line-clamp-2 text-[#1C2530]">
           {product.name || "Untitled Product"}
-        </h3>
+        </Link>
 
         <div className="flex items-center gap-2 mb-2">
           <p className="text-xl font-bold text-[#1C2530]">

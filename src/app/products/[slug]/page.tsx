@@ -49,6 +49,11 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
   const [certificate, setCertificate] = useState<string | null>(null);
   const [careInstructions, setCareInstructions] = useState<string | null>(null);
 
+  // Add to cart loader, success and error state
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [addCartSuccess, setAddCartSuccess] = useState(false);
+  const [addCartError, setAddCartError] = useState(false);
+
   const colours = [
     { name: 'Red', colorCode: 'bg-red-600' },
     { name: 'Blue', colorCode: 'bg-blue-600' },
@@ -64,6 +69,12 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
     { id: 5, name: 'Model C', image: '/mainprodimg.png' },
     { id: 6, name: 'Model C', image: '/mainprodimg.png' },
   ];
+
+  const metaData = product?.meta_data || [];
+  const cheapestPriceOption = metaData.find(
+    (m) => m.key === "crucial_data_cheapest_price_option"
+  )?.value;
+  const isCheapestPriceEnabled = cheapestPriceOption === "1" || cheapestPriceOption === 1;
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const thumbsRef = useRef<HTMLDivElement>(null);
@@ -376,6 +387,22 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
     product?.meta_data?.find((m: any) => m.key === "crucial_data_product_name")?.value ||
     product?.name ||
     "";
+  
+  const getMetaValue = (key: string) =>
+  product?.meta_data?.find((m: any) => m.key === key)?.value || null;
+
+  // --- Core product info
+  const productSKU = product?.sku;
+  const productCategories = product?.categories || [];
+  const productBrands = product?.brands || [];
+
+  // --- Dimensions
+  const productWidth = getMetaValue("dimensions_product_width");
+  const productWidthUnit = getMetaValue("dimensions_product_width_unit");
+  const productHeight = getMetaValue("dimensions_product_height");
+  const productHeightUnit = getMetaValue("dimensions_product_height_unit");
+  const productLength = getMetaValue("dimensions_product_length");
+  const productLengthUnit = getMetaValue("dimensions_product_length_unit");
 
   if (loading) {
     return (
@@ -392,6 +419,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
       </div>
     );
   }
+  
 
   return (
     <div className='bg-[#F5F5F5] font-sans'>
@@ -459,9 +487,9 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                       </button>
                     </div>
-                    <div className='text-[#1C2530] font-bold text-3xl mt-8'>
+                    <div className='text-[#1C2530] font-bold text-3xl mt-8 hidden lg:block'>
                         <h3>Handig om dij te bestellen</h3>
-                        <div className='grid grid-cols-3 gap-4 mt-4'>
+                        <div className='grid grid-cols-1 lg:grid-cols-3 gap-2 lg:gap-4 mt-4'>
                           {matchingProducts.length > 0 && (
                             <button onClick={() => scrollToSection("accessories-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching accessories</button>
                           )}
@@ -479,12 +507,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                           )}
                           {musthaveprodKeys.length > 0 && (
                             <button onClick={() => scrollToSection("musthaveprod-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Must need</button>
-                          )}
-                            
-                            
-                            
-                            
-                            
+                          )}   
                         </div>
                     </div>
                 </div>
@@ -501,10 +524,8 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
 
                     {/* Price and Discount */}
                     {(() => {
-                      // Helper to get meta_data value by key
                       const getMeta = (key: string) =>
                         product?.meta_data?.find((m: any) => m.key === key)?.value;
-                      // Get advised and sale price from meta_data
                       const advisedRaw = getMeta("crucial_data_unit_price");
                       const saleRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
                       const currency = product.currency_symbol || "රු";
@@ -532,17 +553,19 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                                   </button>
                                 </div>
                               ) : null}
-                              <button
-                                className='bg-[#5ca139] px-[12px] py-[5px] rounded-sm text-white text-[13px] font-bold cursor-pointer'
-                                onClick={() => {
-                                  if (vergelijkRef.current) {
-                                    vergelijkRef.current.open = true;
-                                    vergelijkRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-                                  }
-                                }}
-                              >
-                                We are the cheapest
-                              </button>
+                              {isCheapestPriceEnabled && (
+                                <button
+                                  className='bg-[#5ca139] px-[12px] py-[5px] rounded-sm text-white text-[13px] font-bold cursor-pointer'
+                                  onClick={() => {
+                                    if (vergelijkRef.current) {
+                                      vergelijkRef.current.open = true;
+                                      vergelijkRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+                                    }
+                                  }}
+                                >
+                                  We are the cheapest
+                                </button>
+                              )}
                             </>
                           ) : (
                             advised !== null ? (
@@ -592,7 +615,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
 
                     {/* Colour Swatches */}
                     <div className="flex gap-2 items-center">
-                        <h2 className="font-semibold text-lg mb-2">Our Colours:</h2>
+                        <h2 className="font-semibold text-base lg:text-lg lg:mb-2">Our Colours:</h2>
                         <div className="flex gap-3">
                         {colours.map((colour) => (
                             <button
@@ -608,7 +631,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                     {/* Models Carousel */}
                     <div>
                         <div className="flex items-center justify-between mb-2">
-                        <h2 className="font-semibold text-lg">Our Models</h2>
+                        <h2 className="font-semibold text-base lg:text-lg">Our Models</h2>
                         <div className="flex gap-2">
                             <button type="button" onClick={() => scrollBy(-200)} className="w-8 h-8 flex items-center justify-center rounded-full border border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer" aria-label="Previous models">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
@@ -653,10 +676,10 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                       };
                       return (
                         <div className="bg-white border border-white rounded-lg p-4 flex items-center gap-8">
-                          <h2 className="font-semibold text-lg">Volume discount:</h2>
+                          <h2 className="font-semibold text-base lg:text-lg">Volume discount:</h2>
                           <div className="flex gap-8 items-start">
                             <div>
-                              <p className='mb-1 text-[#3D4752] font-medium text-lg'>Quantity:</p>
+                              <p className='mb-1 text-[#3D4752] font-medium text-base lg:text-lg'>Quantity:</p>
                               {discounts.map((d, idx) => (
                                 <label key={idx} className="text-[#3D4752] font-normal text-base flex items-center gap-2">
                                   <input
@@ -670,7 +693,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                               ))}
                             </div>
                             <div>
-                              <p className='mb-1 text-[#3D4752] font-medium text-lg'>Discount</p>
+                              <p className='mb-1 text-[#3D4752] font-medium text-base lg:text-lg'>Discount</p>
                               {discounts.map((d, idx) => (
                                 <p key={idx} className='text-[#03B955] font-medium text-base'>{d.percentage}%</p>
                               ))}
@@ -685,8 +708,8 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                     </div>
 
                     {/* Quantity Selector and Add to Cart */}
-                    <div className="flex items-center gap-4 mt-4 justify-between">
-                        <div className='w-3/12 flex justify-center items-center'>
+                    <div className="flex flex-wrap lg:flex-nowrap items-center gap-4 mt-4 justify-between">
+                        <div className='w-5/12 lg:w-3/12 flex justify-center items-center'>
                             <p className="text-3xl font-bold text-[#1C2530]">
                               {(() => {
                                 const getMeta = (key: string) =>
@@ -726,20 +749,25 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                             </p>
                         </div>
 
-                        <div className="flex border border-[#EDEDED] shadow-xs rounded-sm overflow-hidden bg-white w-3/12">
+                        <div className="flex border border-[#EDEDED] shadow-xs rounded-sm overflow-hidden bg-white w-auto lg:w-3/12">
                             <button type="button" onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-5 py-3 text-2xl cursor-pointer border-r border-[#EDEDED]">-</button>
                             <div className="px-6 py-2 text-base font-medium text-center min-w-[60px] flex items-center justify-center">
                                 {quantity.toString().padStart(2, '0')}
                             </div>
-                            <button type="button" onClick={() => setQuantity(quantity + 1)} className="px-5 py-3 text-2xl cursor-pointer border-l border-[#EDEDED]">+</button>
+                            <button type="button" onClick={() => setQuantity(quantity + 1)} className="flex justify-center px-5 py-3 text-2xl cursor-pointer border-l border-[#EDEDED]">+</button>
                         </div>
 
-                        <div className='w-6/12'>
-                            <button
-                              type="button"
-                              className="flex-1 bg-blue-600 text-white px-6 py-4 rounded-sm hover:bg-blue-700 transition font-semibold flex items-center justify-center gap-3 w-full"
-                              onClick={() => {
-                                addItem({
+                        <div className='w-full lg:w-6/12'>
+                          <button
+                            type="button"
+                            className="cursor-pointer flex-1 bg-blue-600 text-white px-6 py-4 rounded-sm hover:bg-blue-700 transition font-semibold flex items-center justify-center gap-3 w-full"
+                            onClick={async () => {
+                              if (isAddingToCart) return;
+                              setAddCartError(false);
+                              setAddCartSuccess(false);
+                              try {
+                                setIsAddingToCart(true);
+                                await addItem({
                                   id: product.id,
                                   name: product.name,
                                   price: (() => {
@@ -770,11 +798,57 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                                   duration: 3000,
                                   position: "top-right",
                                 });
-                              }}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="white" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>
-                                ADD TO CART
-                            </button>
+                                setAddCartSuccess(true);
+                                setTimeout(() => {
+                                  setAddCartSuccess(false);
+                                }, 3000);
+                              } catch (error) {
+                                setAddCartError(true);
+                                setTimeout(() => {
+                                  setAddCartError(false);
+                                }, 3000);
+                              } finally {
+                                setIsAddingToCart(false);
+                              }
+                            }}
+                            disabled={isAddingToCart}
+                          >
+                            {/* Loader spinner if adding, else success, error or cart icon */}
+                            {isAddingToCart ? (
+                              <svg
+                                className="size-6 animate-spin"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="white"
+                                  strokeWidth="4"
+                                ></circle>
+                                <path
+                                  className="opacity-75"
+                                  fill="white"
+                                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                                ></path>
+                              </svg>
+                            ) : addCartSuccess ? (
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="white" className="size-6">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            ) : addCartError ? (
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="#FF3B3B" className="size-6">
+                                <circle cx="12" cy="12" r="10" stroke="#FF3B3B" strokeWidth="2" fill="none"/>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5m0 4h.01" stroke="#FF3B3B" strokeWidth="2"/>
+                              </svg>
+                            ) : (
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="white" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>
+                            )}
+                            ADD TO CART
+                          </button>
                         </div>
                     </div>
 
@@ -786,10 +860,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                     <div>
                         <p className='text-[#212121] font-medium text-lg mb-3'>Need Help?</p>
                         <div className='flex gap-3 items-center justify-center'>
-                            <a
-                              href={`mailto:info@example.com?subject=${encodeURIComponent(productTitle)}`}
-                              className='border border-[#0066FF] rounded-sm py-2.5 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors'
-                            >
+                            <a href={`mailto:info@example.com?subject=${encodeURIComponent(productTitle)}`} className='border border-[#0066FF] rounded-sm py-2.5 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors'>
                                 <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-5 transition-colors"><path d="M1.5 8.67v8.58a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3V8.67l-8.928 5.493a3 3 0 0 1-3.144 0L1.5 8.67Z" /><path d="M22.5 6.908V6.75a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3v.158l9.714 5.978a1.5 1.5 0 0 0 1.572 0L22.5 6.908Z" /></svg></span>
                                 Mail us
                             </a>
@@ -804,6 +875,29 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                         </div>
                     </div>
                 </div>
+                <div className='text-[#1C2530] font-bold text-3xl mt-3 lg:mt-8 block lg:hidden'>
+                    <h3 className='text-lg'>Handig om dij te bestellen</h3>
+                    <div className='grid grid-cols-1 lg:grid-cols-3 gap-2 lg:gap-4 mt-4'>
+                      {matchingProducts.length > 0 && (
+                        <button onClick={() => scrollToSection("accessories-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching accessories</button>
+                      )}
+                      {matchingKnobroseKeys.length > 0 && (
+                        <button onClick={() => scrollToSection("knobroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching roses</button>
+                      )}
+                      {matchingRoseKeys.length > 0 && (
+                        <button onClick={() => scrollToSection("matchingroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching keyroses</button>
+                      )}
+                      {pcroseKeys.length > 0 && (
+                        <button onClick={() => scrollToSection("pcroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching cilinderosses</button>
+                      )}
+                      {blindtoiletroseKeys.length > 0 && (
+                        <button onClick={() => scrollToSection("blindtoiletroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching blind roses</button>
+                      )}
+                      {musthaveprodKeys.length > 0 && (
+                        <button onClick={() => scrollToSection("musthaveprod-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Must need</button>
+                      )}   
+                    </div>
+                </div>
             </div>
 
             <div className='mt-8'>
@@ -812,12 +906,12 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                         {/* first row left accordion */}
                         <div className="bg-white rounded-lg border border-white">
                             <details className="group" open>
-                                <summary className="flex justify-between items-center cursor-pointer px-6 py-5 font-semibold text-xl text-[#1C2530]">
+                                <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
                                     Product description
                                     <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
                                     <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
                                 </summary>
-                                <div className="px-6 pb-4 text-[#3D4752] space-y-4 font-normal text-base">
+                                <div className="px-6 pb-4 text-[#3D4752] space-y-4 font-normal text-sm lg:text-base">
                                   {(() => {
                                     const desc = product?.meta_data?.find((m: any) => m.key === "description_description")?.value;
                                     if (!desc) return null;
@@ -830,8 +924,8 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                                       ));
                                   })()}
                                   <div className="bg-[#E3EEFF] text-gray-800 p-5 rounded-lg border-0">
-                                    <p className="font-semibold text-gray-900 text-lg">Installation Tip:</p>
-                                    <p className="text-base text-normal">
+                                    <p className="font-semibold text-gray-900 text-base lg:text-lg">Installation Tip:</p>
+                                    <p className="text-sm lg:text-base text-normal">
                                       Due to the extended handle design, we recommend using painter's tape to protect the spindle during installation. 
                                       Insert patent screws through the base rosette before mounting to prevent damage to the bronze finish.
                                     </p>
@@ -841,9 +935,15 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                         </div>
 
                         {/* second row left accordion */}
+                        {(productSKU ||
+                        productWidth ||
+                        productHeight ||
+                        productLength ||
+                        productCategories.length > 0 ||
+                        productBrands.length > 0) && (
                         <div className="bg-white rounded-lg border border-white">
                             <details className="group">
-                                <summary className="flex justify-between items-center cursor-pointer px-6 py-5 font-semibold text-xl text-[#1C2530]">
+                                <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
                                     Product specifications
                                     <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
                                     <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
@@ -851,66 +951,87 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                                 <div className="px-6 pb-4 text-gray-700 space-y-4">
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-sm text-left text-gray-700">
-                                        <tbody>
-                                            <tr className="bg-[#F3F8FF]">
-                                            <td className="px-6 py-3 font-medium text-gray-900">SKU</td>
-                                            <td className="px-6 py-3">34354354656675</td>
-                                            </tr>
-                                            <tr>
-                                            <td className="px-6 py-3 font-medium text-gray-900">Width</td>
-                                            <td className="px-6 py-3">19mm</td>
-                                            </tr>
-                                            <tr className="bg-[#F3F8FF]">
-                                            <td className="px-6 py-3 font-medium text-gray-900">Height</td>
-                                            <td className="px-6 py-3">60mm</td>
-                                            </tr>
-                                            <tr>
-                                            <td className="px-6 py-3 font-medium text-gray-900">Category</td>
-                                            <td className="px-6 py-3">Door handle without rosette</td>
-                                            </tr>
-                                            <tr className="bg-[#F3F8FF]">
-                                            <td className="px-6 py-3 font-medium text-gray-900">Brand</td>
-                                            <td className="px-6 py-3">VDS</td>
-                                            </tr>
-                                            <tr>
-                                            <td className="px-6 py-3 font-medium text-gray-900">Colour</td>
-                                            <td className="px-6 py-3">Bronze</td>
-                                            </tr>
-                                            <tr className="bg-[#F3F8FF]">
-                                            <td className="px-6 py-3 font-medium text-gray-900">Length</td>
-                                            <td className="px-6 py-3">130mm</td>
-                                            </tr>
-                                            <tr>
-                                            <td className="px-6 py-3 font-medium text-gray-900">Finishing</td>
-                                            <td className="px-6 py-3">Bronze blend</td>
-                                            </tr>
-                                            <tr className="bg-[#F3F8FF]">
-                                            <td className="px-6 py-3 font-medium text-gray-900">Material</td>
-                                            <td className="px-6 py-3">Stainless steel</td>
-                                            </tr>
-                                            <tr>
-                                            <td className="px-6 py-3 font-medium text-gray-900">Product Suitable for</td>
-                                            <td className="px-6 py-3">Indoor and Outdoor</td>
-                                            </tr>
-                                            <tr className="bg-[#F3F8FF]">
-                                            <td className="px-6 py-3 font-medium text-gray-900">Product Feathered</td>
-                                            <td className="px-6 py-3">No</td>
-                                            </tr>
-                                            <tr>
-                                            <td className="px-6 py-3 font-medium text-gray-900">Series</td>
-                                            <td className="px-6 py-3">Anastasius</td>
-                                            </tr>
-                                        </tbody>
+                                          <tbody>
+                                              {productSKU && (
+                                              <tr className="bg-[#F3F8FF]">
+                                                <td className="px-6 py-3 font-medium text-gray-900">SKU</td>
+                                                <td className="px-6 py-3">{" "}{productSKU}</td>
+                                              </tr>
+                                              )}
+
+                                              {productWidth && (
+                                              <tr>
+                                                <td className="px-6 py-3 font-medium text-gray-900">Width</td>
+                                                <td className="px-6 py-3">
+                                                  {" "}{productWidth}{productWidthUnit}
+                                                </td>
+                                              </tr>
+                                              )}
+
+                                              {productHeight && (
+                                                <tr className="bg-[#F3F8FF]">
+                                                  <td className="px-6 py-3 font-medium text-gray-900">Height</td>
+                                                  <td className="px-6 py-3">{" "}{productHeight}{productHeightUnit}</td>
+                                                </tr>
+                                              )}
+
+                                              {productLength && (
+                                                <tr>
+                                                  <td className="px-6 py-3 font-medium text-gray-900">Length</td>
+                                                  <td className="px-6 py-3">{productLength} {productLengthUnit}</td>
+                                                </tr>
+                                              )}
+
+                                              {productCategories.length > 0 && (
+                                              <tr className="bg-[#F3F8FF]">
+                                                <td className="px-6 py-3 font-medium text-gray-900">Category</td>
+                                                <td className="px-6 py-3">{productCategories.map((c: any) => c.name).join(", ")}</td>
+                                              </tr>
+                                              )}
+
+                                              {productBrands.length > 0 && (
+                                              <tr>
+                                                <td className="px-6 py-3 font-medium text-gray-900">Brand:</td>
+                                                <td className="px-6 py-3">{productBrands.map((b: any) => b.name).join(", ")}</td>
+                                              </tr>
+                                              )}
+                                              {/* <tr className="bg-[#F3F8FF]">
+                                                <td className="px-6 py-3 font-medium text-gray-900">Category</td>
+                                                <td className="px-6 py-3">130mm</td>
+                                              </tr>
+                                              <tr>
+                                                <td className="px-6 py-3 font-medium text-gray-900">Finishing</td>
+                                                <td className="px-6 py-3">Bronze blend</td>
+                                              </tr>
+                                              <tr className="bg-[#F3F8FF]">
+                                                <td className="px-6 py-3 font-medium text-gray-900">Material</td>
+                                                <td className="px-6 py-3">Stainless steel</td>
+                                              </tr>
+                                              <tr>
+                                                <td className="px-6 py-3 font-medium text-gray-900">Product Suitable for</td>
+                                                <td className="px-6 py-3">Indoor and Outdoor</td>
+                                              </tr>
+                                              <tr className="bg-[#F3F8FF]">
+                                                <td className="px-6 py-3 font-medium text-gray-900">Product Feathered</td>
+                                                <td className="px-6 py-3">No</td>
+                                              </tr>
+                                              <tr>
+                                                <td className="px-6 py-3 font-medium text-gray-900">Series</td>
+                                                <td className="px-6 py-3">Anastasius</td>
+                                              </tr> */}
+                                          </tbody>
                                         </table>
                                     </div>
                                 </div>
                             </details>
                         </div>
+                        )}
 
                         {/* third row left accordion */}
+                        {isCheapestPriceEnabled && (
                         <div className="bg-white rounded-lg border border-white">
                             <details className="group" ref={vergelijkRef}>
-                                <summary className="flex justify-between items-center cursor-pointer px-6 py-5 font-semibold text-xl text-[#1C2530]">
+                                <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
                                     Vergelijk dit product met andere winkels
                                     <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
                                     <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
@@ -949,12 +1070,13 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                                 </div>
                             </details>
                         </div>
+                        )}
 
                         {/* fourth row left accordion */}
                         {(manualPdf || installationGuide || certificate || careInstructions) && (
                         <div className="bg-white rounded-lg border border-white">
                             <details className="group">
-                                <summary className="flex justify-between items-center cursor-pointer px-6 py-5 font-semibold text-xl text-[#1C2530]">
+                                <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
                                     Assets & Downloads
                                     <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
                                     <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
@@ -962,7 +1084,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                                 <div className="px-6 pb-4 text-gray-700 space-y-4">
                                     <div className='flex flex-col gap-4'>
                                         <p className='text-[#3D4752] font-normal text-base'>Download technical drawings, installation guides, and product certificates.</p>
-                                        <div className='grid grid-cols-2 gap-4'>
+                                        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
                                             {manualPdf && (
                                             <div className='bg-[#F3F8FF] rounded-sm p-4 flex items-center justify-between'>
                                                 <div>
@@ -1018,7 +1140,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                         {/* fifth row left accordion */}
                         <div className="bg-white rounded-lg border border-white">
                             <details className="group">
-                                <summary className="flex justify-between items-center cursor-pointer px-6 py-5 font-semibold text-xl text-[#1C2530]">
+                                <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
                                     Installation Video
                                     <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
                                     <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
@@ -1035,7 +1157,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                         {/* first row right accordion */}
                         <div className="bg-white rounded-lg border border-white">
                             <details className="group" open>
-                                <summary className="flex justify-between items-center cursor-pointer px-6 py-5 font-semibold text-xl text-[#1C2530]">
+                                <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
                                     Technical drawing & Dimensions
                                     <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
                                     <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
@@ -1053,19 +1175,19 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                         {/* second row right accordion */}
                         <div className="bg-white rounded-lg border border-white">
                             <details className="group">
-                                <summary className="flex justify-between items-center cursor-pointer px-6 py-5 font-semibold text-xl text-[#1C2530]">
+                                <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
                                     Ambiance Pictures
                                     <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
                                     <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
                                 </summary>
                                 <div className="px-6 pb-4 text-gray-700 space-y-4">
-                                    <div className='grid grid-cols-3 gap-4'>
-                                        <img src="/Ambpic1.png" className='w-full h-52 rounded-sm' alt="" />
-                                        <img src="/AmbPic2.png" className='w-full h-52 rounded-sm' alt="" />
-                                        <img src="/AmbPic3.png" className='w-full h-52 rounded-sm' alt="" />
-                                        <img src="/AmbPic4.png" className='w-full h-52 rounded-sm' alt="" />
-                                        <img src="/AmbPic5.png" className='w-full h-52 rounded-sm' alt="" />
-                                        <img src="/AmbPic6.png" className='w-full h-52 rounded-sm' alt="" />
+                                    <div className='grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4'>
+                                        <img src="/Ambpic1.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
+                                        <img src="/AmbPic2.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
+                                        <img src="/AmbPic3.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
+                                        <img src="/AmbPic4.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
+                                        <img src="/AmbPic5.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
+                                        <img src="/AmbPic6.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
                                     </div>
                                     <div>
                                         <p className='text-[#3D4752] font-normal text-base'>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries,</p>
@@ -1077,7 +1199,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                         {/* third row right accordion */}
                         <div className="bg-white rounded-lg border border-white">
                             <details className="group">
-                                <summary className="flex justify-between items-center cursor-pointer px-6 py-5 font-semibold text-xl text-[#1C2530]">
+                                <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
                                     Warranty
                                     <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
                                     <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
@@ -1115,10 +1237,8 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                             </details>
                         </div>
 
-                        {/* fourth row right accordion */}
-                        {/* FAQ Accordion - Dynamic rendering */}
+                        {/* fourth row right accordion - FAQ Accordion */}
                         {(() => {
-                          // Collect FAQ pairs from meta_data
                           const faqs: { question: string; answer: string }[] = [];
                           if (product?.meta_data) {
                             for (let i = 1; i <= 8; i++) {
@@ -1137,7 +1257,6 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                             }
                           }
                           if (faqs.length === 0) return null;
-                          // JSON-LD schema markup
                           const faqSchema = {
                             "@context": "https://schema.org",
                             "@type": "FAQPage",
@@ -1153,13 +1272,12 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                           return (
                             <div className="bg-white rounded-lg border border-white">
                               <details className="group">
-                                <summary className="flex justify-between items-center cursor-pointer px-6 py-5 font-semibold text-xl text-[#1C2530]">
+                                <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
                                   FAQ’s
                                   <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
                                   <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
                                 </summary>
-                                <div className="px-6 pb-4 text-gray-700 space-y-4">
-                                  {/* FAQ accordion items */}
+                                <div className="px-3 lg:px-6 pb-3 lg:pb-4 text-gray-700 space-y-4 mt-3 lg:mt-0">
                                   {faqs.map((faq, idx) => (
                                     <div
                                       key={idx}
@@ -1170,7 +1288,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                                         name="faq-accordion"
                                         defaultChecked={idx === 0}
                                       />
-                                      <div className="collapse-title text-[#3D4752] text-lg font-semibold p-2">
+                                      <div className="collapse-title text-[#3D4752] text-base lg:text-lg font-semibold p-2">
                                         {faq.question}
                                       </div>
                                       <div className="collapse-content text-[#808D9A] text-normal text-sm p-2">
@@ -1178,10 +1296,8 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                                       </div>
                                     </div>
                                   ))}
-                                  {/* JSON-LD FAQ Schema */}
                                   <script
                                     type="application/ld+json"
-                                    // @ts-ignore
                                     dangerouslySetInnerHTML={{
                                       __html: JSON.stringify(faqSchema),
                                     }}
@@ -1194,22 +1310,20 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                     </div>
                 </div>
             </div>
-            
-            <div></div>
         </div>
 
         <div className='bg-white py-4'>
-          <div className='max-w-[1440px] mx-auto py-8'>
-            <div className='grid grid-cols-2 gap-8'>
+          <div className='max-w-[1440px] mx-auto py-8 px-5 lg:px-0'>
+            <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
               {matchingProducts && matchingProducts.length > 0 && (
-                <div id="accessories-section" className='bg-[#F7F7F7] rounded-md p-5'>
+                <div id="accessories-section" className='lg:bg-[#F7F7F7] rounded-md p-5'>
                   <div className='flex justify-between items-center mb-5'>
                     <div className='flex flex-col gap-2'>
                       <p className='text-[#1C2530] font-bold text-3xl'>Matching accessories</p>
-                      <p className='text-[#3D4752] font-normal text-base'>Check out matching accessories from bouwbeslag.nl</p>
+                      <p className='text-[#3D4752] font-normal text-sm lg:text-base'>Check out matching accessories from bouwbeslag.nl</p>
                     </div>
                     {matchingProducts.length > 2 && (
-                      <div className='flex gap-5 items-center justify-between'>
+                      <div className='hidden lg:flex gap-5 items-center justify-between'>
                         <button
                           className='bg-[#e6e6e6] cursor-pointer hover:bg-[#c4c0c0] rounded-full p-2 flex text-black'
                           onClick={() => scrollCarousel(accessoriesRef, "left")}
@@ -1218,7 +1332,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
                         </button>
                         <button
-                          className='bg-[#0066FF] rounded-full p-2 flex text-white'
+                          className='bg-[#0066FF] cursor-pointer rounded-full p-2 flex text-white'
                           onClick={() => scrollCarousel(accessoriesRef, "right")}
                           aria-label="Scroll matching products right"
                         >
@@ -1246,18 +1360,34 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                       </div>
                     </div>
                   </div>
+                  <div className='flex lg:hidden gap-5 items-center justify-center mt-5'>
+                    <button
+                      className='bg-[#e6e6e6] cursor-pointer hover:bg-[#c4c0c0] rounded-full p-2 flex text-black'
+                      onClick={() => scrollCarousel(accessoriesRef, "left")}
+                      aria-label="Scroll matching products left"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+                    </button>
+                    <button
+                      className='bg-[#0066FF] cursor-pointer rounded-full p-2 flex text-white'
+                      onClick={() => scrollCarousel(accessoriesRef, "right")}
+                      aria-label="Scroll matching products right"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                    </button>
+                  </div>
                 </div>
               )}
 
               {matchingKnobroseKeys && matchingKnobroseKeys.length > 0 && (
-                <div id="knobroses-section" className='bg-[#F7F7F7] rounded-md p-5'>
+                <div id="knobroses-section" className='lg:bg-[#F7F7F7] rounded-md p-5'>
                   <div className='flex justify-between items-center mb-5'>
                     <div className='flex flex-col gap-2'>
                       <p className='text-[#1C2530] font-bold text-3xl'>Matching roses</p>
-                      <p className='text-[#3D4752] font-normal text-base'>Check out Matching roses from bouwbeslag.nl</p>
+                      <p className='text-[#3D4752] font-normal text-sm lg:text-base'>Check out Matching roses from bouwbeslag.nl</p>
                     </div>
                     {matchingKnobroseKeys.length > 2 && (
-                      <div className='flex gap-5 items-center justify-between'>
+                      <div className='hidden lg:flex gap-5 items-center justify-between'>
                         <button
                           className='bg-[#e6e6e6] cursor-pointer hover:bg-[#c4c0c0] rounded-full p-2 flex text-black'
                           onClick={() => scrollCarousel(knobroseRef, "left")}
@@ -1266,7 +1396,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
                         </button>
                         <button
-                          className='bg-[#0066FF] rounded-full p-2 flex text-white'
+                          className='bg-[#0066FF] cursor-pointer rounded-full p-2 flex text-white'
                           onClick={() => scrollCarousel(knobroseRef, "right")}
                           aria-label="Scroll matching products right"
                         >
@@ -1294,18 +1424,34 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                       </div>
                     </div>
                   </div>
+                  <div className='flex lg:hidden gap-5 items-center justify-center mt-5'>
+                    <button
+                      className='bg-[#e6e6e6] cursor-pointer hover:bg-[#c4c0c0] rounded-full p-2 flex text-black'
+                      onClick={() => scrollCarousel(knobroseRef, "left")}
+                      aria-label="Scroll matching products left"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+                    </button>
+                    <button
+                      className='bg-[#0066FF] cursor-pointer rounded-full p-2 flex text-white'
+                      onClick={() => scrollCarousel(knobroseRef, "right")}
+                      aria-label="Scroll matching products right"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                    </button>
+                  </div>
                 </div>
               )}
 
               {matchingRoseKeys && matchingRoseKeys.length > 0 && (
-                <div id="matchingroses-section" className='bg-[#F7F7F7] rounded-md p-5'>
+                <div id="matchingroses-section" className='lg:bg-[#F7F7F7] rounded-md p-5'>
                   <div className='flex justify-between items-center mb-5'>
                     <div className='flex flex-col gap-2'>
                       <p className='text-[#1C2530] font-bold text-3xl'>Matching keyroses</p>
-                      <p className='text-[#3D4752] font-normal text-base'>Check out Matching keyroses from bouwbeslag.nl</p>
+                      <p className='text-[#3D4752] font-normal text-sm lg:text-base'>Check out Matching keyroses from bouwbeslag.nl</p>
                     </div>
                     {matchingRoseKeys.length > 2 && (
-                      <div className='flex gap-5 items-center justify-between'>
+                      <div className='hidden lg:flex gap-5 items-center justify-between'>
                         <button
                           className='bg-[#e6e6e6] cursor-pointer hover:bg-[#c4c0c0] rounded-full p-2 flex text-black'
                           onClick={() => scrollCarousel(keyrosesRef, "left")}
@@ -1314,7 +1460,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
                         </button>
                         <button
-                          className='bg-[#0066FF] rounded-full p-2 flex text-white'
+                          className='bg-[#0066FF] cursor-pointer rounded-full p-2 flex text-white'
                           onClick={() => scrollCarousel(keyrosesRef, "right")}
                           aria-label="Scroll matching products right"
                         >
@@ -1342,18 +1488,34 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                       </div>
                     </div>
                   </div>
+                  <div className='flex lg:hidden gap-5 items-center justify-center mt-5'>
+                    <button
+                      className='bg-[#e6e6e6] cursor-pointer hover:bg-[#c4c0c0] rounded-full p-2 flex text-black'
+                      onClick={() => scrollCarousel(keyrosesRef, "left")}
+                      aria-label="Scroll matching products left"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+                    </button>
+                    <button
+                      className='bg-[#0066FF] cursor-pointer rounded-full p-2 flex text-white'
+                      onClick={() => scrollCarousel(keyrosesRef, "right")}
+                      aria-label="Scroll matching products right"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                    </button>
+                  </div>
                 </div>
               )}
 
               {pcroseKeys && pcroseKeys.length > 0 && (
-                <div id="pcroses-section" className='bg-[#F7F7F7] rounded-md p-5'>
+                <div id="pcroses-section" className='lg:bg-[#F7F7F7] rounded-md p-5'>
                   <div className='flex justify-between items-center mb-5'>
                     <div className='flex flex-col gap-2'>
                       <p className='text-[#1C2530] font-bold text-3xl'>Matching cilinderosses</p>
-                      <p className='text-[#3D4752] font-normal text-base'>Check out Matching cilinderosses from bouwbeslag.nl</p>
+                      <p className='text-[#3D4752] font-normal text-sm lg:text-base'>Check out Matching cilinderosses from bouwbeslag.nl</p>
                     </div>
                     {pcroseKeys.length > 2 && (
-                      <div className='flex gap-5 items-center justify-between'>
+                      <div className='hidden lg:flex gap-5 items-center justify-between'>
                         <button
                           className='bg-[#e6e6e6] cursor-pointer hover:bg-[#c4c0c0] rounded-full p-2 flex text-black'
                           onClick={() => scrollCarousel(cillinderrosesRef, "left")}
@@ -1362,7 +1524,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
                         </button>
                         <button
-                          className='bg-[#0066FF] rounded-full p-2 flex text-white'
+                          className='bg-[#0066FF] cursor-pointer rounded-full p-2 flex text-white'
                           onClick={() => scrollCarousel(cillinderrosesRef, "right")}
                           aria-label="Scroll matching products right"
                         >
@@ -1390,18 +1552,34 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                       </div>
                     </div>
                   </div>
+                  <div className='flex lg:hidden gap-5 items-center justify-center mt-5'>
+                    <button
+                      className='bg-[#e6e6e6] cursor-pointer hover:bg-[#c4c0c0] rounded-full p-2 flex text-black'
+                      onClick={() => scrollCarousel(cillinderrosesRef, "left")}
+                      aria-label="Scroll matching products left"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+                    </button>
+                    <button
+                      className='bg-[#0066FF] cursor-pointer rounded-full p-2 flex text-white'
+                      onClick={() => scrollCarousel(cillinderrosesRef, "right")}
+                      aria-label="Scroll matching products right"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                    </button>
+                  </div>
                 </div>
               )}
 
               {blindtoiletroseKeys && blindtoiletroseKeys.length > 0 && (
-                <div id="blindtoiletroses-section" className='bg-[#F7F7F7] rounded-md p-5'>
+                <div id="blindtoiletroses-section" className='lg:bg-[#F7F7F7] rounded-md p-5'>
                   <div className='flex justify-between items-center mb-5'>
                     <div className='flex flex-col gap-2'>
                       <p className='text-[#1C2530] font-bold text-3xl'>Matching blind roses</p>
-                      <p className='text-[#3D4752] font-normal text-base'>Check out Matching blind roses from bouwbeslag.nl</p>
+                      <p className='text-[#3D4752] font-normal text-sm lg:text-base'>Check out Matching blind roses from bouwbeslag.nl</p>
                     </div>
                     {blindtoiletroseKeys.length > 2 && (
-                      <div className='flex gap-5 items-center justify-between'>
+                      <div className='hidden lg:flex gap-5 items-center justify-between'>
                         <button
                           className='bg-[#e6e6e6] cursor-pointer hover:bg-[#c4c0c0] rounded-full p-2 flex text-black'
                           onClick={() => scrollCarousel(blindrosesRef, "left")}
@@ -1410,7 +1588,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
                         </button>
                         <button
-                          className='bg-[#0066FF] rounded-full p-2 flex text-white'
+                          className='bg-[#0066FF] cursor-pointer rounded-full p-2 flex text-white'
                           onClick={() => scrollCarousel(blindrosesRef, "right")}
                           aria-label="Scroll matching products right"
                         >
@@ -1438,18 +1616,34 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                       </div>
                     </div>
                   </div>
+                  <div className='flex lg:hidden gap-5 items-center justify-center mt-5'>
+                    <button
+                      className='bg-[#e6e6e6] cursor-pointer hover:bg-[#c4c0c0] rounded-full p-2 flex text-black'
+                      onClick={() => scrollCarousel(blindrosesRef, "left")}
+                      aria-label="Scroll matching products left"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+                    </button>
+                    <button
+                      className='bg-[#0066FF] cursor-pointer rounded-full p-2 flex text-white'
+                      onClick={() => scrollCarousel(blindrosesRef, "right")}
+                      aria-label="Scroll matching products right"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                    </button>
+                  </div>
                 </div>
               )}
 
               {musthaveprodKeys && musthaveprodKeys.length > 0 && (
-                <div id="musthaveprod-section" className='bg-[#F7F7F7] rounded-md p-5'>
+                <div id="musthaveprod-section" className='lg:bg-[#F7F7F7] rounded-md p-5'>
                   <div className='flex justify-between items-center mb-5'>
                     <div className='flex flex-col gap-2'>
                       <p className='text-[#1C2530] font-bold text-3xl'>Must need</p>
-                      <p className='text-[#3D4752] font-normal text-base'>Check out Must need from bouwbeslag.nl</p>
+                      <p className='text-[#3D4752] font-normal text-sm lg:text-base'>Check out Must need from bouwbeslag.nl</p>
                     </div>
                     {musthaveprodKeys.length > 2 && (
-                      <div className='flex gap-5 items-center justify-between'>
+                      <div className='hidden lg:flex gap-5 items-center justify-between'>
                         <button
                           className='bg-[#e6e6e6] cursor-pointer hover:bg-[#c4c0c0] rounded-full p-2 flex text-black'
                           onClick={() => scrollCarousel(mustneedRef, "left")}
@@ -1458,7 +1652,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
                         </button>
                         <button
-                          className='bg-[#0066FF] rounded-full p-2 flex text-white'
+                          className='bg-[#0066FF] cursor-pointer rounded-full p-2 flex text-white'
                           onClick={() => scrollCarousel(mustneedRef, "right")}
                           aria-label="Scroll matching products right"
                         >
@@ -1485,6 +1679,22 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                         ))}
                       </div>
                     </div>
+                  </div>
+                  <div className='flex lg:hidden gap-5 items-center justify-center mt-5'>
+                    <button
+                      className='bg-[#e6e6e6] cursor-pointer hover:bg-[#c4c0c0] rounded-full p-2 flex text-black'
+                      onClick={() => scrollCarousel(mustneedRef, "left")}
+                      aria-label="Scroll matching products left"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+                    </button>
+                    <button
+                      className='bg-[#0066FF] rounded-full p-2 flex text-white cursor-pointer'
+                      onClick={() => scrollCarousel(mustneedRef, "right")}
+                      aria-label="Scroll matching products right"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                    </button>
                   </div>
                 </div>
               )}

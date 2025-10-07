@@ -78,6 +78,7 @@ export default function CategoryPage({ params }: Params) {
   const [sortBy, setSortBy] = useState<string>("");
   const [subCategories, setSubCategories] = useState<Category[]>([]);
   const [activeSubCategories, setActiveSubCategories] = useState<Set<number>>(new Set());
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     async function loadCategory() {
@@ -249,16 +250,22 @@ if (categoryLoading) {
 
   return (
     <div className="bg-[#F7F7F7]">
-      <div className="max-w-[1440px] mx-auto py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          <aside className="w-full lg:w-1/4">
-            <nav className="mb-8 text-sm flex gap-2">
-              <a href="/" className="hover:underline flex items-center gap-2 font-medium text-sm text-[#4F4F4F]">
-                <span><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg></span>
-                <span>Home</span>
-              </a> / <span className='text-[#9C9C9C]'>{category.name}</span>
-            </nav>
-            <div className='border-0 bg-white p-4 rounded-lg'>
+      <div className="max-w-[1440px] mx-auto py-8 px-5 lg:px-0">
+        <div className="flex flex-col lg:flex-row gap-2 lg:gap-8">
+          
+          <aside className="w-full lg:w-1/4 relative">
+            <button
+              type="button"
+              onClick={() => setShowFilters(false)}
+              className={`${showFilters ? 'block' : 'hidden'} lg:hidden block absolute top-3 right-3 text-gray-500 hover:text-gray-700 transition`}
+              aria-label="Close Filters"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+            </button>
+            <div
+              id="filters-section"
+              className={`${showFilters ? 'max-h-screen opacity-100 p-4' : 'max-h-0 opacity-0 lg:p-4'} overflow-hidden transition-all duration-300 ease-in-out lg:max-h-full lg:opacity-100 lg:block bg-white rounded-lg`}
+            >
               {filtersLoading ? (
                 <div className="space-y-4">
                   {[...Array(5)].map((_, i) => (
@@ -327,16 +334,29 @@ if (categoryLoading) {
 
           {/* Main Content */}
           <main className="flex-1">
-            <div className="flex justify-between items-start mb-4">
+            <div className="flex justify-between items-end mb-4">
               <h1 className="text-3xl font-bold">{category.name}</h1>
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="select focus:outline-0 focus:ring-0 w-32 border border-[#808D9A] rounded-sm bg-[F7F7F7] h-8">
-                <option disabled={true} value="">Sort by</option>
-                <option value="popularity">Popularity</option>
-                <option value="rating">Rating</option>
-                <option value="latest">Latest</option>
-                <option value="price-low-high">Price: Low to High</option>
-                <option value="price-high-low">Price: High to Low</option>
-              </select>
+              <div className='flex gap-3 '>
+                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="select focus:outline-0 focus:ring-0 w-32 border border-[#808D9A] rounded-sm bg-[F7F7F7] h-8">
+                  <option disabled={true} value="">Sort by</option>
+                  <option value="popularity">Popularity</option>
+                  <option value="rating">Rating</option>
+                  <option value="latest">Latest</option>
+                  <option value="price-low-high">Price: Low to High</option>
+                  <option value="price-high-low">Price: High to Low</option>
+                </select>
+                <button type="button" className="lg:hidden px-2 py-1 w-auto text-left bg-white border border-gray-300 rounded-md font-medium" onClick={() => setShowFilters(!showFilters)} aria-expanded={showFilters} aria-controls="filters-section">
+                  {showFilters ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
 
             <div className='flex gap-4 pb-4 flex-wrap'>
@@ -365,7 +385,7 @@ if (categoryLoading) {
 
             {/* Products Grid */}
             {productsLoading && products.length === 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 lg:gap-6">
                 {[...Array(8)].map((_, i) => (
                   <div key={i} className="h-64 bg-gray-200 rounded animate-pulse"></div>
                 ))}
@@ -373,7 +393,7 @@ if (categoryLoading) {
             ) : products.length === 0 ? (
               <p>No products found in this category.</p>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 lg:gap-6">
                 {products.map((product) => (
                   <ShopProductCard key={product.id} product={product} />
                 ))}
