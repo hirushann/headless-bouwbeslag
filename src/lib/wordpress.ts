@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const wpApi = axios.create({
-  baseURL: "http://staging-plugin-test.test/wp-json/wp/v2",
+  baseURL: `${process.env.NEXT_PUBLIC_WORDPRESS_API_URL}/wp-json/wp/v2`,
 });
 
 export const fetchPosts = async (perPage: number = 5) => {

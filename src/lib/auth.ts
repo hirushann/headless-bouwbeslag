@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const WP_API_URL = "http://staging-plugin-test.test/wp-json"; // change to staging/prod domain
+const WP_API_URL = `${process.env.NEXT_PUBLIC_WORDPRESS_API_URL}/wp-json`;
 
 // Login with username & password
 export async function login(username: string, password: string) {
