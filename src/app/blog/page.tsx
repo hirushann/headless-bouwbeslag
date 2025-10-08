@@ -26,7 +26,7 @@ export default function BlogPage() {
 
   useEffect(() => {
     let cancelled = false;
-    fetchPosts(50, { _embed: true }) // fetch more posts to allow for category filtering and load more, with _embed
+    fetchPosts(50)
       .then((res) => {
         if (!cancelled) {
           // Ensure each post contains categories array

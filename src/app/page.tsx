@@ -13,7 +13,14 @@ interface Post {
   excerpt: { rendered: string };
   slug: string;
   _embedded?: {
-    "wp:featuredmedia"?: { source_url: string }[];
+    "wp:featuredmedia"?: {
+      source_url: string;
+      media_details?: {
+        sizes?: Record<string, { source_url: string }> & {
+          full?: { source_url: string };
+        };
+      };
+    }[];
   };
 }
 
@@ -31,6 +38,9 @@ interface Category {
   id: number;
   name: string;
   parent: number;
+  slug: string;
+  count?: number;
+  image?: { src: string };
 }
 
 export default function Home() {

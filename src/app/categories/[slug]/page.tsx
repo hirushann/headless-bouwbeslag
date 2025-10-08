@@ -66,7 +66,8 @@ async function fetchTermsForAttribute(attributeId: number): Promise<AttributeTer
 }
 
 export default function CategoryPage({ params }: Params) {
-  const { slug } = use(params);
+  // const { slug } = use(params);
+  const { slug } = params;
   const [category, setCategory] = useState<Category | null>(null);
   const [categoryLoading, setCategoryLoading] = useState<boolean>(true);
   const [products, setProducts] = useState<Product[]>([]);
@@ -335,7 +336,7 @@ if (categoryLoading) {
           {/* Main Content */}
           <main className="flex-1">
             <div className="flex justify-between items-end mb-4">
-              <h1 className="text-3xl font-bold">{category.name}</h1>
+              <h1 className="text-3xl font-bold">{category?.name ?? "Category"}</h1>
               <div className='flex gap-3 '>
                 <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="select focus:outline-0 focus:ring-0 w-32 border border-[#808D9A] rounded-sm bg-[F7F7F7] h-8">
                   <option disabled={true} value="">Sort by</option>

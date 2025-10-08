@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect } from 'react';
 import ProductCard from '@/components/ProductCard';
 import api from "@/lib/woocommerce";
 import ShopProductCard from '@/components/ShopProductCard';
@@ -53,7 +53,7 @@ async function fetchTermsForAttribute(attributeId: number): Promise<AttributeTer
 }
 
 export default function SearchPage({ searchParams }: Params) {
-  const query = use(searchParams).q || "";
+  const query = searchParams?.q || "";
   const [products, setProducts] = useState<Product[]>([]);
   const [attributes, setAttributes] = useState<Attribute[]>([]);
   const [selectedFilters, setSelectedFilters] = useState<{ [key: number]: Set<number> }>({});

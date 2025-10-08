@@ -16,22 +16,22 @@ export default function Header() {
   );
   const shipping = 0; // Free shipping
 
-  const increaseQuantity = (id: string) => {
-    const item = useCartStore.getState().items.find((i) => i.id === id);
+  const increaseQuantity = (id: number) => {
+    const item = useCartStore.getState().items.find((i) => i.id === Number(id));
     if (item) {
-      useCartStore.getState().updateQty(id, item.quantity + 1);
+      useCartStore.getState().updateQty(Number(id), item.quantity + 1);
     }
   };
 
-  const decreaseQuantity = (id: string) => {
-    const item = useCartStore.getState().items.find((i) => i.id === id);
+  const decreaseQuantity = (id: number) => {
+    const item = useCartStore.getState().items.find((i) => i.id === Number(id));
     if (item && item.quantity > 1) {
-      useCartStore.getState().updateQty(id, item.quantity - 1);
+      useCartStore.getState().updateQty(Number(id), item.quantity - 1);
     }
   };
 
-  const removeItem = (id: string) => {
-    useCartStore.getState().removeItem(id);
+  const removeItem = (id: number) => {
+    useCartStore.getState().removeItem(Number(id));
   };
 
   useEffect(() => {
@@ -332,7 +332,7 @@ export default function Header() {
                                       1,
                                       parseInt(e.target.value) || 1
                                     );
-                                    useCartStore.getState().updateQuantity(item.id, newQuantity);
+                                    useCartStore.getState().updateQty(item.id, newQuantity);
                                   }}
                                   aria-label={`Set quantity of ${item.name}`}
                                 />

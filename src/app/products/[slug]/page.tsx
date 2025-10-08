@@ -37,11 +37,10 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
   const mustneedRef = useRef<HTMLDivElement>(null);
 
   
-  const scrollCarousel = (ref: React.RefObject<HTMLDivElement>, direction: "left" | "right") => {
-    if (ref.current) {
-      const amount = direction === "left" ? -340 : 340;
-      ref.current.scrollBy({ left: amount, behavior: "smooth" });
-    }
+  const scrollCarousel = (ref: React.RefObject<HTMLDivElement | null>, direction: "left" | "right") => {
+    if (!ref.current) return;
+    const scrollAmount = direction === "left" ? -300 : 300;
+    ref.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
   };
 
   const [manualPdf, setManualPdf] = useState<string | null>(null);
@@ -70,7 +69,12 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
     { id: 6, name: 'Model C', image: '/mainprodimg.png' },
   ];
 
-  const metaData = product?.meta_data || [];
+  type MetaData = {
+    key: string;
+    value: any;
+  };
+
+  const metaData: MetaData[] = product?.meta_data || [];
   const cheapestPriceOption = metaData.find(
     (m) => m.key === "crucial_data_cheapest_price_option"
   )?.value;
@@ -354,28 +358,28 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
   }, [slug]);
 
   useEffect(() => {
-    const pdfMeta = product?.meta_data?.find(m => m.key === "assets_manual_pdf");
+    const pdfMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_manual_pdf");
     if (pdfMeta?.value) {
       fetchMedia(pdfMeta.value).then(media =>
         setManualPdf(media?.source_url || null)
       );
     }
 
-    const installMeta = product?.meta_data?.find(m => m.key === "assets_installation_guide");
+    const installMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_installation_guide");
     if (installMeta?.value) {
       fetchMedia(installMeta.value).then(media =>
         setInstallationGuide(media?.source_url || null)
       );
     }
 
-    const certMeta = product?.meta_data?.find(m => m.key === "assets_product_certificate");
+    const certMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_product_certificate");
     if (certMeta?.value) {
       fetchMedia(certMeta.value).then(media =>
         setCertificate(media?.source_url || null)
       );
     }
 
-    const careMeta = product?.meta_data?.find(m => m.key === "assets_care_instructions");
+    const careMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_care_instructions");
     if (careMeta?.value) {
       fetchMedia(careMeta.value).then(media =>
         setCareInstructions(media?.source_url || null)
@@ -473,10 +477,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                       </button>
                       <div className="grid grid-cols-4 gap-4 pb-1 w-[90%]">
-                        {(galleryImages && galleryImages.length > 0
-                          ? galleryImages
-                          : thumbnails
-                        )
+                        {(galleryImages && galleryImages.length > 0 ? galleryImages : [])
                           .slice(thumbIndex, thumbIndex + 4)
                           .map((thumb, idx) => {
                             // Use global index for aria-label and key
@@ -492,7 +493,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                         onClick={() =>
                           setThumbIndex((prev) =>
                             Math.min(
-                              (galleryImages && galleryImages.length > 0 ? galleryImages.length : thumbnails.length) - 4,
+                              (galleryImages && galleryImages.length > 0 ? galleryImages.length : 0) - 4,
                               prev + 1
                             )
                           )
@@ -501,12 +502,12 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                         aria-label="Next thumbnails"
                         disabled={
                           thumbIndex >=
-                          ((galleryImages && galleryImages.length > 0 ? galleryImages.length : thumbnails.length) - 4)
+                          ((galleryImages && galleryImages.length > 0 ? galleryImages.length : 0) - 4)
                         }
                         style={{
                           opacity:
                             thumbIndex >=
-                            ((galleryImages && galleryImages.length > 0 ? galleryImages.length : thumbnails.length) - 4)
+                            ((galleryImages && galleryImages.length > 0 ? galleryImages.length : 0) - 4)
                               ? 0.5
                               : 1,
                         }}

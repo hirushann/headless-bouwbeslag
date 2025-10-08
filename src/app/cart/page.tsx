@@ -9,6 +9,9 @@ interface CartItem {
   price: number;
   quantity: number;
   image?: string;
+  color?: string;
+  brand?: string;
+  model?: string;
 }
 
 export default function CartPage() {

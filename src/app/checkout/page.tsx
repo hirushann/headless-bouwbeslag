@@ -6,8 +6,12 @@ import { createOrder } from "@/lib/woocommerce-order";
 interface CartItem {
   id: number;
   name: string;
-  price: string;
+  price: number;
   quantity: number;
+  image?: string;
+  color?: string;
+  brand?: string;
+  model?: string;
 }
 
 export default function CheckoutPage() {
