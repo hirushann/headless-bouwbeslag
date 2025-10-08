@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import Link from "next/link";
 
-export default function AccountPage() {
+function AccountContent() {
   const [user, setUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [orders, setOrders] = useState<any[]>([]);
@@ -243,8 +243,7 @@ export default function AccountPage() {
     return <div className="p-10">Loading your account...</div>;
   }
 
-  return (
-    <main className="bg-[#F5F5F5]">
+  <main className="bg-[#F5F5F5]">
       <div className="max-w-[1440px] mx-auto py-8 font-sans">
         <div>
           <div className="text-sm text-gray-500 mb-6 flex items-center gap-3">
@@ -695,6 +694,14 @@ export default function AccountPage() {
           </section>
         </div>
       </div>
-    </main>
+  </main>
+
+}
+
+export default function AccountPage() {
+  return (
+    <Suspense fallback={<div className="p-10 text-gray-500">Loading account...</div>}>
+      <AccountContent />
+    </Suspense>
   );
 }
