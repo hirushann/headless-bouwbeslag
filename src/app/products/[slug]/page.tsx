@@ -406,8 +406,35 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[300px]">
-        <span>Loading product details...</span>
+      <div className="bg-[#F5F5F5] font-sans animate-pulse">
+        <div className="max-w-[1440px] mx-auto py-8 px-5 lg:px-0">
+          <div className="text-sm text-gray-400 mb-6 flex items-center gap-2">
+            <div className="w-24 h-4 bg-gray-300 rounded"></div>
+            <div className="w-32 h-4 bg-gray-300 rounded"></div>
+          </div>
+          <div className="flex flex-col lg:flex-row gap-8">
+            <div className="lg:w-1/2 flex flex-col gap-4">
+              <div className="w-full h-[400px] bg-gray-300 rounded-lg"></div>
+              <div className="grid grid-cols-4 gap-3">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="w-full h-[90px] bg-gray-300 rounded"></div>
+                ))}
+              </div>
+            </div>
+            <div className="lg:w-1/2 flex flex-col gap-5">
+              <div className="w-32 h-6 bg-gray-300 rounded"></div>
+              <div className="w-3/4 h-8 bg-gray-300 rounded"></div>
+              <div className="w-1/3 h-10 bg-gray-300 rounded"></div>
+              <div className="flex gap-3">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="w-8 h-8 bg-gray-300 rounded-full"></div>
+                ))}
+              </div>
+              <div className="w-full h-10 bg-gray-300 rounded"></div>
+              <div className="w-full h-[60px] bg-gray-300 rounded"></div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

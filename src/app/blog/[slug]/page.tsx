@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { use } from "react";
 import axios from "axios";
-
-const api = axios.create({
-  baseURL: "http://staging-plugin-test.test/wp-json/wp/v2",
-});
 import Image from "next/image";
 import Link from "next/link";
+
+const WP_API_URL = process.env.NEXT_PUBLIC_WORDPRESS_API_URL;
+const api = axios.create({
+  baseURL: `${WP_API_URL}/wp-json/wp/v2`,
+});
 
 interface Post {
   id: number;

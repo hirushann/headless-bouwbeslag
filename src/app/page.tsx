@@ -298,7 +298,7 @@ export default function Home() {
           <div className="flex justify-between items-center mb-2">
             <h2 className="text-3xl font-bold text-[#1C2530]">Shop by categories</h2>
             <div className="flex gap-2 items-center">
-              <button className="border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">View All</button>
+              <a href="/categories" className="border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">View All</a>
             </div>
           </div>
           <p className="text-[#3D4752] mb-8">Check all our categories to get what you needs</p>
@@ -367,7 +367,7 @@ export default function Home() {
           <div className="flex justify-between items-center mb-2">
             <h2 className="text-3xl font-bold text-[#1C2530]">Read our blog</h2>
             <div className="flex gap-2 items-center">
-              <button className="border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">View All</button>
+              <a href="/blog" className="border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">View All</a>
             </div>
           </div>
           <p className="text-[#3D4752] mb-8">Check our latest article to get meaningfull content or tips for shopping</p>
