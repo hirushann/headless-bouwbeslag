@@ -44,17 +44,10 @@ interface Category {
 }
 
 export default function Home() {
-
-  // WooCommerce products for Best Sellers
   const [products, setProducts] = useState<Product[]>([]);
-
-  // WooCommerce categories
   const [categories, setCategories] = useState<Category[]>([]);
-
-  // Wordpress posts for blog
   const [posts, setPosts] = useState<Post[]>([]);
 
-  // Fetch Wordpress posts for blog
   useEffect(() => {
     let cancelled = false;
     fetchPosts(3)
@@ -68,7 +61,6 @@ export default function Home() {
     };
   }, []);
 
-  // Fetch WooCommerce categories
   useEffect(() => {
     let cancelled = false;
     api.get("products/categories", { per_page: 50 })
@@ -81,7 +73,6 @@ export default function Home() {
     return () => { cancelled = true; }
   }, []);
 
-  // Carousel 1 (Best Sellers)
   const trackRef1 = useRef<HTMLDivElement>(null);
   const [atStart1, setAtStart1] = useState(true);
   const [atEnd1, setAtEnd1] = useState(false);
@@ -175,9 +166,9 @@ export default function Home() {
   return (
     <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start font-sans bg-[#F5F5F5]">
       <div className="max-w-[1440px] relative mx-auto">
-        <div className="lg:my-4 flex gap-5 w-full">
-          <div className="bg-[#FFFFFF] shadow-[0px_20px_24px_0px_#0000000A] rounded-[4px] w-[25%] hidden lg:block">
-            <div className="border-b border-[#F1F1F1] flex items-center p-4">
+        <div className="lg:my-4 flex gap-6 w-full">
+          <div className="bg-[#FFFFFF] shadow-[0px_20px_24px_0px_#0000000A] rounded-[4px] w-[27%] hidden lg:block">
+            <div className="border-b border-[#F1F1F1] flex items-center p-5">
               <h2 className="font-bold text-[22px]">All Categories</h2>
             </div>
             <div>
@@ -215,7 +206,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="w-full lg:w-[75%] lg:h-[80vh] bg-[linear-gradient(270deg,#1422AC_0%,#00074B_100.82%)] lg:rounded-sm overflow-hidden relative flex flex-col-reverse lg:flex-row items-center gap-12 py-12 lg:gap-0 lg:py-0">
+          <div className="w-full lg:w-[74%] lg:h-[80vh] bg-[linear-gradient(270deg,#1422AC_0%,#00074B_100.82%)] lg:rounded-sm overflow-hidden relative flex flex-col-reverse lg:flex-row items-center gap-12 py-12 lg:gap-0 lg:py-0">
             <div className="lg:w-1/2 px-5 lg:px-0 lg:pl-12 flex flex-col gap-3">
               <h1 className="text-white font-bold text-[32px] lg:text-6xl leading-[120%]">Excellent detailed design!</h1>
               <p className="font-normal text-sm lg:text-xl leading-[32px] text-white">Concept collections for door, window and furniture fittings.</p>
