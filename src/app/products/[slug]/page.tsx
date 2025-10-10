@@ -6,7 +6,32 @@ import Link from "next/link";
 import Image from "next/image";
 import ProductCard from "@/components/ProductCard";
 import { useCartStore } from "@/lib/cartStore";
-import { fetchMedia } from "@/lib/wordpress";
+
+// Helper function to fetch media details and return the URL string
+async function getMediaDetails(mediaId: number | string) {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_WORDPRESS_API_URL;
+    const response = await fetch(`${baseUrl}/wp-json/wp/v2/media/${mediaId}`, {
+      next: { revalidate: 3600 },
+    });
+
+    if (!response.ok) {
+      console.error(`Failed to fetch media ${mediaId}:`, response.statusText);
+      return null;
+    }
+
+    const media = await response.json();
+    return (
+      media?.media_details?.sizes?.full?.source_url ||
+      media?.source_url ||
+      media?.guid?.rendered ||
+      null
+    );
+  } catch (err) {
+    console.error("Error fetching media:", err);
+    return null;
+  }
+}
 
 const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
   const addItem = useCartStore((state) => state.addItem);
@@ -360,29 +385,29 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
   useEffect(() => {
     const pdfMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_manual_pdf");
     if (pdfMeta?.value) {
-      fetchMedia(pdfMeta.value).then(media =>
-        setManualPdf(media?.source_url || null)
+      getMediaDetails(pdfMeta.value).then(url =>
+        setManualPdf(url)
       );
     }
 
     const installMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_installation_guide");
     if (installMeta?.value) {
-      fetchMedia(installMeta.value).then(media =>
-        setInstallationGuide(media?.source_url || null)
+      getMediaDetails(installMeta.value).then(url =>
+        setInstallationGuide(url)
       );
     }
 
     const certMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_product_certificate");
     if (certMeta?.value) {
-      fetchMedia(certMeta.value).then(media =>
-        setCertificate(media?.source_url || null)
+      getMediaDetails(certMeta.value).then(url =>
+        setCertificate(url)
       );
     }
 
     const careMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_care_instructions");
     if (careMeta?.value) {
-      fetchMedia(careMeta.value).then(media =>
-        setCareInstructions(media?.source_url || null)
+      getMediaDetails(careMeta.value).then(url =>
+        setCareInstructions(url)
       );
     }
   }, [product]);
