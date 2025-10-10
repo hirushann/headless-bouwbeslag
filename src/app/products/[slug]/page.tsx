@@ -7,20 +7,22 @@ import Image from "next/image";
 import ProductCard from "@/components/ProductCard";
 import { useCartStore } from "@/lib/cartStore";
 
-// Helper function to fetch media details and return the URL string
+// Helper function to fetch media details and return the URL string, with debug logging
 async function getMediaDetails(mediaId: number | string) {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_WORDPRESS_API_URL;
-    const response = await fetch(`${baseUrl}/wp-json/wp/v2/media/${mediaId}`, {
+    const url = `${baseUrl}/wp-json/wp/v2/media/${mediaId}`;
+    console.log(`[getMediaDetails] Fetching URL: ${url}`);
+    const response = await fetch(url, {
       next: { revalidate: 3600 },
     });
-
+    console.log(`[getMediaDetails] Response status for mediaId ${mediaId}:`, response.status, response.statusText);
     if (!response.ok) {
       console.error(`Failed to fetch media ${mediaId}:`, response.statusText);
       return null;
     }
-
     const media = await response.json();
+    console.log(`[getMediaDetails] Media data for mediaId ${mediaId}:`, media);
     return (
       media?.media_details?.sizes?.full?.source_url ||
       media?.source_url ||
@@ -28,7 +30,7 @@ async function getMediaDetails(mediaId: number | string) {
       null
     );
   } catch (err) {
-    console.error("Error fetching media:", err);
+    console.error(`[getMediaDetails] Error fetching media ${mediaId}:`, err);
     return null;
   }
 }
@@ -164,10 +166,12 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
             const technicalDrawingMeta = productData.meta_data?.find((m: any) => m.key === "assets_technical_drawing");
             if (technicalDrawingMeta?.value) {
               try {
-                const mediaUrl = await getMediaDetails(mainImageMeta.value);
+                console.log("[TechnicalDrawing] Triggered for mediaId:", technicalDrawingMeta.value);
+                const mediaUrl = await getMediaDetails(technicalDrawingMeta.value);
+                console.log("[TechnicalDrawing] URL returned for mediaId", technicalDrawingMeta.value, ":", mediaUrl);
                 if (mediaUrl) {
-                  mainImageUrl = mediaUrl;
-                  setSelectedImage(mediaUrl);
+                  // Optionally, you could use setTechnicalDrawingUrl here if desired
+                  setTechnicalDrawingUrl(mediaUrl);
                 }
               } catch (err) {
                 console.error("Error fetching technical drawing image:", err);
@@ -410,6 +414,18 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
       getMediaDetails(careMeta.value).then(url =>
         setCareInstructions(url)
       );
+    }
+
+    // Technical drawing fetch logic (debug logs included)
+    const technicalDrawingMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_technical_drawing");
+    if (technicalDrawingMeta?.value) {
+      console.log("[TechnicalDrawing/useEffect] About to fetch for mediaId:", technicalDrawingMeta.value);
+      getMediaDetails(technicalDrawingMeta.value).then(url => {
+        console.log("[TechnicalDrawing/useEffect] URL returned for mediaId", technicalDrawingMeta.value, ":", url);
+        setTechnicalDrawingUrl(url);
+      });
+    } else {
+      setTechnicalDrawingUrl(null);
     }
   }, [product]);
 

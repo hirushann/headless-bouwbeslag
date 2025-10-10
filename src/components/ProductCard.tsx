@@ -42,7 +42,6 @@ export default function ProductCard({ product }: { product: any }) {
 
   const rawImg: string | undefined = product.images?.[0]?.src;
   const imgSrc = normalizeImageUrl(rawImg);
-  console.log("[ProductCard] image src", { name: product?.name, rawImg, normalized: imgSrc, WP_BASE });
 
   return (
     <div className="snap-start shrink-0 w-[100%] border border-[#E2E2E2] rounded-sm shadow-sm bg-[#F7F7F7] flex flex-col h-full">
