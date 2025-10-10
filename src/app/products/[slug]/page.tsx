@@ -151,10 +151,10 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
             );
             if (mainImageMeta?.value) {
               try {
-                const media = await fetchMedia(mainImageMeta.value);
-                if (media?.source_url) {
-                  mainImageUrl = media.source_url;
-                  setSelectedImage(media.source_url);
+                const mediaUrl = await getMediaDetails(mainImageMeta.value);
+                if (mediaUrl) {
+                  mainImageUrl = mediaUrl;
+                  setSelectedImage(mediaUrl);
                 }
               } catch (err) {
                 console.error("Error fetching main carousel image:", err);
@@ -164,9 +164,10 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
             const technicalDrawingMeta = productData.meta_data?.find((m: any) => m.key === "assets_technical_drawing");
             if (technicalDrawingMeta?.value) {
               try {
-                const media = await fetchMedia(technicalDrawingMeta.value);
-                if (media?.source_url) {
-                  setTechnicalDrawingUrl(media.source_url);
+                const mediaUrl = await getMediaDetails(mainImageMeta.value);
+                if (mediaUrl) {
+                  mainImageUrl = mediaUrl;
+                  setSelectedImage(mediaUrl);
                 }
               } catch (err) {
                 console.error("Error fetching technical drawing image:", err);
