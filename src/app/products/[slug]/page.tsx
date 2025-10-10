@@ -408,6 +408,47 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
   const productLength = getMetaValue("dimensions_product_length");
   const productLengthUnit = getMetaValue("dimensions_product_length_unit");
 
+function DynamicImage({ id }: { id: string | number }) {
+  const [src, setSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchImage = async () => {
+      try {
+        console.log("[Ambiance] Fetching media ID:", id);
+        const res = await fetch(`/api/wp-media/${id}`);
+        if (!res.ok) {
+          console.warn("[Ambiance] Failed to fetch media", id);
+          return;
+        }
+        const data = await res.json();
+        const url =
+          data?.media_details?.sizes?.full?.source_url ||
+          data?.source_url ||
+          data?.guid?.rendered;
+        if (url) setSrc(url);
+        console.log("[Ambiance] Loaded:", url);
+      } catch (err) {
+        console.error("[Ambiance] Error loading media", id, err);
+      }
+    };
+    fetchImage();
+  }, [id]);
+
+  if (!src)
+    return (
+      <div className="bg-gray-200 animate-pulse rounded-lg w-full h-[200px]" />
+    );
+
+  return (
+    <img
+      src={src}
+      alt={`Ambiance ${id}`}
+      className="rounded-lg shadow-md object-cover w-full h-[200px]"
+      loading="lazy"
+    />
+  );
+}
+
   if (loading) {
     return (
       <div className="bg-[#F5F5F5] font-sans animate-pulse">
@@ -1201,28 +1242,36 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                         </div>
 
                         {/* second row right accordion */}
-                        <div className="bg-white rounded-lg border border-white">
-                            <details className="group">
-                                <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
-                                    Ambiance Pictures
-                                    <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
-                                    <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
-                                </summary>
-                                <div className="px-6 pb-4 text-gray-700 space-y-4">
-                                    <div className='grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4'>
-                                        <img src="/Ambpic1.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
-                                        <img src="/AmbPic2.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
-                                        <img src="/AmbPic3.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
-                                        <img src="/AmbPic4.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
-                                        <img src="/AmbPic5.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
-                                        <img src="/AmbPic6.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
-                                    </div>
-                                    <div>
-                                        <p className='text-[#3D4752] font-normal text-base'>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries,</p>
-                                    </div>
-                                </div>
-                            </details>
-                        </div>
+                        {product?.meta_data?.find((m: any) => m.key === "assets_ambiance_pictures") && (
+                          <div className="bg-white rounded-lg border border-white">
+                              <details className="group">
+                                  <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
+                                      Ambiance Pictures
+                                      <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
+                                      <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
+                                  </summary>
+                                  <div className="px-6 pb-4 text-gray-700 space-y-4">
+                                      <div className='grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4'>
+                                          {(() => {
+                                            const meta = product.meta_data.find(
+                                              (m: any) => m.key === "assets_ambiance_pictures"
+                                            );
+                                            const ids = meta?.value || [];
+
+                                            if (!Array.isArray(ids) || ids.length === 0) return null;
+
+                                            return ids.map((id: string | number) => (
+                                              <DynamicImage key={id} id={id} />
+                                            ));
+                                          })()}
+                                      </div>
+                                      <div>
+                                          <p className='text-[#3D4752] font-normal text-base'>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries,</p>
+                                      </div>
+                                  </div>
+                              </details>
+                          </div>
+                        )}
 
                         {/* third row right accordion */}
                         <div className="bg-white rounded-lg border border-white">
