@@ -6,34 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import ProductCard from "@/components/ProductCard";
 import { useCartStore } from "@/lib/cartStore";
-
-// Helper function to fetch media details and return the URL string, with debug logging
-async function getMediaDetails(mediaId: number | string) {
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_WORDPRESS_API_URL;
-    const url = `${baseUrl}/wp-json/wp/v2/media/${mediaId}`;
-    console.log(`[getMediaDetails] Fetching URL: ${url}`);
-    const response = await fetch(url, {
-      next: { revalidate: 3600 },
-    });
-    console.log(`[getMediaDetails] Response status for mediaId ${mediaId}:`, response.status, response.statusText);
-    if (!response.ok) {
-      console.error(`Failed to fetch media ${mediaId}:`, response.statusText);
-      return null;
-    }
-    const media = await response.json();
-    console.log(`[getMediaDetails] Media data for mediaId ${mediaId}:`, media);
-    return (
-      media?.media_details?.sizes?.full?.source_url ||
-      media?.source_url ||
-      media?.guid?.rendered ||
-      null
-    );
-  } catch (err) {
-    console.error(`[getMediaDetails] Error fetching media ${mediaId}:`, err);
-    return null;
-  }
-}
+import { fetchMedia } from "@/lib/wordpress";
 
 const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
   const addItem = useCartStore((state) => state.addItem);
@@ -42,8 +15,57 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
   const [thumbIndex, setThumbIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [selectedDiscount, setSelectedDiscount] = useState<number | null>(null);
+
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  // ---- Volume discounts derived from meta, memoized
+  const discounts = React.useMemo(() => {
+    const arr: { quantity: number; percentage: number }[] = [];
+    if (!product?.meta_data) return arr;
+    for (let i = 1; i <= 3; i++) {
+      const qRaw = product.meta_data.find((m: any) => m.key === `crucial_data_discounts_discount_quantity_${i}`)?.value;
+      const pRaw = product.meta_data.find((m: any) => m.key === `crucial_data_discounts_discount_percentage_${i}`)?.value;
+      const q = qRaw && !isNaN(parseInt(qRaw)) ? parseInt(qRaw) : null;
+      const p = pRaw && !isNaN(parseInt(pRaw)) ? parseInt(pRaw) : null;
+      if (q !== null && p !== null) {
+        arr.push({ quantity: q, percentage: p });
+      }
+    }
+    // Ascending by threshold so highest applicable can be found by scan
+    arr.sort((a, b) => a.quantity - b.quantity);
+    return arr;
+  }, [product]);
+
+  // Find highest applicable tier for a given quantity
+  const findDiscountIndex = React.useCallback((qty: number) => {
+    let idx = -1;
+    for (let i = 0; i < discounts.length; i++) {
+      if (qty >= discounts[i].quantity) idx = i;
+    }
+    return idx;
+  }, [discounts]);
+
+  // When quantity changes, auto-select the right tier
+  useEffect(() => {
+    if (discounts.length === 0) {
+      if (selectedDiscount !== null) setSelectedDiscount(null);
+      return;
+    }
+    const idx = findDiscountIndex(quantity);
+    setSelectedDiscount(idx >= 0 ? idx : null);
+  }, [quantity, discounts, findDiscountIndex]);
+
+  // When user selects a tier, snap quantity to that tier's minimum
+  const onDiscountToggle = (idx: number) => {
+    if (selectedDiscount === idx) {
+      setSelectedDiscount(null);
+      setQuantity(1);
+      return;
+    }
+    setSelectedDiscount(idx);
+    const targetQty = discounts[idx]?.quantity ?? 1;
+    setQuantity(targetQty > 0 ? targetQty : 1);
+  };
   const [technicalDrawingUrl, setTechnicalDrawingUrl] = useState<string | null>(null);
 
   // Related products state
@@ -153,10 +175,10 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
             );
             if (mainImageMeta?.value) {
               try {
-                const mediaUrl = await getMediaDetails(mainImageMeta.value);
-                if (mediaUrl) {
-                  mainImageUrl = mediaUrl;
-                  setSelectedImage(mediaUrl);
+                const media = await fetchMedia(mainImageMeta.value);
+                if (media?.source_url) {
+                  mainImageUrl = media.source_url;
+                  setSelectedImage(media.source_url);
                 }
               } catch (err) {
                 console.error("Error fetching main carousel image:", err);
@@ -166,12 +188,9 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
             const technicalDrawingMeta = productData.meta_data?.find((m: any) => m.key === "assets_technical_drawing");
             if (technicalDrawingMeta?.value) {
               try {
-                console.log("[TechnicalDrawing] Triggered for mediaId:", technicalDrawingMeta.value);
-                const mediaUrl = await getMediaDetails(technicalDrawingMeta.value);
-                console.log("[TechnicalDrawing] URL returned for mediaId", technicalDrawingMeta.value, ":", mediaUrl);
-                if (mediaUrl) {
-                  // Optionally, you could use setTechnicalDrawingUrl here if desired
-                  setTechnicalDrawingUrl(mediaUrl);
+                const media = await fetchMedia(technicalDrawingMeta.value);
+                if (media?.source_url) {
+                  setTechnicalDrawingUrl(media.source_url);
                 }
               } catch (err) {
                 console.error("Error fetching technical drawing image:", err);
@@ -390,42 +409,30 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
   useEffect(() => {
     const pdfMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_manual_pdf");
     if (pdfMeta?.value) {
-      getMediaDetails(pdfMeta.value).then(url =>
-        setManualPdf(url)
+      fetchMedia(pdfMeta.value).then(media =>
+        setManualPdf(media?.source_url || null)
       );
     }
 
     const installMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_installation_guide");
     if (installMeta?.value) {
-      getMediaDetails(installMeta.value).then(url =>
-        setInstallationGuide(url)
+      fetchMedia(installMeta.value).then(media =>
+        setInstallationGuide(media?.source_url || null)
       );
     }
 
     const certMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_product_certificate");
     if (certMeta?.value) {
-      getMediaDetails(certMeta.value).then(url =>
-        setCertificate(url)
+      fetchMedia(certMeta.value).then(media =>
+        setCertificate(media?.source_url || null)
       );
     }
 
     const careMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_care_instructions");
     if (careMeta?.value) {
-      getMediaDetails(careMeta.value).then(url =>
-        setCareInstructions(url)
+      fetchMedia(careMeta.value).then(media =>
+        setCareInstructions(media?.source_url || null)
       );
-    }
-
-    // Technical drawing fetch logic (debug logs included)
-    const technicalDrawingMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_technical_drawing");
-    if (technicalDrawingMeta?.value) {
-      console.log("[TechnicalDrawing/useEffect] About to fetch for mediaId:", technicalDrawingMeta.value);
-      getMediaDetails(technicalDrawingMeta.value).then(url => {
-        console.log("[TechnicalDrawing/useEffect] URL returned for mediaId", technicalDrawingMeta.value, ":", url);
-        setTechnicalDrawingUrl(url);
-      });
-    } else {
-      setTechnicalDrawingUrl(null);
     }
   }, [product]);
 
@@ -449,47 +456,6 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
   const productHeightUnit = getMetaValue("dimensions_product_height_unit");
   const productLength = getMetaValue("dimensions_product_length");
   const productLengthUnit = getMetaValue("dimensions_product_length_unit");
-
-function DynamicImage({ id }: { id: string | number }) {
-  const [src, setSrc] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchImage = async () => {
-      try {
-        console.log("[Ambiance] Fetching media ID:", id);
-        const res = await fetch(`/api/wp-media/${id}`);
-        if (!res.ok) {
-          console.warn("[Ambiance] Failed to fetch media", id);
-          return;
-        }
-        const data = await res.json();
-        const url =
-          data?.media_details?.sizes?.full?.source_url ||
-          data?.source_url ||
-          data?.guid?.rendered;
-        if (url) setSrc(url);
-        console.log("[Ambiance] Loaded:", url);
-      } catch (err) {
-        console.error("[Ambiance] Error loading media", id, err);
-      }
-    };
-    fetchImage();
-  }, [id]);
-
-  if (!src)
-    return (
-      <div className="bg-gray-200 animate-pulse rounded-lg w-full h-[200px]" />
-    );
-
-  return (
-    <img
-      src={src}
-      alt={`Ambiance ${id}`}
-      className="rounded-lg shadow-md object-cover w-full h-[200px]"
-      loading="lazy"
-    />
-  );
-}
 
   if (loading) {
     return (
@@ -761,58 +727,34 @@ function DynamicImage({ id }: { id: string | number }) {
                         </div>
                     </div>
 
-                    {/* Volume Discount Section */} 
-                    {(() => {
-                      if (!product?.meta_data) return null;
-                      const discounts: { quantity: number; percentage: number }[] = [];
-                      for (let i = 1; i <= 3; i++) {
-                        const qRaw = product.meta_data.find((m: any) => m.key === `crucial_data_discounts_discount_quantity_${i}`)?.value;
-                        const pRaw = product.meta_data.find((m: any) => m.key === `crucial_data_discounts_discount_percentage_${i}`)?.value;
-                        const q = qRaw && !isNaN(parseInt(qRaw)) ? parseInt(qRaw) : null;
-                        const p = pRaw && !isNaN(parseInt(pRaw)) ? parseInt(pRaw) : null;
-                        if (q !== null && p !== null) {
-                          discounts.push({ quantity: q, percentage: p });
-                        }
-                      }
-                      if (discounts.length === 0) return null;
-                      // Handler for discount selection (radio-like behavior)
-                      const handleDiscountChange = (idx: number, d: { quantity: number }) => {
-                        if (selectedDiscount === idx) {
-                          setSelectedDiscount(null);
-                          setQuantity(1);
-                        } else {
-                          setSelectedDiscount(idx);
-                          setQuantity(d.quantity);
-                        }
-                      };
-                      return (
-                        <div className="bg-white border border-white rounded-lg p-4 flex items-center gap-8">
-                          <h2 className="font-semibold text-base lg:text-lg">Volume discount:</h2>
-                          <div className="flex gap-8 items-start">
-                            <div>
-                              <p className='mb-1 text-[#3D4752] font-medium text-base lg:text-lg'>Quantity:</p>
-                              {discounts.map((d, idx) => (
-                                <label key={idx} className="text-[#3D4752] font-normal text-base flex items-center gap-2">
-                                  <input
-                                    type="checkbox"
-                                    className="w-4 h-4 !border-[#DCDCDC] !rounded-[3px]"
-                                    checked={selectedDiscount === idx}
-                                    onChange={() => handleDiscountChange(idx, d)}
-                                  />
-                                  {d.quantity}
-                                </label>
-                              ))}
-                            </div>
-                            <div>
-                              <p className='mb-1 text-[#3D4752] font-medium text-base lg:text-lg'>Discount</p>
-                              {discounts.map((d, idx) => (
-                                <p key={idx} className='text-[#03B955] font-medium text-base'>{d.percentage}%</p>
-                              ))}
-                            </div>
+                    {/* Volume Discount Section */}
+                    {discounts.length > 0 && (
+                      <div className="bg-white border border-white rounded-lg p-4 flex items-center gap-8">
+                        <h2 className="font-semibold text-base lg:text-lg">Volume discount:</h2>
+                        <div className="flex gap-8 items-start">
+                          <div>
+                            <p className='mb-1 text-[#3D4752] font-medium text-base lg:text-lg'>Quantity:</p>
+                            {discounts.map((d, idx) => (
+                              <label key={idx} className="text-[#3D4752] font-normal text-base flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  className="w-4 h-4 !border-[#DCDCDC] !rounded-[3px]"
+                                  checked={selectedDiscount === idx}
+                                  onChange={() => onDiscountToggle(idx)}
+                                />
+                                {d.quantity}
+                              </label>
+                            ))}
+                          </div>
+                          <div>
+                            <p className='mb-1 text-[#3D4752] font-medium text-base lg:text-lg'>Discount</p>
+                            {discounts.map((d, idx) => (
+                              <p key={idx} className='text-[#03B955] font-medium text-base'>{d.percentage}%</p>
+                            ))}
                           </div>
                         </div>
-                      );
-                    })()}
+                      </div>
+                    )}
 
                     <div className='bg-[#E4EFFF] py-3 px-5 rounded-md'> 
                         <p className='text-[#3D4752] font-normal text-base'>Become a business customer and benefit from competitive purchase prices! <a href="#" className='text-[#0066FF] font-bold'>Click here</a> to request an account</p>
@@ -821,51 +763,52 @@ function DynamicImage({ id }: { id: string | number }) {
                     {/* Quantity Selector and Add to Cart */}
                     <div className="flex flex-wrap lg:flex-nowrap items-center gap-4 mt-4 justify-between">
                         <div className='w-5/12 lg:w-3/12 flex justify-center items-center'>
-                            <p className="text-3xl font-bold text-[#1C2530]">
-                              {(() => {
-                                const getMeta = (key: string) =>
-                                  product?.meta_data?.find((m: any) => m.key === key)?.value;
-                                const advisedRaw = getMeta("crucial_data_unit_price");
-                                const saleRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
-                                const currency = product.currency_symbol || "€";
-                                const advised =
-                                  advisedRaw && !isNaN(parseFloat(advisedRaw))
-                                    ? parseFloat(advisedRaw)
-                                    : null;
-                                const sale =
-                                  saleRaw && !isNaN(parseFloat(saleRaw))
-                                    ? parseFloat(saleRaw)
-                                    : null;
-                                let basePrice = sale ?? advised ?? 0;
+                        <p className="text-3xl font-bold text-[#1C2530]">
+                          {(() => {
+                            const getMeta = (key: string) =>
+                              product?.meta_data?.find((m: any) => m.key === key)?.value;
+                            const advisedRaw = getMeta("crucial_data_unit_price");
+                            const saleRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
+                            const currency = product.currency_symbol || "€";
+                            const advised =
+                              advisedRaw && !isNaN(parseFloat(advisedRaw))
+                                ? parseFloat(advisedRaw)
+                                : null;
+                            const sale =
+                              saleRaw && !isNaN(parseFloat(saleRaw))
+                                ? parseFloat(saleRaw)
+                                : null;
+                            let basePrice = sale ?? advised ?? 0;
 
-                                // Apply volume discount if selected
-                                if (selectedDiscount !== null) {
-                                  const discountRaw = product?.meta_data?.find(
-                                    (m: any) =>
-                                      m.key === `crucial_data_discounts_discount_percentage_${selectedDiscount + 1}`
-                                  )?.value;
-                                  const discount =
-                                    discountRaw && !isNaN(parseFloat(discountRaw))
-                                      ? parseFloat(discountRaw)
-                                      : 0;
-                                  if (discount > 0) {
-                                    basePrice = basePrice - (basePrice * discount) / 100;
-                                  }
-                                }
+                            // Apply volume discount if selected
+                            if (selectedDiscount !== null) {
+                              const pct = discounts[selectedDiscount]?.percentage ?? 0;
+                              if (pct > 0) {
+                                basePrice = basePrice - (basePrice * pct) / 100;
+                              }
+                            }
 
-                                const totalPrice = basePrice * quantity;
+                            const totalPrice = basePrice * quantity;
 
-                                return `${currency}${totalPrice.toFixed(2)}`;
-                              })()}
-                            </p>
+                            return `${currency}${totalPrice.toFixed(2)}`;
+                          })()}
+                        </p>
                         </div>
 
                         <div className="flex border border-[#EDEDED] shadow-xs rounded-sm overflow-hidden bg-white w-auto lg:w-3/12">
-                            <button type="button" onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-5 py-3 text-2xl cursor-pointer border-r border-[#EDEDED]">-</button>
+                            <button
+                              type="button"
+                              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                              className="px-5 py-3 text-2xl cursor-pointer border-r border-[#EDEDED]"
+                            >-</button>
                             <div className="px-6 py-2 text-base font-medium text-center min-w-[60px] flex items-center justify-center">
                                 {quantity.toString().padStart(2, '0')}
                             </div>
-                            <button type="button" onClick={() => setQuantity(quantity + 1)} className="flex justify-center px-5 py-3 text-2xl cursor-pointer border-l border-[#EDEDED]">+</button>
+                            <button
+                              type="button"
+                              onClick={() => setQuantity((q) => q + 1)}
+                              className="flex justify-center px-5 py-3 text-2xl cursor-pointer border-l border-[#EDEDED]"
+                            >+</button>
                         </div>
 
                         <div className='w-full lg:w-6/12'>
@@ -889,15 +832,9 @@ function DynamicImage({ id }: { id: string | number }) {
                                     const sale = saleRaw && !isNaN(parseFloat(saleRaw)) ? parseFloat(saleRaw) : null;
                                     let basePrice = sale ?? advised ?? 0;
                                     if (selectedDiscount !== null) {
-                                      const discountRaw = product?.meta_data?.find(
-                                        (m: any) => m.key === `crucial_data_discounts_discount_percentage_${selectedDiscount + 1}`
-                                      )?.value;
-                                      const discount =
-                                        discountRaw && !isNaN(parseFloat(discountRaw))
-                                          ? parseFloat(discountRaw)
-                                          : 0;
-                                      if (discount > 0) {
-                                        basePrice = basePrice - (basePrice * discount) / 100;
+                                      const pct = discounts[selectedDiscount]?.percentage ?? 0;
+                                      if (pct > 0) {
+                                        basePrice = basePrice - (basePrice * pct) / 100;
                                       }
                                     }
                                     return basePrice;
@@ -926,30 +863,9 @@ function DynamicImage({ id }: { id: string | number }) {
                           >
                             {/* Loader spinner if adding, else success, error or cart icon */}
                             {isAddingToCart ? (
-                              <svg
-                                className="size-6 animate-spin"
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                              >
-                                <circle
-                                  className="opacity-25"
-                                  cx="12"
-                                  cy="12"
-                                  r="10"
-                                  stroke="white"
-                                  strokeWidth="4"
-                                ></circle>
-                                <path
-                                  className="opacity-75"
-                                  fill="white"
-                                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                                ></path>
-                              </svg>
+                              <svg className="size-6 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4"></circle><path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
                             ) : addCartSuccess ? (
-                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="white" className="size-6">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                              </svg>
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="white" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                             ) : addCartError ? (
                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="#FF3B3B" className="size-6">
                                 <circle cx="12" cy="12" r="10" stroke="#FF3B3B" strokeWidth="2" fill="none"/>
@@ -1284,36 +1200,28 @@ function DynamicImage({ id }: { id: string | number }) {
                         </div>
 
                         {/* second row right accordion */}
-                        {product?.meta_data?.find((m: any) => m.key === "assets_ambiance_pictures") && (
-                          <div className="bg-white rounded-lg border border-white">
-                              <details className="group">
-                                  <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
-                                      Ambiance Pictures
-                                      <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
-                                      <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
-                                  </summary>
-                                  <div className="px-6 pb-4 text-gray-700 space-y-4">
-                                      <div className='grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4'>
-                                          {(() => {
-                                            const meta = product.meta_data.find(
-                                              (m: any) => m.key === "assets_ambiance_pictures"
-                                            );
-                                            const ids = meta?.value || [];
-
-                                            if (!Array.isArray(ids) || ids.length === 0) return null;
-
-                                            return ids.map((id: string | number) => (
-                                              <DynamicImage key={id} id={id} />
-                                            ));
-                                          })()}
-                                      </div>
-                                      <div>
-                                          <p className='text-[#3D4752] font-normal text-base'>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries,</p>
-                                      </div>
-                                  </div>
-                              </details>
-                          </div>
-                        )}
+                        <div className="bg-white rounded-lg border border-white">
+                            <details className="group">
+                                <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
+                                    Ambiance Pictures
+                                    <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
+                                    <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
+                                </summary>
+                                <div className="px-6 pb-4 text-gray-700 space-y-4">
+                                    <div className='grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4'>
+                                        <img src="/Ambpic1.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
+                                        <img src="/AmbPic2.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
+                                        <img src="/AmbPic3.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
+                                        <img src="/AmbPic4.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
+                                        <img src="/AmbPic5.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
+                                        <img src="/AmbPic6.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
+                                    </div>
+                                    <div>
+                                        <p className='text-[#3D4752] font-normal text-base'>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries,</p>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
 
                         {/* third row right accordion */}
                         <div className="bg-white rounded-lg border border-white">
