@@ -48,6 +48,7 @@ export default function Categories() {
                 <div key={cat.id} className="border border-[#DBE3EA] rounded-sm p-4 shadow-[0px_20px_24px_0px_#0000000A] bg-white flex flex-col overflow-hidden">
                     <div className="relative h-40 w-full">
                     {cat.image ? (
+                      
                       <Image src={cat.image.src} alt={cat.name} fill className="object-cover rounded-sm" />
                     ) : (
                       <div className="bg-gray-200 h-full w-full rounded-sm" />

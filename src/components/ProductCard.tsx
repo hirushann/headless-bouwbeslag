@@ -3,6 +3,24 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCartStore } from "@/lib/cartStore";
 
+const WP_BASE: string =
+  (process.env.NEXT_PUBLIC_WC_URL as string) ||
+  (process.env.NEXT_PUBLIC_WORDPRESS_API_URL as string) ||
+  "";
+
+function normalizeImageUrl(url?: string): string {
+  if (!url) return "/placeholder.png";
+  // protocol-relative URLs
+  if (url.startsWith("//")) return `https:${url}`;
+  // relative path from WP site
+  if (url.startsWith("/")) return `${WP_BASE}${url}`;
+  // force https if base uses https but image is http
+  if (WP_BASE.startsWith("https://") && url.startsWith("http://")) {
+    return url.replace(/^http:\/\//, "https://");
+  }
+  return url;
+}
+
 export default function ProductCard({ product }: { product: any }) {
   // Format price safely (remove weird HTML entities)
   const cleanPrice = (price: string) =>
@@ -22,10 +40,14 @@ export default function ProductCard({ product }: { product: any }) {
 
   // console.log("Rendering ProductCard:", product.name, "ID:", product.id);
 
+  const rawImg: string | undefined = product.images?.[0]?.src;
+  const imgSrc = normalizeImageUrl(rawImg);
+  console.log("[ProductCard] image src", { name: product?.name, rawImg, normalized: imgSrc, WP_BASE });
+
   return (
     <div className="snap-start shrink-0 w-[100%] border border-[#E2E2E2] rounded-sm shadow-sm bg-[#F7F7F7] flex flex-col h-full">
       <Link href={`/products/${product.slug}`} className="relative h-48 bg-white rounded-tl-lg rounded-tr-lg overflow-hidden">
-        <Image src={product.images?.[0]?.src || "/placeholder.png"} alt={product.name || "Product image"} fill className="object-contain"/>
+        <Image src={imgSrc} alt={product.name || "Product image"} fill className="object-contain"/>
 
         {/* Dynamic stock badge */}
         {product.stock_status === "instock" ? (
