@@ -58,6 +58,19 @@ export default function Header() {
     return () => window.removeEventListener("storage", checkLogin);
   }, []);
 
+  const [isVisible, setIsVisible] = useState(true);
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollPos = window.pageYOffset;
+      setIsVisible(currentScrollPos > 50);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    handleScroll();
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []); 
+
   return (
     <div className="bg-[#F7F7F7] w-full relative">
       
@@ -88,7 +101,7 @@ export default function Header() {
         </div>
       </div>
 
-      <div className="sticky top-0 z-50 transition-all duration-300">
+      <div className={`transition-all duration-300 bg-[#F7F7F7] w-full ${isVisible ? 'fixed top-0 left-0 z-50' : ''}`}>
         <div className="max-w-[1440px] mx-auto flex justify-between items-center py-4 font-sans px-2 lg:px-0">
           <a href="/">
             <img className="w-56 lg:w-64" src="/logo.png" alt="" />
