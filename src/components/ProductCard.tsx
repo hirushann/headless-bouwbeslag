@@ -9,7 +9,7 @@ const WP_BASE: string =
   "";
 
 function normalizeImageUrl(url?: string): string {
-  if (!url) return "/placeholder.png";
+  if (!url) return "/default-fallback-image.png";
   // protocol-relative URLs
   if (url.startsWith("//")) return `https:${url}`;
   // relative path from WP site
