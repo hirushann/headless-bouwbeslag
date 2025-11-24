@@ -627,7 +627,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                         product?.meta_data?.find((m: any) => m.key === key)?.value;
                       const advisedRaw = getMeta("crucial_data_unit_price");
                       const saleRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
-                      const currency = product.currency_symbol || "රු";
+                      const currency = product.currency_symbol || "€";
                       const advised = advisedRaw !== undefined && advisedRaw !== null && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
                       const sale = saleRaw !== undefined && saleRaw !== null && !isNaN(parseFloat(saleRaw)) ? parseFloat(saleRaw) : null;
                       let discountPercent: number | null = null;
