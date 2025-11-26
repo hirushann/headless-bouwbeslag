@@ -176,7 +176,7 @@ export default async function Home() {
           <p className="text-[#3D4752] mb-8">Check our latest article to get meaningfull content or tips for shopping</p>
           <div className="relative">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              {posts.map((post) => (
+              {posts.map((post: { id: number; title: { rendered: string }; excerpt: { rendered: string }; date: string; _embedded?: any }) => (
                 <div key={post.id}>
                   <Image
                     className="mb-3 rounded-sm h-[250px] w-full object-cover"
