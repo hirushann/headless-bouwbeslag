@@ -7,6 +7,7 @@ import Image from "next/image";
 import ProductCard from "@/components/ProductCard";
 import { useCartStore } from "@/lib/cartStore";
 import { fetchMedia } from "@/lib/wordpress";
+import { COLOR_MAP } from "@/config/colorMap";
 
 const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
   const addItem = useCartStore((state) => state.addItem);
@@ -16,9 +17,10 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
   const [quantity, setQuantity] = useState(1);
   const [selectedDiscount, setSelectedDiscount] = useState<number | null>(null);
 
+  const [brandImageUrl, setBrandImageUrl] = useState<string | null>(null);
+
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  // ---- Volume discounts derived from meta, memoized
   const discounts = React.useMemo(() => {
     const arr: { quantity: number; percentage: number }[] = [];
     if (!product?.meta_data) return arr;
@@ -31,7 +33,6 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
         arr.push({ quantity: q, percentage: p });
       }
     }
-    // Ascending by threshold so highest applicable can be found by scan
     arr.sort((a, b) => a.quantity - b.quantity);
     return arr;
   }, [product]);
@@ -110,27 +111,14 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
   const [installationGuide, setInstallationGuide] = useState<string | null>(null);
   const [certificate, setCertificate] = useState<string | null>(null);
   const [careInstructions, setCareInstructions] = useState<string | null>(null);
+  const [ambianceImages, setAmbianceImages] = useState<any[]>([]);
+  // --- Dynamic order colors/models
+  const [orderColors, setOrderColors] = useState<{ name: string; color: string }[]>([]);
+  const [orderModels, setOrderModels] = useState<any[]>([]);
 
-  // Add to cart loader, success and error state
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [addCartSuccess, setAddCartSuccess] = useState(false);
   const [addCartError, setAddCartError] = useState(false);
-
-  const colours = [
-    { name: 'Red', colorCode: 'bg-red-600' },
-    { name: 'Blue', colorCode: 'bg-blue-600' },
-    { name: 'Green', colorCode: 'bg-green-600' },
-    { name: 'Yellow', colorCode: 'bg-yellow-400' },
-  ];
-
-  const models = [
-    { id: 1, name: 'Model A', image: '/mainprodimg.png' },
-    { id: 2, name: 'Model B', image: '/mainprodimg.png' },
-    { id: 3, name: 'Model C', image: '/mainprodimg.png' },
-    { id: 4, name: 'Model C', image: '/mainprodimg.png' },
-    { id: 5, name: 'Model C', image: '/mainprodimg.png' },
-    { id: 6, name: 'Model C', image: '/mainprodimg.png' },
-  ];
 
   type MetaData = {
     key: string;
@@ -145,8 +133,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const thumbsRef = useRef<HTMLDivElement>(null);
-  // Ref for "Vergelijk dit product" accordion
-  // State for matching roses
+
   const [matchingRoses, setMatchingRoses] = useState<any[]>([]);
   const vergelijkRef = useRef<HTMLDetailsElement>(null);
 
@@ -154,6 +141,26 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
     if (scrollRef.current) {
       scrollRef.current.scrollBy({ left: offset, behavior: 'smooth' });
     }
+  };
+
+
+
+  const resolveColor = (value: string): string => {
+    if (!value) return "#D1D5DB";
+
+    const key = value.trim().toLowerCase();
+
+    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(key)) return key;
+
+    if (COLOR_MAP[key]) return COLOR_MAP[key];
+
+    for (const mapKey of Object.keys(COLOR_MAP)) {
+      if (key.includes(mapKey)) {
+        return COLOR_MAP[mapKey];
+      }
+    }
+
+    return "#D1D5DB";
   };
 
   const scrollToSection = (id: string) => {
@@ -180,9 +187,12 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
         console.log("WooCommerce product by slug:", response.data);
         if (Array.isArray(response.data) && response.data.length > 0) {
           const productData = response.data[0];
+          console.log("DEBUG FIRST FETCH META:", response.data[0]?.meta_data);
           const res = await api.get(`products/${productData.id}`);
           if (res?.data) {
             const productData = res.data;
+            console.log("DEBUG PRODUCT META:", productData.meta_data);
+            console.log("DEBUG PRODUCT ATTRIBUTES:", productData.attributes);
             let mainImageUrl: string | undefined = undefined;
             const mainImageMeta = productData.meta_data?.find(
               (m: any) => m.key === "main_carousel_image"
@@ -211,6 +221,22 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
               }
             }
             setProduct(productData);
+
+            // --- Brand Image (crucial_data_brand_image)
+            const brandImageMeta = productData.meta_data?.find(
+              (m: any) => m.key === "crucial_data_brand_image"
+            );
+
+            if (brandImageMeta?.value) {
+              try {
+                const media = await fetchMedia(brandImageMeta.value);
+                if (media?.source_url) {
+                  setBrandImageUrl(media.source_url);
+                }
+              } catch (err) {
+                console.error("Error fetching brand image:", err);
+              }
+            }
 
 
             // This match to "Matching accessories"
@@ -368,6 +394,115 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
               setMusthaveprodKeys([]);
             }
 
+            // ----------------------
+            // Dynamic Color Swatches (Product SKUs → Attributes → HEX)
+            // ----------------------
+            const orderColorKeys = [
+              "related_order_color_1",
+              "related_order_color_2",
+              "related_order_color_3",
+              "related_order_color_4",
+              "related_order_color_5",
+              "related_order_color_6",
+              "related_order_color_7",
+              "related_order_color_8",
+            ];
+
+            // 1. Read linked product SKUs from ACF
+            const linkedProductSkus = orderColorKeys
+              .map((key) =>
+                productData.meta_data?.find((m: any) => m.key === key)?.value
+              )
+              .filter((sku) => sku && String(sku).trim() !== "");
+
+            // Debug found SKUs
+            console.log("🔍 DEBUG: Linked product SKUs found:", linkedProductSkus);
+
+            // 2. Fetch each product by SKU and extract its color attribute
+            const fetchLinkedColors = async () => {
+              const results = await Promise.all(
+                linkedProductSkus.map(async (sku: string) => {
+                  try {
+                    console.log("🔍 DEBUG: Fetching linked product by SKU:", sku);
+
+                    const response = await api.get("products", { sku });
+                    const linkedProduct =
+                      Array.isArray(response.data) && response.data[0]
+                        ? response.data[0]
+                        : null;
+
+                    console.log("🔍 DEBUG: Linked product response:", linkedProduct);
+
+                    if (!linkedProduct) return null;
+
+                    console.log("🔍 DEBUG: Linked product attributes:", linkedProduct.attributes);
+
+                    console.log("🔍 DEBUG: Extracted attributes:", linkedProduct.attributes);
+
+                    // Extract color attribute (WooCommerce global attributes use `pa_` prefix)
+                    const colorAttr = linkedProduct.attributes?.find(
+                      (attr: any) =>
+                        attr.slug === "color" ||
+                        attr.slug === "pa_color"
+                    );
+
+                    console.log("🔍 DEBUG: Matched color attribute:", colorAttr);
+
+                    const colorName = colorAttr?.options?.[0] || null;
+                    if (!colorName) return null;
+
+                    return {
+                      sku,
+                      slug: linkedProduct.slug,
+                      name: colorName,
+                      color: resolveColor(colorName),
+                    };
+                  } catch (error) {
+                    console.error("❌ ERROR fetching linked product by SKU:", error);
+                    return null;
+                  }
+                })
+              );
+
+              setOrderColors(results.filter((item) => item !== null));
+            };
+
+            await fetchLinkedColors();
+
+            // --- Order Models (related_order_model_1...related_order_model_8) — each contains a SKU
+            const orderModelKeys = [
+              "related_order_model_1",
+              "related_order_model_2",
+              "related_order_model_3",
+              "related_order_model_4",
+              "related_order_model_5",
+              "related_order_model_6",
+              "related_order_model_7",
+              "related_order_model_8",
+            ];
+
+            const modelSkus = orderModelKeys
+              .map((key) =>
+                productData.meta_data?.find((m: any) => m.key === key)?.value
+              )
+              .filter((v) => v && String(v).trim() !== "");
+
+            if (modelSkus.length > 0) {
+              Promise.all(
+                (modelSkus as string[]).map((sku) =>
+                  api
+                    .get("products", { sku })
+                    .then((res) =>
+                      Array.isArray(res.data) && res.data[0] ? res.data[0] : null
+                    )
+                    .catch(() => null)
+                )
+              ).then((models) => {
+                setOrderModels(models.filter((m) => !!m));
+              });
+            } else {
+              setOrderModels([]);
+            }
 
             if (Array.isArray(productData.images) && productData.images.length > 0) {
               let imgs = productData.images
@@ -398,6 +533,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
             } else {
               setRelatedProducts([]);
             }
+            
           }
         } else {
           setProduct(null);
@@ -418,9 +554,61 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
       .finally(() => {
         setLoading(false);
       });
+
+      
   }, [slug]);
 
   useEffect(() => {
+    // ----------------------
+    // Ambiance images (assets_ambiance_pictures -> media IDs -> URLs)
+    // ----------------------
+    if (product && Array.isArray(product.meta_data)) {
+      const ambianceMeta = product.meta_data.find(
+        (m: any) => m.key === "assets_ambiance_pictures"
+      );
+
+      const ambianceImageIds = Array.isArray(ambianceMeta?.value)
+        ? ambianceMeta.value
+        : [];
+
+      console.log("🔍 DEBUG: Ambiance image IDs:", ambianceImageIds);
+
+      const fetchAmbianceImages = async () => {
+        if (ambianceImageIds.length === 0) {
+          setAmbianceImages([]);
+          return;
+        }
+
+        try {
+          const responses = await Promise.all(
+            ambianceImageIds.map(async (id: string) => {
+              try {
+                return await fetchMedia(id);
+              } catch {
+                return null;
+              }
+            })
+          );
+
+          console.log("🔍 DEBUG: Ambiance media objects:", responses);
+
+          setAmbianceImages(
+            responses
+              .filter((img: any) => img && img.source_url)
+              .map((img: any) => ({
+                id: img.id,
+                url: img.source_url,
+                alt: img.alt_text || img.title?.rendered || "Ambiance image",
+              }))
+          );
+        } catch (err) {
+          console.error("❌ Error fetching ambiance images:", err);
+        }
+      };
+
+      fetchAmbianceImages();
+    }
+
     const pdfMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_manual_pdf");
     if (pdfMeta?.value) {
       fetchMedia(pdfMeta.value).then(media =>
@@ -450,10 +638,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
     }
   }, [product]);
 
-  const productTitle =
-    product?.meta_data?.find((m: any) => m.key === "crucial_data_product_name")?.value ||
-    product?.name ||
-    "";
+  const productTitle = product?.meta_data?.find((m: any) => m.key === "crucial_data_product_name")?.value || product?.name || "";
   
   const getMetaValue = (key: string) =>
   product?.meta_data?.find((m: any) => m.key === key)?.value || null;
@@ -614,7 +799,14 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                 {/* Right side: Product details */}
                 <div className="lg:w-1/2 flex flex-col gap-5">
                     <div>
-                        <Image src="/productcatlogo.png" className="w-auto h-auto" alt="Product Category Logo" width={50} height={50} />
+                        {/* <Image src="/productcatlogo.png" className="w-auto h-auto" alt="Product Category Logo" width={50} height={50} /> */}
+                        {brandImageUrl && (
+                          <img
+                            src={brandImageUrl}
+                            alt="Brand Logo"
+                            className="h-10 w-auto object-contain"
+                          />
+                        )}
                     </div>
                     {/* Title and Brand */}
                     <div>
@@ -645,10 +837,11 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                               {advised !== null && discountPercent !== null && advised > sale ? (
                                 <div
                                   className="tooltip tooltip-right"
-                                  data-tip={`Discount from ${currency}${advised.toFixed(2)}`}
+                                  // data-tip={`Discount from ${currency}${advised.toFixed(2)}`}
+                                  data-tip={`T.o.v. verkoopadviesprijs leverancier`}
                                 >
                                   <button className="bg-[#FF5E00] px-[12px] py-[5px] rounded-sm text-white text-[13px] font-bold cursor-pointer">
-                                    {discountPercent}% OFF
+                                    {discountPercent}% korting
                                   </button>
                                 </div>
                               ) : null}
@@ -712,50 +905,88 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                       );
                     })()}
 
-                    {/* Colour Swatches */}
-                    <div className="flex gap-2 items-center">
-                        <h2 className="font-semibold text-base lg:text-lg lg:mb-2">Our Colours:</h2>
-                        <div className="flex gap-3">
-                        {colours.map((colour) => (
-                            <button
-                            key={colour.name}
-                            className={`w-8 h-8 rounded-full border border-gray-300 ${colour.colorCode}`}
-                            aria-label={colour.name}
-                            title={colour.name}
-                            />
-                        ))}
-                        </div>
-                    </div>
+                    {/* Dynamic Order Colours */}
+                    {orderColors.length > 0 && (
+                      <div className="flex gap-2 items-center">
+                        <h2 className="font-semibold text-base lg:text-lg lg:mb-2">
+                          Andere kleuren van dit product:
+                        </h2>
 
-                    {/* Models Carousel */}
-                    <div>
+                        <div className="flex gap-3">
+                          {orderColors.map((item) => (
+                            <a
+                              key={item.slug}
+                              href={`/products/${item.slug}`}
+                              aria-label={`Bekijk ${item.name}`}
+                              title={item.name}
+                              className="w-8 h-8 rounded-full border border-gray-300 block"
+                              style={{ backgroundColor: item.color }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Dynamic Order Models Carousel */}
+                    {orderModels.length > 0 && (
+                      <div>
                         <div className="flex items-center justify-between mb-2">
-                        <h2 className="font-semibold text-base lg:text-lg">Our Models</h2>
-                        <div className="flex gap-2">
-                            <button type="button" onClick={() => scrollBy(-200)} className="w-8 h-8 flex items-center justify-center rounded-full border border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer" aria-label="Previous models">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                          <h2 className="font-semibold text-base lg:text-lg">Zoek je soms een ander model?</h2>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => scrollBy(-200)}
+                              className="w-8 h-8 flex items-center justify-center rounded-full border border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer"
+                              aria-label="Previous models"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                              </svg>
                             </button>
-                            <button type="button" onClick={() => scrollBy(200)} className="w-8 h-8 flex items-center justify-center rounded-full border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer" aria-label="Next models">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+
+                            <button
+                              type="button"
+                              onClick={() => scrollBy(200)}
+                              className="w-8 h-8 flex items-center justify-center rounded-full border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer"
+                              aria-label="Next models"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
                             </button>
+                          </div>
                         </div>
-                        </div>
-                        <div ref={scrollRef} className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 scroll-smooth">
-                        {models.map((model) => (
-                            <div key={model.id} className="flex-shrink-0 w-32 h-32 border border-[#E8E1DC] rounded-sm  bg-white flex items-center justify-center">
-                            <img src={model.image} alt={model.name} className="max-h-full max-w-full object-contain" />
+
+                        <div
+                          ref={scrollRef}
+                          className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 scroll-smooth"
+                        >
+                          {orderModels.map((model: any) => (
+                            <div
+                              key={model.id}
+                              className="flex-shrink-0 w-32 h-32 border border-[#E8E1DC] rounded-sm  bg-white flex items-center justify-center"
+                            >
+                              <img
+                                src={model?.images?.[0]?.src || "/afbeelding.png"}
+                                alt={model?.name || "Model"}
+                                className="max-h-full max-w-full object-contain"
+                              />
+                              {/* <p className="text-[11px] leading-tight text-[#3D4752] line-clamp-2">
+                                {model?.name}
+                              </p> */}
                             </div>
-                        ))}
+                          ))}
                         </div>
-                    </div>
+                      </div>
+                    )}
 
                     {/* Volume Discount Section */}
                     {discounts.length > 0 && (
                       <div className="bg-white border border-white rounded-lg p-4 flex items-center gap-8">
-                        <h2 className="font-semibold text-base lg:text-lg">Volume discount:</h2>
+                        <h2 className="font-semibold text-base lg:text-lg">Volume korting:</h2>
                         <div className="flex gap-8 items-start">
                           <div>
-                            <p className='mb-1 text-[#3D4752] font-medium text-base lg:text-lg'>Quantity:</p>
+                            <p className='mb-1 text-[#3D4752] font-medium text-base lg:text-lg'>Aantal:</p>
                             {discounts.map((d, idx) => (
                               <label key={idx} className="text-[#3D4752] font-normal text-base flex items-center gap-2">
                                 <input
@@ -769,7 +1000,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                             ))}
                           </div>
                           <div>
-                            <p className='mb-1 text-[#3D4752] font-medium text-base lg:text-lg'>Discount</p>
+                            <p className='mb-1 text-[#3D4752] font-medium text-base lg:text-lg'>Korting</p>
                             {discounts.map((d, idx) => (
                               <p key={idx} className='text-[#03B955] font-medium text-base'>{d.percentage}%</p>
                             ))}
@@ -779,7 +1010,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                     )}
 
                     <div className='bg-[#E4EFFF] py-3 px-5 rounded-md'> 
-                        <p className='text-[#3D4752] font-normal text-base'>Become a business customer and benefit from competitive purchase prices! <a href="#" className='text-[#0066FF] font-bold'>Click here</a> to request an account</p>
+                        <p className='text-[#3D4752] font-normal text-base'>Heb jij beroepsmatig op regelmatige basis bouwbeslag nodig? <a href="#" className='text-[#0066FF] font-bold'>Klik hier </a> en meld je aan voor een zakelijk account met de scherpste inkoopprijzen.</p>
                     </div>
 
                     {/* Quantity Selector and Add to Cart */}
@@ -824,7 +1055,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                               className="px-5 py-3 text-2xl cursor-pointer border-r border-[#EDEDED]"
                             >-</button>
                             <div className="px-6 py-2 text-base font-medium text-center min-w-[60px] flex items-center justify-center">
-                                {quantity.toString().padStart(2, '0')}
+                                {quantity.toString().padStart(1, '0')}
                             </div>
                             <button
                               type="button"
@@ -896,7 +1127,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                             ) : (
                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="white" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>
                             )}
-                            ADD TO CART
+                            In winkelwagen
                           </button>
                         </div>
                     </div>
@@ -907,11 +1138,11 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                     </div>
 
                     <div>
-                        <p className='text-[#212121] font-medium text-lg mb-3'>Need Help?</p>
+                        <p className='text-[#212121] font-medium text-lg mb-3'>Heb je vragen over dit product? Wij helpen je graag!</p>
                         <div className='flex gap-3 items-center justify-center'>
                             <a href={`mailto:info@example.com?subject=${encodeURIComponent(productTitle)}`} className='border border-[#0066FF] rounded-sm py-2.5 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors'>
                                 <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-5 transition-colors"><path d="M1.5 8.67v8.58a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3V8.67l-8.928 5.493a3 3 0 0 1-3.144 0L1.5 8.67Z" /><path d="M22.5 6.908V6.75a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3v.158l9.714 5.978a1.5 1.5 0 0 0 1.572 0L22.5 6.908Z" /></svg></span>
-                                Mail us
+                                Mail ons
                             </a>
                             <a href={`https://wa.me/31614384844?text=${encodeURIComponent(`Hello, I'm interested in the product ${productTitle} (SKU: ${productSKU})`)}`} className='border border-[#0066FF] rounded-sm py-2 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors' target="_blank" rel="noopener noreferrer">
                                 <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" fill="currentColor" className="size-6"><path d="M476.9 161.1C435 119.1 379.2 96 319.9 96C197.5 96 97.9 195.6 97.9 318C97.9 357.1 108.1 395.3 127.5 429L96 544L213.7 513.1C246.1 530.8 282.6 540.1 319.8 540.1L319.9 540.1C442.2 540.1 544 440.5 544 318.1C544 258.8 518.8 203.1 476.9 161.1zM319.9 502.7C286.7 502.7 254.2 493.8 225.9 477L219.2 473L149.4 491.3L168 423.2L163.6 416.2C145.1 386.8 135.4 352.9 135.4 318C135.4 216.3 218.2 133.5 320 133.5C369.3 133.5 415.6 152.7 450.4 187.6C485.2 222.5 506.6 268.8 506.5 318.1C506.5 419.9 421.6 502.7 319.9 502.7zM421.1 364.5C415.6 361.7 388.3 348.3 383.2 346.5C378.1 344.6 374.4 343.7 370.7 349.3C367 354.9 356.4 367.3 353.1 371.1C349.9 374.8 346.6 375.3 341.1 372.5C308.5 356.2 287.1 343.4 265.6 306.5C259.9 296.7 271.3 297.4 281.9 276.2C283.7 272.5 282.8 269.3 281.4 266.5C280 263.7 268.9 236.4 264.3 225.3C259.8 214.5 255.2 216 251.8 215.8C248.6 215.6 244.9 215.6 241.2 215.6C237.5 215.6 231.5 217 226.4 222.5C221.3 228.1 207 241.5 207 268.8C207 296.1 226.9 322.5 229.6 326.2C232.4 329.9 268.7 385.9 324.4 410C359.6 425.2 373.4 426.5 391 423.9C401.7 422.3 423.8 410.5 428.4 397.5C433 384.5 433 373.4 431.6 371.1C430.3 368.6 426.6 367.2 421.1 364.5z"/></svg></span>
@@ -919,7 +1150,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                             </a>
                             <a href="tel:+31614384844" className='border border-[#0066FF] rounded-sm py-2.5 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors'>
                                 <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" fill="currentColor" className="size-5"><path d="M376 32C504.1 32 608 135.9 608 264C608 277.3 597.3 288 584 288C570.7 288 560 277.3 560 264C560 162.4 477.6 80 376 80C362.7 80 352 69.3 352 56C352 42.7 362.7 32 376 32zM384 224C401.7 224 416 238.3 416 256C416 273.7 401.7 288 384 288C366.3 288 352 273.7 352 256C352 238.3 366.3 224 384 224zM352 152C352 138.7 362.7 128 376 128C451.1 128 512 188.9 512 264C512 277.3 501.3 288 488 288C474.7 288 464 277.3 464 264C464 215.4 424.6 176 376 176C362.7 176 352 165.3 352 152zM176.1 65.4C195.8 60 216.4 70.1 224.2 88.9L264.7 186.2C271.6 202.7 266.8 221.8 252.9 233.2L208.8 269.3C241.3 340.9 297.8 399.3 368.1 434.2L406.7 387C418 373.1 437.1 368.4 453.7 375.2L551 415.8C569.8 423.6 579.9 444.2 574.5 463.9L573 469.4C555.4 534.1 492.9 589.3 416.6 573.2C241.6 536.1 103.9 398.4 66.8 223.4C50.7 147.1 105.9 84.6 170.5 66.9L176 65.4z"/></svg></span>
-                                Call us
+                                Bel ons
                             </a>
                         </div>
                     </div>
@@ -953,127 +1184,130 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 h-full">
                     <div className='flex flex-col gap-5'>
                         {/* first row left accordion */}
-                        <div className="bg-white rounded-lg border border-white">
-                            <details className="group" open>
-                                <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
-                                    Product description
-                                    <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
-                                    <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
-                                </summary>
-                                <div className="px-6 pb-4 text-[#3D4752] space-y-4 font-normal text-sm lg:text-base">
-                                  {(() => {
-                                    const desc = product?.meta_data?.find((m: any) => m.key === "description_description")?.value;
-                                    if (!desc) return null;
-                                    return desc
-                                      .split(/\n\s*\n/)
-                                      .map((para: string, idx: number) => (
-                                        <p key={idx} className="mb-4 leading-relaxed">
-                                          {para.trim()}
-                                        </p>
-                                      ));
-                                  })()}
-                                  <div className="bg-[#E3EEFF] text-gray-800 p-5 rounded-lg border-0">
-                                    <p className="font-semibold text-gray-900 text-base lg:text-lg">Installation Tip:</p>
-                                    <p className="text-sm lg:text-base text-normal">
-                                      Due to the extended handle design, we recommend using painter's tape to protect the spindle during installation. 
-                                      Insert patent screws through the base rosette before mounting to prevent damage to the bronze finish.
-                                    </p>
+                        {product?.meta_data?.find((m: any) => m.key === "description_description")?.value && (
+                          <div className="bg-white rounded-lg border border-white">
+                              <details className="group" open>
+                                  <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
+                                      Product omschrijving
+                                      <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
+                                      <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
+                                  </summary>
+                                  <div className="px-6 pb-4 text-[#3D4752] space-y-4 font-normal text-sm lg:text-base">
+                                    {(() => {
+                                      const desc =
+                                        product?.meta_data?.find((m: any) => m.key === "description_description")?.value;
+                                      if (!desc) return null;
+                                      return (
+                                        <div
+                                          className="prose prose-sm lg:prose-base text-[#3D4752]"
+                                          dangerouslySetInnerHTML={{ __html: desc }}
+                                        />
+                                      );
+                                    })()}
                                   </div>
-                                </div>
-                            </details>
-                        </div>
+                              </details>
+                          </div>
+                        )}
 
                         {/* second row left accordion */}
                         {(productSKU ||
-                        productWidth ||
-                        productHeight ||
-                        productLength ||
-                        productCategories.length > 0 ||
-                        productBrands.length > 0) && (
-                        <div className="bg-white rounded-lg border border-white">
+                          productWidth ||
+                          productHeight ||
+                          productLength ||
+                          productCategories.length > 0 ||
+                          productBrands.length > 0 ||
+                          (product.attributes && product.attributes.length > 0)
+                        ) && (
+                          <div className="bg-white rounded-lg border border-white">
                             <details className="group">
-                                <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
-                                    Product specifications
-                                    <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
-                                    <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
-                                </summary>
-                                <div className="px-6 pb-4 text-gray-700 space-y-4">
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-sm text-left text-gray-700">
-                                          <tbody>
-                                              {productSKU && (
-                                              <tr className="bg-[#F3F8FF]">
-                                                <td className="px-6 py-3 font-medium text-gray-900">SKU</td>
-                                                <td className="px-6 py-3">{" "}{productSKU}</td>
-                                              </tr>
-                                              )}
+                              <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
+                                Productspecificaties
+                                <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
+                                <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
+                              </summary>
 
-                                              {productWidth && (
-                                              <tr>
-                                                <td className="px-6 py-3 font-medium text-gray-900">Width</td>
-                                                <td className="px-6 py-3">
-                                                  {" "}{productWidth}{productWidthUnit}
-                                                </td>
-                                              </tr>
-                                              )}
+                              <div className="px-6 pb-4 text-gray-700 space-y-4">
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-sm text-left text-gray-700">
+                                    <tbody>
 
-                                              {productHeight && (
-                                                <tr className="bg-[#F3F8FF]">
-                                                  <td className="px-6 py-3 font-medium text-gray-900">Height</td>
-                                                  <td className="px-6 py-3">{" "}{productHeight}{productHeightUnit}</td>
-                                                </tr>
-                                              )}
+                                      {productSKU && (
+                                        <tr className="">
+                                          <td className="px-6 py-3 font-medium text-gray-900">SKU</td>
+                                          <td className="px-6 py-3">{productSKU}</td>
+                                        </tr>
+                                      )}
 
-                                              {productLength && (
-                                                <tr>
-                                                  <td className="px-6 py-3 font-medium text-gray-900">Length</td>
-                                                  <td className="px-6 py-3">{productLength} {productLengthUnit}</td>
-                                                </tr>
-                                              )}
+                                      {productWidth && (
+                                        <tr>
+                                          <td className="px-6 py-3 font-medium text-gray-900">Width</td>
+                                          <td className="px-6 py-3">
+                                            {productWidth}{productWidthUnit}
+                                          </td>
+                                        </tr>
+                                      )}
 
-                                              {productCategories.length > 0 && (
-                                              <tr className="bg-[#F3F8FF]">
-                                                <td className="px-6 py-3 font-medium text-gray-900">Category</td>
-                                                <td className="px-6 py-3">{productCategories.map((c: any) => c.name).join(", ")}</td>
-                                              </tr>
-                                              )}
+                                      {productHeight && (
+                                        <tr className="bg-[#F3F8FF]">
+                                          <td className="px-6 py-3 font-medium text-gray-900">Height</td>
+                                          <td className="px-6 py-3">
+                                            {productHeight}{productHeightUnit}
+                                          </td>
+                                        </tr>
+                                      )}
 
-                                              {productBrands.length > 0 && (
-                                              <tr>
-                                                <td className="px-6 py-3 font-medium text-gray-900">Brand:</td>
-                                                <td className="px-6 py-3">{productBrands.map((b: any) => b.name).join(", ")}</td>
-                                              </tr>
-                                              )}
-                                              {/* <tr className="bg-[#F3F8FF]">
-                                                <td className="px-6 py-3 font-medium text-gray-900">Category</td>
-                                                <td className="px-6 py-3">130mm</td>
-                                              </tr>
-                                              <tr>
-                                                <td className="px-6 py-3 font-medium text-gray-900">Finishing</td>
-                                                <td className="px-6 py-3">Bronze blend</td>
-                                              </tr>
-                                              <tr className="bg-[#F3F8FF]">
-                                                <td className="px-6 py-3 font-medium text-gray-900">Material</td>
-                                                <td className="px-6 py-3">Stainless steel</td>
-                                              </tr>
-                                              <tr>
-                                                <td className="px-6 py-3 font-medium text-gray-900">Product Suitable for</td>
-                                                <td className="px-6 py-3">Indoor and Outdoor</td>
-                                              </tr>
-                                              <tr className="bg-[#F3F8FF]">
-                                                <td className="px-6 py-3 font-medium text-gray-900">Product Feathered</td>
-                                                <td className="px-6 py-3">No</td>
-                                              </tr>
-                                              <tr>
-                                                <td className="px-6 py-3 font-medium text-gray-900">Series</td>
-                                                <td className="px-6 py-3">Anastasius</td>
-                                              </tr> */}
-                                          </tbody>
-                                        </table>
-                                    </div>
+                                      {productLength && (
+                                        <tr>
+                                          <td className="px-6 py-3 font-medium text-gray-900">Length</td>
+                                          <td className="px-6 py-3">
+                                            {productLength} {productLengthUnit}
+                                          </td>
+                                        </tr>
+                                      )}
+
+                                      {productCategories.length > 0 && (
+                                        <tr className="bg-[#F3F8FF]">
+                                          <td className="px-6 py-3 font-medium text-gray-900">Category</td>
+                                          <td className="px-6 py-3">
+                                            {productCategories.map((c: any) => c.name).join(", ")}
+                                          </td>
+                                        </tr>
+                                      )}
+
+                                      {productBrands.length > 0 && (
+                                        <tr>
+                                          <td className="px-6 py-3 font-medium text-gray-900">Brand</td>
+                                          <td className="px-6 py-3">
+                                            {productBrands.map((b: any) => b.name).join(", ")}
+                                          </td>
+                                        </tr>
+                                      )}
+
+                                      {/* ------------------------- */}
+                                      {/* WooCommerce Product Attributes */}
+                                      {/* ------------------------- */}
+                                      {product.attributes && product.attributes.length > 0 &&
+                                        product.attributes.map((attr: any, idx: number) => {
+                                          const isEven = (idx % 2 === 0);
+                                          return (
+                                            <tr key={idx} className={isEven ? "" : "bg-[#F3F8FF]"}>
+                                              <td className="px-6 py-3 font-medium text-gray-900">
+                                                {attr.name}
+                                              </td>
+                                              <td className="px-6 py-3">
+                                                {attr.options?.join(", ")}
+                                              </td>
+                                            </tr>
+                                          );
+                                        })
+                                      }
+
+                                    </tbody>
+                                  </table>
                                 </div>
+                              </div>
                             </details>
-                        </div>
+                          </div>
                         )}
 
                         {/* third row left accordion */}
@@ -1190,7 +1424,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                         <div className="bg-white rounded-lg border border-white">
                             <details className="group">
                                 <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
-                                    Installation Video
+                                    Video's
                                     <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
                                     <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
                                 </summary>
@@ -1204,52 +1438,54 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
 
                     <div className='flex flex-col gap-5'>
                         {/* first row right accordion */}
-                        <div className="bg-white rounded-lg border border-white">
-                            <details className="group" open>
-                                <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
-                                    Technical drawing & Dimensions
-                                    <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
-                                    <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
-                                </summary>
-                                <div className="px-6 pb-4 text-gray-700 space-y-4">
-                                    {technicalDrawingUrl ? (
+                        {technicalDrawingUrl && (
+                          <div className="bg-white rounded-lg border border-white">
+                              <details className="group" open>
+                                  <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
+                                      Technische documentatie
+                                      <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
+                                      <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
+                                  </summary>
+                                  <div className="px-6 pb-4 text-gray-700 space-y-4">
                                       <img src={technicalDrawingUrl} alt="Technical drawing" className="w-full h-auto rounded-md" />
-                                    ) : (
-                                      <p className="text-sm text-gray-500">No technical drawing available.</p>
-                                    )}
-                                </div>
-                            </details>
-                        </div>
+                                  </div>
+                              </details>
+                          </div>
+                        )}
 
                         {/* second row right accordion */}
+                        {ambianceImages.length > 0 && (
                         <div className="bg-white rounded-lg border border-white">
                             <details className="group">
                                 <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
-                                    Ambiance Pictures
+                                    Gebruikersfoto's
                                     <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
                                     <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
                                 </summary>
                                 <div className="px-6 pb-4 text-gray-700 space-y-4">
-                                    <div className='grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4'>
-                                        <img src="/Ambpic1.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
-                                        <img src="/AmbPic2.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
-                                        <img src="/AmbPic3.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
-                                        <img src="/AmbPic4.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
-                                        <img src="/AmbPic5.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
-                                        <img src="/AmbPic6.png" className='w-full h-34 lg:h-52 rounded-sm' alt="" />
-                                    </div>
+                                      <div className='grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4'>
+                                        {ambianceImages.map((img) => (
+                                          <img
+                                            key={img.id}
+                                            src={img.url}
+                                            className='w-full h-34 lg:h-52 rounded-sm object-cover'
+                                            alt={img.alt}
+                                          />
+                                        ))}
+                                      </div>
                                     <div>
                                         <p className='text-[#3D4752] font-normal text-base'>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries,</p>
                                     </div>
                                 </div>
                             </details>
                         </div>
+                        )}
 
                         {/* third row right accordion */}
                         <div className="bg-white rounded-lg border border-white">
                             <details className="group">
                                 <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
-                                    Warranty
+                                    Garantie
                                     <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
                                     <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
                                 </summary>
@@ -1322,7 +1558,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                             <div className="bg-white rounded-lg border border-white">
                               <details className="group">
                                 <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
-                                  FAQ’s
+                                  Veelgestelde vragen
                                   <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
                                   <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
                                 </summary>
@@ -1860,7 +2096,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                     ) : (
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="white" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>
                     )}
-                    ADD TO CART
+                    In winkelwagen
                   </button>
                 </div>
             </div>

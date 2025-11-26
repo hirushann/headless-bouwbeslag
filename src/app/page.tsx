@@ -1,222 +1,64 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
-import { useRef, useEffect, useState } from "react";
 import api from "@/lib/woocommerce";
-import ProductCard from "@/components/ProductCard";
 import { fetchPosts } from "@/lib/wordpress";
-interface Post {
-  id: number;
-  date: string;
-  title: { rendered: string };
-  excerpt: { rendered: string };
-  slug: string;
-  _embedded?: {
-    "wp:featuredmedia"?: {
-      source_url: string;
-      media_details?: {
-        sizes?: Record<string, { source_url: string }> & {
-          full?: { source_url: string };
-        };
-      };
-    }[];
-  };
-}
 
-interface Product {
-  id: number;
-  name: string;
-  images: { src: string }[];
-  price: string;
-  regular_price: string;
-  sale_price: string;
-  slug: string;
-}
+// Client Components
+import BestSellersCarousel from "@/components/carousels/BestSellers";
+import RecommendedCarousel from "@/components/carousels/Recommended";
+import CategoriesSidebar from "@/components/carousels/CategoriesSidebar";
 
-interface Category {
-  id: number;
-  name: string;
-  parent: number;
-  slug: string;
-  count?: number;
-  image?: { src: string };
-}
+export default async function Home() {
+  const bestSellers = await api
+    .get("products", { per_page: 10 })
+    .then((res: any) => res.data)
+    .catch(() => []);
 
-export default function Home() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [posts, setPosts] = useState<Post[]>([]);
+  const recommended = await api
+    .get("products", { featured: true, per_page: 10 })
+    .then((res: any) => res.data)
+    .catch(() => []);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchPosts(3)
-      .then((res) => {
-        console.log("Posts with embed:", res);
-        if (!cancelled) setPosts(res);
-      })
-      .catch(() => setPosts([]));
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const categories = await api
+    .get("products/categories", { per_page: 50 })
+    .then((res: any) => res.data)
+    .catch(() => []);
 
-  useEffect(() => {
-    let cancelled = false;
-    api.get("products/categories", { per_page: 50 })
-      .then((res: any) => {
-        if (!cancelled) {
-          setCategories(res.data);
-        }
-      })
-      .catch(() => setCategories([]));
-    return () => { cancelled = true; }
-  }, []);
-
-  const trackRef1 = useRef<HTMLDivElement>(null);
-  const [atStart1, setAtStart1] = useState(true);
-  const [atEnd1, setAtEnd1] = useState(false);
-
-  useEffect(() => {
-    const el = trackRef1.current;
-    if (!el) return;
-    const onScroll = () => {
-      const { scrollLeft, scrollWidth, clientWidth } = el;
-      setAtStart1(scrollLeft <= 1);
-      setAtEnd1(scrollLeft + clientWidth >= scrollWidth - 1);
-    };
-    onScroll();
-    el.addEventListener('scroll', onScroll, { passive: true });
-    return () => el.removeEventListener('scroll', onScroll);
-    // Depend on products so it recalculates when products change
-  }, [products]);
-
-  const scrollByPage1 = (dir: 1 | -1) => {
-    const el = trackRef1.current;
-    if (!el) return;
-    const card = el.querySelector("div.snap-start") as HTMLElement;
-    const amount = card ? card.offsetWidth + 16 : 300; // 16px gap assumed
-    el.scrollBy({ left: dir * amount, behavior: "smooth" });
-  };
-  // Fetch WooCommerce products for carousel 1
-  useEffect(() => {
-    let cancelled = false;
-    api
-      .get("products", { per_page: 10 })
-      .then((res: any) => {
-        if (!cancelled) {
-          setProducts(res.data);
-          console.log("Fetched products count:", res.data.length);
-        }
-      })
-      .catch((err: any) => {
-        if (!cancelled) {
-          setProducts([]);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Carousel 2 (New Arrivals)
-  const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
-  const trackRef2 = useRef<HTMLDivElement>(null);
-  const [atStart2, setAtStart2] = useState(true);
-  const [atEnd2, setAtEnd2] = useState(false);
-
-  useEffect(() => {
-    const el = trackRef2.current;
-    if (!el) return;
-    const onScroll = () => {
-      const { scrollLeft, scrollWidth, clientWidth } = el;
-      setAtStart2(scrollLeft <= 1);
-      setAtEnd2(scrollLeft + clientWidth >= scrollWidth - 1);
-    };
-    onScroll();
-    el.addEventListener('scroll', onScroll, { passive: true });
-    return () => el.removeEventListener('scroll', onScroll);
-    // Depend on recommendedProducts so it recalculates when products change
-  }, [recommendedProducts]);
-
-  const scrollByPage2 = (dir: 1 | -1) => {
-    const el = trackRef2.current;
-    if (!el) return;
-    const card = el.querySelector("div.snap-start") as HTMLElement;
-    const amount = card ? card.offsetWidth + 16 : 300;
-    el.scrollBy({ left: dir * amount, behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    let cancelled = false;
-    api
-      .get("products", { featured: true, per_page: 10 }) // fetch featured products
-      .then((res: any) => {
-        if (!cancelled) {
-          setRecommendedProducts(res.data);
-        }
-      })
-      .catch(() => setRecommendedProducts([]));
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const posts = await fetchPosts(3).catch(() => []);
 
   return (
     <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start font-sans bg-[#F5F5F5]">
-      <div className="max-w-[1440px] relative mx-auto">
-        <div className="lg:my-4 flex gap-6 w-full">
-          <div className="bg-[#FFFFFF] shadow-[0px_20px_24px_0px_#0000000A] rounded-[4px] w-[27%] hidden lg:block">
-            <div className="border-b border-[#F1F1F1] flex items-center p-5">
-              <h2 className="font-bold text-[22px]">All Categories</h2>
-            </div>
-            <div>
-              {categories.filter(cat => cat.parent === 0).map((cat) => {
-                const subcategories = categories.filter(sub => sub.parent === cat.id);
-                if (subcategories.length > 0) {
-                  return (
-                    <div key={cat.id} className="collapse collapse-arrow border-b border-[#F5F5F5] !rounded-0">
-                      <input type="radio" name="my-accordion-2" />
-                      <div className="collapse-title font-normal text-sm text-[#3D4752] py-3">{cat.name}</div>
-                      <div className="collapse-content text-sm">
-                        <ul>
-                          {subcategories.map((sub) => (
-                            <li key={sub.id} className="hover:underline cursor-pointer text-[#0066FF]">
-                              <Link href={`/categories/${sub.slug}`}>{sub.name}</Link>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  );
-                } else {
-                  return (
-                    <div key={cat.id} className="border-b border-[#F5F5F5] !rounded-0">
-                      <Link
-                        href={`/categories/${cat.slug}`}
-                        className="block font-normal text-sm text-[#3D4752] py-3 px-4 hover:underline"
-                      >
-                        {cat.name}
-                      </Link>
-                    </div>
-                  );
-                }
-              })}
-            </div>
-          </div>
+      <div className="max-w-[1440px] mx-auto">
 
+        {/* Categories Sidebar + Hero Section */}
+        <div className="lg:my-4 flex gap-6 w-full">
+
+          {/* Sidebar (CLIENT) */}
+          <CategoriesSidebar categories={categories} />
+
+          {/* Hero Section */}
           <div className="w-full lg:w-[74%] lg:h-[80vh] bg-[linear-gradient(270deg,#1422AC_0%,#00074B_100.82%)] lg:rounded-sm overflow-hidden relative flex flex-col-reverse lg:flex-row items-center gap-12 py-12 lg:gap-0 lg:py-0">
             <div className="lg:w-1/2 px-5 lg:px-0 lg:pl-12 flex flex-col gap-3">
-              <h1 className="text-white font-bold text-[32px] lg:text-6xl leading-[120%]">Excellent detailed design!</h1>
-              <p className="font-normal text-sm lg:text-xl leading-[32px] text-white">Concept collections for door, window and furniture fittings.</p>
+              <h1 className="text-white font-bold text-[32px] lg:text-6xl leading-[120%]">
+                Excellent detailed design!
+              </h1>
+              <p className="font-normal text-sm lg:text-xl text-white leading-[32px]">
+                Concept collections for door, window and furniture fittings.
+              </p>
               <button className="flex gap-2 items-center bg-[#0066FF] rounded-sm py-2.5 lg:py-4.5 px-7 w-full justify-center lg:w-max uppercase">
                 <span className="font-bold text-sm text-white leading-[22px]">Toevoegen aan winkelwagen</span>
                 <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#ffffff"><path d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z"/></svg></span>
               </button>
             </div>
+
             <div className="lg:w-1/2 flex items-center justify-center">
-              <Image className="lg:w-full lg:h-full lg:object-contain lg:object-right rotate-340" src="/herobg.png" alt="" width={300} height={100} />
+              <Image
+                className="lg:w-full lg:h-full lg:object-contain lg:object-right rotate-340"
+                src="/herobg.png"
+                alt="Hero"
+                width={300}
+                height={200}
+              />
             </div>
           </div>
         </div>
@@ -224,75 +66,33 @@ export default function Home() {
         <div className="hidden lg:flex gap-6 items-center font-sans mb-4">
           <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
             <Image className="" src="/card1icon.png" alt="" width={48} height={48} />
-            <h2 className="text-[#1C2530] font-semibold text-lg">Guaranteed the cheapest</h2>
-            <p className="text-[#3D4752] font-normal text-sm">Find this product cheaper elsewhere? We'll match the price and give you an extra 10% discount.</p>
+            <h2 className="text-[#1C2530] font-semibold text-lg">Gegarandeerd de beste prijs</h2>
+            <p className="text-[#3D4752] font-normal text-sm">Wij betalen zelf ook niet graag te veel. Op 95% van ons assortiment zit een beste prijs garantie. </p>
           </div>
           <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
             <Image className="" src="/card2icon.png" alt="" width={48} height={48} />
-            <h2 className="text-[#1C2530] font-semibold text-lg">30-day return policy</h2>
-            <p className="text-[#3D4752] font-normal text-sm">Return your order within 30 days and you will receive a refund of the amount you paid.</p>
+            <h2 className="text-[#1C2530] font-semibold text-lg">30 dagen retour</h2>
+            <p className="text-[#3D4752] font-normal text-sm">Tja, is dit nog een USP? Ook bij ons kun je spullen terugsturen als het niet is zoals je verwachtte.</p>
           </div>
           <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
             <Image className="" src="/card3icon.png" alt="" width={48} height={48} />
-            <h2 className="text-[#1C2530] font-semibold text-lg">Pay safely and quickly</h2>
-            <p className="text-[#3D4752] font-normal text-sm">You can choose and pay for your preferred payment method via our PSP Mollie.</p>
+            <h2 className="text-[#1C2530] font-semibold text-lg">De beste service</h2>
+            <p className="text-[#3D4752] font-normal text-sm">Het begint bij de productinformatie: bij ons is die zo compleet mogelijk. Daarna nog vragen? Wij staan voor je klaar!</p>
           </div>
           <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
             <Image className="" src="/card4icon.png" alt="" width={48} height={48} />
-            <h2 className="text-[#1C2530] font-semibold text-lg">Renowned brands</h2>
-            <p className="text-[#3D4752] font-normal text-sm">We sell renowned brands such as JNF, GPF, Mauer, Mi Satori, M&T, Zoo Hardware</p>
+            <h2 className="text-[#1C2530] font-semibold text-lg">Uitsluitend  A-merken</h2>
+            <p className="text-[#3D4752] font-normal text-sm">Er zijn genoeg sites waar je voor een tientje deurklinken koopt. Wij houden het liever bij merken die zich bewezen hebben.</p>
           </div>
         </div>
 
-        {/* Best Sellers Carousel */}
-        <div className="hidden lg:block w-full py-10">
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="text-3xl font-bold text-[#1C2530]">Our best selling products</h2>
-            <div className="flex gap-2">
-              <button onClick={() => scrollByPage1(-1)} disabled={atStart1} className="btn btn-circle disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0066FF] hover:text-white" aria-label="Previous" type="button">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="currentColor" className="transition-colors"><path d="M201.4 297.4C188.9 309.9 188.9 330.2 201.4 342.7L361.4 502.7C373.9 515.2 394.2 515.2 406.7 502.7C419.2 490.2 419.2 469.9 406.7 457.4L269.3 320L406.6 182.6C419.1 170.1 419.1 149.8 406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3L201.3 297.3z"/></svg>
-              </button>
-              <button onClick={() => scrollByPage1(1)} disabled={atEnd1} className="btn btn-circle disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0066FF] hover:text-white" aria-label="Next" type="button">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="currentColor" className="transition-colors"><path d="M439.1 297.4C451.6 309.9 451.6 330.2 439.1 342.7L279.1 502.7C266.6 515.2 246.3 515.2 233.8 502.7C221.3 490.2 221.3 469.9 233.8 457.4L371.2 320L233.9 182.6C221.4 170.1 221.4 149.8 233.9 137.3C246.4 124.8 266.7 124.8 279.2 137.3L439.2 297.3z"/></svg>
-              </button>
-            </div>
-          </div>
-          <p className="text-[#3D4752] mb-8">Check our best seller products on bouwbeslag.nl website right now</p>
-          <div className="relative">
-            <div ref={trackRef1} className="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 no-scrollbar" style={{ scrollbarWidth: 'none' }}>
-              {products.map((p) => (
-                <div key={p.id} className="snap-start shrink-0 w-[24%]">
-                  <ProductCard product={p} />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        {/* Best Sellers */}
+        <BestSellersCarousel products={bestSellers} />
 
-        {/* Recommended Products Carousel */}
-        <div className="hidden lg:block w-full py-10">
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="text-3xl font-bold text-[#1C2530]">Recommended for you</h2>
-            <div className="flex gap-2">
-              <button onClick={() => scrollByPage2(-1)} disabled={atStart2} className="btn btn-circle disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0066FF] hover:text-white" aria-label="Previous" type="button">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20"fill="currentColor" className="transition-colors"><path d="M201.4 297.4C188.9 309.9 188.9 330.2 201.4 342.7L361.4 502.7C373.9 515.2 394.2 515.2 406.7 502.7C419.2 490.2 419.2 469.9 406.7 457.4L269.3 320L406.6 182.6C419.1 170.1 419.1 149.8 406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3L201.3 297.3z"/></svg>
-              </button>
-              <button onClick={() => scrollByPage2(1)} disabled={atEnd2} className="btn btn-circle disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0066FF] hover:text-white" aria-label="Next" type="button">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20"fill="currentColor" className="transition-colors"><path d="M439.1 297.4C451.6 309.9 451.6 330.2 439.1 342.7L279.1 502.7C266.6 515.2 246.3 515.2 233.8 502.7C221.3 490.2 221.3 469.9 233.8 457.4L371.2 320L233.9 182.6C221.4 170.1 221.4 149.8 233.9 137.3C246.4 124.8 266.7 124.8 279.2 137.3L439.2 297.3z"/></svg>
-              </button>
-            </div>
-          </div>
-          <p className="text-[#3D4752] mb-8">Check our best seller products on bouwbeslag.nl website right now</p>
-          <div className="relative">
-            <div ref={trackRef2} className="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 no-scrollbar" style={{ scrollbarWidth: 'none' }}>
-              {recommendedProducts.map((p) => (
-                <div key={p.id} className="snap-start shrink-0 w-[24%]">
-                  <ProductCard product={p} />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        {/* Recommended Products */}
+        {recommended?.length > 0 && (
+          <RecommendedCarousel products={recommended} />
+        )}
 
         {/* Shop by Categories */}
         <div className="w-full py-10 px-5 lg:px-0">
@@ -514,6 +314,7 @@ export default function Home() {
             <p className="text-[#3D4752] font-normal text-base">At Bouwbeslag.com, you'll find door handles with rosettes, backplates, keyholes (PC), toilet locks, blinds, and special security hardware for exterior doors. The materials range from stainless steel and brass to aluminum and bronze. For those looking for minimal maintenance, scratch-resistant materials like stainless steel or titanium are the best choice. Color also plays a role: choose classic silver, sleek black, or a striking finish that matches your interior style.</p>
           </div>
         </div>
+
       </div>
     </main>
   );

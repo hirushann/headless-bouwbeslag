@@ -30,19 +30,19 @@ export default function RootLayout({
             <div className="lg:max-w-[1440px] lg:mx-auto lg:relative py-3 flex flex-nowrap justify-between items-center w-4xl lg:w-full">
               <div className="flex items-center gap-2 justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#ffffff"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z"/></svg>
-                <span className="text-[#FFFFFF] font-medium text-base">Best prices guaranteed</span>
+                <span className="text-[#FFFFFF] font-medium text-base">Gegarandeerd de goedkoopste</span>
               </div>
               <div className="flex items-center gap-2 justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#ffffff"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z"/></svg>
-                <span className="text-[#FFFFFF] font-medium text-base">Money back guarantee</span>
+                <span className="text-[#FFFFFF] font-medium text-base">Alleen kwaliteitsmerken</span>
               </div>
               <div className="flex items-center gap-2 justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#ffffff"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z"/></svg>
-                <span className="text-[#FFFFFF] font-medium text-base">Largest range in Europe</span>
+                <span className="text-[#FFFFFF] font-medium text-base">Wij doen wat we zeggen</span>
               </div>
               <div className="flex items-center gap-2 justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#ffffff"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z"/></svg>
-                <span className="text-[#FFFFFF] font-medium text-base">30-day return policy</span>
+                <span className="text-[#FFFFFF] font-medium text-base">30 dagen retourrecht</span>
               </div>
             </div>
           </div>
@@ -52,7 +52,7 @@ export default function RootLayout({
               <div className="flex flex-col gap-3">
                 <div>
                   <Image className="-ml-2" src="/footerlogo.png" alt="Footer Logo" width={300} height={300} />
-                  <p className="text-[#C4C4C4] font-normal text-base mt-1">Bouwbeslag.nl is onderdeel van Brightgrey</p>
+                  <p className="text-[#C4C4C4] font-normal text-base mt-1">Bouwbeslag.nl is onderdeel van DayZ Solutions</p>
                 </div>
 
                 <div className="rounded-lg bg-[#FFFFFF0D] w-max px-3.5 py-2 flex items-center justify-center mt-2 lg:mt-5">
@@ -60,7 +60,7 @@ export default function RootLayout({
                 </div>
 
                 <div className="flex flex-col gap-3 my-5">
-                  <p className="font-bold text-xl text-white">Would you like to follow us?</p>
+                  <p className="font-bold text-xl text-white">Blijf op de hoogte via de socials:</p>
                   <div className="flex gap-4 items-center">
                     <a href="" className="rounded-full p-2 bg-[#0066FF] text-white border border-[#0066FF] hover:bg-white hover:border hover:border-[#0066FF] hover:text-[#0066FF] flex w-max cursor-pointer">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="currentColor" className="transition-colors"><path d="M240 363.3L240 576L356 576L356 363.3L442.5 363.3L460.5 265.5L356 265.5L356 230.9C356 179.2 376.3 159.4 428.7 159.4C445 159.4 458.1 159.8 465.7 160.6L465.7 71.9C451.4 68 416.4 64 396.2 64C289.3 64 240 114.5 240 223.4L240 265.5L174 265.5L174 363.3L240 363.3z"/></svg>
@@ -76,7 +76,7 @@ export default function RootLayout({
               </div>
 
               <div className="flex items-start lg:justify-evenly w-full gap-8 lg:gap-0 lg:w-[50%]">
-                <div>
+                {/* <div>
                   <p className="text-white font-bold text-xl mb-5">Categories</p>
                   <ul className="text-[#C4C4C4] text-base font-normal flex flex-col gap-3">
                     <li>Window hardware</li>
@@ -86,9 +86,9 @@ export default function RootLayout({
                     <li>Assortment</li>
                     <li>More</li>
                   </ul>
-                </div>
+                </div> */}
                 <div>
-                  <p className="text-white font-bold text-xl mb-5">Quick Links</p>
+                  <p className="text-white font-bold text-xl mb-5">Handige links</p>
                   <ul className="text-[#C4C4C4] text-base font-normal flex flex-col gap-3">
                     <li>Terms and Conditions</li>
                     <li>Return Policy</li>
@@ -101,13 +101,13 @@ export default function RootLayout({
               </div>
 
               <div className="mt-5 lg:mt-0">
-                <p className="text-white font-bold text-xl mb-5">Contact Information</p>
+                <p className="text-white font-bold text-xl mb-5">Contactgegevens</p>
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-2">
                     <Image src="/emailicon.png" alt="Footer Logo" width={50} height={50} />
                     <div>
-                      <p className="text-[#C4C4C4] font-semibold text-[13px] uppercase">Email Us</p>
-                      <a href="mailto:info@bouwbeslagspecialist.nl" target="_blank" className="text-white font-medium text-base">info@bouwbeslagspecialist.nl</a>
+                      <p className="text-[#C4C4C4] font-semibold text-[13px] uppercase">E-mail</p>
+                      <a href="mailto:contact@bouwbeslag.nl" target="_blank" className="text-white font-medium text-base">contact@bouwbeslag.nl</a>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -135,7 +135,7 @@ export default function RootLayout({
                 <p className="text-[#C4C4C4] font-normal text-base">Copyright @ 2025 Bouwbeslag. All rights reserved.</p>
               </div>
               <div className="flex gap-2 justify-center items-center">
-                <p className="text-white font-semibold text-sm uppercase">We Accept:</p>
+                <p className="text-white font-semibold text-sm uppercase">WIJ ACCEPTEREN:</p>
                 <Image src="/footerpayment.png" alt="footer payment" width={200} height={200} />
               </div>
             </div>
