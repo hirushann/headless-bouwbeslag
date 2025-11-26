@@ -913,15 +913,18 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                         </h2>
 
                         <div className="flex gap-3">
-                          {orderColors.map((item) => (
-                            <a
-                              key={item.slug}
-                              href={`/products/${item.slug}`}
-                              aria-label={`Bekijk ${item.name}`}
-                              title={item.name}
-                              className="w-8 h-8 rounded-full border border-gray-300 block"
-                              style={{ backgroundColor: item.color }}
-                            />
+                          {orderColors.map((colour: { name: string; color: string; slug?: string }) => (
+                            <Link
+                              key={colour.slug}
+                              href={colour.slug ? `/product/${colour.slug}` : "#"}
+                            >
+                              <button
+                                className="w-8 h-8 rounded-full border border-gray-300"
+                                style={{ backgroundColor: colour.color }}
+                                aria-label={colour.name}
+                                title={colour.name}
+                              />
+                            </Link>
                           ))}
                         </div>
                       </div>
