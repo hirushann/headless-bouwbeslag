@@ -3,7 +3,11 @@
 import { useRef, useState, useEffect } from "react";
 import ProductCard from "@/components/ProductCard";
 
-export default function BestSellersCarousel({ products }) {
+interface BestSellersCarouselProps {
+  products: any[];
+}
+
+export default function BestSellersCarousel({ products }: BestSellersCarouselProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
