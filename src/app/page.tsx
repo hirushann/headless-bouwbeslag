@@ -105,7 +105,9 @@ export default async function Home() {
           <p className="text-[#3D4752] mb-8">Check all our categories to get what you needs</p>
           <div className="relative">
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-              {categories.filter(cat => cat.parent === 0).map((cat: any) => (
+              {categories
+                .filter((cat: { parent: number }) => cat.parent === 0)
+                .map((cat: { id: number; name: string; image?: { src?: string }; parent: number; count?: number }) => (
                 <div key={cat.id} className="border border-[#DBE3EA] rounded-sm p-4 shadow-[0px_20px_24px_0px_#0000000A] relative flex flex-col h-full">
                   <Image
                     className="mb-3 rounded-sm hidden lg:block"
