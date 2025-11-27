@@ -314,10 +314,10 @@ if (categoryLoading) {
                       <h3 className="font-medium mb-3 text-[#212121] text-lg">{attr.name}</h3>
                       <div className="flex flex-col gap-2 text-sm text-gray-700">
                         {attr.terms.map(term => (
-                          <label key={term.id} className="flex items-center">
+                          <label key={term.id} className="flex items-center gap-1">
                             <input
                               type="checkbox"
-                              className="mr-2 w-5 h-5 rounded-sm border border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0"
+                              className="mr-2 w-[20px] h-[20px] rounded-sm border border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0"
                               checked={selectedFilters[attr.id]?.has(term.id) || false}
                               onChange={() => toggleFilter(attr.id, term.id)}
                             />
