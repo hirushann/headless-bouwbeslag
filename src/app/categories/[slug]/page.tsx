@@ -360,14 +360,6 @@ if (categoryLoading) {
               </div>
             </div>
 
-            {/* Category description above subcategories */}
-            {category?.description && (
-              <div
-                className="mb-6 prose prose-blue max-w-none leading-relaxed text-gray-800"
-                dangerouslySetInnerHTML={{ __html: category.description }}
-              />
-            )}
-
             {/* Subcategories */}
             <div className='flex gap-4 pb-4 flex-wrap'>
               {subCategories.map((sub) => (
@@ -396,21 +388,6 @@ if (categoryLoading) {
               ))}
             </div>
 
-            {/* Show subcategory description below if selected */}
-            {Array.from(activeSubCategories).length === 1 && (() => {
-              const selectedSub = subCategories.find(
-                (s) => s.id === Array.from(activeSubCategories)[0]
-              );
-              return (
-                selectedSub?.description && (
-                  <div
-                    className="mt-4 mb-8 prose prose-blue max-w-none leading-relaxed text-gray-800"
-                    dangerouslySetInnerHTML={{ __html: selectedSub.description }}
-                  />
-                )
-              );
-            })()}
-
             {/* Products Grid */}
             {productsLoading && products.length === 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 lg:gap-6">
@@ -427,6 +404,29 @@ if (categoryLoading) {
                 ))}
               </div>
             )}
+
+            {/* Category description above subcategories */}
+            {category?.description && (
+              <div
+                className="mb-6 prose prose-blue max-w-none leading-relaxed text-gray-800"
+                dangerouslySetInnerHTML={{ __html: category.description }}
+              />
+            )}
+
+            {/* Show subcategory description below if selected */}
+            {Array.from(activeSubCategories).length === 1 && (() => {
+              const selectedSub = subCategories.find(
+                (s) => s.id === Array.from(activeSubCategories)[0]
+              );
+              return (
+                selectedSub?.description && (
+                  <div
+                    className="mt-4 mb-8 prose prose-blue max-w-none leading-relaxed text-gray-800"
+                    dangerouslySetInnerHTML={{ __html: selectedSub.description }}
+                  />
+                )
+              );
+            })()}
           </main>
         </div>
       </div>
