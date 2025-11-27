@@ -935,6 +935,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <h2 className="font-semibold text-base lg:text-lg">Zoek je soms een ander model?</h2>
+                          {orderModels.length > 5 && (
                           <div className="flex gap-2">
                             <button
                               type="button"
@@ -958,6 +959,7 @@ const ProductPage = ({ params }: { params: Promise<{ slug: string }> }) => {
                               </svg>
                             </button>
                           </div>
+                          )}
                         </div>
 
                         <div
