@@ -383,6 +383,12 @@ if (categoryLoading) {
                 </button>
               ))}
             </div>
+            {category?.description && (
+              <div
+                className="mt-6 mb-8 prose prose-blue max-w-none leading-relaxed text-gray-800"
+                dangerouslySetInnerHTML={{ __html: category.description }}
+              />
+            )}
 
             {/* Products Grid */}
             {productsLoading && products.length === 0 ? (
