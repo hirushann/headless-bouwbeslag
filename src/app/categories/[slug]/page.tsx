@@ -360,19 +360,31 @@ if (categoryLoading) {
               </div>
             </div>
 
+            {/* Category description above subcategories */}
+            {category?.description && (
+              <div
+                className="mb-6 prose prose-blue max-w-none leading-relaxed text-gray-800"
+                dangerouslySetInnerHTML={{ __html: category.description }}
+              />
+            )}
+
+            {/* Subcategories */}
             <div className='flex gap-4 pb-4 flex-wrap'>
               {subCategories.map((sub) => (
                 <button
                   key={sub.id}
                   className={`px-3.5 py-1.5 rounded-sm text-sm font-medium border border-[#D0DFEE] bg-[#F2F7FF] text-[#4F4F4F] cursor-pointer ${
-                activeSubCategories.has(sub.id) ? 'bg-[#F2F7FF] text-[#0066FF] border-[#0066FF]' : 'bg-white text-gray-700 border-gray-300'
+                    activeSubCategories.has(sub.id)
+                      ? 'bg-[#F2F7FF] text-[#0066FF] border-[#0066FF]'
+                      : 'bg-white text-gray-700 border-gray-300'
                   }`}
                   onClick={() => {
-                    setActiveSubCategories(prev => {
+                    setActiveSubCategories((prev) => {
                       const newSet = new Set(prev);
                       if (newSet.has(sub.id)) {
                         newSet.delete(sub.id);
                       } else {
+                        newSet.clear(); // Only allow one active subcategory at a time
                         newSet.add(sub.id);
                       }
                       return newSet;
@@ -383,12 +395,21 @@ if (categoryLoading) {
                 </button>
               ))}
             </div>
-            {category?.description && (
-              <div
-                className="mt-6 mb-8 prose prose-blue max-w-none leading-relaxed text-gray-800"
-                dangerouslySetInnerHTML={{ __html: category.description }}
-              />
-            )}
+
+            {/* Show subcategory description below if selected */}
+            {Array.from(activeSubCategories).length === 1 && (() => {
+              const selectedSub = subCategories.find(
+                (s) => s.id === Array.from(activeSubCategories)[0]
+              );
+              return (
+                selectedSub?.description && (
+                  <div
+                    className="mt-4 mb-8 prose prose-blue max-w-none leading-relaxed text-gray-800"
+                    dangerouslySetInnerHTML={{ __html: selectedSub.description }}
+                  />
+                )
+              );
+            })()}
 
             {/* Products Grid */}
             {productsLoading && products.length === 0 ? (
