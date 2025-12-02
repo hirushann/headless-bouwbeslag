@@ -196,12 +196,14 @@ export default function CategoryClient({
                       <div className="flex flex-col gap-2 text-sm text-gray-700">
                         {attr.terms.map((term: AttributeTerm) => (
                           <label key={term.id} className="flex items-center gap-1">
-                            <input
-                              type="checkbox"
-                              className="mr-2 w-[20px] h-[20px] rounded-sm border border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0"
-                              checked={selectedFilters[attr.id]?.has(term.id) || false}
-                              onChange={() => toggleFilter(attr.id, term.id)}
-                            />
+                            <div className="w-5">
+                                <input
+                                type="checkbox"
+                                className="mr-2 w-5 h-5 rounded-sm border border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0"
+                                checked={selectedFilters[attr.id]?.has(term.id) || false}
+                                onChange={() => toggleFilter(attr.id, term.id)}
+                                />
+                            </div>
                             {term.name}
                           </label>
                         ))}
