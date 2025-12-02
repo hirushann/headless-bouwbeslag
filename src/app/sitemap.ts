@@ -2,7 +2,7 @@ import api from "@/lib/woocommerce";
 import { MetadataRoute } from "next";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "https://example.com";
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl";
 
   const staticPages = [
     { url: `${baseUrl}/`, lastModified: new Date() },

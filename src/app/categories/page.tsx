@@ -1,8 +1,5 @@
-"use client";
-
+import { Metadata } from "next";
 import Image from "next/image";
-import { useRef, useEffect, useState } from "react";
-
 import Link from "next/link";
 import api from "@/lib/woocommerce";
 
@@ -15,14 +12,35 @@ interface Category {
   count: number;
 }
 
-export default function Categories() {
-  const [categories, setCategories] = useState<Category[]>([]);
+export async function generateMetadata(): Promise<Metadata> {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
 
-  useEffect(() => {
-    api.get("products/categories", { per_page: 50 }).then((response) => {
-      setCategories(response.data);
-    });
-  }, []);
+  const title = "Shop categories | Bouwbeslag";
+  const description =
+    "Bekijk alle productcategorieën bij Bouwbeslag. Ontdek hoogwaardige deurklinken, beslag en accessoires met snelle levering en garantie.";
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: `${siteUrl}/categories`,
+    },
+    openGraph: {
+      title,
+      description,
+      url: `${siteUrl}/categories`,
+      type: "website",
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+  };
+}
+
+export default async function Categories() {
+  const res = await api.get("products/categories", { per_page: 50 });
+  const categories: Category[] = res.data;
 
   return (
     <main className="font-sans bg-[#F7F7F7]">
