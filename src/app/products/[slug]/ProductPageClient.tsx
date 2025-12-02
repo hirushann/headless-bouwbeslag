@@ -132,7 +132,12 @@ export default function ProductPageClient({ product }: { product: any }) {
   const [careInstructions, setCareInstructions] = useState<string | null>(null);
   const [ambianceImages, setAmbianceImages] = useState<any[]>([]);
   // --- Dynamic order colors/models
-  const [orderColors, setOrderColors] = useState<{ name: string; color: string }[]>([]);
+  type OrderColor = {
+    name: string;
+    color: string;
+    slug: string;
+  };
+  const [orderColors, setOrderColors] = useState<OrderColor[]>([]);
   const [orderModels, setOrderModels] = useState<any[]>([]);
 
   const [isAddingToCart, setIsAddingToCart] = useState(false);
@@ -233,7 +238,12 @@ export default function ProductPageClient({ product }: { product: any }) {
           }
         })
       ).then((results) => {
-        setOrderColors(results.filter(Boolean));
+        setOrderColors(
+          results.filter(
+            (c): c is OrderColor =>
+              !!c && typeof c.name === "string" && typeof c.color === "string" && typeof c.slug === "string"
+          )
+        );
       });
     } else {
       setOrderColors([]);
