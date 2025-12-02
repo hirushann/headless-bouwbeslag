@@ -271,7 +271,7 @@ export default function CategoryClient({
             {/* Category description above subcategories */}
             {category?.description && (
               <div
-                className="mb-6 prose prose-blue max-w-none leading-relaxed text-gray-800"
+                className="my-6 prose prose-blue max-w-none leading-relaxed text-gray-800"
                 dangerouslySetInnerHTML={{ __html: category.description }}
               />
             )}
