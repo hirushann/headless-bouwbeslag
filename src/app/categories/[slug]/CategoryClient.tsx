@@ -5,6 +5,18 @@ import api from "@/lib/woocommerce";
 import ShopProductCard from "@/components/ShopProductCard";
 
 
+
+type AttributeTerm = {
+  id: number;
+  name: string;
+};
+
+type Attribute = {
+  id: number;
+  name: string;
+  terms: AttributeTerm[];
+};
+
 type CategoryClientProps = {
   category: any;
   subCategories: any[];
@@ -109,8 +121,13 @@ export default function CategoryClient({
     });
   };
 
-  const colorAttribute = attributes.find(attr => attr.name.toLowerCase() === "color");
-  const otherAttributes = attributes.filter(attr => attr.name.toLowerCase() !== "color");
+  const colorAttribute = (attributes as Attribute[]).find(
+    (attr) => attr.name.toLowerCase() === "color"
+  );
+
+  const otherAttributes = (attributes as Attribute[]).filter(
+    (attr) => attr.name.toLowerCase() !== "color"
+  );
 
   return (
     <div className="bg-[#F7F7F7]">
@@ -143,7 +160,8 @@ export default function CategoryClient({
                     <div key={colorAttribute.id} className="mb-6">
                       <h3 className="font-medium mb-3 text-[#212121] text-lg">{colorAttribute.name}</h3>
                       <div className="grid grid-cols-5 gap-4">
-                        {(showAllColors ? colorAttribute.terms : colorAttribute.terms.slice(0, 10)).map(term => {
+                        {(showAllColors ? colorAttribute.terms : colorAttribute.terms.slice(0, 10)).map(
+                          (term: AttributeTerm) => {
                           const isSelected = selectedFilters[colorAttribute.id]?.has(term.id) || false;
                           return (
                             <div key={term.id} className="flex flex-col items-center">
@@ -176,7 +194,7 @@ export default function CategoryClient({
                     <div key={attr.id} className="mb-8">
                       <h3 className="font-medium mb-3 text-[#212121] text-lg">{attr.name}</h3>
                       <div className="flex flex-col gap-2 text-sm text-gray-700">
-                        {attr.terms.map(term => (
+                        {attr.terms.map((term: AttributeTerm) => (
                           <label key={term.id} className="flex items-center gap-1">
                             <input
                               type="checkbox"
