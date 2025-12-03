@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DM_Sans } from "next/font/google";
 import "./globals.css";
 import Image from "next/image";
+import Link from "next/link";
 import Header from "@/components/Header";
 
 const dmsans = DM_Sans({
@@ -90,12 +91,21 @@ export default function RootLayout({
                 <div>
                   <p className="text-white font-bold text-xl mb-5">Handige links</p>
                   <ul className="text-[#C4C4C4] text-base font-normal flex flex-col gap-3">
-                    <li>Terms and Conditions</li>
-                    <li>Return Policy</li>
-                    <li>Privacy Policy</li>
-                    <li>Blogs</li>
-                    <li>Help & Support</li>
-                    <li>Contact</li>
+                    <li>
+                      <Link href="/terms-and-conditions">Terms and Conditions</Link>
+                    </li>
+                    <li>
+                      <Link href="/return-policy">Return Policy</Link>
+                    </li>
+                    <li>
+                      <Link href="/privacy-policy">Privacy Policy</Link>
+                    </li>
+                    <li>
+                      <Link href="/blog">Blogs</Link>
+                    </li>
+                    <li>
+                      <Link href="/contact">Contact</Link>
+                    </li>
                   </ul>
                 </div>
               </div>
