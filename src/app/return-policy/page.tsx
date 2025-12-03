@@ -3,98 +3,98 @@ import React from 'react';
 export default function ReturnPolicyPage() {
   return (
     <main className="max-w-[1440px] mx-auto px-5 lg:px-0 py-10 lg:py-20">
-      <h1 className="text-3xl lg:text-4xl font-bold mb-6 text-[#1C2630]">Return Policy</h1>
+      <h1 className="text-3xl lg:text-4xl font-bold mb-6 text-[#1C2630]">Retourbeleid</h1>
       
       <div className="prose max-w-none text-[#1C2630]">
         <p className="mb-4">
-          Last updated: December 03, 2025
+          Laatst bijgewerkt: 03 december 2025
         </p>
 
         <p className="mb-4">
-          Thank you for shopping at Bouwbeslag.
+          Bedankt voor uw aankoop bij Bouwbeslag.
         </p>
         <p className="mb-4">
-          If, for any reason, You are not completely satisfied with a purchase We invite You to review our policy on refunds and returns.
+          Als u om welke reden dan ook niet volledig tevreden bent met een aankoop, nodigen wij u uit om ons beleid inzake terugbetalingen en retourzendingen te bekijken.
         </p>
         <p className="mb-4">
-          The following terms are applicable for any products that You purchased with Us.
+          De volgende voorwaarden zijn van toepassing op alle producten die u bij ons hebt gekocht.
         </p>
 
-        <h2 className="text-2xl font-semibold mt-8 mb-4">Interpretation and Definitions</h2>
+        <h2 className="text-2xl font-semibold mt-8 mb-4">Interpretatie en definities</h2>
         
-        <h3 className="text-xl font-semibold mt-6 mb-2">Interpretation</h3>
+        <h3 className="text-xl font-semibold mt-6 mb-2">Interpretatie</h3>
         <p className="mb-4">
-          The words of which the initial letter is capitalized have meanings defined under the following conditions. The following definitions shall have the same meaning regardless of whether they appear in singular or in plural.
+          De woorden waarvan de beginletter met een hoofdletter is geschreven, hebben een betekenis die is gedefinieerd onder de volgende voorwaarden. De volgende definities hebben dezelfde betekenis, ongeacht of ze in het enkelvoud of meervoud voorkomen.
         </p>
 
-        <h3 className="text-xl font-semibold mt-6 mb-2">Definitions</h3>
+        <h3 className="text-xl font-semibold mt-6 mb-2">Definities</h3>
         <p className="mb-4">
-          For the purposes of this Return and Refund Policy:
+          Voor de doeleinden van dit retour- en terugbetalingsbeleid:
         </p>
         <ul className="list-disc pl-6 mb-4 space-y-2">
-          <li><strong>Company</strong> (referred to as either "the Company", "We", "Us" or "Our" in this Agreement) refers to Bouwbeslag.</li>
-          <li><strong>Goods</strong> refer to the items offered for sale on the Service.</li>
-          <li><strong>Orders</strong> mean a request by You to purchase Goods from Us.</li>
-          <li><strong>Service</strong> refers to the Website.</li>
-          <li><strong>Website</strong> refers to Bouwbeslag, accessible from bouwbeslag.nl</li>
-          <li><strong>You</strong> means the individual accessing or using the Service, or the company, or other legal entity on behalf of which such individual is accessing or using the Service, as applicable.</li>
+          <li><strong>Bedrijf</strong> (in deze overeenkomst aangeduid als "het bedrijf", "wij", "ons" of "onze") verwijst naar Bouwbeslag.</li>
+          <li><strong>Goederen</strong> verwijzen naar de artikelen die te koop worden aangeboden op de Service.</li>
+          <li><strong>Bestellingen</strong> betekenen een verzoek van u om goederen van ons te kopen.</li>
+          <li><strong>Service</strong> verwijst naar de website.</li>
+          <li><strong>Website</strong> verwijst naar Bouwbeslag, toegankelijk via bouwbeslag.nl</li>
+          <li><strong>U</strong> betekent de persoon die toegang heeft tot of gebruikmaakt van de service, of het bedrijf of andere juridische entiteit namens welke een dergelijke persoon toegang heeft tot of gebruikmaakt van de service, indien van toepassing.</li>
         </ul>
 
-        <h2 className="text-2xl font-semibold mt-8 mb-4">Your Order Cancellation Rights</h2>
+        <h2 className="text-2xl font-semibold mt-8 mb-4">Uw annuleringsrechten</h2>
         <p className="mb-4">
-          You are entitled to cancel Your Order within 30 days without giving any reason for doing so.
+          U hebt het recht om uw bestelling binnen 30 dagen zonder opgave van reden te annuleren.
         </p>
         <p className="mb-4">
-          The deadline for cancelling an Order is 30 days from the date on which You received the Goods or on which a third party you have appointed, who is not the carrier, takes possession of the product delivered.
+          De termijn voor het annuleren van een bestelling is 30 dagen vanaf de datum waarop u de goederen hebt ontvangen of waarop een door u aangewezen derde partij, die niet de vervoerder is, het geleverde product in bezit neemt.
         </p>
         <p className="mb-4">
-          In order to exercise Your right of cancellation, You must inform Us of your decision by means of a clear statement. You can inform us of your decision by:
+          Om uw herroepingsrecht uit te oefenen, moet u ons op de hoogte stellen van uw beslissing door middel van een duidelijke verklaring. U kunt ons op de hoogte stellen van uw beslissing door:
         </p>
         <ul className="list-disc pl-6 mb-4">
-          <li>By email: contact@bouwbeslag.nl</li>
+          <li>Per e-mail: contact@bouwbeslag.nl</li>
         </ul>
         <p className="mb-4">
-          We will reimburse You no later than 14 days from the day on which We receive the returned Goods. We will use the same means of payment as You used for the Order, and You will not incur any fees for such reimbursement.
+          Wij betalen u uiterlijk 14 dagen na de dag waarop wij de geretourneerde goederen hebben ontvangen terug. Wij gebruiken hetzelfde betaalmiddel als u voor de bestelling hebt gebruikt en u hoeft geen kosten te betalen voor een dergelijke terugbetaling.
         </p>
 
-        <h2 className="text-2xl font-semibold mt-8 mb-4">Conditions for Returns</h2>
+        <h2 className="text-2xl font-semibold mt-8 mb-4">Voorwaarden voor retourzendingen</h2>
         <p className="mb-4">
-          In order for the Goods to be eligible for a return, please make sure that:
+          Om ervoor te zorgen dat de goederen in aanmerking komen voor retournering, moet u ervoor zorgen dat:
         </p>
         <ul className="list-disc pl-6 mb-4 space-y-2">
-          <li>The Goods were purchased in the last 30 days</li>
-          <li>The Goods are in the original packaging</li>
+          <li>De goederen in de afgelopen 30 dagen zijn gekocht</li>
+          <li>De goederen in de originele verpakking zitten</li>
         </ul>
         <p className="mb-4">
-          The following Goods cannot be returned:
+          De volgende goederen kunnen niet worden geretourneerd:
         </p>
         <ul className="list-disc pl-6 mb-4 space-y-2">
-          <li>The supply of Goods made to Your specifications or clearly personalized.</li>
-          <li>The supply of Goods which according to their nature are not suitable to be returned, deteriorate rapidly or where the date of expiry is over.</li>
-          <li>The supply of Goods which are not suitable for return due to health protection or hygiene reasons and were unsealed after delivery.</li>
-          <li>The supply of Goods which are, after delivery, according to their nature, inseparably mixed with other items.</li>
+          <li>De levering van goederen die volgens uw specificaties zijn gemaakt of duidelijk gepersonaliseerd zijn.</li>
+          <li>De levering van goederen die naar hun aard niet geschikt zijn om te worden teruggezonden, snel bederven of waarvan de houdbaarheidsdatum is verstreken.</li>
+          <li>De levering van goederen die niet geschikt zijn voor retournering vanwege gezondheidsbescherming of hygiëne en die na levering zijn ontzegeld.</li>
+          <li>De levering van goederen die na levering naar hun aard onafscheidelijk vermengd zijn met andere zaken.</li>
         </ul>
         <p className="mb-4">
-          We reserve the right to refuse returns of any merchandise that does not meet the above return conditions in our sole discretion.
+          Wij behouden ons het recht voor om retourzendingen van goederen die niet aan de bovenstaande retourvoorwaarden voldoen naar eigen goeddunken te weigeren.
         </p>
 
-        <h2 className="text-2xl font-semibold mt-8 mb-4">Returning Goods</h2>
+        <h2 className="text-2xl font-semibold mt-8 mb-4">Goederen retourneren</h2>
         <p className="mb-4">
-          You are responsible for the cost and risk of returning the Goods to Us. You should send the Goods at the following address:
+          U bent verantwoordelijk voor de kosten en het risico van het retourneren van de goederen naar ons. U dient de goederen naar het volgende adres te sturen:
         </p>
         <p className="mb-4">
-          [Physical Address Required]
+          [Fysiek adres vereist]
         </p>
         <p className="mb-4">
-          We cannot be held responsible for Goods damaged or lost in return shipment. Therefore, We recommend an insured and trackable mail service. We are unable to issue a refund without actual receipt of the Goods or proof of received return delivery.
+          Wij kunnen niet verantwoordelijk worden gehouden voor goederen die beschadigd of verloren zijn gegaan tijdens de retourzending. Daarom raden wij een verzekerde en traceerbare postservice aan. Wij kunnen geen restitutie verlenen zonder daadwerkelijke ontvangst van de goederen of bewijs van ontvangen retourlevering.
         </p>
 
-        <h2 className="text-2xl font-semibold mt-8 mb-4">Contact Us</h2>
+        <h2 className="text-2xl font-semibold mt-8 mb-4">Neem contact met ons op</h2>
         <p className="mb-4">
-          If you have any questions about our Returns and Refunds Policy, please contact us:
+          Als u vragen heeft over ons retour- en terugbetalingsbeleid, neem dan contact met ons op:
         </p>
         <ul className="list-disc pl-6 mb-4">
-          <li>By email: contact@bouwbeslag.nl</li>
+          <li>Per e-mail: contact@bouwbeslag.nl</li>
         </ul>
       </div>
     </main>

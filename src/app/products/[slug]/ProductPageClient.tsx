@@ -501,7 +501,7 @@ export default function ProductPageClient({ product }: { product: any }) {
   if (!product) {
     return (
       <div className="flex justify-center items-center min-h-[300px]">
-        <span>Product not found.</span>
+        <span>Product niet gevonden.</span>
       </div>
     );
   }
@@ -611,25 +611,25 @@ export default function ProductPageClient({ product }: { product: any }) {
                       musthaveprodKeys.length > 0
                     ) && (
                     <div className='text-[#1C2530] font-bold text-3xl mt-8 hidden lg:block'>
-                        <h3>Handig om dij te bestellen</h3>
+                        <h3>Handig om erbij te bestellen</h3>
                         <div className='grid grid-cols-1 lg:grid-cols-3 gap-2 lg:gap-4 mt-4'>
                           {matchingProducts.length > 0 && (
-                            <button onClick={() => scrollToSection("accessories-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching accessories</button>
+                            <button onClick={() => scrollToSection("accessories-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende accessoires</button>
                           )}
                           {matchingKnobroseKeys.length > 0 && (
-                            <button onClick={() => scrollToSection("knobroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching roses</button>
+                            <button onClick={() => scrollToSection("knobroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende rozetten</button>
                           )}
                           {matchingRoseKeys.length > 0 && (
-                            <button onClick={() => scrollToSection("matchingroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching keyroses</button>
+                            <button onClick={() => scrollToSection("matchingroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende sleutelrozetten</button>
                           )}
                           {pcroseKeys.length > 0 && (
-                            <button onClick={() => scrollToSection("pcroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching cilinderosses</button>
+                            <button onClick={() => scrollToSection("pcroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende cilinderrozetten</button>
                           )}
                           {blindtoiletroseKeys.length > 0 && (
-                            <button onClick={() => scrollToSection("blindtoiletroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching blind roses</button>
+                            <button onClick={() => scrollToSection("blindtoiletroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende blinde rozetten</button>
                           )}
                           {musthaveprodKeys.length > 0 && (
-                            <button onClick={() => scrollToSection("musthaveprod-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Must need</button>
+                            <button onClick={() => scrollToSection("musthaveprod-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Aanbevolen</button>
                           )}   
                         </div>
                     </div>
@@ -695,7 +695,7 @@ export default function ProductPageClient({ product }: { product: any }) {
                                     }
                                   }}
                                 >
-                                  We are the cheapest
+                                  Wij zijn de goedkoopste
                                 </button>
                               )}
                             </>
@@ -960,7 +960,7 @@ export default function ProductPageClient({ product }: { product: any }) {
                                     quantity,
                                     image: product?.images?.[0]?.src || "/afbeelding.png",
                                   });
-                                  toast.success("Product added to cart!", {
+                                  toast.success("Product toegevoegd aan winkelwagen!", {
                                     duration: 3000,
                                     position: "top-right",
                                   });
@@ -1037,25 +1037,25 @@ export default function ProductPageClient({ product }: { product: any }) {
                     </div>
                 </div>
                 <div className='text-[#1C2530] font-bold text-3xl mt-3 lg:mt-8 block lg:hidden'>
-                    <h3 className='text-lg'>Handig om dij te bestellen</h3>
+                    <h3 className='text-lg'>Handig om erbij te bestellen</h3>
                     <div className='grid grid-cols-1 lg:grid-cols-3 gap-2 lg:gap-4 mt-4'>
                       {matchingProducts.length > 0 && (
-                        <button onClick={() => scrollToSection("accessories-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching accessories</button>
+                        <button onClick={() => scrollToSection("accessories-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende accessoires</button>
                       )}
                       {matchingKnobroseKeys.length > 0 && (
-                        <button onClick={() => scrollToSection("knobroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching roses</button>
+                        <button onClick={() => scrollToSection("knobroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende rozetten</button>
                       )}
                       {matchingRoseKeys.length > 0 && (
-                        <button onClick={() => scrollToSection("matchingroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching keyroses</button>
+                        <button onClick={() => scrollToSection("matchingroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende sleutelrozetten</button>
                       )}
                       {pcroseKeys.length > 0 && (
-                        <button onClick={() => scrollToSection("pcroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching cilinderosses</button>
+                        <button onClick={() => scrollToSection("pcroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende cilinderrozetten</button>
                       )}
                       {blindtoiletroseKeys.length > 0 && (
-                        <button onClick={() => scrollToSection("blindtoiletroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Matching blind roses</button>
+                        <button onClick={() => scrollToSection("blindtoiletroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende blinde rozetten</button>
                       )}
                       {musthaveprodKeys.length > 0 && (
-                        <button onClick={() => scrollToSection("musthaveprod-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Must need</button>
+                        <button onClick={() => scrollToSection("musthaveprod-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Aanbevolen</button>
                       )}   
                     </div>
                 </div>
@@ -1121,7 +1121,7 @@ export default function ProductPageClient({ product }: { product: any }) {
 
                                       {productWidth && (
                                         <tr>
-                                          <td className="px-6 py-3 font-medium text-gray-900">Width</td>
+                                          <td className="px-6 py-3 font-medium text-gray-900">Breedte</td>
                                           <td className="px-6 py-3">
                                             {productWidth}{productWidthUnit}
                                           </td>
@@ -1130,7 +1130,7 @@ export default function ProductPageClient({ product }: { product: any }) {
 
                                       {productHeight && (
                                         <tr className="bg-[#F3F8FF]">
-                                          <td className="px-6 py-3 font-medium text-gray-900">Height</td>
+                                          <td className="px-6 py-3 font-medium text-gray-900">Hoogte</td>
                                           <td className="px-6 py-3">
                                             {productHeight}{productHeightUnit}
                                           </td>
@@ -1139,7 +1139,7 @@ export default function ProductPageClient({ product }: { product: any }) {
 
                                       {productLength && (
                                         <tr>
-                                          <td className="px-6 py-3 font-medium text-gray-900">Length</td>
+                                          <td className="px-6 py-3 font-medium text-gray-900">Lengte</td>
                                           <td className="px-6 py-3">
                                             {productLength} {productLengthUnit}
                                           </td>
@@ -1148,7 +1148,7 @@ export default function ProductPageClient({ product }: { product: any }) {
 
                                       {productCategories.length > 0 && (
                                         <tr className="bg-[#F3F8FF]">
-                                          <td className="px-6 py-3 font-medium text-gray-900">Category</td>
+                                          <td className="px-6 py-3 font-medium text-gray-900">Categorie</td>
                                           <td className="px-6 py-3">
                                             {productCategories.map((c: any) => c.name).join(", ")}
                                           </td>
@@ -1157,7 +1157,7 @@ export default function ProductPageClient({ product }: { product: any }) {
 
                                       {productBrands.length > 0 && (
                                         <tr>
-                                          <td className="px-6 py-3 font-medium text-gray-900">Brand</td>
+                                          <td className="px-6 py-3 font-medium text-gray-900">Merk</td>
                                           <td className="px-6 py-3">
                                             {productBrands.map((b: any) => b.name).join(", ")}
                                           </td>
@@ -1241,22 +1241,22 @@ export default function ProductPageClient({ product }: { product: any }) {
                         <div className="bg-white rounded-lg border border-white">
                             <details className="group">
                                 <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
-                                    Assets & Downloads
+                                    Downloads & Documentatie
                                     <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
                                     <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
                                 </summary>
                                 <div className="px-6 pb-4 text-gray-700 space-y-4">
                                     <div className='flex flex-col gap-4'>
-                                        <p className='text-[#3D4752] font-normal text-base'>Download technical drawings, installation guides, and product certificates.</p>
+                                        <p className='text-[#3D4752] font-normal text-base'>Download technische tekeningen, installatiehandleidingen en productcertificaten.</p>
                                         <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
                                             {manualPdf && (
                                             <div className='bg-[#F3F8FF] rounded-sm p-4 flex items-center justify-between'>
                                                 <div>
-                                                    <p className='text-[#1C2530] font-semibold text-base'>Technical Drawing</p>
-                                                    <p className='text-[#3D4752] font-normal text-xs'>CAD file with dimensions</p>
+                                                    <p className='text-[#1C2530] font-semibold text-base'>Technische Tekening</p>
+                                                    <p className='text-[#3D4752] font-normal text-xs'>CAD-bestand met afmetingen</p>
                                                 </div>
                                                 <div>
-                                                    <a href={manualPdf} target="_blank" rel="noopener noreferrer" className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Download</a>
+                                                    <a href={manualPdf} target="_blank" rel="noopener noreferrer" className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Downloaden</a>
                                                 </div>
                                             </div>
                                             )}
@@ -1264,33 +1264,33 @@ export default function ProductPageClient({ product }: { product: any }) {
                                             {installationGuide && (
                                             <div className='bg-[#F3F8FF] rounded-sm p-4 flex items-center justify-between'>
                                                 <div>
-                                                    <p className='text-[#1C2530] font-semibold text-base'>Installation Guide</p>
-                                                    <p className='text-[#3D4752] font-normal text-xs'>Step-by-step PDF guide</p>
+                                                    <p className='text-[#1C2530] font-semibold text-base'>Installatiehandleiding</p>
+                                                    <p className='text-[#3D4752] font-normal text-xs'>Stap-voor-stap PDF-handleiding</p>
                                                 </div>
                                                 <div>
-                                                    <a href={installationGuide} target="_blank" rel="noopener noreferrer" className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Download</a>
+                                                    <a href={installationGuide} target="_blank" rel="noopener noreferrer" className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Downloaden</a>
                                                 </div>
                                             </div>
                                             )}
                                             {certificate && (
                                             <div className='bg-[#F3F8FF] rounded-sm p-4 flex items-center justify-between'>
                                                 <div>
-                                                    <p className='text-[#1C2530] font-semibold text-base'>Product Certificate</p>
-                                                    <p className='text-[#3D4752] font-normal text-xs'>EN1906:2012 compliance</p>
+                                                    <p className='text-[#1C2530] font-semibold text-base'>Productcertificaat</p>
+                                                    <p className='text-[#3D4752] font-normal text-xs'>EN1906:2012 conformiteit</p>
                                                 </div>
                                                 <div>
-                                                    <a href={certificate} target="_blank" rel="noopener noreferrer" className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Download</a>
+                                                    <a href={certificate} target="_blank" rel="noopener noreferrer" className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Downloaden</a>
                                                 </div>
                                             </div>
                                             )}
                                             {careInstructions && (
                                             <div className='bg-[#F3F8FF] rounded-sm p-4 flex items-center justify-between'>
                                                 <div>
-                                                    <p className='text-[#1C2530] font-semibold text-base'>Care Instructions</p>
-                                                    <p className='text-[#3D4752] font-normal text-xs'>Maintenance guidelines</p>
+                                                    <p className='text-[#1C2530] font-semibold text-base'>Onderhoudsinstructies</p>
+                                                    <p className='text-[#3D4752] font-normal text-xs'>Onderhoudsrichtlijnen</p>
                                                 </div>
                                                 <div>
-                                                    <a href={careInstructions} target="_blank" rel="noopener noreferrer" className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Download</a>
+                                                    <a href={careInstructions} target="_blank" rel="noopener noreferrer" className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Downloaden</a>
                                                 </div>
                                             </div>
                                             )}
@@ -1371,33 +1371,33 @@ export default function ProductPageClient({ product }: { product: any }) {
                                     <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
                                 </summary>
                                 <div className="px-6 pb-4 text-gray-700 space-y-4">
-                                    <p className='text-[#3D4752] font-semibold text-lg'>Warranty Coverage Includes:</p>
+                                    <p className='text-[#3D4752] font-semibold text-lg'>Garantiedekking omvat:</p>
                                     <ul className='list-disc list-inside text-[#3D4752] font-normal text-base'>
-                                        <li>Manufacturing defects in materials and workmanship</li>
-                                        <li>Functional failures of spring mechanism</li>
-                                        <li>Premature wear of moving parts under normal use</li>
-                                        <li>Coating defects and discoloration (excluding normal wear)</li>
-                                        <li>Free replacement or repair at manufacturer's discretion</li>
+                                        <li>Fabricagefouten in materialen en vakmanschap</li>
+                                        <li>Functionele storingen van het veermechanisme</li>
+                                        <li>Voortijdige slijtage van bewegende delen bij normaal gebruik</li>
+                                        <li>Coatingdefecten en verkleuring (exclusief normale slijtage)</li>
+                                        <li>Gratis vervanging of reparatie naar inzicht van de fabrikant</li>
                                     </ul>
                                 </div>
                                 <div className="px-6 pb-4 text-gray-700 space-y-4">
-                                    <p className='text-[#3D4752] font-semibold text-lg'>Warranty Coverage Includes:</p>
+                                    <p className='text-[#3D4752] font-semibold text-lg'>Garantiedekking omvat:</p>
                                     <ul className='list-disc list-inside text-[#3D4752] font-normal text-base'>
-                                        <li>Manufacturing defects in materials and workmanship</li>
-                                        <li>Functional failures of spring mechanism</li>
-                                        <li>Premature wear of moving parts under normal use</li>
-                                        <li>Coating defects and discoloration (excluding normal wear)</li>
-                                        <li>Free replacement or repair at manufacturer's discretion</li>
+                                        <li>Fabricagefouten in materialen en vakmanschap</li>
+                                        <li>Functionele storingen van het veermechanisme</li>
+                                        <li>Voortijdige slijtage van bewegende delen bij normaal gebruik</li>
+                                        <li>Coatingdefecten en verkleuring (exclusief normale slijtage)</li>
+                                        <li>Gratis vervanging of reparatie naar inzicht van de fabrikant</li>
                                     </ul>
                                 </div>
                                 <div className="px-6 pb-4 text-gray-700 space-y-4">
-                                    <p className='text-[#3D4752] font-semibold text-lg'>Warranty Coverage Includes:</p>
+                                    <p className='text-[#3D4752] font-semibold text-lg'>Garantiedekking omvat:</p>
                                     <ul className='list-disc list-inside text-[#3D4752] font-normal text-base'>
-                                        <li>Manufacturing defects in materials and workmanship</li>
-                                        <li>Functional failures of spring mechanism</li>
-                                        <li>Premature wear of moving parts under normal use</li>
-                                        <li>Coating defects and discoloration (excluding normal wear)</li>
-                                        <li>Free replacement or repair at manufacturer's discretion</li>
+                                        <li>Fabricagefouten in materialen en vakmanschap</li>
+                                        <li>Functionele storingen van het veermechanisme</li>
+                                        <li>Voortijdige slijtage van bewegende delen bij normaal gebruik</li>
+                                        <li>Coatingdefecten en verkleuring (exclusief normale slijtage)</li>
+                                        <li>Gratis vervanging of reparatie naar inzicht van de fabrikant</li>
                                     </ul>
                                 </div>
                             </details>
@@ -1485,8 +1485,8 @@ export default function ProductPageClient({ product }: { product: any }) {
                 <div id="accessories-section" className='lg:bg-[#F7F7F7] rounded-md p-5'>
                   <div className='flex justify-between items-center mb-5'>
                     <div className='flex flex-col gap-2'>
-                      <p className='text-[#1C2530] font-bold text-3xl'>Matching accessories</p>
-                      <p className='text-[#3D4752] font-normal text-sm lg:text-base'>Check out matching accessories from bouwbeslag.nl</p>
+                      <p className='text-[#1C2530] font-bold text-3xl'>Bijpassende accessoires</p>
+                      <p className='text-[#3D4752] font-normal text-sm lg:text-base'>Bekijk bijpassende accessoires van bouwbeslag.nl</p>
                     </div>
                     {matchingProducts.length > 2 && (
                       <div className='hidden lg:flex gap-5 items-center justify-between'>
@@ -1549,8 +1549,8 @@ export default function ProductPageClient({ product }: { product: any }) {
                 <div id="knobroses-section" className='lg:bg-[#F7F7F7] rounded-md p-5'>
                   <div className='flex justify-between items-center mb-5'>
                     <div className='flex flex-col gap-2'>
-                      <p className='text-[#1C2530] font-bold text-3xl'>Matching roses</p>
-                      <p className='text-[#3D4752] font-normal text-sm lg:text-base'>Check out Matching roses from bouwbeslag.nl</p>
+                      <p className='text-[#1C2530] font-bold text-3xl'>Bijpassende rozetten</p>
+                      <p className='text-[#3D4752] font-normal text-sm lg:text-base'>Bekijk bijpassende rozetten van bouwbeslag.nl</p>
                     </div>
                     {matchingKnobroseKeys.length > 2 && (
                       <div className='hidden lg:flex gap-5 items-center justify-between'>

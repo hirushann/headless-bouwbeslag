@@ -80,7 +80,7 @@ export default async function Page({ params }: PageProps) {
   if (!product) {
     return (
       <div className="flex items-center justify-center min-h-[300px]">
-        <span>Product not found.</span>
+        <span>Product niet gevonden.</span>
       </div>
     );
   }

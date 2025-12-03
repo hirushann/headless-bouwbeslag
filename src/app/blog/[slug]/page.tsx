@@ -26,7 +26,7 @@ export async function generateMetadata(
 
     if (!post) {
       return {
-        title: "Blog not found",
+        title: "Blog niet gevonden",
         description: "",
       };
     }
@@ -93,7 +93,7 @@ export default async function SingleBlogPage({
   if (!post) {
     return (
       <div className="max-w-[1440px] mx-auto py-10 px-5">
-        <h1 className="text-2xl font-semibold">Post not found</h1>
+        <h1 className="text-2xl font-semibold">Bericht niet gevonden</h1>
       </div>
     );
   }
@@ -146,7 +146,7 @@ export default async function SingleBlogPage({
 
         <div className="flex flex-col gap-2">
           <p className="text-[#0066FF] font-semibold text-xl lg:text-2xl mt-5">
-            {new Date(post.date).toLocaleDateString("en-NL", {
+            {new Date(post.date).toLocaleDateString("nl-NL", {
               year: "numeric",
               month: "long",
               day: "numeric",

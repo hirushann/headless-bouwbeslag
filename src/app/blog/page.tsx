@@ -37,9 +37,9 @@ function formatDate(date: string) {
 export async function generateMetadata(): Promise<Metadata> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
 
-  const title = "Our Blogs | Bouwbeslag";
+  const title = "Onze Blogs | Bouwbeslag";
   const description =
-    "Read the latest blogs, tips, and insights from Bouwbeslag about hardware, installation advice, and product guides.";
+    "Lees de laatste blogs, tips en inzichten van Bouwbeslag over beslag, installatieadvies en productgidsen.";
 
   return {
     title,
@@ -77,7 +77,7 @@ export default async function BlogPage() {
           / Blogs
         </div>
 
-        <h1 className="font-bold text-6xl mb-8 text-[#1C2530]">Our Blogs</h1>
+        <h1 className="font-bold text-6xl mb-8 text-[#1C2530]">Onze Blogs</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 font-sans">
           {posts.map((post: any) => (

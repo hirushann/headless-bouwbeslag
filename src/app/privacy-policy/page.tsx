@@ -3,60 +3,60 @@ import React from 'react';
 export default function PrivacyPolicyPage() {
   return (
     <main className="max-w-[1440px] mx-auto px-5 lg:px-0 py-10 lg:py-20">
-      <h1 className="text-3xl lg:text-4xl font-bold mb-6 text-[#1C2630]">Privacy Policy</h1>
+      <h1 className="text-3xl lg:text-4xl font-bold mb-6 text-[#1C2630]">Privacybeleid</h1>
       
       <div className="prose max-w-none text-[#1C2630]">
         <p className="mb-4">
-          Last updated: December 03, 2025
+          Laatst bijgewerkt: 03 december 2025
         </p>
 
         <p className="mb-4">
-          This Privacy Policy describes Our policies and procedures on the collection, use and disclosure of Your information when You use the Service and tells You about Your privacy rights and how the law protects You.
+          Dit privacybeleid beschrijft ons beleid en onze procedures met betrekking tot het verzamelen, gebruiken en openbaar maken van uw informatie wanneer u de service gebruikt en vertelt u over uw privacyrechten en hoe de wet u beschermt.
         </p>
 
-        <h2 className="text-2xl font-semibold mt-8 mb-4">Interpretation and Definitions</h2>
+        <h2 className="text-2xl font-semibold mt-8 mb-4">Interpretatie en definities</h2>
         
-        <h3 className="text-xl font-semibold mt-6 mb-2">Interpretation</h3>
+        <h3 className="text-xl font-semibold mt-6 mb-2">Interpretatie</h3>
         <p className="mb-4">
-          The words of which the initial letter is capitalized have meanings defined under the following conditions. The following definitions shall have the same meaning regardless of whether they appear in singular or in plural.
+          De woorden waarvan de beginletter met een hoofdletter is geschreven, hebben een betekenis die is gedefinieerd onder de volgende voorwaarden. De volgende definities hebben dezelfde betekenis, ongeacht of ze in het enkelvoud of meervoud voorkomen.
         </p>
 
-        <h3 className="text-xl font-semibold mt-6 mb-2">Definitions</h3>
+        <h3 className="text-xl font-semibold mt-6 mb-2">Definities</h3>
         <p className="mb-4">
-          For the purposes of this Privacy Policy:
+          Voor de doeleinden van dit privacybeleid:
         </p>
         <ul className="list-disc pl-6 mb-4 space-y-2">
-          <li><strong>Account</strong> means a unique account created for You to access our Service or parts of our Service.</li>
-          <li><strong>Company</strong> (referred to as either "the Company", "We", "Us" or "Our" in this Agreement) refers to Bouwbeslag.</li>
-          <li><strong>Cookies</strong> are small files that are placed on Your computer, mobile device or any other device by a website, containing the details of Your browsing history on that website among its many uses.</li>
-          <li><strong>Device</strong> means any device that can access the Service such as a computer, a cellphone or a digital tablet.</li>
-          <li><strong>Personal Data</strong> is any information that relates to an identified or identifiable individual.</li>
-          <li><strong>Service</strong> refers to the Website.</li>
-          <li><strong>Website</strong> refers to Bouwbeslag, accessible from bouwbeslag.nl</li>
+          <li><strong>Account</strong> betekent een uniek account dat voor u is aangemaakt om toegang te krijgen tot onze service of delen van onze service.</li>
+          <li><strong>Bedrijf</strong> (in deze overeenkomst aangeduid als "het bedrijf", "wij", "ons" of "onze") verwijst naar Bouwbeslag.</li>
+          <li><strong>Cookies</strong> zijn kleine bestanden die door een website op uw computer, mobiele apparaat of ander apparaat worden geplaatst en die onder andere de details van uw browsegeschiedenis op die website bevatten.</li>
+          <li><strong>Apparaat</strong> betekent elk apparaat dat toegang heeft tot de service, zoals een computer, een mobiele telefoon of een digitale tablet.</li>
+          <li><strong>Persoonsgegevens</strong> zijn alle gegevens die betrekking hebben op een geïdentificeerd of identificeerbaar individu.</li>
+          <li><strong>Service</strong> verwijst naar de website.</li>
+          <li><strong>Website</strong> verwijst naar Bouwbeslag, toegankelijk via bouwbeslag.nl</li>
         </ul>
 
-        <h2 className="text-2xl font-semibold mt-8 mb-4">Collecting and Using Your Personal Data</h2>
+        <h2 className="text-2xl font-semibold mt-8 mb-4">Verzamelen en gebruiken van uw persoonlijke gegevens</h2>
         
-        <h3 className="text-xl font-semibold mt-6 mb-2">Types of Data Collected</h3>
+        <h3 className="text-xl font-semibold mt-6 mb-2">Soorten verzamelde gegevens</h3>
         
-        <h4 className="text-lg font-semibold mt-4 mb-2">Personal Data</h4>
+        <h4 className="text-lg font-semibold mt-4 mb-2">Persoonsgegevens</h4>
         <p className="mb-4">
-          While using Our Service, We may ask You to provide Us with certain personally identifiable information that can be used to contact or identify You. Personally identifiable information may include, but is not limited to:
+          Tijdens het gebruik van onze service kunnen we u vragen om ons bepaalde persoonlijk identificeerbare informatie te verstrekken die kan worden gebruikt om contact met u op te nemen of u te identificeren. Persoonlijk identificeerbare informatie kan omvatten, maar is niet beperkt tot:
         </p>
         <ul className="list-disc pl-6 mb-4 space-y-2">
-          <li>Email address</li>
-          <li>First name and last name</li>
-          <li>Phone number</li>
-          <li>Address, State, Province, ZIP/Postal code, City</li>
-          <li>Usage Data</li>
+          <li>E-mailadres</li>
+          <li>Voornaam en achternaam</li>
+          <li>Telefoonnummer</li>
+          <li>Adres, staat, provincie, postcode, stad</li>
+          <li>Gebruiksgegevens</li>
         </ul>
 
-        <h2 className="text-2xl font-semibold mt-8 mb-4">Contact Us</h2>
+        <h2 className="text-2xl font-semibold mt-8 mb-4">Neem contact met ons op</h2>
         <p className="mb-4">
-          If you have any questions about this Privacy Policy, You can contact us:
+          Als u vragen heeft over dit privacybeleid, kunt u contact met ons opnemen:
         </p>
         <ul className="list-disc pl-6 mb-4">
-          <li>By email: contact@bouwbeslag.nl</li>
+          <li>Per e-mail: contact@bouwbeslag.nl</li>
         </ul>
       </div>
     </main>

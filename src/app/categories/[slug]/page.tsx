@@ -114,7 +114,7 @@ export default async function CategoryPage({ params }: Params) {
   const category = await fetchCategory(slug);
 
   if (!category) {
-    return <p>Category not found.</p>;
+    return <p>Categorie niet gevonden.</p>;
   }
 
   const attributes = await fetchAttributes();

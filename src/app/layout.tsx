@@ -92,17 +92,18 @@ export default function RootLayout({
                   <p className="text-white font-bold text-xl mb-5">Handige links</p>
                   <ul className="text-[#C4C4C4] text-base font-normal flex flex-col gap-3">
                     <li>
-                      <Link href="/terms-and-conditions">Terms and Conditions</Link>
+                      <Link href="/terms-and-conditions">Algemene Voorwaarden</Link>
                     </li>
                     <li>
-                      <Link href="/return-policy">Return Policy</Link>
+                      <Link href="/return-policy">Retourbeleid</Link>
                     </li>
                     <li>
-                      <Link href="/privacy-policy">Privacy Policy</Link>
+                      <Link href="/privacy-policy">Privacybeleid</Link>
                     </li>
                     <li>
                       <Link href="/blog">Blogs</Link>
                     </li>
+                    <li>Help & Support</li>
                     <li>
                       <Link href="/contact">Contact</Link>
                     </li>

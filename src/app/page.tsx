@@ -40,10 +40,10 @@ export default async function Home() {
           <div className="w-full lg:w-[74%] lg:h-[80vh] bg-[linear-gradient(270deg,#1422AC_0%,#00074B_100.82%)] lg:rounded-sm overflow-hidden relative flex flex-col-reverse lg:flex-row items-center gap-12 py-12 lg:gap-0 lg:py-0">
             <div className="lg:w-1/2 px-5 lg:px-0 lg:pl-12 flex flex-col gap-3">
               <h1 className="text-white font-bold text-[32px] lg:text-6xl leading-[120%]">
-                Excellent detailed design!
+                Uitstekend gedetailleerd ontwerp!
               </h1>
               <p className="font-normal text-sm lg:text-xl text-white leading-[32px]">
-                Concept collections for door, window and furniture fittings.
+                Conceptcollecties voor deur-, raam- en meubelbeslag.
               </p>
               <button className="flex gap-2 items-center bg-[#0066FF] rounded-sm py-2.5 lg:py-4.5 px-7 w-full justify-center lg:w-max uppercase">
                 <span className="font-bold text-sm text-white leading-[22px]">Toevoegen aan winkelwagen</span>
@@ -97,12 +97,12 @@ export default async function Home() {
         {/* Shop by Categories */}
         <div className="w-full py-10 px-5 lg:px-0">
           <div className="flex justify-between items-center mb-2">
-            <h2 className="text-3xl font-bold text-[#1C2530]">Shop by categories</h2>
+            <h2 className="text-3xl font-bold text-[#1C2530]">Winkelen op categorie</h2>
             <div className="flex gap-2 items-center">
-              <a href="/categories" className="border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">View All</a>
+              <a href="/categories" className="border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">Bekijk alles</a>
             </div>
           </div>
-          <p className="text-[#3D4752] mb-8">Check all our categories to get what you needs</p>
+          <p className="text-[#3D4752] mb-8">Bekijk al onze categorieën om te vinden wat u nodig heeft</p>
           <div className="relative">
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
               {categories
@@ -156,7 +156,7 @@ export default async function Home() {
                   </div>
                   <div className="w-full mt-auto">
                     <button className="!w-full border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">
-                      View all {cat.name}
+                      Bekijk alle {cat.name}
                     </button>
                   </div>
                 </div>
@@ -168,12 +168,12 @@ export default async function Home() {
         {/* Read our blog */}
         <div className="w-full py-10 px-5 lg:px-0">
           <div className="flex justify-between items-center mb-2">
-            <h2 className="text-3xl font-bold text-[#1C2530]">Read our blog</h2>
+            <h2 className="text-3xl font-bold text-[#1C2530]">Lees onze blog</h2>
             <div className="flex gap-2 items-center">
-              <a href="/blog" className="border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">View All</a>
+              <a href="/blog" className="border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">Bekijk alles</a>
             </div>
           </div>
-          <p className="text-[#3D4752] mb-8">Check our latest article to get meaningfull content or tips for shopping</p>
+          <p className="text-[#3D4752] mb-8">Bekijk ons laatste artikel voor zinvolle inhoud of winkeltips</p>
           <div className="relative">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
               {posts.map((post: { id: number; title: { rendered: string }; excerpt: { rendered: string }; date: string; _embedded?: any }) => (
@@ -213,105 +213,105 @@ export default async function Home() {
         {/* Bottom Content */}
         <div className="w-full py-10 px-5 lg:px-0">
           <div className="flex flex-col gap-6 mb-12">
-            <h3 className="text-[#1C2530] font-semibold text-2xl">The importance of quality door hardware</h3>
-            <p className="text-[#3D4752] font-normal text-base">Door handles are essential in every home. They make opening and closing doors easy and contribute to the overall appearance of your interior. Because door handles are part of the door hardware, the choice of materials and finish is important. At Bouwbeslag.com, you'll find a wide range of high-quality door handles in various styles and materials.</p>
-            <p className="text-[#3D4752] font-normal text-base">A door handle is a long-term investment. If you choose high-quality materials, you'll benefit from years of smooth operation and a look that perfectly complements your home. In addition to the design, it's important to consider the dimensions, finish, and durability of the hardware. This allows you to optimally combine functionality and aesthetics.</p>
+            <h3 className="text-[#1C2530] font-semibold text-2xl">Het belang van kwaliteitsdeurbeslag</h3>
+            <p className="text-[#3D4752] font-normal text-base">Deurklinken zijn onmisbaar in elk huis. Ze maken het openen en sluiten van deuren eenvoudig en dragen bij aan de algehele uitstraling van uw interieur. Omdat deurklinken onderdeel zijn van het deurbeslag, is de keuze van materialen en afwerking belangrijk. Bij Bouwbeslag.com vindt u een breed scala aan hoogwaardige deurklinken in diverse stijlen en materialen.</p>
+            <p className="text-[#3D4752] font-normal text-base">Een deurklink is een investering voor de lange termijn. Kiest u voor hoogwaardige materialen, dan profiteert u jarenlang van een soepele werking en een uitstraling die perfect bij uw woning past. Naast het design is het belangrijk om te letten op de afmetingen, afwerking en duurzaamheid van het beslag. Zo combineert u functionaliteit en esthetiek optimaal.</p>
           </div>
 
           <div className="flex flex-col gap-6 mb-12">
-            <h3 className="text-[#1C2530] font-semibold text-2xl">A door handle in all shapes and sizes</h3>
-            <p className="text-[#3D4752] font-normal text-base">At Bouwbeslag.com, you'll find door handles with rosettes, backplates, keyholes (PC), toilet locks, blinds, and special security hardware for exterior doors. The materials range from stainless steel and brass to aluminum and bronze. For those looking for minimal maintenance, scratch-resistant materials like stainless steel or titanium are the best choice. Color also plays a role: choose classic silver, sleek black, or a striking finish that matches your interior style.</p>
+            <h3 className="text-[#1C2530] font-semibold text-2xl">Een deurklink in alle soorten en maten</h3>
+            <p className="text-[#3D4752] font-normal text-base">Bij Bouwbeslag.com vindt u deurklinken met rozetten, schilden, sleutelgaten (PC), toiletsloten, blinden en speciaal veiligheidsbeslag voor buitendeuren. De materialen variëren van roestvrij staal en messing tot aluminium en brons. Voor wie weinig onderhoud wil, zijn krasbestendige materialen zoals roestvrij staal of titanium de beste keuze. Ook kleur speelt een rol: kies voor klassiek zilver, strak zwart of een opvallende afwerking die past bij uw interieurstijl.</p>
           </div>
 
           <div className="flex flex-col gap-6 mb-12">
-            <h3 className="text-[#1C2530] font-semibold text-2xl">A door handle in all shapes and sizes</h3>
-            <p className="text-[#3D4752] font-normal text-base">At Bouwbeslag.com, you'll find door handles with rosettes, backplates, keyholes (PC), toilet locks, blinds, and special security hardware for exterior doors. The materials range from stainless steel and brass to aluminum and bronze. For those looking for minimal maintenance, scratch-resistant materials like stainless steel or titanium are the best choice. Color also plays a role: choose classic silver, sleek black, or a striking finish that matches your interior style.</p>
+            <h3 className="text-[#1C2530] font-semibold text-2xl">Een deurklink in alle soorten en maten</h3>
+            <p className="text-[#3D4752] font-normal text-base">Bij Bouwbeslag.com vindt u deurklinken met rozetten, schilden, sleutelgaten (PC), toiletsloten, blinden en speciaal veiligheidsbeslag voor buitendeuren. De materialen variëren van roestvrij staal en messing tot aluminium en brons. Voor wie weinig onderhoud wil, zijn krasbestendige materialen zoals roestvrij staal of titanium de beste keuze. Ook kleur speelt een rol: kies voor klassiek zilver, strak zwart of een opvallende afwerking die past bij uw interieurstijl.</p>
             <ul className="pl-0 space-y-2 text-[#3D4752] font-medium text-base">
               <li className="flex items-start gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z"/></svg>
-                Unscrew the existing door handles and escutcheons or backplates.
+                Schroef de bestaande deurklinken en rozetten of schilden los.
               </li>
               <li className="flex items-start gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z"/></svg>
-                Pull the door handle pin out of the lock case and remove the old hardware.
+                Trek de deurklinkstift uit de slotkast en verwijder het oude beslag.
               </li>
               <li className="flex items-start gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z"/></svg>
-                Insert the new pin through the lock and install the new hardware.
+                Steek de nieuwe stift door het slot en monteer het nieuwe beslag.
               </li>
               <li className="flex items-start gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z"/></svg>
-                Screw in the escutcheons or backplates and place the door handles firmly on the pin.
+                Schroef de rozetten of schilden vast en plaats de deurklinken stevig op de stift.
               </li>
               <li className="flex items-start gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z"/></svg>
-                Test the function: check that the door handle moves smoothly and the door closes properly.
+                Test de werking: controleer of de deurklink soepel beweegt en de deur goed sluit.
               </li>
             </ul>
           </div>
 
           <div className="flex flex-col gap-6 mb-12">
-            <h3 className="text-[#1C2530] font-semibold text-2xl">Innovation and safety</h3>
-            <p className="text-[#3D4752] font-normal text-base">With modern door handles, you combine security and ease of use. For exterior doors, security hardware with anti-drill protection is essential to keep burglars out. Our range also includes smart door handles that can be opened with Bluetooth, Wi-Fi, fingerprint scanner, card, or PIN code. These innovative solutions offer added convenience and a sense of security in your home.</p>
+            <h3 className="text-[#1C2530] font-semibold text-2xl">Innovatie en veiligheid</h3>
+            <p className="text-[#3D4752] font-normal text-base">Met moderne deurklinken combineert u veiligheid en gebruiksgemak. Voor buitendeuren is veiligheidsbeslag met kerntrekbeveiliging essentieel om inbrekers buiten te houden. Ons assortiment omvat ook slimme deurklinken die geopend kunnen worden met Bluetooth, wifi, vingerafdrukscanner, kaart of pincode. Deze innovatieve oplossingen bieden extra gemak en een veilig gevoel in uw woning.</p>
           </div>
 
           <div className="flex flex-col mb-12 p-5 lg:p-6 bg-[#FFFFFF] rounded-lg">
             <div className="mb-5">
-              <h3 className="text-[#1C2530] font-semibold text-2xl">Frequently asked questions about door handles</h3>
+              <h3 className="text-[#1C2530] font-semibold text-2xl">Veelgestelde vragen over deurklinken</h3>
             </div>
             <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
               <input type="radio" name="my-accordion-1" defaultChecked />
               <div className="collapse-title font-semibold flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z"/></svg>
-                <span className="w-[90%] lg:w-full">What types of door handles are there?</span>
+                <span className="w-[90%] lg:w-full">Welke soorten deurklinken zijn er?</span>
               </div>
-              <div className="collapse-content text-sm">With modern door handles, you combine security and ease of use. For exterior doors, security hardware with anti-drill protection is essential to keep burglars out. Our range also includes smart door handles that can be opened with Bluetooth, Wi-Fi, fingerprint scanner, card, or PIN code. These innovative solutions offer added convenience and a sense of security in your home.</div>
+              <div className="collapse-content text-sm">Met moderne deurklinken combineert u veiligheid en gebruiksgemak. Voor buitendeuren is veiligheidsbeslag met kerntrekbeveiliging essentieel om inbrekers buiten te houden. Ons assortiment omvat ook slimme deurklinken die geopend kunnen worden met Bluetooth, wifi, vingerafdrukscanner, kaart of pincode. Deze innovatieve oplossingen bieden extra gemak en een veilig gevoel in uw woning.</div>
             </div>
             <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
               <input type="radio" name="my-accordion-1" />
               <div className="collapse-title font-semibold flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z"/></svg>
-                <span className="w-[90%] lg:w-full">How do I choose the right door handle for my door?</span>
+                <span className="w-[90%] lg:w-full">Hoe kies ik de juiste deurklink voor mijn deur?</span>
               </div>
-              <div className="collapse-content text-sm">With modern door handles, you combine security and ease of use. For exterior doors, security hardware with anti-drill protection is essential to keep burglars out. Our range also includes smart door handles that can be opened with Bluetooth, Wi-Fi, fingerprint scanner, card, or PIN code. These innovative solutions offer added convenience and a sense of security in your home.</div>
+              <div className="collapse-content text-sm">Met moderne deurklinken combineert u veiligheid en gebruiksgemak. Voor buitendeuren is veiligheidsbeslag met kerntrekbeveiliging essentieel om inbrekers buiten te houden. Ons assortiment omvat ook slimme deurklinken die geopend kunnen worden met Bluetooth, wifi, vingerafdrukscanner, kaart of pincode. Deze innovatieve oplossingen bieden extra gemak en een veilig gevoel in uw woning.</div>
             </div>
             <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
               <input type="radio" name="my-accordion-1" />
               <div className="collapse-title font-semibold flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z"/></svg>
-                <span className="w-[90%] lg:w-full">What is the difference between door handle, door handle and doorknob?</span>
+                <span className="w-[90%] lg:w-full">Wat is het verschil tussen een deurklink, deurkruk en deurknop?</span>
               </div>
-              <div className="collapse-content text-sm">With modern door handles, you combine security and ease of use. For exterior doors, security hardware with anti-drill protection is essential to keep burglars out. Our range also includes smart door handles that can be opened with Bluetooth, Wi-Fi, fingerprint scanner, card, or PIN code. These innovative solutions offer added convenience and a sense of security in your home.</div>
+              <div className="collapse-content text-sm">Met moderne deurklinken combineert u veiligheid en gebruiksgemak. Voor buitendeuren is veiligheidsbeslag met kerntrekbeveiliging essentieel om inbrekers buiten te houden. Ons assortiment omvat ook slimme deurklinken die geopend kunnen worden met Bluetooth, wifi, vingerafdrukscanner, kaart of pincode. Deze innovatieve oplossingen bieden extra gemak en een veilig gevoel in uw woning.</div>
             </div>
             <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
               <input type="radio" name="my-accordion-1" />
               <div className="collapse-title font-semibold flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z"/></svg>
-                <span className="w-[90%] lg:w-full">How do I remove an old door handle?</span>
+                <span className="w-[90%] lg:w-full">Hoe verwijder ik een oude deurklink?</span>
               </div>
-              <div className="collapse-content text-sm">With modern door handles, you combine security and ease of use. For exterior doors, security hardware with anti-drill protection is essential to keep burglars out. Our range also includes smart door handles that can be opened with Bluetooth, Wi-Fi, fingerprint scanner, card, or PIN code. These innovative solutions offer added convenience and a sense of security in your home.</div>
+              <div className="collapse-content text-sm">Met moderne deurklinken combineert u veiligheid en gebruiksgemak. Voor buitendeuren is veiligheidsbeslag met kerntrekbeveiliging essentieel om inbrekers buiten te houden. Ons assortiment omvat ook slimme deurklinken die geopend kunnen worden met Bluetooth, wifi, vingerafdrukscanner, kaart of pincode. Deze innovatieve oplossingen bieden extra gemak en een veilig gevoel in uw woning.</div>
             </div>
             <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
               <input type="radio" name="my-accordion-1" />
               <div className="collapse-title font-semibold flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z"/></svg>
-                <span className="w-[90%] lg:w-full">Can any door fittings be placed on any door?</span>
+                <span className="w-[90%] lg:w-full">Kan elk deurbeslag op elke deur geplaatst worden?</span>
               </div>
-              <div className="collapse-content text-sm">With modern door handles, you combine security and ease of use. For exterior doors, security hardware with anti-drill protection is essential to keep burglars out. Our range also includes smart door handles that can be opened with Bluetooth, Wi-Fi, fingerprint scanner, card, or PIN code. These innovative solutions offer added convenience and a sense of security in your home.</div>
+              <div className="collapse-content text-sm">Met moderne deurklinken combineert u veiligheid en gebruiksgemak. Voor buitendeuren is veiligheidsbeslag met kerntrekbeveiliging essentieel om inbrekers buiten te houden. Ons assortiment omvat ook slimme deurklinken die geopend kunnen worden met Bluetooth, wifi, vingerafdrukscanner, kaart of pincode. Deze innovatieve oplossingen bieden extra gemak en een veilig gevoel in uw woning.</div>
             </div>
             <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
               <input type="radio" name="my-accordion-1" />
               <div className="collapse-title font-semibold flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z"/></svg>
-                <span className="w-[90%] lg:w-full">What is blind door fittings or a blind door handle?</span>
+                <span className="w-[90%] lg:w-full">Wat is blind deurbeslag of een blinde deurklink?</span>
               </div>
-              <div className="collapse-content text-sm">With modern door handles, you combine security and ease of use. For exterior doors, security hardware with anti-drill protection is essential to keep burglars out. Our range also includes smart door handles that can be opened with Bluetooth, Wi-Fi, fingerprint scanner, card, or PIN code. These innovative solutions offer added convenience and a sense of security in your home.</div>
+              <div className="collapse-content text-sm">Met moderne deurklinken combineert u veiligheid en gebruiksgemak. Voor buitendeuren is veiligheidsbeslag met kerntrekbeveiliging essentieel om inbrekers buiten te houden. Ons assortiment omvat ook slimme deurklinken die geopend kunnen worden met Bluetooth, wifi, vingerafdrukscanner, kaart of pincode. Deze innovatieve oplossingen bieden extra gemak en een veilig gevoel in uw woning.</div>
             </div>
           </div>
 
           <div className="flex flex-col gap-6 mb-12">
-            <h3 className="text-[#1C2530] font-semibold text-2xl">A door handle in all shapes and sizes</h3>
-            <p className="text-[#3D4752] font-normal text-base">At Bouwbeslag.com, you'll find door handles with rosettes, backplates, keyholes (PC), toilet locks, blinds, and special security hardware for exterior doors. The materials range from stainless steel and brass to aluminum and bronze. For those looking for minimal maintenance, scratch-resistant materials like stainless steel or titanium are the best choice. Color also plays a role: choose classic silver, sleek black, or a striking finish that matches your interior style.</p>
+            <h3 className="text-[#1C2530] font-semibold text-2xl">Een deurklink in alle soorten en maten</h3>
+            <p className="text-[#3D4752] font-normal text-base">Bij Bouwbeslag.com vindt u deurklinken met rozetten, schilden, sleutelgaten (PC), toiletsloten, blinden en speciaal veiligheidsbeslag voor buitendeuren. De materialen variëren van roestvrij staal en messing tot aluminium en brons. Voor wie weinig onderhoud wil, zijn krasbestendige materialen zoals roestvrij staal of titanium de beste keuze. Ook kleur speelt een rol: kies voor klassiek zilver, strak zwart of een opvallende afwerking die past bij uw interieurstijl.</p>
           </div>
         </div>
 

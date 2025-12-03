@@ -183,7 +183,7 @@ export default function CategoryClient({
                           className="mt-4 w-full py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm font-medium"
                           onClick={() => setShowAllColors(true)}
                         >
-                          View all Colours
+                          Bekijk alle kleuren
                         </button>
                       )}
                     </div>
@@ -210,7 +210,7 @@ export default function CategoryClient({
                       </div>
                     </div>
                   ))}
-                  <button onClick={() => setSelectedFilters({})} className="text-sm text-red-500 hover:underline mb-4">Clear Filters</button>
+                  <button onClick={() => setSelectedFilters({})} className="text-sm text-red-500 hover:underline mb-4">Filters wissen</button>
                 </>
               )}
             </div>
@@ -222,12 +222,12 @@ export default function CategoryClient({
               <h1 className="text-3xl font-bold">{category?.name ?? "Category"}</h1>
               <div className='flex gap-3 '>
                 <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="select focus:outline-0 focus:ring-0 w-32 border border-[#808D9A] rounded-sm bg-[F7F7F7] h-8">
-                  <option disabled={true} value="">Sort by</option>
-                  <option value="popularity">Popularity</option>
-                  <option value="rating">Rating</option>
-                  <option value="latest">Latest</option>
-                  <option value="price-low-high">Price: Low to High</option>
-                  <option value="price-high-low">Price: High to Low</option>
+                  <option disabled={true} value="">Sorteer op</option>
+                  <option value="popularity">Populariteit</option>
+                  <option value="rating">Beoordeling</option>
+                  <option value="latest">Nieuwste</option>
+                  <option value="price-low-high">Prijs: Laag naar Hoog</option>
+                  <option value="price-high-low">Prijs: Hoog naar Laag</option>
                 </select>
                 <button type="button" className="lg:hidden px-2 py-1 w-auto text-left bg-white border border-gray-300 rounded-md font-medium" onClick={() => setShowFilters(!showFilters)} aria-expanded={showFilters} aria-controls="filters-section">
                   {showFilters ? (
@@ -279,7 +279,7 @@ export default function CategoryClient({
                 ))}
               </div>
             ) : products.length === 0 ? (
-              <p>No products found in this category.</p>
+              <p>Geen producten gevonden in deze categorie.</p>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 lg:gap-6">
                 {products.map((product) => (

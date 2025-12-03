@@ -51,13 +51,13 @@ export default async function Categories() {
                 <span><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-4"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg></span>
                 <span>Home</span>
                 </Link>{" "}
-                / All categories
+                / Alle categorieën
             </div>
 
             {/* Heading */}
-            <h1 className="text-3xl font-bold text-[#1C2530] mb-2">Shop categories</h1>
+            <h1 className="text-3xl font-bold text-[#1C2530] mb-2">Winkel op categorie</h1>
             <p className="text-gray-600 mb-8 text-sm font-normal">
-                Check all our categories to get what you needs
+                Bekijk al onze categorieën om te vinden wat je nodig hebt
             </p>
 
             {/* Categories Grid */}
@@ -78,7 +78,7 @@ export default async function Categories() {
                       href={`/categories/${cat.slug}`}
                       className="mt-auto text-center border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold text-sm py-2 rounded-sm block"
                     >
-                      View all {cat.name}
+                      Bekijk alle {cat.name}
                     </Link>
                     </div>
                 </div>
