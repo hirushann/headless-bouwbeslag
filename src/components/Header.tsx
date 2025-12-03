@@ -71,15 +71,29 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []); 
 
-  // STEP 1: Add handler function above return
-  const handleCheckoutRedirect = () => {
-    if (!items.length) return;
+  // STEP 1: Add buildCheckoutUrl helper above handler
+  const buildCheckoutUrl = () => {
+    if (!items.length) return null;
 
     const params = items
       .map((item) => `${item.id}:${item.quantity}`)
       .join(",");
 
-    const checkoutUrl = `https://app.bouwbeslag.nl/checkout/?add-to-cart=${params}`;
+    return `https://app.bouwbeslag.nl/checkout/?add-to-cart=${params}`;
+  };
+
+  // STEP 3: Log URL whenever cart items change
+  useEffect(() => {
+    const checkoutUrl = buildCheckoutUrl();
+    if (checkoutUrl) {
+      console.log("Checkout URL (pre-click):", checkoutUrl);
+    }
+  }, [items]);
+
+  // STEP 2: Update click handler to use helper
+  const handleCheckoutRedirect = () => {
+    const checkoutUrl = buildCheckoutUrl();
+    if (!checkoutUrl) return;
 
     window.location.href = checkoutUrl;
   };
@@ -318,7 +332,7 @@ export default function Header() {
           aria-label="Close cart backdrop"
         />
         {/* Drawer */}
-        <div className={`fixed top-[180px] right-0 h-[calc(100%-120px)] w-full lg:w-150 bg-white shadow-lg z-50 transform transition-transform duration-300 ${ isCartOpen ? "translate-x-0" : "translate-x-full" }`} aria-hidden={!isCartOpen}>
+        <div className={`z-[999999] fixed top-[180px] right-0 h-[calc(100%-120px)] w-full lg:w-150 bg-white shadow-lg z-50 transform transition-transform duration-300 ${ isCartOpen ? "translate-x-0" : "translate-x-full" }`} aria-hidden={!isCartOpen}>
           <div className="flex flex-col h-full">
             <div className="flex justify-between items-center border-b border-[#E9E9E9] p-4 bg-[#F7F7F7]">
               <h2 className="text-lg font-medium text-[#1C2530]">Toegevoegd aan winkelmand</h2>
