@@ -6,7 +6,6 @@ import Link from "next/link";
 import Image from "next/image";
 import ProductCard from "@/components/ProductCard";
 import { useCartStore } from "@/lib/cartStore";
-import { shallow } from "zustand/shallow";
 import { fetchMedia } from "@/lib/wordpress";
 import { COLOR_MAP } from "@/config/colorMap";
 
@@ -16,7 +15,7 @@ export default function ProductPageClient({ product }: { product: any }) {
     console.log("🟦 ProductPageClient → product data:", product);
   }, [product]);
   const addItem = useCartStore((state) => state.addItem);
-  const items = useCartStore((state) => state.items, shallow);
+  const items = useCartStore((state) => state.items);
   const [selectedImage, setSelectedImage] = useState('/afbeelding.png');
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
 
