@@ -754,16 +754,8 @@ export default function ProductPageClient({ product }: { product: any }) {
 
                         <div className="flex gap-3">
                           {orderColors.map((colour: { name: string; color: string; slug?: string }) => (
-                            <Link
-                              key={colour.slug}
-                              href={colour.slug ? `/products/${colour.slug}` : "#"}
-                            >
-                              <button
-                                className="w-8 h-8 rounded-full border border-gray-300 cursor-pointer hover:ring-2 hover:ring-blue-500"
-                                style={{ backgroundColor: colour.color }}
-                                aria-label={colour.name}
-                                title={colour.name}
-                              />
+                            <Link key={colour.slug} href={colour.slug ? `/products/${colour.slug}` : "#"}>
+                              <button className="w-8 h-8 rounded-full border border-gray-300 cursor-pointer hover:ring-2 hover:ring-blue-500" style={{ backgroundColor: colour.color }} aria-label={colour.name} title={colour.name} />
                             </Link>
                           ))}
                         </div>
