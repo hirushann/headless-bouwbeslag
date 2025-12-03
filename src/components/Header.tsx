@@ -71,6 +71,19 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []); 
 
+  // STEP 1: Add handler function above return
+  const handleCheckoutRedirect = () => {
+    if (!items.length) return;
+
+    const params = items
+      .map((item) => `${item.id}:${item.quantity}`)
+      .join(",");
+
+    const checkoutUrl = `https://app.bouwbeslag.nl/checkout/?add-to-cart=${params}`;
+
+    window.location.href = checkoutUrl;
+  };
+
   return (
     <div className="bg-[#F7F7F7] w-full relative">
       
@@ -377,7 +390,12 @@ export default function Header() {
                   <p className="font-bold">Total amount <span className="font-medium">(incl 21% VAT)</span></p>
                   <span className="font-bold">€{(subtotal + shipping).toFixed(2)}</span>
                 </div>
-                <button className="w-full bg-[#0066FF] text-white font-bold px-4 py-3.5 rounded-sm text-base">ORDER NOW</button>
+                <button
+                  onClick={handleCheckoutRedirect}
+                  className="w-full bg-[#0066FF] text-white font-bold px-4 py-3.5 rounded-sm text-base"
+                >
+                  Checkout
+                </button>
               </div>
             )}
           </div>
