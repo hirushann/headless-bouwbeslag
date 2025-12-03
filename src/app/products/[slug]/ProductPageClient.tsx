@@ -292,28 +292,41 @@ export default function ProductPageClient({ product }: { product: any }) {
     }
 
     /* ---------------------------
-     | ORDER MODELS
+     | ORDER MODELS (ACF ordered + text-safe)
      --------------------------- */
-    const orderModelKeys = [
-      "related_order_model_1",
-      "related_order_model_2",
-      "related_order_model_3",
-      "related_order_model_4",
-      "related_order_model_5",
-      "related_order_model_6",
-      "related_order_model_7",
-      "related_order_model_8",
-    ];
+    type OrderModelEntry = {
+      sku: string;
+      displayText: string | null;
+      position: number;
+    };
 
-    const modelSkus = orderModelKeys
-      .map((key) =>
-        product.meta_data.find((m: any) => m.key === key)?.value
-      )
-      .filter((sku) => sku && String(sku).trim() !== "");
+    const modelEntries: OrderModelEntry[] = Array.from({ length: 8 }, (_, i) => {
+      const index = i + 1; // 1..8
 
-    if (modelSkus.length > 0) {
+      const sku = product.meta_data.find(
+        (m: any) => m.key === `related_order_model_${index}`
+      )?.value;
+
+      const text = product.meta_data.find(
+        (m: any) => m.key === `related_other_model_text_${index}`
+      )?.value;
+
+      if (!sku || String(sku).trim() === "") return null;
+
+      return {
+        sku: String(sku).trim(),
+        displayText: text ? String(text) : null,
+        position: index,
+      };
+    })
+      .filter(Boolean) as OrderModelEntry[];
+
+    // Debug log to verify correct mapping between model positions and texts
+    console.log("🟦 DEBUG order model entries (sku + text by position):", modelEntries);
+
+    if (modelEntries.length > 0) {
       Promise.all(
-        modelSkus.map(async (sku: string, index: number) => {
+        modelEntries.map(async ({ sku, displayText }) => {
           try {
             const res = await api.get("products", { sku });
             const productModel =
@@ -321,38 +334,16 @@ export default function ProductPageClient({ product }: { product: any }) {
 
             if (!productModel) return null;
 
-            const textMeta = product.meta_data.find(
-              (m: any) => m.key === `related_order_model_${index + 1}_text`
-            )?.value;
-
             return {
               ...productModel,
-              displayText: textMeta || null,
+              displayText,
             };
           } catch {
             return null;
           }
         })
       ).then((models) => {
-        const map = new Map<number, any>();
-
-        models.forEach((model) => {
-          if (!model || !model.id) return;
-
-          if (!map.has(model.id)) {
-            // First time we see this model
-            map.set(model.id, model);
-          } else {
-            // Model already exists → keep the first non-empty displayText
-            const existing = map.get(model.id);
-            if (!existing.displayText && model.displayText) {
-              existing.displayText = model.displayText;
-              map.set(model.id, existing);
-            }
-          }
-        });
-
-        setOrderModels(Array.from(map.values()));
+        setOrderModels(models.filter(Boolean));
       });
     } else {
       setOrderModels([]);
@@ -768,7 +759,7 @@ export default function ProductPageClient({ product }: { product: any }) {
                               href={colour.slug ? `/products/${colour.slug}` : "#"}
                             >
                               <button
-                                className="w-8 h-8 rounded-full border border-gray-300"
+                                className="w-8 h-8 rounded-full border border-gray-300 cursor-pointer hover:ring-2 hover:ring-blue-500"
                                 style={{ backgroundColor: colour.color }}
                                 aria-label={colour.name}
                                 title={colour.name}
@@ -816,7 +807,8 @@ export default function ProductPageClient({ product }: { product: any }) {
                           className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 scroll-smooth"
                         >
                           {orderModels.map((model: any, index: number) => (
-                            <div
+                            <Link
+                              href={`/products/${model.slug}`}
                               key={`${model.id}-${index}`}
                               className="flex-shrink-0 w-32 flex flex-col items-center gap-2"
                             >
@@ -832,7 +824,7 @@ export default function ProductPageClient({ product }: { product: any }) {
                                   {model.displayText}
                                 </p>
                               )}
-                            </div>
+                            </Link>
                           ))}
                         </div>
                       </div>
