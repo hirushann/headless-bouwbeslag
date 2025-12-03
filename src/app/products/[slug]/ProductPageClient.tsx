@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import ProductCard from "@/components/ProductCard";
 import { useCartStore } from "@/lib/cartStore";
+import { shallow } from "zustand/shallow";
 import { fetchMedia } from "@/lib/wordpress";
 import { COLOR_MAP } from "@/config/colorMap";
 
@@ -15,6 +16,7 @@ export default function ProductPageClient({ product }: { product: any }) {
     console.log("🟦 ProductPageClient → product data:", product);
   }, [product]);
   const addItem = useCartStore((state) => state.addItem);
+  const items = useCartStore((state) => state.items, shallow);
   const [selectedImage, setSelectedImage] = useState('/afbeelding.png');
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
 
@@ -141,8 +143,49 @@ export default function ProductPageClient({ product }: { product: any }) {
   const [orderModels, setOrderModels] = useState<any[]>([]);
 
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [isOutOfStock, setIsOutOfStock] = useState(false);
+  const [availableStock, setAvailableStock] = useState<number | null>(null);
   const [addCartSuccess, setAddCartSuccess] = useState(false);
   const [addCartError, setAddCartError] = useState(false);
+  // Derived state: is quantity input exceeding available stock
+  const isQuantityInvalid =
+    availableStock !== null && quantity > availableStock;
+  // Cart-aware: quantity of this product already in cart
+  const cartItemQuantity =
+    items?.find((item: any) => item.id === product?.id)?.quantity ?? 0;
+  const isStockLimitReached =
+    availableStock !== null &&
+    cartItemQuantity >= availableStock;
+  // UX-grade stock check on page load
+  useEffect(() => {
+    if (!product?.id) return;
+
+    const checkInitialStock = async () => {
+      try {
+        const res = await api.get(`products/${product.id}`);
+        const wcProduct = res.data;
+
+        if (wcProduct.stock_status !== "instock") {
+          setIsOutOfStock(true);
+          return;
+        }
+
+        if (
+          wcProduct.manage_stock &&
+          typeof wcProduct.stock_quantity === "number"
+        ) {
+          setAvailableStock(wcProduct.stock_quantity);
+          if (wcProduct.stock_quantity <= 0) {
+            setIsOutOfStock(true);
+          }
+        }
+      } catch (err) {
+        console.error("❌ Initial stock fetch failed:", err);
+      }
+    };
+
+    checkInitialStock();
+  }, [product?.id]);
 
   type MetaData = {
     key: string;
@@ -430,6 +473,39 @@ export default function ProductPageClient({ product }: { product: any }) {
   const productHeightUnit = getMetaValue("dimensions_product_height_unit");
   const productLength = getMetaValue("dimensions_product_length");
   const productLengthUnit = getMetaValue("dimensions_product_length_unit");
+
+    // --- WooCommerce stock check helper ---
+  // Checks real-time stock before allowing add-to-cart
+  const checkStockBeforeAdd = async (productId: number, qty: number) => {
+    try {
+      const res = await api.get(`products/${productId}`);
+      const wcProduct = res.data;
+
+      // If Woo says out of stock
+      if (wcProduct.stock_status !== "instock") {
+        toast.error("Dit product is momenteel niet op voorraad.");
+        return false;
+      }
+
+      // If stock management enabled, validate quantity
+      if (
+        wcProduct.manage_stock &&
+        typeof wcProduct.stock_quantity === "number" &&
+        qty > wcProduct.stock_quantity
+      ) {
+        toast.error(
+          `Maximale beschikbare voorraad: ${wcProduct.stock_quantity}`
+        );
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      console.error("❌ Stock check failed:", err);
+      toast.error("Voorraadcontrole mislukt. Probeer opnieuw.");
+      return false;
+    }
+  };
 
 
   if (!product) {
@@ -842,76 +918,115 @@ export default function ProductPageClient({ product }: { product: any }) {
                             </div>
                             <button
                               type="button"
-                              onClick={() => setQuantity((q) => q + 1)}
+                              onClick={() =>
+                                setQuantity((prev) =>
+                                  availableStock !== null ? Math.min(prev + 1, availableStock) : prev + 1
+                                )
+                              }
                               className="flex justify-center px-5 py-3 text-2xl cursor-pointer border-l border-[#EDEDED]"
                             >+</button>
                         </div>
 
                         <div className='w-full lg:w-6/12'>
-                          <button
-                            type="button"
-                            className="cursor-pointer flex-1 bg-blue-600 text-white px-6 py-4 rounded-sm hover:bg-blue-700 transition font-semibold flex items-center justify-center gap-3 w-full"
-                            onClick={async () => {
-                              if (isAddingToCart) return;
-                              setAddCartError(false);
-                              setAddCartSuccess(false);
-                              try {
-                                setIsAddingToCart(true);
-                                await addItem({
-                                  id: product.id,
-                                  name: product.name,
-                                  price: (() => {
-                                    const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
-                                    const advisedRaw = getMeta("crucial_data_unit_price");
-                                    const saleRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
-                                    const advised = advisedRaw && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
-                                    const sale = saleRaw && !isNaN(parseFloat(saleRaw)) ? parseFloat(saleRaw) : null;
-                                    let basePrice = sale ?? advised ?? 0;
-                                    if (selectedDiscount !== null) {
-                                      const pct = discounts[selectedDiscount]?.percentage ?? 0;
-                                      if (pct > 0) {
-                                        basePrice = basePrice - (basePrice * pct) / 100;
-                                      }
-                                    }
-                                    return basePrice;
-                                  })(),
-                                  quantity,
-                                  image: product?.images?.[0]?.src || "/afbeelding.png",
-                                });
-                                toast.success("Product added to cart!", {
-                                  duration: 3000,
-                                  position: "top-right",
-                                });
-                                setAddCartSuccess(true);
-                                setTimeout(() => {
-                                  setAddCartSuccess(false);
-                                }, 3000);
-                              } catch (error) {
-                                setAddCartError(true);
-                                setTimeout(() => {
-                                  setAddCartError(false);
-                                }, 3000);
-                              } finally {
-                                setIsAddingToCart(false);
+                          <div className="relative group">
+                            <button
+                              type="button"
+                              disabled={
+                                isAddingToCart ||
+                                isOutOfStock ||
+                                isQuantityInvalid ||
+                                isStockLimitReached
                               }
-                            }}
-                            disabled={isAddingToCart}
-                          >
-                            {/* Loader spinner if adding, else success, error or cart icon */}
-                            {isAddingToCart ? (
-                              <svg className="size-6 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4"></circle><path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
-                            ) : addCartSuccess ? (
-                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="white" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                            ) : addCartError ? (
-                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="#FF3B3B" className="size-6">
-                                <circle cx="12" cy="12" r="10" stroke="#FF3B3B" strokeWidth="2" fill="none"/>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5m0 4h.01" stroke="#FF3B3B" strokeWidth="2"/>
-                              </svg>
-                            ) : (
-                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="white" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>
+                              className={`cursor-pointer flex-1 px-6 py-4 rounded-sm transition font-semibold flex items-center justify-center gap-3 w-full
+                                ${
+                                  isOutOfStock || isQuantityInvalid || isStockLimitReached
+                                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                    : "bg-blue-600 text-white hover:bg-blue-700"
+                                }`}
+                              onClick={async () => {
+                                if (isAddingToCart) return;
+                                setAddCartError(false);
+                                setAddCartSuccess(false);
+                                try {
+                                  setIsAddingToCart(true);
+
+                                  const stockOk = await checkStockBeforeAdd(product.id, quantity);
+                                  if (!stockOk) {
+                                    setIsAddingToCart(false);
+                                    return;
+                                  }
+
+                                  await addItem({
+                                    id: product.id,
+                                    name: product.name,
+                                    price: (() => {
+                                      const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
+                                      const advisedRaw = getMeta("crucial_data_unit_price");
+                                      const saleRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
+                                      const advised = advisedRaw && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
+                                      const sale = saleRaw && !isNaN(parseFloat(saleRaw)) ? parseFloat(saleRaw) : null;
+                                      let basePrice = sale ?? advised ?? 0;
+                                      if (selectedDiscount !== null) {
+                                        const pct = discounts[selectedDiscount]?.percentage ?? 0;
+                                        if (pct > 0) {
+                                          basePrice = basePrice - (basePrice * pct) / 100;
+                                        }
+                                      }
+                                      return basePrice;
+                                    })(),
+                                    quantity,
+                                    image: product?.images?.[0]?.src || "/afbeelding.png",
+                                  });
+                                  toast.success("Product added to cart!", {
+                                    duration: 3000,
+                                    position: "top-right",
+                                  });
+                                  setAddCartSuccess(true);
+                                  setTimeout(() => {
+                                    setAddCartSuccess(false);
+                                  }, 3000);
+                                } catch (error) {
+                                  setAddCartError(true);
+                                  setTimeout(() => {
+                                    setAddCartError(false);
+                                  }, 3000);
+                                } finally {
+                                  setIsAddingToCart(false);
+                                }
+                              }}
+                            >
+                              {/* Loader spinner if adding, else success, error or cart icon */}
+                              {isAddingToCart ? (
+                                <svg className="size-6 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4"></circle><path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
+                              ) : addCartSuccess ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="white" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                              ) : addCartError ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="#FF3B3B" className="size-6">
+                                  <circle cx="12" cy="12" r="10" stroke="#FF3B3B" strokeWidth="2" fill="none"/>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5m0 4h.01" stroke="#FF3B3B" strokeWidth="2"/>
+                                </svg>
+                              ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="white" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>
+                              )}
+                              In winkelwagen
+                            </button>
+                            {(isOutOfStock || isQuantityInvalid || isStockLimitReached) && (
+                              <div className="absolute z-20 bottom-full mb-3 hidden group-hover:block w-full">
+                                <div className="bg-black text-white text-sm rounded px-4 py-2 shadow-lg text-center">
+                                  {isOutOfStock
+                                    ? "Dit product is momenteel niet op voorraad"
+                                    : isStockLimitReached
+                                    ? "Je hebt de maximale voorraad al in je winkelwagen"
+                                    : "De geselecteerde hoeveelheid overschrijdt de beschikbare voorraad"}
+                                  {availableStock !== null && (
+                                    <div className="text-xs opacity-80 mt-1">
+                                      Beschikbare voorraad: {availableStock}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                             )}
-                            In winkelwagen
-                          </button>
+                          </div>
                         </div>
                     </div>
 
@@ -1204,7 +1319,7 @@ export default function ProductPageClient({ product }: { product: any }) {
                         )}
 
                         {/* fifth row left accordion */}
-                        <div className="bg-white rounded-lg border border-white">
+                        {/* <div className="bg-white rounded-lg border border-white">
                             <details className="group">
                                 <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
                                     Video's
@@ -1216,7 +1331,7 @@ export default function ProductPageClient({ product }: { product: any }) {
                                     <iframe width="100%" height="350" className='rounded-md' src="https://www.youtube.com/embed/u31qwQUeGuM?si=WIn23DoCPBrCzbg7" title="YouTube video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen></iframe>
                                 </div>
                             </details>
-                        </div>
+                        </div> */}
                     </div>
 
                     <div className='flex flex-col gap-5'>
@@ -1775,112 +1890,161 @@ export default function ProductPageClient({ product }: { product: any }) {
                     isVisible ? 'block' : 'hidden'
                   }`}>
             <div className="flex flex-wrap lg:flex-nowrap items-center gap-4 justify-center">
-                <div className='flex justify-center items-center'>
-                  <p className="text-3xl font-bold text-[#1C2530]">
-                    {(() => {
-                      const getMeta = (key: string) =>
-                        product?.meta_data?.find((m: any) => m.key === key)?.value;
-                      const advisedRaw = getMeta("crucial_data_unit_price");
-                      const saleRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
-                      const currency = product.currency_symbol || "€";
-                      const advised =
-                        advisedRaw && !isNaN(parseFloat(advisedRaw))
-                          ? parseFloat(advisedRaw)
-                          : null;
-                      const sale =
-                        saleRaw && !isNaN(parseFloat(saleRaw))
-                          ? parseFloat(saleRaw)
-                          : null;
-                      let basePrice = sale ?? advised ?? 0;
+                <div className="flex flex-wrap lg:flex-nowrap items-center gap-4 mt-4 justify-between">
+                    <div className='flex justify-center items-center'>
+                      <p className="text-3xl font-bold text-[#1C2530]">
+                        {(() => {
+                          const getMeta = (key: string) =>
+                            product?.meta_data?.find((m: any) => m.key === key)?.value;
+                          const advisedRaw = getMeta("crucial_data_unit_price");
+                          const saleRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
+                          const currency = product.currency_symbol || "€";
+                          const advised =
+                            advisedRaw && !isNaN(parseFloat(advisedRaw))
+                              ? parseFloat(advisedRaw)
+                              : null;
+                          const sale =
+                            saleRaw && !isNaN(parseFloat(saleRaw))
+                              ? parseFloat(saleRaw)
+                              : null;
+                          let basePrice = sale ?? advised ?? 0;
 
-                      // Apply volume discount if selected
-                      if (selectedDiscount !== null) {
-                        const pct = discounts[selectedDiscount]?.percentage ?? 0;
-                        if (pct > 0) {
-                          basePrice = basePrice - (basePrice * pct) / 100;
-                        }
-                      }
-
-                      const totalPrice = basePrice * quantity;
-
-                      return `${currency}${totalPrice.toFixed(2)}`;
-                    })()}
-                  </p>
-                </div>
-
-                <div className="flex border border-[#EDEDED] shadow-xs rounded-sm overflow-hidden bg-white">
-                    <button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))} className="px-5 py-3 text-2xl cursor-pointer border-r border-[#EDEDED]">-</button>
-                    <div className="px-6 py-2 text-base font-medium text-center min-w-[60px] flex items-center justify-center">
-                        {quantity.toString().padStart(2, '0')}
-                    </div>
-                    <button type="button" onClick={() => setQuantity((q) => q + 1)} className="flex justify-center px-5 py-3 text-2xl cursor-pointer border-l border-[#EDEDED]">+</button>
-                </div>
-
-                <div className=''>
-                  <button
-                    type="button"
-                    className="cursor-pointer flex-1 bg-blue-600 text-white px-6 py-4 rounded-sm hover:bg-blue-700 transition font-semibold flex items-center justify-center gap-3 w-full"
-                    onClick={async () => {
-                      if (isAddingToCart) return;
-                      setAddCartError(false);
-                      setAddCartSuccess(false);
-                      try {
-                        setIsAddingToCart(true);
-                        await addItem({
-                          id: product.id,
-                          name: product.name,
-                          price: (() => {
-                            const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
-                            const advisedRaw = getMeta("crucial_data_unit_price");
-                            const saleRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
-                            const advised = advisedRaw && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
-                            const sale = saleRaw && !isNaN(parseFloat(saleRaw)) ? parseFloat(saleRaw) : null;
-                            let basePrice = sale ?? advised ?? 0;
-                            if (selectedDiscount !== null) {
-                              const pct = discounts[selectedDiscount]?.percentage ?? 0;
-                              if (pct > 0) {
-                                basePrice = basePrice - (basePrice * pct) / 100;
-                              }
+                          // Apply volume discount if selected
+                          if (selectedDiscount !== null) {
+                            const pct = discounts[selectedDiscount]?.percentage ?? 0;
+                            if (pct > 0) {
+                              basePrice = basePrice - (basePrice * pct) / 100;
                             }
-                            return basePrice;
-                          })(),
-                          quantity,
-                          image: product?.images?.[0]?.src || "/afbeelding.png",
-                        });
-                        toast.success("Product added to cart!", {
-                          duration: 3000,
-                          position: "top-right",
-                        });
-                        setAddCartSuccess(true);
-                        setTimeout(() => {
-                          setAddCartSuccess(false);
-                        }, 3000);
-                      } catch (error) {
-                        setAddCartError(true);
-                        setTimeout(() => {
-                          setAddCartError(false);
-                        }, 3000);
-                      } finally {
-                        setIsAddingToCart(false);
-                      }
-                    }}
-                    disabled={isAddingToCart}
-                  >
-                    {/* Loader spinner if adding, else success, error or cart icon */}
-                    {isAddingToCart ? (
-                      <svg className="size-6 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4"></circle><path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
-                    ) : addCartSuccess ? (
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="white" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                    ) : addCartError ? (
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="#FF3B3B" className="size-6">
-                        <circle cx="12" cy="12" r="10" stroke="#FF3B3B" strokeWidth="2" fill="none"/>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5m0 4h.01" stroke="#FF3B3B" strokeWidth="2"/>
-                      </svg>
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="white" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>
-                    )}
-                    In winkelwagen
-                  </button>
+                          }
+
+                          const totalPrice = basePrice * quantity;
+
+                          return `${currency}${totalPrice.toFixed(2)}`;
+                        })()}
+                      </p>
+                    </div>
+
+                    <div className="flex border border-[#EDEDED] shadow-xs rounded-sm overflow-hidden bg-white">
+                        <button
+                          type="button"
+                          onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                          className="px-5 py-3 text-2xl cursor-pointer border-r border-[#EDEDED]"
+                        >-</button>
+                        <div className="px-6 py-2 text-base font-medium text-center min-w-[60px] flex items-center justify-center">
+                            {quantity.toString().padStart(1, '0')}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setQuantity((prev) =>
+                              availableStock !== null ? Math.min(prev + 1, availableStock) : prev + 1
+                            )
+                          }
+                          className="flex justify-center px-5 py-3 text-2xl cursor-pointer border-l border-[#EDEDED]"
+                        >+</button>
+                    </div>
+
+                    <div className=''>
+                      <div className="relative group">
+                        <button
+                          type="button"
+                          disabled={
+                            isAddingToCart ||
+                            isOutOfStock ||
+                            isQuantityInvalid ||
+                            isStockLimitReached
+                          }
+                          className={`cursor-pointer flex-1 px-6 py-4 rounded-sm transition font-semibold flex items-center justify-center gap-3 w-full
+                            ${
+                              isOutOfStock || isQuantityInvalid || isStockLimitReached
+                                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                : "bg-blue-600 text-white hover:bg-blue-700"
+                            }`}
+                          onClick={async () => {
+                            if (isAddingToCart) return;
+                            setAddCartError(false);
+                            setAddCartSuccess(false);
+                            try {
+                              setIsAddingToCart(true);
+
+                              const stockOk = await checkStockBeforeAdd(product.id, quantity);
+                              if (!stockOk) {
+                                setIsAddingToCart(false);
+                                return;
+                              }
+
+                              await addItem({
+                                id: product.id,
+                                name: product.name,
+                                price: (() => {
+                                  const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
+                                  const advisedRaw = getMeta("crucial_data_unit_price");
+                                  const saleRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
+                                  const advised = advisedRaw && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
+                                  const sale = saleRaw && !isNaN(parseFloat(saleRaw)) ? parseFloat(saleRaw) : null;
+                                  let basePrice = sale ?? advised ?? 0;
+                                  if (selectedDiscount !== null) {
+                                    const pct = discounts[selectedDiscount]?.percentage ?? 0;
+                                    if (pct > 0) {
+                                      basePrice = basePrice - (basePrice * pct) / 100;
+                                    }
+                                  }
+                                  return basePrice;
+                                })(),
+                                quantity,
+                                image: product?.images?.[0]?.src || "/afbeelding.png",
+                              });
+                              toast.success("Product added to cart!", {
+                                duration: 3000,
+                                position: "top-right",
+                              });
+                              setAddCartSuccess(true);
+                              setTimeout(() => {
+                                setAddCartSuccess(false);
+                              }, 3000);
+                            } catch (error) {
+                              setAddCartError(true);
+                              setTimeout(() => {
+                                setAddCartError(false);
+                              }, 3000);
+                            } finally {
+                              setIsAddingToCart(false);
+                            }
+                          }}
+                        >
+                          {/* Loader spinner if adding, else success, error or cart icon */}
+                          {isAddingToCart ? (
+                            <svg className="size-6 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4"></circle><path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
+                          ) : addCartSuccess ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="white" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                          ) : addCartError ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="#FF3B3B" className="size-6">
+                              <circle cx="12" cy="12" r="10" stroke="#FF3B3B" strokeWidth="2" fill="none"/>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5m0 4h.01" stroke="#FF3B3B" strokeWidth="2"/>
+                            </svg>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="white" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>
+                          )}
+                          In winkelwagen
+                        </button>
+                        {(isOutOfStock || isQuantityInvalid || isStockLimitReached) && (
+                          <div className="absolute z-20 bottom-full mb-3 hidden group-hover:block w-full">
+                            <div className="bg-black text-white text-sm rounded px-4 py-2 shadow-lg text-center">
+                              {isOutOfStock
+                                ? "Dit product is momenteel niet op voorraad"
+                                : isStockLimitReached
+                                ? "Je hebt de maximale voorraad al in je winkelwagen"
+                                : "De geselecteerde hoeveelheid overschrijdt de beschikbare voorraad"}
+                              {availableStock !== null && (
+                                <div className="text-xs opacity-80 mt-1">
+                                  Beschikbare voorraad: {availableStock}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                 </div>
             </div>
         </div>
