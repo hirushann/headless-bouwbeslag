@@ -191,20 +191,18 @@ export default async function Home() {
                   />
                   <div className="flex flex-col gap-2">
                     <p className="text-[#0066FF] font-normal text-sm">
-                      {new Date(post.date).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
+                      {new Date(post.date).toISOString().split("T")[0]}
                     </p>
                     <p
                       className="text-[#1C2530] font-semibold text-xl"
                       dangerouslySetInnerHTML={{ __html: post.title.rendered }}
                     />
-                    <p
-                      className="text-[#3D4752] font-normal text-sm"
-                      dangerouslySetInnerHTML={{ __html: post.excerpt.rendered }}
-                    />
+                    {post.excerpt?.rendered ? (
+                      <p
+                        className="text-[#3D4752] font-normal text-sm"
+                        dangerouslySetInnerHTML={{ __html: post.excerpt.rendered }}
+                      />
+                    ) : null}
                   </div>
                 </div>
               ))}
