@@ -73,7 +73,7 @@ export default async function Categories() {
                     )}
                     </div>
                     <div className="flex flex-col mt-3">
-                    <h3 className="text-[#1C2530] font-semibold text-xl mb-3">{cat.name}</h3>
+                    <p className="text-[#1C2530] font-semibold text-xl mb-3">{cat.name}</p>
                     <Link
                       href={`/categories/${cat.slug}`}
                       className="mt-auto text-center border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold text-sm py-2 rounded-sm block"

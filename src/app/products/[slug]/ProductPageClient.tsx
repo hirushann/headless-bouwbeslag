@@ -695,7 +695,7 @@ export default function ProductPageClient({ product }: { product: any }) {
                                     }
                                   }}
                                 >
-                                  Wij zijn de goedkoopste
+                                  Laagste prijs garantie
                                 </button>
                               )}
                             </>
@@ -748,9 +748,9 @@ export default function ProductPageClient({ product }: { product: any }) {
                     {/* Dynamic Order Colours */}
                     {orderColors.length > 0 && (
                       <div className="flex gap-2 items-center">
-                        <h2 className="font-semibold text-base lg:text-lg lg:mb-2">
+                        <p className="font-semibold text-base lg:text-lg lg:mb-2">
                           Andere kleuren van dit product:
-                        </h2>
+                        </p>
 
                         <div className="flex gap-3">
                           {orderColors.map((colour: { name: string; color: string; slug?: string }) => (
@@ -766,7 +766,7 @@ export default function ProductPageClient({ product }: { product: any }) {
                     {orderModels.length > 0 && (
                       <div>
                         <div className="flex items-center justify-between mb-2">
-                          <h2 className="font-semibold text-base lg:text-lg">Zoek je soms een ander model?</h2>
+                          <p className="font-semibold text-base lg:text-lg">Zoek je soms een ander model?</p>
                           {orderModels.length > 5 && (
                           <div className="flex gap-2">
                             <button
@@ -825,7 +825,7 @@ export default function ProductPageClient({ product }: { product: any }) {
                     {/* Volume Discount Section */}
                     {discounts.length > 0 && (
                       <div className="bg-white border border-white rounded-lg p-4 flex items-center gap-8">
-                        <h2 className="font-semibold text-base lg:text-lg">Volume korting:</h2>
+                        <p className="font-semibold text-base lg:text-lg">Volume korting:</p>
                         <div className="flex gap-8 items-start">
                           <div>
                             <p className='mb-1 text-[#3D4752] font-medium text-base lg:text-lg'>Aantal:</p>
@@ -1021,11 +1021,11 @@ export default function ProductPageClient({ product }: { product: any }) {
                     <div>
                         <p className='text-[#212121] font-medium text-lg mb-3'>Heb je vragen over dit product? Wij helpen je graag!</p>
                         <div className='flex gap-3 items-center justify-center'>
-                            <a href={`mailto:info@example.com?subject=${encodeURIComponent(productTitle)}`} className='border border-[#0066FF] rounded-sm py-2.5 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors'>
+                            <a href={`mailto:contact@bouwbeslag.nl?subject=${encodeURIComponent(productTitle)}`} className='border border-[#0066FF] rounded-sm py-2.5 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors'>
                                 <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-5 transition-colors"><path d="M1.5 8.67v8.58a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3V8.67l-8.928 5.493a3 3 0 0 1-3.144 0L1.5 8.67Z" /><path d="M22.5 6.908V6.75a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3v.158l9.714 5.978a1.5 1.5 0 0 0 1.572 0L22.5 6.908Z" /></svg></span>
                                 Mail ons
                             </a>
-                            <a href={`https://wa.me/31614384844?text=${encodeURIComponent(`Hello, I'm interested in the product ${productTitle} (SKU: ${productSKU})`)}`} className='border border-[#0066FF] rounded-sm py-2 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors' target="_blank" rel="noopener noreferrer">
+                            <a href={`https://wa.me/31614384844?text=${encodeURIComponent(`Hoi! Ik heb een vraag over ${productTitle} (SKU: ${productSKU}). Die vraag luidt:`)}`} className='border border-[#0066FF] rounded-sm py-2 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors' target="_blank" rel="noopener noreferrer">
                                 <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" fill="currentColor" className="size-6"><path d="M476.9 161.1C435 119.1 379.2 96 319.9 96C197.5 96 97.9 195.6 97.9 318C97.9 357.1 108.1 395.3 127.5 429L96 544L213.7 513.1C246.1 530.8 282.6 540.1 319.8 540.1L319.9 540.1C442.2 540.1 544 440.5 544 318.1C544 258.8 518.8 203.1 476.9 161.1zM319.9 502.7C286.7 502.7 254.2 493.8 225.9 477L219.2 473L149.4 491.3L168 423.2L163.6 416.2C145.1 386.8 135.4 352.9 135.4 318C135.4 216.3 218.2 133.5 320 133.5C369.3 133.5 415.6 152.7 450.4 187.6C485.2 222.5 506.6 268.8 506.5 318.1C506.5 419.9 421.6 502.7 319.9 502.7zM421.1 364.5C415.6 361.7 388.3 348.3 383.2 346.5C378.1 344.6 374.4 343.7 370.7 349.3C367 354.9 356.4 367.3 353.1 371.1C349.9 374.8 346.6 375.3 341.1 372.5C308.5 356.2 287.1 343.4 265.6 306.5C259.9 296.7 271.3 297.4 281.9 276.2C283.7 272.5 282.8 269.3 281.4 266.5C280 263.7 268.9 236.4 264.3 225.3C259.8 214.5 255.2 216 251.8 215.8C248.6 215.6 244.9 215.6 241.2 215.6C237.5 215.6 231.5 217 226.4 222.5C221.3 228.1 207 241.5 207 268.8C207 296.1 226.9 322.5 229.6 326.2C232.4 329.9 268.7 385.9 324.4 410C359.6 425.2 373.4 426.5 391 423.9C401.7 422.3 423.8 410.5 428.4 397.5C433 384.5 433 373.4 431.6 371.1C430.3 368.6 426.6 367.2 421.1 364.5z"/></svg></span>
                                 WhatsApp
                             </a>
@@ -1196,13 +1196,13 @@ export default function ProductPageClient({ product }: { product: any }) {
                         <div className="bg-white rounded-lg border border-white">
                             <details className="group" ref={vergelijkRef}>
                                 <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
-                                    Vergelijk dit product met andere winkels
+                                    Laagste prijs garantie voor dit product! 
                                     <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
                                     <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
                                 </summary>
                                 <div className="px-6 pb-4 text-gray-700 space-y-4">
                                     <div className='mt-1 flex flex-col gap-3'>
-                                        <p className='text-[#3D4752] font-normal text-base'>Wij helpen je graag: dit product staat ook bekend onder artikelnummers:</p>
+                                        <p className='text-[#3D4752] font-normal text-base'>Wij beloven je dat je dit artikel elders niet goedkoper tegenkomt. Is dat wel zo? Dan matchen wij de prijs én geven je nog eens 10% extra korting op de prijs van de concurrent. <a href="">Meld hier</a> je laagste prijs match aanvraag. <br></br> Om je te helpen te googelen om de producten bij concurrenten te vinden geven we hier al de artikelnummers waarvan wij weten dat dit artikel bekend staat:</p>
                                         {(() => {
                                           if (!product?.meta_data) return null;
                                           const keys = [

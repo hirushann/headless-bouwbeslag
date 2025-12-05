@@ -36,3 +36,20 @@ body {
   outline-offset: 4px;
   transition: outline 0.3s ease-in-out;
 }
+
+.category-description-style h1{
+    font-size: 28px;
+    font-weight: 700;
+}
+.category-description-style p {
+    font-size: 16px;
+    line-height: 1.8;
+    font-weight: 400;
+    margin-bottom: 15px;
+}
+
+.category-description-style h2{
+    font-size: 20px;
+    font-weight: 600;
+    margin-top: 15px;
+}

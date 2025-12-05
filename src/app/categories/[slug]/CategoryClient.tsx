@@ -219,7 +219,7 @@ export default function CategoryClient({
           {/* Main Content */}
           <main className="flex-1">
             <div className="flex justify-between items-end mb-4">
-              <h1 className="text-3xl font-bold">{category?.name ?? "Category"}</h1>
+              <p className="text-3xl font-bold">{category?.name ?? "Category"}</p>
               <div className='flex gap-3 '>
                 <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="select focus:outline-0 focus:ring-0 w-32 border border-[#808D9A] rounded-sm bg-[F7F7F7] h-8">
                   <option disabled={true} value="">Sorteer op</option>
@@ -291,7 +291,7 @@ export default function CategoryClient({
             {/* Category description above subcategories */}
             {category?.description && (
               <div
-                className="my-6 prose prose-blue max-w-none leading-relaxed text-gray-800"
+                className="my-6 prose prose-blue max-w-none leading-relaxed text-gray-800 category-description-style"
                 dangerouslySetInnerHTML={{ __html: category.description }}
               />
             )}
@@ -304,7 +304,7 @@ export default function CategoryClient({
               return (
                 selectedSub?.description && (
                   <div
-                    className="mt-4 mb-8 prose prose-blue max-w-none leading-relaxed text-gray-800"
+                    className="mt-4 mb-8 prose prose-blue max-w-none leading-relaxed text-gray-800 category-description-style"
                     dangerouslySetInnerHTML={{ __html: selectedSub.description }}
                   />
                 )

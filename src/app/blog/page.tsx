@@ -97,7 +97,7 @@ export default async function BlogPage() {
                   <p className="text-[#0066FF] text-sm">
                     {formatDate(post.date)}
                   </p>
-                  <h2
+                  <p
                     className="text-xl font-semibold hover:underline text-[#1C2530]"
                     dangerouslySetInnerHTML={{ __html: post.title.rendered }}
                   />
