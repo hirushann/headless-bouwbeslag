@@ -521,7 +521,7 @@ export default function ProductPageClient({ product }: { product: any }) {
 
   return (
     <div className='bg-[#F5F5F5] font-sans'>
-        <div className="max-w-[1440px] mx-auto py-8 px-5 lg:px-0">
+        <div className="max-w-[1440px] mx-auto py-4 lg:py-8 px-5 lg:px-0">
             {/* ✅ Dynamic Breadcrumb */}
             <div className="text-sm text-gray-500 mb-6 flex items-center gap-2 flex-wrap">
               {/* Home */}
@@ -567,7 +567,7 @@ export default function ProductPageClient({ product }: { product: any }) {
                 ));
               })()}
             </div>
-            <div className="flex flex-col lg:flex-row gap-8">
+            <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
                 {/* Left side: Images */}
                 <div className="lg:w-1/2">
                     <img src={selectedImage} alt="Main Product" className="w-full h-auto rounded-lg object-cover mb-4" />
@@ -662,7 +662,7 @@ export default function ProductPageClient({ product }: { product: any }) {
                     </div>
                     {/* Title and Brand */}
                     <div>
-                        <h1 className="text-3xl font-bold text-[#1C2530]">{productTitle}</h1>
+                        <h1 className="text-2xl lg:text-3xl font-bold text-[#1C2530]">{productTitle}</h1>
                     </div>
 
                     {/* Price and Discount */}
@@ -687,12 +687,12 @@ export default function ProductPageClient({ product }: { product: any }) {
                           {sale !== null && sale !== undefined ? (
                             <>
                               <div className="flex items-baseline gap-1">
-                              <span className="text-3xl font-bold text-[#0066FF]">
+                              <span className="text-2xl lg:text-3xl font-bold text-[#0066FF]">
                                 {currency}
                                 {sale.toFixed(2)}
                               </span>
                                 {packingType && (
-                                  <span className="text-lg font-medium text-[#3D4752] ml-3">
+                                  <span className="text-base lg:text-lg font-medium text-[#3D4752] ml-3">
                                    per: {packingType}
                                   </span>
                                 )}
@@ -711,12 +711,14 @@ export default function ProductPageClient({ product }: { product: any }) {
                               {isCheapestPriceEnabled && (
                                 <button
                                   className='bg-[#5ca139] px-[12px] py-[5px] rounded-sm text-white text-[13px] font-bold cursor-pointer'
-                                  onClick={() => {
-                                    if (vergelijkRef.current) {
-                                      vergelijkRef.current.open = true;
-                                      vergelijkRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-                                    }
-                                  }}
+                                    onClick={() => {
+                                      if (vergelijkRef.current) {
+                                        vergelijkRef.current.open = true;
+                                        const yOffset = -280; // Increased offset to prevent header overlap
+                                        const y = vergelijkRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                                        window.scrollTo({ top: y, behavior: "smooth" });
+                                      }
+                                    }}
                                 >
                                   Laagste prijs garantie
                                 </button>
@@ -724,12 +726,12 @@ export default function ProductPageClient({ product }: { product: any }) {
                             </>
                           ) : (
                             advised !== null ? (
-                              <span className="text-3xl font-bold text-[#0066FF]">
+                              <span className="text-2xl lg:text-3xl font-bold text-[#0066FF]">
                                 {currency}
                                 {advised.toFixed(2)}
                               </span>
                             ) : (
-                              <span className="text-3xl font-bold text-[#0066FF]">
+                              <span className="text-2xl lg:text-3xl font-bold text-[#0066FF]">
                                 Price not available
                               </span>
                             )
@@ -881,7 +883,7 @@ export default function ProductPageClient({ product }: { product: any }) {
                     {/* Quantity Selector and Add to Cart */}
                     <div className="flex flex-wrap lg:flex-nowrap items-center gap-4 mt-4 justify-between">
                         <div className='w-5/12 lg:w-3/12 flex justify-center items-center'>
-                        <p className="text-3xl font-bold text-[#1C2530]">
+                        <p className="text-2xl lg:text-3xl font-bold text-[#1C2530]">
                           {(() => {
                             const getMeta = (key: string) =>
                               product?.meta_data?.find((m: any) => m.key === key)?.value;
@@ -1270,7 +1272,7 @@ export default function ProductPageClient({ product }: { product: any }) {
                                 </summary>
                                 <div className="px-6 pb-4 text-gray-700 space-y-4">
                                     <div className='flex flex-col gap-4'>
-                                        <p className='text-[#3D4752] font-normal text-base'>Download technische tekeningen, installatiehandleidingen en productcertificaten.</p>
+                                        <p className='text-[#3D4752] font-normal text-base'>Download Technische documentatie, Installatie instructies, Product certificaat en Onderhoudsinstructies.</p>
                                         <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
                                             {manualPdf && (
                                             <div className='bg-[#F3F8FF] rounded-sm p-4 flex items-center justify-between'>
@@ -1882,14 +1884,14 @@ export default function ProductPageClient({ product }: { product: any }) {
           </div>
         </div>
 
-        <div className={`fixed bottom-0 left-0 w-full bg-white text-black p-4 shadow-md 
+        <div className={`fixed bottom-0 left-0 w-full bg-white text-black p-3 lg:p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] 
                   transition-transform duration-300 ease-in-out z-50 ${
                     isVisible ? 'translate-y-0' : 'translate-y-full'
                   }`}>
-            <div className="flex flex-wrap lg:flex-nowrap items-center gap-4 justify-center">
-                <div className="flex flex-wrap lg:flex-nowrap items-center gap-4 mt-4 justify-between">
+            <div className="flex flex-col lg:flex-row items-center gap-3 lg:gap-4 justify-center max-w-[1440px] mx-auto">
+                <div className="flex items-center gap-4 w-full lg:w-auto justify-center lg:justify-between lg:justify-start flex-wrap lg:flex-nowrap">
                     <div className='flex justify-center items-center'>
-                      <p className="text-3xl font-bold text-[#1C2530]">
+                      <p className="text-xl lg:text-3xl font-bold text-[#1C2530]">
                         {(() => {
                           const getMeta = (key: string) =>
                             product?.meta_data?.find((m: any) => m.key === key)?.value;
@@ -1941,7 +1943,7 @@ export default function ProductPageClient({ product }: { product: any }) {
                         >+</button>
                     </div>
 
-                    <div className=''>
+                    <div className='w-full lg:w-auto'>
                       <div className="relative group">
                         <button
                           type="button"
