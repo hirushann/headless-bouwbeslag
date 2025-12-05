@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { motion } from "framer-motion";
 
 interface Category {
   id: number;
@@ -15,7 +16,11 @@ interface CategoriesSidebarProps {
 
 export default function CategoriesSidebar({ categories }: CategoriesSidebarProps) {
   return (
-    <div className="bg-[#FFFFFF] shadow-[0px_20px_24px_0px_#0000000A] rounded-[4px] w-[27%] hidden lg:block">
+    <motion.div
+      initial={{ opacity: 0, y: 50 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8, ease: "easeOut" }}
+     className="bg-[#FFFFFF] shadow-[0px_20px_24px_0px_#0000000A] rounded-[4px] w-[27%] hidden lg:block">
         <div className="border-b border-[#F1F1F1] flex items-center p-5">
             <p className="font-bold text-[22px]">All Categories</p>
         </div>
@@ -43,6 +48,6 @@ export default function CategoriesSidebar({ categories }: CategoriesSidebarProps
             </Link>
           );
         })}
-    </div>
+    </motion.div>
   );
 }

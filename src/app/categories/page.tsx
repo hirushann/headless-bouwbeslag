@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import api from "@/lib/woocommerce";
+import CategoriesGrid from "@/components/CategoriesGrid";
 
 interface Category {
   id: number;
@@ -61,29 +62,7 @@ export default async function Categories() {
             </p>
 
             {/* Categories Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                {categories.filter(cat => cat.parent === 0).map((cat) => (
-                <div key={cat.id} className="border border-[#DBE3EA] rounded-sm p-4 shadow-[0px_20px_24px_0px_#0000000A] bg-white flex flex-col overflow-hidden">
-                    <div className="relative h-40 w-full">
-                    {cat.image ? (
-                      
-                      <Image src={cat.image.src} alt={cat.name} fill className="object-cover rounded-sm" />
-                    ) : (
-                      <div className="bg-gray-200 h-full w-full rounded-sm" />
-                    )}
-                    </div>
-                    <div className="flex flex-col mt-3">
-                    <p className="text-[#1C2530] font-semibold text-xl mb-3">{cat.name}</p>
-                    <Link
-                      href={`/categories/${cat.slug}`}
-                      className="mt-auto text-center border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold text-sm py-2 rounded-sm block"
-                    >
-                      Bekijk alle {cat.name}
-                    </Link>
-                    </div>
-                </div>
-                ))}
-            </div>
+            <CategoriesGrid categories={categories} />
         </div>
         <div className="bg-white py-5">
             <div className="max-w-[1440px] mx-auto px-1">

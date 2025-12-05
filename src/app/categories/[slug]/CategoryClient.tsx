@@ -3,6 +3,22 @@
 import { useEffect, useState } from "react";
 import api from "@/lib/woocommerce";
 import ShopProductCard from "@/components/ShopProductCard";
+import { motion } from "framer-motion";
+
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 }
+};
 
 
 
@@ -135,6 +151,11 @@ export default function CategoryClient({
         <div className="flex flex-col lg:flex-row gap-2 lg:gap-8">
           
           <aside className="w-full lg:w-1/4 relative">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+            >
             <button
               type="button"
               onClick={() => setShowFilters(false)}
@@ -214,6 +235,7 @@ export default function CategoryClient({
                 </>
               )}
             </div>
+            </motion.div>
           </aside>
 
           {/* Main Content */}
@@ -281,11 +303,18 @@ export default function CategoryClient({
             ) : products.length === 0 ? (
               <p>Geen producten gevonden in deze categorie.</p>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 lg:gap-6">
+              <motion.div 
+                variants={container}
+                initial="hidden"
+                animate="show"
+                className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 lg:gap-6"
+              >
                 {products.map((product) => (
-                  <ShopProductCard key={product.id} product={product} />
+                  <motion.div key={product.id} variants={item} className="h-full">
+                    <ShopProductCard product={product} />
+                  </motion.div>
                 ))}
-              </div>
+              </motion.div>
             )}
 
             {/* Category description above subcategories */}

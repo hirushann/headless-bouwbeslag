@@ -8,6 +8,7 @@ import BestSellersCarousel from "@/components/carousels/BestSellers";
 import RecommendedCarousel from "@/components/carousels/Recommended";
 import CategoriesSidebar from "@/components/carousels/CategoriesSidebar";
 import HeroSection from "@/components/HeroSection";
+import FadeIn from "@/components/animations/FadeIn";
 
 export default async function Home() {
   const bestSellers = await api
@@ -41,7 +42,7 @@ export default async function Home() {
           <HeroSection />
         </div>
 
-        <div className="hidden lg:flex gap-6 items-center font-sans mb-4">
+        <FadeIn className="hidden lg:flex gap-6 items-center font-sans mb-4" delay={0.2}>
           <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
             <Image className="" src="/card1icon.png" alt="" width={48} height={48} />
             <h2 className="text-[#1C2530] font-semibold text-lg">Gegarandeerd de beste prijs</h2>
@@ -62,14 +63,19 @@ export default async function Home() {
             <h2 className="text-[#1C2530] font-semibold text-lg">Uitsluitend  A-merken</h2>
             <p className="text-[#3D4752] font-normal text-sm">Er zijn genoeg sites waar je voor een tientje deurklinken koopt. Wij houden het liever bij merken die zich bewezen hebben.</p>
           </div>
-        </div>
+        </FadeIn>
 
         {/* Best Sellers */}
-        <BestSellersCarousel products={bestSellers} />
+        {/* Best Sellers */}
+        <FadeIn delay={0.3}>
+          <BestSellersCarousel products={bestSellers} />
+        </FadeIn>
 
         {/* Recommended Products */}
         {recommended?.length > 0 && (
-          <RecommendedCarousel products={recommended} />
+          <FadeIn delay={0.4}>
+            <RecommendedCarousel products={recommended} />
+          </FadeIn>
         )}
 
         {/* Shop by Categories */}
@@ -144,7 +150,7 @@ export default async function Home() {
         </div>
 
         {/* Read our blog */}
-        <div className="w-full py-10 px-5 lg:px-0">
+        <FadeIn className="w-full py-10 px-5 lg:px-0" delay={0.5}>
           <div className="flex justify-between items-center mb-2">
             <h2 className="text-3xl font-bold text-[#1C2530]">Lees onze blog</h2>
             <div className="flex gap-2 items-center">
@@ -171,12 +177,12 @@ export default async function Home() {
                     <p className="text-[#0066FF] font-normal text-sm">
                       {new Date(post.date).toISOString().split("T")[0]}
                     </p>
-                    <p
+                    <div
                       className="text-[#1C2530] font-semibold text-xl"
                       dangerouslySetInnerHTML={{ __html: post.title.rendered }}
                     />
                     {post.excerpt?.rendered ? (
-                      <p
+                      <div
                         className="text-[#3D4752] font-normal text-sm"
                         dangerouslySetInnerHTML={{ __html: post.excerpt.rendered }}
                       />
@@ -186,10 +192,10 @@ export default async function Home() {
               ))}
             </div>
           </div>
-        </div>
+        </FadeIn>
 
         {/* Bottom Content */}
-        <div className="w-full py-10 px-5 lg:px-0">
+        <FadeIn className="w-full py-10 px-5 lg:px-0" delay={0.6}>
           <div className="flex flex-col gap-6 mb-12">
             <h3 className="text-[#1C2530] font-semibold text-2xl">Het belang van kwaliteitsdeurbeslag</h3>
             <p className="text-[#3D4752] font-normal text-base">Deurklinken zijn onmisbaar in elk huis. Ze maken het openen en sluiten van deuren eenvoudig en dragen bij aan de algehele uitstraling van uw interieur. Omdat deurklinken onderdeel zijn van het deurbeslag, is de keuze van materialen en afwerking belangrijk. Bij Bouwbeslag.com vindt u een breed scala aan hoogwaardige deurklinken in diverse stijlen en materialen.</p>
@@ -291,7 +297,7 @@ export default async function Home() {
             <h3 className="text-[#1C2530] font-semibold text-2xl">Een deurklink in alle soorten en maten</h3>
             <p className="text-[#3D4752] font-normal text-base">Bij Bouwbeslag.com vindt u deurklinken met rozetten, schilden, sleutelgaten (PC), toiletsloten, blinden en speciaal veiligheidsbeslag voor buitendeuren. De materialen variëren van roestvrij staal en messing tot aluminium en brons. Voor wie weinig onderhoud wil, zijn krasbestendige materialen zoals roestvrij staal of titanium de beste keuze. Ook kleur speelt een rol: kies voor klassiek zilver, strak zwart of een opvallende afwerking die past bij uw interieurstijl.</p>
           </div>
-        </div>
+        </FadeIn>
 
       </div>
     </main>

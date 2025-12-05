@@ -3,6 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCartStore } from "@/lib/cartStore";
 
+import { fixImageSrc } from "@/lib/image-utils";
+
 export default function ShopProductCard({ product }: { product: any }) {
   // Format price safely (remove weird HTML entities)
   const cleanPrice = (price: string) =>
@@ -25,7 +27,7 @@ export default function ShopProductCard({ product }: { product: any }) {
   return (
     <div className="snap-start shrink-0 w-[100%] border border-[#E2E2E2] rounded-lg shadow-sm bg-[#F7F7F7] flex flex-col h-full">
         <Link href={`/products/${product.slug}`} className="relative h-48 bg-white rounded-tl-lg rounded-tr-lg overflow-hidden">
-            <Image src={product.images?.[0]?.src || "/placeholder.png"} alt={product.name || "Product image"} fill className="object-contain"/>
+            <Image src={fixImageSrc(product.images?.[0]?.src)} alt={product.name || "Product image"} fill className="object-contain"/>
 
             {/* Dynamic stock badge */}
             {product.stock_status === "instock" ? (
