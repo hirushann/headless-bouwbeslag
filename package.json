@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@woocommerce/woocommerce-rest-api": "^1.0.2",
+    "framer-motion": "^12.23.25",
     "next": "15.5.3",
     "photoswipe": "^5.4.4",
     "react": "19.1.0",

@@ -66,17 +66,28 @@ export default function ProductPageClient({ product }: { product: any }) {
     return idx;
   }, [discounts]);
 
-  const [isVisible, setIsVisible] = useState(true);
+  const addToCartRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
   useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollPos = window.pageYOffset;
-      setIsVisible(currentScrollPos > 50);
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // Show sticky footer only when the main button is scrolled OUT of view (top < 0)
+        setIsVisible(!entry.isIntersecting && entry.boundingClientRect.top < 0);
+      },
+      {
+        threshold: 0,
+        rootMargin: "0px" 
+      }
+    );
+
+    if (addToCartRef.current) {
+      observer.observe(addToCartRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
     };
-
-    window.addEventListener("scroll", handleScroll);
-    handleScroll();
-
-    return () => window.removeEventListener("scroll", handleScroll);
   }, []); 
 
 
@@ -446,7 +457,8 @@ export default function ProductPageClient({ product }: { product: any }) {
     }
   }, [product]);
 
-  const productTitle = product?.meta_data?.find((m: any) => m.key === "crucial_data_product_name")?.value || product?.name || "";
+  // const productTitle = product?.meta_data?.find((m: any) => m.key === "crucial_data_product_name")?.value || product?.name || "";
+  const productTitle = product?.meta_data?.find((m: any) => m.key === "description_bouwbeslag_title")?.value || product?.name || "";
   
   const getMetaValue = (key: string) =>
   product?.meta_data?.find((m: any) => m.key === key)?.value || null;
@@ -662,6 +674,10 @@ export default function ProductPageClient({ product }: { product: any }) {
                       const currency = product.currency_symbol || "€";
                       const advised = advisedRaw !== undefined && advisedRaw !== null && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
                       const sale = saleRaw !== undefined && saleRaw !== null && !isNaN(parseFloat(saleRaw)) ? parseFloat(saleRaw) : null;
+                      
+                      // Get packing_type attribute
+                      const packingType = product?.attributes?.find((attr: any) => attr.slug === "pa_packing_type")?.options?.[0];
+
                       let discountPercent: number | null = null;
                       if (advised && sale && advised > 0) {
                         discountPercent = Math.round(((advised - sale) / advised) * 100);
@@ -670,10 +686,17 @@ export default function ProductPageClient({ product }: { product: any }) {
                         <div className="flex items-center gap-4">
                           {sale !== null && sale !== undefined ? (
                             <>
+                              <div className="flex items-baseline gap-1">
                               <span className="text-3xl font-bold text-[#0066FF]">
                                 {currency}
                                 {sale.toFixed(2)}
                               </span>
+                                {packingType && (
+                                  <span className="text-lg font-medium text-[#3D4752] ml-3">
+                                   per: {packingType}
+                                  </span>
+                                )}
+                              </div>
                               {advised !== null && discountPercent !== null && advised > sale ? (
                                 <div
                                   className="tooltip tooltip-right"
@@ -910,7 +933,7 @@ export default function ProductPageClient({ product }: { product: any }) {
                             >+</button>
                         </div>
 
-                        <div className='w-full lg:w-6/12'>
+                        <div className='w-full lg:w-6/12' ref={addToCartRef}>
                           <div className="relative group">
                             <button
                               type="button"
@@ -1371,34 +1394,25 @@ export default function ProductPageClient({ product }: { product: any }) {
                                     <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
                                 </summary>
                                 <div className="px-6 pb-4 text-gray-700 space-y-4">
-                                    <p className='text-[#3D4752] font-semibold text-lg'>Garantiedekking omvat:</p>
-                                    <ul className='list-disc list-inside text-[#3D4752] font-normal text-base'>
-                                        <li>Fabricagefouten in materialen en vakmanschap</li>
-                                        <li>Functionele storingen van het veermechanisme</li>
-                                        <li>Voortijdige slijtage van bewegende delen bij normaal gebruik</li>
-                                        <li>Coatingdefecten en verkleuring (exclusief normale slijtage)</li>
-                                        <li>Gratis vervanging of reparatie naar inzicht van de fabrikant</li>
-                                    </ul>
+                                    <p className='text-[#3D4752] font-semibold text-lg'>Dit product heeft [x] jaar fabrieksgarantie.</p>
                                 </div>
                                 <div className="px-6 pb-4 text-gray-700 space-y-4">
-                                    <p className='text-[#3D4752] font-semibold text-lg'>Garantiedekking omvat:</p>
+                                    <p className='text-[#3D4752] font-semibold text-lg'>Garantie omvat:</p>
                                     <ul className='list-disc list-inside text-[#3D4752] font-normal text-base'>
-                                        <li>Fabricagefouten in materialen en vakmanschap</li>
-                                        <li>Functionele storingen van het veermechanisme</li>
+                                        <li>Fabricagefouten in materialen en afwerking</li>
+                                        <li>Vroegtijdige slijtage van bewegende onderdelen bij normaal gebruik</li>
                                         <li>Voortijdige slijtage van bewegende delen bij normaal gebruik</li>
-                                        <li>Coatingdefecten en verkleuring (exclusief normale slijtage)</li>
-                                        <li>Gratis vervanging of reparatie naar inzicht van de fabrikant</li>
+                                        <li>Coatingfouten en verkleuring (uitgezonderd normale slijtage)</li>
                                     </ul>
+                                    
                                 </div>
                                 <div className="px-6 pb-4 text-gray-700 space-y-4">
-                                    <p className='text-[#3D4752] font-semibold text-lg'>Garantiedekking omvat:</p>
+                                    <p className='text-[#3D4752] font-normal text-base'>Als jij denkt recht te hebben op garantie kun je <a href='#'>hier</a> een aanvraag doen. Let op dat je de originele aankoopfactuur van bouwbeslag.nl daarbij paraat hebt. De afhandeling kan (afhankelijk van de fabrikant) bestaan uit:</p>
                                     <ul className='list-disc list-inside text-[#3D4752] font-normal text-base'>
-                                        <li>Fabricagefouten in materialen en vakmanschap</li>
-                                        <li>Functionele storingen van het veermechanisme</li>
-                                        <li>Voortijdige slijtage van bewegende delen bij normaal gebruik</li>
-                                        <li>Coatingdefecten en verkleuring (exclusief normale slijtage)</li>
-                                        <li>Gratis vervanging of reparatie naar inzicht van de fabrikant</li>
+                                        <li>Gratis vervanging of reparatie</li>
+                                        <li>Creditering van het aankoopbedrag</li>
                                     </ul>
+                                    <p>Mogelijk moet u het products eerst toezenden alvorens wij een claim kunnen maken.</p>
                                 </div>
                             </details>
                         </div>
@@ -1870,7 +1884,7 @@ export default function ProductPageClient({ product }: { product: any }) {
 
         <div className={`fixed bottom-0 left-0 w-full bg-white text-black p-4 shadow-md 
                   transition-transform duration-300 ease-in-out z-50 ${
-                    isVisible ? 'block' : 'hidden'
+                    isVisible ? 'translate-y-0' : 'translate-y-full'
                   }`}>
             <div className="flex flex-wrap lg:flex-nowrap items-center gap-4 justify-center">
                 <div className="flex flex-wrap lg:flex-nowrap items-center gap-4 mt-4 justify-between">

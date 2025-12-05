@@ -195,7 +195,7 @@ export default function CategoryClient({
                       <h3 className="font-medium mb-3 text-[#212121] text-lg">{attr.name}</h3>
                       <div className="flex flex-col gap-2 text-sm text-gray-700">
                         {attr.terms.map((term: AttributeTerm) => (
-                          <label key={term.id} className="flex items-center gap-1">
+                          <label key={term.id} className="flex items-start gap-1">
                             <div className="w-5">
                                 <input
                                 type="checkbox"
