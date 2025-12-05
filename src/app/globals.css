@@ -53,3 +53,8 @@ body {
     font-weight: 600;
     margin-top: 15px;
 }
+
+.category-description-style a{
+    font-weight: 500;
+    color: #0166FF;
+}
