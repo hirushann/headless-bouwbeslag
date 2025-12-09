@@ -14,7 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     status: "publish",
   });
 
-  const products = productRes.data.map((product: any) => {
+  const products = productRes?.data.map((product: any) => {
     const meta = product.meta_data || [];
     const acfSlug =
       meta.find((m: any) => m.key === "description_slug")?.value ||
