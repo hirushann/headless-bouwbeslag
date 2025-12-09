@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect, use } from 'react';
+import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import api from "@/lib/woocommerce";
 import Link from "next/link";
@@ -14,6 +15,25 @@ export default function ProductPageClient({ product }: { product: any }) {
   useEffect(() => {
     console.log("🟦 ProductPageClient → product data:", product);
   }, [product]);
+
+  const fadeInUp = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.5 }
+    }
+  };
+
+  const staggerContainer = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
   const addItem = useCartStore((state) => state.addItem);
   const items = useCartStore((state) => state.items);
   const [selectedImage, setSelectedImage] = useState('/afbeelding.png');
@@ -521,9 +541,14 @@ export default function ProductPageClient({ product }: { product: any }) {
 
   return (
     <div className='bg-[#F5F5F5] font-sans'>
-        <div className="max-w-[1440px] mx-auto py-4 lg:py-8 px-5 lg:px-0">
+        <motion.div 
+          className="max-w-[1440px] mx-auto py-4 lg:py-8 px-5 lg:px-0"
+          initial="hidden"
+          animate="visible"
+          variants={staggerContainer}
+        >
             {/* ✅ Dynamic Breadcrumb */}
-            <div className="text-sm text-gray-500 mb-6 flex items-center gap-2 flex-wrap">
+            <motion.div variants={fadeInUp} className="text-sm text-gray-500 mb-6 flex items-center gap-2 flex-wrap">
               {/* Home */}
               <Link href="/" className="hover:underline flex items-center gap-1 text-black">
                 <svg
@@ -566,10 +591,10 @@ export default function ProductPageClient({ product }: { product: any }) {
                   </React.Fragment>
                 ));
               })()}
-            </div>
+            </motion.div>
             <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
                 {/* Left side: Images */}
-                <div className="lg:w-1/2">
+                <motion.div variants={fadeInUp} className="lg:w-1/2">
                     <img src={selectedImage} alt="Main Product" className="w-full h-auto rounded-lg object-cover mb-4" />
                     {/* Thumbnails Carousel with slice-based logic */}
                     <div className="flex items-center gap-2 mt-2">
@@ -646,10 +671,10 @@ export default function ProductPageClient({ product }: { product: any }) {
                         </div>
                     </div>
                     )}
-                </div>
+                </motion.div>
 
                 {/* Right side: Product details */}
-                <div className="lg:w-1/2 flex flex-col gap-5">
+                <motion.div variants={fadeInUp} className="lg:w-1/2 flex flex-col gap-5">
                     <div>
                         {/* <Image src="/productcatlogo.png" className="w-auto h-auto" alt="Product Category Logo" width={50} height={50} /> */}
                         {brandImageUrl && (
@@ -1060,7 +1085,7 @@ export default function ProductPageClient({ product }: { product: any }) {
                             </a>
                         </div>
                     </div>
-                </div>
+                    </motion.div>
                 <div className='text-[#1C2530] font-bold text-3xl mt-3 lg:mt-8 block lg:hidden'>
                     <h3 className='text-lg'>Handig om erbij te bestellen</h3>
                     <div className='grid grid-cols-1 lg:grid-cols-3 gap-2 lg:gap-4 mt-4'>
@@ -1396,7 +1421,14 @@ export default function ProductPageClient({ product }: { product: any }) {
                                     <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
                                 </summary>
                                 <div className="px-6 pb-4 text-gray-700 space-y-4">
-                                    <p className='text-[#3D4752] font-semibold text-lg'>Dit product heeft [x] jaar fabrieksgarantie.</p>
+                                    <p className='text-[#3D4752] font-semibold text-lg'>
+                                      {(() => {
+                                        const guarantee = product?.meta_data?.find((m: any) => m.key === "crucial_data_guarantee_period")?.value;
+                                        return guarantee 
+                                          ? `Dit product heeft ${guarantee} jaar fabrieksgarantie.`
+                                          : "Dit product heeft [x] jaar fabrieksgarantie.";
+                                      })()}
+                                    </p>
                                 </div>
                                 <div className="px-6 pb-4 text-gray-700 space-y-4">
                                     <p className='text-[#3D4752] font-semibold text-lg'>Garantie omvat:</p>
@@ -1492,9 +1524,15 @@ export default function ProductPageClient({ product }: { product: any }) {
                     </div>
                 </div>
             </div>
-        </div>
+        </motion.div>
 
-        <div className='bg-white py-4'>
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+          className='bg-white py-4'
+        >
           <div className='max-w-[1440px] mx-auto py-8 px-5 lg:px-0'>
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
               {matchingProducts && matchingProducts.length > 0 && (
@@ -1882,7 +1920,7 @@ export default function ProductPageClient({ product }: { product: any }) {
               )}
             </div>
           </div>
-        </div>
+        </motion.div>
 
         <div className={`fixed bottom-0 left-0 w-full bg-white text-black p-3 lg:p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] 
                   transition-transform duration-300 ease-in-out z-50 ${

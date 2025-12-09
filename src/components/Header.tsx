@@ -323,7 +323,7 @@ export default function Header() {
       <div>
         {/* Backdrop */}
         <div
-          className={`fixed top-[180px] left-0 right-0 bottom-0 bg-black/20 z-40 transition-opacity duration-300 ${
+          className={`fixed top-0 left-0 right-0 bottom-0 bg-black/20 z-[60] transition-opacity duration-300 ${
             isCartOpen
               ? "opacity-100 pointer-events-auto"
               : "opacity-0 pointer-events-none"
@@ -332,31 +332,43 @@ export default function Header() {
           aria-label="Close cart backdrop"
         />
         {/* Drawer */}
-        <div className={`z-[999999] fixed top-[180px] right-0 h-[calc(100%-120px)] w-full lg:w-150 bg-white shadow-lg z-50 transform transition-transform duration-300 ${ isCartOpen ? "translate-x-0" : "translate-x-full" }`} aria-hidden={!isCartOpen}>
+        <div className={`fixed top-0 right-0 h-full w-full lg:w-150 bg-white shadow-lg z-[70] transform transition-transform duration-300 ${ isCartOpen ? "translate-x-0" : "translate-x-full" }`} aria-hidden={!isCartOpen}>
           <div className="flex flex-col h-full">
             <div className="flex justify-between items-center border-b border-[#E9E9E9] p-4 bg-[#F7F7F7]">
               <h2 className="text-lg font-medium text-[#1C2530]">Toegevoegd aan winkelmand</h2>
-              <button onClick={() => setIsCartOpen(false)} aria-label="Close cart" className="text-2xl font-bold leading-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-5 cursor-pointer"><path fillRule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" /></svg>
+              <button onClick={() => setIsCartOpen(false)} aria-label="Close cart" className="text-2xl font-bold leading-none hover:text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-6 cursor-pointer"><path fillRule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" /></svg>
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 mb-8">
               {items.length === 0 ? (
-                <p className="text-gray-500 text-sm">Your cart is empty</p>
+                <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-16 text-gray-300 mb-4"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>
+                    <p className="text-gray-500 font-medium">Je winkelwagen is leeg</p>
+                    <button onClick={() => setIsCartOpen(false)} className="mt-4 text-[#0066FF] font-semibold hover:underline">Verder winkelen</button>
+                </div>
               ) : (
                 <>
                   {items.map((item) => (
                     <div key={item.id} className="flex gap-2 items-center justify-between p-3 mb-3 border border-[#DEDEDE] rounded-sm relative flex-col lg:flex-row">
                         <div className="flex items-center gap-4">
-                            <img src={item.image} alt={item.name} className="w-28 h-28 object-cover rounded" />
+                            {item.image ? (
+                                <img src={item.image} alt={item.name} className="w-28 h-28 object-cover rounded bg-gray-100" />
+                            ) : (
+                                <div className="w-28 h-28 bg-gray-100 rounded flex items-center justify-center text-gray-400">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-8"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
+                                </div>
+                            )}
                             <div>
                             <h3 className="font-semibold">{item.name}</h3>
-                                <div className="flex gap-2 ">
-                                    <p className="text-sm text-gray-600 border-r border-[#E6E6E6] pr-2">Color: {item.color}</p>
-                                    <p className="text-sm text-gray-600 border-r border-[#E6E6E6] pr-2">Brand: {item.brand}</p>
-                                    <p className="text-sm text-gray-600">Model: {item.model}</p>
-                                </div>
-                            <p className="text-green-600 text-sm mt-1">Ready to ship in 1–3 days</p>
+                                {(item.color || item.brand || item.model) && (
+                                  <div className="flex gap-2 flex-wrap mt-1">
+                                      {item.color && <p className="text-sm text-gray-600 border-r border-[#E6E6E6] pr-2 last:border-0 last:pr-0">Color: {item.color}</p>}
+                                      {item.brand && <p className="text-sm text-gray-600 border-r border-[#E6E6E6] pr-2 last:border-0 last:pr-0">Brand: {item.brand}</p>}
+                                      {item.model && <p className="text-sm text-gray-600 border-r border-[#E6E6E6] pr-2 last:border-0 last:pr-0">Model: {item.model}</p>}
+                                  </div>
+                                )}
+                            <p className="text-green-600 text-sm mt-1">Direct leverbaar</p>
                             </div>
                         </div>
                         <div className="flex w-full lg:w-auto flex-row-reverse lg:flex-col items-center lg:items-end gap-2">
