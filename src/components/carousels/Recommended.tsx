@@ -52,7 +52,7 @@ export default function RecommendedCarousel({ products }: RecomendedCarouselProp
       </div>
 
       <div ref={trackRef} className="flex gap-4 overflow-x-auto snap-x no-scrollbar">
-        {products.map((p) => (
+        {(Array.isArray(products) ? products : []).map((p) => (
           <div key={p.id} className="snap-start shrink-0 w-[24%]">
             <ProductCard product={p} />
           </div>

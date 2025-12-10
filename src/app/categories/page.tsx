@@ -40,8 +40,18 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Categories() {
-  const res = await api.get("products/categories", { per_page: 50 });
-  const categories: Category[] = res.data;
+  let categories: Category[] = [];
+
+  try {
+    const res = await api.get("products/categories", { per_page: 50 });
+    categories = Array.isArray(res.data) ? res.data : [];
+  } catch (err: any) {
+    console.error("Error fetching categories:", err.response?.data || err.message);
+  }
+
+  console.log("--- DEBUG CATEGORIES PAGE ---");
+  console.log("Categories found:", categories.length);
+  console.log("-----------------------------");
 
   return (
     <main className="font-sans bg-[#F7F7F7]">

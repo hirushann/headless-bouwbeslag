@@ -14,7 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     status: "publish",
   });
 
-  const products = productRes?.data.map((product: any) => {
+  const products = (Array.isArray(productRes?.data) ? productRes.data : []).map((product: any) => {
     const meta = product.meta_data || [];
     const acfSlug =
       meta.find((m: any) => m.key === "description_slug")?.value ||
@@ -33,7 +33,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     hide_empty: true,
   });
 
-  const categories = categoryRes.data.map((cat: any) => ({
+  const categories = (Array.isArray(categoryRes?.data) ? categoryRes.data : []).map((cat: any) => ({
     url: `${baseUrl}/category/${cat.slug}`,
     lastModified: new Date(),
   }));

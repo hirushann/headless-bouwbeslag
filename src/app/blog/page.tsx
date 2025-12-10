@@ -11,15 +11,25 @@ const api = axios.create({
 });
 
 async function getPosts() {
-  const res = await api.get("/posts", {
-    params: { per_page: 50, _embed: true },
-  });
-  return res.data;
+  try {
+    const res = await api.get("/posts", {
+      params: { per_page: 50, _embed: true },
+    });
+    return res.data;
+  } catch (error) {
+    console.error("Error fetching blog posts:", error);
+    return [];
+  }
 }
 
 async function getCategories() {
-  const res = await api.get("/categories", { params: { per_page: 100 } });
-  return res.data;
+  try {
+    const res = await api.get("/categories", { params: { per_page: 100 } });
+    return res.data;
+  } catch (error) {
+    console.error("Error fetching blog categories:", error);
+    return [];
+  }
 }
 
 function stripHtml(html: string = "") {
@@ -85,7 +95,7 @@ export default async function BlogPage() {
         </FadeIn>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 font-sans">
-          {posts.map((post: any, index: number) => (
+          {(Array.isArray(posts) ? posts : []).map((post: any, index: number) => (
             <FadeIn key={post.id} delay={index * 0.1}>
               <Link href={`/blog/${post.slug}`}>
                 <div className="border-0 rounded-md overflow-hidden">

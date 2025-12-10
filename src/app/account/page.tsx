@@ -40,50 +40,77 @@ function AccountContent() {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
 
-      // 1) Get the WP user via JWT to retrieve the numeric user ID
-      console.log("Fetching WP current user via JWT /wp/v2/users/me ...");
-      axios
-        .get(`${WP_API_URL}/wp-json/wp/v2/users/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        .then((meRes) => {
-          const wpUserId = meRes.data?.id;
-          if (!wpUserId) {
-            return;
-          }
+      // 1) Use stored ID if available to avoid 403 on /users/me for subscribers
+      const wpUserId = parsedUser?.id;
 
-          // 2) Fetch WooCommerce customer by the resolved WP user id
-          return axios
-            .get(`${WP_API_URL}/wp-json/wc/v3/customers/${wpUserId}`, {
-              headers: { Authorization: `Bearer ${token}` },
-            })
-            .then((custRes) => {
-              setUser(custRes.data);
-              setBillingForm(custRes.data.billing || {});
-              setShippingForm(custRes.data.shipping || {});
-              // 3) Fetch orders for this customer id (filter by customer)
-              return axios
-                .get(`${WP_API_URL}/wp-json/wc/v3/orders`, {
-                  headers: { Authorization: `Bearer ${token}` },
-                  params: { customer: wpUserId },
-                })
-                .then((ordersRes) => {
-                  setOrders(ordersRes.data || []);
-                })
-                .finally(() => setLoadingOrders(false));
-            })
-            .catch((custErr) => {
-              return axios
-                .get(`${WP_API_URL}/wp-json/wc/v3/orders`, {
-                  headers: { Authorization: `Bearer ${token}` },
-                  params: { customer: wpUserId },
-                })
-                .then((ordersRes) => {
-                  setOrders(ordersRes.data || []);
-                })
-                .finally(() => setLoadingOrders(false));
-            });
-        });
+      if (wpUserId) {
+        axios
+          .get(`${WP_API_URL}/wp-json/wc/v3/customers/${wpUserId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          .then((custRes) => {
+            setUser(custRes.data);
+            setBillingForm(custRes.data.billing || {});
+            setShippingForm(custRes.data.shipping || {});
+            // Fetch orders for this customer
+            return axios
+              .get(`${WP_API_URL}/wp-json/wc/v3/orders`, {
+                headers: { Authorization: `Bearer ${token}` },
+                params: { customer: wpUserId },
+              })
+              .then((ordersRes) => {
+                setOrders(ordersRes.data || []);
+              })
+              .finally(() => setLoadingOrders(false));
+          })
+          .catch((err) => {
+            console.error("Error fetching customer data", err);
+            if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+              localStorage.removeItem("token");
+              localStorage.removeItem("user");
+              router.push("/account/login");
+            }
+            setLoadingOrders(false);
+          });
+      } else {
+        // Fallback: Get the WP user via JWT if ID not in local storage
+        console.log("Fetching WP current user via JWT /wp/v2/users/me ...");
+        axios
+          .get(`${WP_API_URL}/wp-json/wp/v2/users/me`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          .then((meRes) => {
+            const fetchedId = meRes.data?.id;
+            if (!fetchedId) return;
+
+            return axios
+              .get(`${WP_API_URL}/wp-json/wc/v3/customers/${fetchedId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              })
+              .then((custRes) => {
+                setUser(custRes.data);
+                setBillingForm(custRes.data.billing || {});
+                setShippingForm(custRes.data.shipping || {});
+                return axios
+                  .get(`${WP_API_URL}/wp-json/wc/v3/orders`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                    params: { customer: fetchedId },
+                  })
+                  .then((ordersRes) => {
+                    setOrders(ordersRes.data || []);
+                  })
+                  .finally(() => setLoadingOrders(false));
+              });
+          })
+          .catch((err) => {
+            console.error("Error fetching user", err);
+            if (err.response && err.response.status === 401) {
+              localStorage.removeItem("token");
+              localStorage.removeItem("user");
+              router.push("/account/login");
+            }
+          });
+      }
     }
     
   }, []);
@@ -240,236 +267,240 @@ function AccountContent() {
 
 
   if (!user) {
-    return <div className="p-10">Loading your account...</div>;
+    return <div className="p-10 text-gray-500 flex justify-center mt-10">Loading your account...</div>;
   }
 
-  <main className="bg-[#F5F5F5]">
-      <div className="max-w-[1440px] mx-auto py-8 font-sans">
-        <div>
-          <div className="text-sm text-gray-500 mb-6 flex items-center gap-3">
-              <Link href="/" className="hover:underline flex items-center gap-1 text-black">
-                <span><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-4"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg></span>
-                <span>Home</span>
-              </Link>{" "}
-              / My Account
-          </div>
+  const NavItem = ({ id, label, icon }: { id: string; label: string; icon: React.ReactNode }) => (
+    <button
+      onClick={() => setActiveTab(id)}
+      className={`w-full text-left px-6 py-4 flex items-center gap-3 transition-colors duration-200 border-l-4 ${
+        activeTab === id
+          ? "border-[#0066FF] bg-white text-[#0066FF] font-semibold shadow-sm"
+          : "border-transparent text-gray-600 hover:bg-white hover:text-gray-900"
+      }`}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
 
-          <h1 className="font-bold text-4xl mb-8 text-[#1C2530]">My Account</h1>
+  const StatCard = ({ title, value, desc }: { title: string; value: string; desc: string }) => (
+    <div className="bg-white p-6 rounded-lg shadow-sm border border-[#DBE3EA] flex flex-col gap-2 flex-1">
+      <h3 className="text-gray-500 font-medium text-sm uppercase tracking-wider">{title}</h3>
+      <p className="text-3xl font-bold text-[#0066FF]">{value}</p>
+      <p className="text-gray-400 text-xs">{desc}</p>
+    </div>
+  );
+
+  return (
+    <main className="bg-[#F5F5F5] min-h-screen">
+      <div className="max-w-[1440px] mx-auto py-12 px-6 lg:px-12 font-sans">
+        
+        {/* Breadcrumb */}
+        <div className="mb-8">
+          <div className="text-sm text-gray-500 mb-6 flex items-center gap-2">
+            <Link href="/" className="hover:text-[#0066FF] flex items-center gap-1 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-4"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>
+              Home
+            </Link>
+            <span className="text-gray-300">/</span>
+            <span>My Account</span>
+          </div>
+          <h1 className="font-bold text-4xl text-[#1C2530]">My Account</h1>
         </div>
 
-        <div className="flex gap-6">
-          <nav className="flex flex-col border-r border-[#DBE3EA] pr-6 min-w-[280px]">
-            <button className={`mb-2 text-left px-6 py-3 rounded flex items-center gap-2 text-base font-normal cursor-pointer ${activeTab === "dashboard" ? "bg-[#0066FF] text-white font-semibold" : "hover:bg-gray-100 hover:cursor-pointer"}`} onClick={() => setActiveTab("dashboard")}>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-5"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" /></svg>
-              Dashboard
-            </button>
-            <button className={`mb-2 text-left px-6 py-3 rounded flex items-center gap-2 text-base font-normal cursor-pointer ${activeTab === "orders" ? "bg-[#0066FF] text-white font-semibold" : "hover:bg-gray-100 hover:cursor-pointer"}`} onClick={() => setActiveTab("orders")}>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" /></svg>
-              My Orders
-            </button>
-            <button className={`mb-2 text-left px-6 py-3 rounded flex items-center gap-2 text-base font-normal cursor-pointer ${activeTab === "details" ? "bg-[#0066FF] text-white font-semibold" : "hover:bg-gray-100 hover:cursor-pointer"}`} onClick={() => setActiveTab("details")}>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" /></svg>
-              Account Details
-            </button>
-            <button className={`mb-2 text-left px-6 py-3 rounded flex items-center gap-2 text-base font-normal cursor-pointer ${activeTab === "addresses" ? "bg-[#0066FF] text-white font-semibold" : "hover:bg-gray-100 hover:cursor-pointer"}`} onClick={() => setActiveTab("addresses")}>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-5"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.545M12.75 21h7.5V10.75M2.25 21h1.5m18 0h-18M2.25 9l4.5-1.636M18.75 3l-1.5.545m0 6.205 3 1m1.5.5-1.5-.5M6.75 7.364V3h-3v18m3-13.636 10.5-3.819" /></svg>
-              Addresses
-            </button>
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
+          
+          {/* Sidebar Navigation */}
+          <nav className="flex flex-col w-full lg:w-[280px] shrink-0 gap-1">
+            <NavItem 
+              id="dashboard" 
+              label="Dashboard" 
+              icon={<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-5"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" /></svg>}
+            />
+            <NavItem 
+              id="orders" 
+              label="My Orders" 
+              icon={<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>}
+            />
+            <NavItem 
+              id="details" 
+              label="Account Details" 
+              icon={<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>}
+            />
+            <NavItem 
+              id="addresses" 
+              label="Addresses" 
+              icon={<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg>}
+            />
+            
             <button
               onClick={() => {
                 localStorage.removeItem("token");
                 localStorage.removeItem("user");
                 router.push("/");
               }}
-              className="mt-auto text-red-600 text-left px-6 py-3 rounded hover:bg-red-100 cursor-pointer border border-red-400">
+              className="mt-6 text-red-600 text-left px-6 py-4 flex items-center gap-3 rounded hover:bg-red-50 transition-colors border-l-4 border-transparent"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-5"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15m-3 0-3-3m0 0 3-3m-3 3H15" /></svg>
               Logout
             </button>
           </nav>
 
-          <section className="flex-1">
+          {/* Main Content Area */}
+          <section className="flex-1 min-w-0">
             {activeTab === "dashboard" && (
-              <div>
-                <h2 className="text-2xl font-bold mb-4">Welcome back, {user.user_display_name} 👋</h2>
-                <div className="flex w-full gap-8">
-                  <div className="stats stats-vertical shadow w-1/3 bg-white">
-                    <div className="stat">
-                      <div className="stat-title">Total Orders</div>
-                      <div className="stat-value">{orders.length}</div>
-                      <div className="stat-desc">All orders linked to your account</div>
-                    </div>
+              <div className="space-y-8 animate-fade-in">
+                <div>
+                  <h2 className="text-2xl font-bold mb-2">Welcome back, {user.first_name || user.user_display_name} 👋</h2>
+                  <p className="text-gray-500">Here is what's happening with your account today.</p>
+                </div>
 
-                    <div className="stat">
-                      <div className="stat-title">Total Spent</div>
-                      <div className="stat-value">€{orders.reduce((sum, o) => sum + parseFloat(o.total || 0), 0).toFixed(2)}</div>
-                      <div className="stat-desc">Across all completed orders</div>
-                    </div>
+                <div className="flex flex-col md:flex-row gap-6 w-full">
+                  <StatCard 
+                    title="Total Orders" 
+                    value={orders.length.toString()} 
+                    desc="Lifetime orders" 
+                  />
+                  <StatCard 
+                    title="Total Spent" 
+                    value={`€${orders.reduce((sum, o) => sum + parseFloat(o.total || 0), 0).toFixed(2)}`} 
+                    desc="Lifetime spend" 
+                  />
+                  <StatCard 
+                    title="Avg. Order" 
+                    value={`€${orders.length > 0 ? (orders.reduce((sum, o) => sum + parseFloat(o.total || 0), 0) / orders.length).toFixed(2) : "0.00"}`} 
+                    desc="Per order average" 
+                  />
+                </div>
 
-                    <div className="stat">
-                      <div className="stat-title">Avg. Order Value</div>
-                      <div className="stat-value">
-                        €{orders.length > 0 ? (
-                          (orders.reduce((sum, o) => sum + parseFloat(o.total || 0), 0) / orders.length).toFixed(2)
-                        ) : (
-                          "0.00"
-                        )}
-                      </div>
-                      <div className="stat-desc">Per order average</div>
-                    </div>
-                  </div>
-
-                  {/* Recent Orders */}
-                  <div className="w-full flex flex-col">
-                    <h3 className="text-xl font-semibold mb-3">Recent Orders</h3>
-                    {loadingOrders ? (
-                      <div className="space-y-3">
-                        {[1, 2, 3].map((i) => (
-                          <div
-                            key={i}
-                            className="border border-[#DBE3EA] p-4 rounded-sm flex justify-between items-center shadow animate-pulse bg-white h-[72px]"
-                          >
-                            <div className="flex flex-col gap-2 w-1/2">
-                              <div className="h-4 w-24 bg-gray-300 rounded" />
-                              <div className="h-3 w-16 bg-gray-300 rounded" />
-                            </div>
-                            <div className="flex flex-col gap-2 w-1/4 items-end">
-                              <div className="h-4 w-16 bg-gray-300 rounded" />
-                              <div className="h-3 w-14 bg-gray-300 rounded" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <>
-                        {orders.length === 0 ? (
-                          <p className="text-gray-500">No recent orders.</p>
-                        ) : (
-                          <ul className="space-y-3">
-                            {orders.slice(0, 3).map((order) => (
-                              <li key={order.id} className="border border-[#DBE3EA] p-4 rounded-sm flex justify-between items-center shadow bg-white">
-                                <div>
-                                  <p className="font-medium">Order #{order.id}</p>
-                                  <p className="text-sm text-gray-500">{new Date(order.date_created).toLocaleDateString()}</p>
-                                </div>
-                                <div className="text-right">
-                                  <p className="font-semibold">{order.total} {order.currency}</p>
-                                  <p className="text-sm capitalize">{order.status}</p>
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </>
-                    )}
+                {/* Recent Orders */}
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold text-[#1C2530]">Recent Orders</h3>
                     {orders.length > 3 && (
-                      <button className="mt-3 text-blue-600 ml-auto hover:text-blue-800 cursor-pointer" onClick={() => setActiveTab("orders")} >
-                        View all orders →
+                      <button className="text-[#0066FF] hover:underline text-sm font-medium" onClick={() => setActiveTab("orders")}>
+                        View all
                       </button>
                     )}
                   </div>
+
+                  {loadingOrders ? (
+                    <div className="space-y-4">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="h-20 bg-white rounded-lg border border-[#DBE3EA] animate-pulse" />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {orders.length === 0 ? (
+                        <div className="bg-white p-8 rounded-lg border border-[#DBE3EA] text-center text-gray-500">
+                          No orders placed yet.
+                        </div>
+                      ) : (
+                        orders.slice(0, 3).map((order) => (
+                          <div key={order.id} className="bg-white border border-[#DBE3EA] p-5 rounded-lg flex flex-wrap justify-between items-center shadow-sm hover:shadow-md transition-shadow">
+                            <div>
+                              <p className="font-bold text-[#1C2530]">Order #{order.id}</p>
+                              <p className="text-sm text-gray-500">{new Date(order.date_created).toLocaleDateString()}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-[#1C2530]">€{order.total}</p>
+                              <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                order.status === "completed" ? "bg-green-100 text-green-700" :
+                                order.status === "processing" ? "bg-blue-100 text-blue-700" :
+                                "bg-gray-100 text-gray-700"
+                              } capitalize`}>
+                                {order.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
             {activeTab === "orders" && (
-              <div>
-                <h2 className="text-2xl font-bold mb-4">My Orders</h2>
+              <div className="animate-fade-in">
+                <h2 className="text-2xl font-bold mb-6">My Orders</h2>
                 {loadingOrders ? (
                   <div className="space-y-4">
-                    {[1, 2, 3].map((skeleton) => (
-                      <div key={skeleton} className="border border-[#DBE3EA] p-4 rounded-sm flex justify-between items-center shadow h-18">
-                        <div className="flex flex-col gap-2 w-1/2">
-                          <div className="h-4 w-24 bg-gray-300 rounded" />
-                          <div className="h-3 w-16 bg-gray-300 rounded" />
-                        </div>
-                        <div className="flex flex-col gap-2 w-1/4 items-end">
-                          <div className="h-4 w-16 bg-gray-300 rounded" />
-                          <div className="h-3 w-14 bg-gray-300 rounded" />
-                        </div>
-                      </div>
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-24 bg-white rounded-lg border border-[#DBE3EA] animate-pulse" />
                     ))}
                   </div>
                 ) : (
-                  <>
+                  <div className="space-y-4">
                     {orders.length === 0 ? (
-                      <p>No orders found.</p>
+                      <p className="text-gray-500 bg-white p-8 rounded-lg border border-[#DBE3EA] text-center">No orders found.</p>
                     ) : (
-                      <ul className="space-y-4">
-                        {orders.map((order) => (
-                          <li key={order.id} className="border border-[#DBE3EA] p-4 rounded-sm flex justify-between items-center shadow bg-white">
-                            <div>
-                              <p><strong>Order #{order.id}</strong></p>
-                              <p>Status: {order.status}</p>
+                      orders.map((order) => (
+                        <div key={order.id} className="bg-white border border-[#DBE3EA] p-6 rounded-lg shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                          <div>
+                            <div className="flex items-center gap-3 mb-1">
+                              <span className="font-bold text-lg text-[#1C2530]">Order #{order.id}</span>
+                              <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                order.status === "completed" ? "bg-green-100 text-green-700" :
+                                order.status === "processing" ? "bg-blue-100 text-blue-700" :
+                                "bg-gray-100 text-gray-700"
+                              } capitalize`}>
+                                {order.status}
+                              </span>
                             </div>
-                            <div>
-                              <p>Total: {order.total} {order.currency}</p>
-                              <p>Date: {new Date(order.date_created).toLocaleDateString()}</p>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
+                            <p className="text-gray-500 text-sm">Placed on {new Date(order.date_created).toLocaleDateString()}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xl font-bold text-[#1C2530] mb-1">€{order.total}</p>
+                            <p className="text-sm text-gray-500">{order.line_items?.length} items</p>
+                          </div>
+                        </div>
+                      ))
                     )}
-                  </>
+                  </div>
                 )}
               </div>
             )}
 
             {activeTab === "details" && (
-              <div className="w-full">
-                <h2 className="text-2xl font-bold mb-4">Account Details</h2>
-                <form className="max-w-4xl w-full space-y-4 flex flex-col">
-                  <div className="w-full flex gap-5">
-                    <fieldset className="fieldset w-full">
-                      <legend className="fieldset-legend">First Name</legend>
-                      <label className="input validator w-full">
-                        <svg className="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2.5" fill="none" stroke="currentColor"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></g></svg>
-                        <input className="!outline-0 !ring-0 focus:!outline-0 focus:!ring-0 w-full" type="text" defaultValue={user?.first_name || user?.billing?.first_name || ""} readOnly placeholder="firstname"/>
-                      </label>
-                    </fieldset>
-                    
-                    <fieldset className="fieldset w-full">
-                      <legend className="fieldset-legend">Last Name</legend>
-                      <label className="input validator w-full">
-                        <svg className="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2.5" fill="none" stroke="currentColor"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></g></svg>
-                        <input className="!outline-0 !ring-0 focus:!outline-0 focus:!ring-0 w-full" type="text" defaultValue={user?.last_name || user?.billing?.last_name || ""} readOnly placeholder="lastname"/>
-                      </label>
-                    </fieldset>
-                  </div>
+              <div className="animate-fade-in">
+                <h2 className="text-2xl font-bold mb-6">Account Details</h2>
+                <div className="bg-white p-8 rounded-lg border border-[#DBE3EA] shadow-sm">
+                  <form className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-[#1C2530]">First Name</label>
+                        <input className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF] bg-gray-50" type="text" defaultValue={user?.first_name || user?.billing?.first_name || ""} readOnly />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-[#1C2530]">Last Name</label>
+                        <input className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF] bg-gray-50" type="text" defaultValue={user?.last_name || user?.billing?.last_name || ""} readOnly />
+                      </div>
+                    </div>
 
-                  <div className="w-full flex gap-5">
-                    <fieldset className="fieldset w-full">
-                      <legend className="fieldset-legend">Username</legend>
-                      <label className="input validator w-full">
-                        <svg className="!h-[1.2em] opacity-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
-                        <input className="!outline-0 !ring-0 focus:!outline-0 focus:!ring-0 w-full" type="text" defaultValue={user?.username || user?.name || ""} readOnly placeholder="Username"/>
-                      </label>
-                    </fieldset>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-[#1C2530]">Username</label>
+                        <input className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF] bg-gray-50" type="text" defaultValue={user?.username || user?.name || ""} readOnly />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-[#1C2530]">Email Address</label>
+                        <input className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF] bg-gray-50" type="text" defaultValue={user?.email || user?.billing?.email || ""} readOnly />
+                      </div>
+                    </div>
+                  </form>
 
-                    <fieldset className="fieldset w-full">
-                      <legend className="fieldset-legend">Email</legend>
-                      <label className="input validator w-full">
-                        <svg className="!h-[1.2em] opacity-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Zm0 0c0 1.657 1.007 3 2.25 3S21 13.657 21 12a9 9 0 1 0-2.636 6.364M16.5 12V8.25" /></svg>
-                        <input className="!outline-0 !ring-0 focus:!outline-0 focus:!ring-0 w-full" type="text" defaultValue={user?.email || user?.billing?.email || ""} readOnly placeholder="lastname"/>
-                      </label>
-                    </fieldset>
-                  </div>
-
-                  {/* Password Reset Form */}
-                  
-                </form>
-
-                <div className="w-full flex flex-col gap-5 border-t border-[#DBE3EA] pt-8 mt-8">
-                  <h3 className="text-lg font-semibold mb-2">Change Password</h3>
-                  <form className="flex flex-col gap-4 max-w-md" onSubmit={handlePasswordReset}>
-                    <fieldset className="fieldset w-full">
-                      <legend className="fieldset-legend">Old Password</legend>
-                      <label className={`input w-full${oldPasswordError ? " border-red-500" : ""}`}>
-                        <svg className="!h-[1.2em] opacity-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
+                  <div className="mt-10 pt-10 border-t border-[#DBE3EA]">
+                    <h3 className="text-lg font-bold text-[#1C2530] mb-6">Change Password</h3>
+                    <form className="max-w-md space-y-4" onSubmit={handlePasswordReset}>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-[#1C2530]">Current Password</label>
                         <input
-                          className={`!outline-0 !ring-0 focus:!outline-0 focus:!ring-0 w-full bg-transparent ${oldPasswordError ? "border-red-500" : ""}`}
+                          className={`w-full border rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF] ${oldPasswordError ? "border-red-500" : "border-[#DBE3EA]"}`}
                           type="password"
-                          placeholder="Enter old password"
-                          minLength={3}
-                          maxLength={30}
+                          placeholder="••••••••"
                           value={oldPassword}
                           onChange={e => {
                             setOldPassword(e.target.value);
@@ -478,213 +509,168 @@ function AccountContent() {
                           onBlur={handleOldPasswordBlur}
                           required
                         />
-                      </label>
-                      {oldPasswordError && (
-                        <div className="text-red-600 text-sm mt-1">{oldPasswordError}</div>
-                      )}
-                    </fieldset>
-                    <fieldset className="fieldset w-full">
-                      <legend className="fieldset-legend">New Password</legend>
-                      <label className={`input w-full${passwordResetError && passwordResetError.toLowerCase().includes("new password") ? " border-red-500" : ""}`}>
-                        <svg className="!h-[1.2em] opacity-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
+                        {oldPasswordError && <p className="text-red-600 text-xs">{oldPasswordError}</p>}
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-[#1C2530]">New Password</label>
                         <input
-                          className={`!outline-0 !ring-0 focus:!outline-0 focus:!ring-0 w-full bg-transparent ${passwordResetError && passwordResetError.toLowerCase().includes("new password") ? "border-red-500" : ""}`}
+                          className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF]"
                           type="password"
-                          placeholder="Enter new password"
+                          placeholder="••••••••"
                           minLength={6}
-                          maxLength={30}
                           value={newPassword}
                           onChange={e => setNewPassword(e.target.value)}
                           required
                         />
-                      </label>
-                    </fieldset>
-                    <fieldset className="fieldset w-full">
-                      <legend className="fieldset-legend">Confirm New Password</legend>
-                      <label className={`input w-full${passwordResetError && passwordResetError.toLowerCase().includes("confirmation") ? " border-red-500" : ""}`}>
-                        <svg className="!h-[1.2em] opacity-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-[#1C2530]">Confirm New Password</label>
                         <input
-                          className={`!outline-0 !ring-0 focus:!outline-0 focus:!ring-0 w-full bg-transparent ${passwordResetError && passwordResetError.toLowerCase().includes("confirmation") ? "border-red-500" : ""}`}
+                          className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF]"
                           type="password"
-                          placeholder="Confirm new password"
+                          placeholder="••••••••"
                           minLength={6}
-                          maxLength={30}
                           value={confirmPassword}
                           onChange={e => setConfirmPassword(e.target.value)}
                           required
                         />
-                      </label>
-                    </fieldset>
-                    {passwordResetError && (
-                      <div className="text-red-600 text-sm">{passwordResetError}</div>
-                    )}
-                    {passwordResetSuccess && (
-                      <div className="text-green-700 text-sm">{passwordResetSuccess}</div>
-                    )}
-                    <button
-                      type="submit"
-                      className="mt-2 text-sm bg-blue-600 text-white rounded-sm px-4 py-2.5 hover:bg-blue-100 hover:text-blue-800 ml-auto border cursor-pointer"
-                      disabled={passwordResetLoading}
-                    >
-                      {passwordResetLoading ? "Resetting..." : "Change Password"}
-                    </button>
-                  </form>
+                        {passwordResetError && <p className="text-red-600 text-xs">{passwordResetError}</p>}
+                        {passwordResetSuccess && <p className="text-green-600 text-xs">{passwordResetSuccess}</p>}
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={passwordResetLoading}
+                        className="bg-[#0066FF] text-white font-bold py-3 px-6 rounded-sm hover:bg-[#0052CC] transition-colors disabled:opacity-50 mt-2"
+                      >
+                        {passwordResetLoading ? "Updating..." : "Update Password"}
+                      </button>
+                    </form>
+                  </div>
                 </div>
               </div>
             )}
 
             {activeTab === "addresses" && (
-              <div>
-                <h2 className="text-2xl font-bold mb-4">Addresses</h2>
-
-                <div className="flex w-full gap-8 flex-row justify-center items-stretch">
-                  {/* Billing Address */}
-                  <div className="border border-[#DBE3EA] p-4 rounded-sm w-full flex flex-col bg-white">
-                    <h3 className="font-semibold mb-2">Billing Address</h3>
-                    <div className="grid gap-2">
-                      <div className="w-full flex gap-5">
-                        <fieldset className="fieldset w-full">
-                          <legend className="fieldset-legend">First Name</legend>
-                          <label className="input validator w-full">
-                            <svg className="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2.5" fill="none" stroke="currentColor"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></g></svg>
-                            <input className="!outline-0 !ring-0 focus:!outline-0 focus:!ring-0 w-full" type="text" value={billingForm?.first_name || ""} onChange={e => setBillingForm({ ...(billingForm || {}), first_name: e.target.value })} placeholder="firstname"/>
-                          </label>
-                        </fieldset>
-                        <fieldset className="fieldset w-full">
-                          <legend className="fieldset-legend">Last Name</legend>
-                          <label className="input validator w-full">
-                            <svg className="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2.5" fill="none" stroke="currentColor"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></g></svg>
-                            <input className="!outline-0 !ring-0 focus:!outline-0 focus:!ring-0 w-full" type="text" placeholder="Last Name" value={billingForm?.last_name || ""} onChange={e => setBillingForm({ ...(billingForm || {}), last_name: e.target.value })}/>
-                          </label>
-                        </fieldset>
+              <div className="animate-fade-in">
+                <h2 className="text-2xl font-bold mb-6">Addresses</h2>
+                
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                  {/* Billing Address Card */}
+                  <div className="bg-white p-8 rounded-lg border border-[#DBE3EA] shadow-sm flex flex-col h-full">
+                    <h3 className="text-lg font-bold text-[#1C2530] mb-6 border-b border-[#DBE3EA] pb-4">Billing Address</h3>
+                    <div className="space-y-4 flex-1">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-gray-500 uppercase">First Name</label>
+                          <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="first_name" value={billingForm?.first_name || ""} onChange={handleBillingInput} />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-gray-500 uppercase">Last Name</label>
+                          <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="last_name" value={billingForm?.last_name || ""} onChange={handleBillingInput} />
+                        </div>
                       </div>
 
-                      <div className="w-full flex gap-5">
-                        <fieldset className="fieldset w-full">
-                          <legend className="fieldset-legend">Address Line 1</legend>
-                          <label className="input validator w-full">
-                            <svg className="!h-[1.2em] opacity-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.545M12.75 21h7.5V10.75M2.25 21h1.5m18 0h-18M2.25 9l4.5-1.636M18.75 3l-1.5.545m0 6.205 3 1m1.5.5-1.5-.5M6.75 7.364V3h-3v18m3-13.636 10.5-3.819" /></svg>
-                            <input className="!outline-0 !ring-0 focus:!outline-0 focus:!ring-0 w-full" type="text" placeholder="Address Line 1" value={billingForm?.address_1 || ""} onChange={e => setBillingForm({ ...(billingForm || {}), address_1: e.target.value })}/>
-                          </label>
-                        </fieldset>
-                        <fieldset className="fieldset w-full">
-                          <legend className="fieldset-legend">Address Line 2</legend>
-                          <label className="input validator w-full">
-                            <svg className="!h-[1.2em] opacity-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.545M12.75 21h7.5V10.75M2.25 21h1.5m18 0h-18M2.25 9l4.5-1.636M18.75 3l-1.5.545m0 6.205 3 1m1.5.5-1.5-.5M6.75 7.364V3h-3v18m3-13.636 10.5-3.819" /></svg>
-                            <input className="!outline-0 !ring-0 focus:!outline-0 focus:!ring-0 w-full" type="text" placeholder="Address Line 2" value={billingForm?.address_2 || ""} onChange={e => setBillingForm({ ...(billingForm || {}), address_2: e.target.value })}/>
-                          </label>
-                        </fieldset>
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Address Line 1</label>
+                        <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="address_1" value={billingForm?.address_1 || ""} onChange={handleBillingInput} />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Address Line 2 (Optional)</label>
+                        <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="address_2" value={billingForm?.address_2 || ""} onChange={handleBillingInput} />
                       </div>
 
-                      <div className="w-full flex gap-5">
-                        <fieldset className="fieldset w-full">
-                          <legend className="fieldset-legend">City</legend>
-                          <label className="input validator w-full">
-                            <svg className="!h-[1.2em] opacity-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" /></svg>
-                            <input className="!outline-0 !ring-0 focus:!outline-0 focus:!ring-0 w-full" type="text" placeholder="City" value={billingForm?.city || ""} onChange={e => setBillingForm({ ...(billingForm || {}), city: e.target.value })}/>
-                          </label>
-                        </fieldset>
-                        <fieldset className="fieldset w-full">
-                          <legend className="fieldset-legend">Postcode</legend>
-                          <label className="input validator w-full">
-                            <svg className="!h-[1.2em] opacity-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg>
-                            <input className="!outline-0 !ring-0 focus:!outline-0 focus:!ring-0 w-full" type="text" placeholder="Postcode" value={billingForm?.postcode || ""} onChange={e => setBillingForm({ ...(billingForm || {}), postcode: e.target.value })}/>
-                          </label>
-                        </fieldset>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-gray-500 uppercase">City</label>
+                          <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="city" value={billingForm?.city || ""} onChange={handleBillingInput} />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-gray-500 uppercase">Postcode</label>
+                          <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="postcode" value={billingForm?.postcode || ""} onChange={handleBillingInput} />
+                        </div>
                       </div>
-                      <fieldset className="fieldset w-full">
-                        <legend className="fieldset-legend">Country</legend>
-                        <label className="input validator w-full">
-                          <svg className="!h-[1.2em] opacity-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m20.893 13.393-1.135-1.135a2.252 2.252 0 0 1-.421-.585l-1.08-2.16a.414.414 0 0 0-.663-.107.827.827 0 0 1-.812.21l-1.273-.363a.89.89 0 0 0-.738 1.595l.587.39c.59.395.674 1.23.172 1.732l-.2.2c-.212.212-.33.498-.33.796v.41c0 .409-.11.809-.32 1.158l-1.315 2.191a2.11 2.11 0 0 1-1.81 1.025 1.055 1.055 0 0 1-1.055-1.055v-1.172c0-.92-.56-1.747-1.414-2.089l-.655-.261a2.25 2.25 0 0 1-1.383-2.46l.007-.042a2.25 2.25 0 0 1 .29-.787l.09-.15a2.25 2.25 0 0 1 2.37-1.048l1.178.236a1.125 1.125 0 0 0 1.302-.795l.208-.73a1.125 1.125 0 0 0-.578-1.315l-.665-.332-.091.091a2.25 2.25 0 0 1-1.591.659h-.18c-.249 0-.487.1-.662.274a.931.931 0 0 1-1.458-1.137l1.411-2.353a2.25 2.25 0 0 0 .286-.76m11.928 9.869A9 9 0 0 0 8.965 3.525m11.928 9.868A9 9 0 1 1 8.965 3.525" /></svg>
-                          <input className="!outline-0 !ring-0 focus:!outline-0 focus:!ring-0 w-full" type="text" placeholder="Country" value={billingForm?.country || ""} onChange={e => setBillingForm({ ...(billingForm || {}), country: e.target.value })}/>
-                        </label>
-                      </fieldset>
 
-                      <div className="w-full flex gap-5">
-                        <fieldset className="fieldset w-full">
-                          <legend className="fieldset-legend">Email</legend>
-                          <label className="input validator w-full">
-                            <svg className="!h-[1.2em] opacity-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Zm0 0c0 1.657 1.007 3 2.25 3S21 13.657 21 12a9 9 0 1 0-2.636 6.364M16.5 12V8.25" /></svg>
-                            <input className="!outline-0 !ring-0 focus:!outline-0 focus:!ring-0 w-full" type="text" placeholder="Email" value={billingForm?.email || ""} onChange={e => setBillingForm({ ...(billingForm || {}), email: e.target.value })}/>
-                          </label>
-                        </fieldset>
-                        <fieldset className="fieldset w-full">
-                          <legend className="fieldset-legend">Phone</legend>
-                          <label className="input validator w-full">
-                            <svg className="!h-[1.2em] opacity-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" /></svg>
-                            <input className="!outline-0 !ring-0 focus:!outline-0 focus:!ring-0 w-full" type="text" placeholder="Phone" value={billingForm?.phone || ""} onChange={e => setBillingForm({ ...(billingForm || {}), phone: e.target.value })}/>
-                          </label>
-                        </fieldset>
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Country</label>
+                        <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="country" value={billingForm?.country || ""} onChange={handleBillingInput} />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-gray-500 uppercase">Email</label>
+                          <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="email" value={billingForm?.email || ""} onChange={handleBillingInput} />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-gray-500 uppercase">Phone</label>
+                          <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="phone" value={billingForm?.phone || ""} onChange={handleBillingInput} />
+                        </div>
                       </div>
                     </div>
-                    <button onClick={handleSaveBilling} disabled={billingSaving} className="mt-3 px-6 py-2 bg-blue-600 text-white rounded-sm ml-auto">
+                    
+                    {billingSuccess && <p className="text-green-600 text-xs mt-3">{billingSuccess}</p>}
+                    {billingError && <p className="text-red-600 text-xs mt-3">{billingError}</p>}
+                    
+                    <button 
+                      onClick={handleSaveBilling} 
+                      disabled={billingSaving} 
+                      className="mt-6 w-full bg-[#1C2530] text-white font-bold py-3 rounded-sm hover:bg-black transition-colors disabled:opacity-50"
+                    >
                       {billingSaving ? "Saving..." : "Save Billing Address"}
                     </button>
                   </div>
 
-                  {/* Shipping Address */}
-                  <div className="border border-[#DBE3EA] p-4 rounded-sm w-full flex flex-col bg-white">
-                    <h3 className="font-semibold mb-2">Shipping Address</h3>
-                    <div className="grid gap-2">
-                      <div className="flex gap-5 w-full">
-                        <fieldset className="fieldset w-full">
-                          <legend className="fieldset-legend">First Name</legend>
-                          <label className="input validator w-full">
-                            <svg className="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2.5" fill="none" stroke="currentColor"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></g></svg>
-                            <input className="!outline-0 !ring-0 focus:!outline-0 focus:!ring-0 w-full" type="text" placeholder="First Name" value={shippingForm?.first_name || ""} onChange={e => setShippingForm({ ...(shippingForm || {}), first_name: e.target.value })}/>
-                          </label>
-                        </fieldset>
-                        <fieldset className="fieldset w-full">
-                          <legend className="fieldset-legend">Last Name</legend>
-                          <label className="input validator w-full">
-                            <svg className="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2.5" fill="none" stroke="currentColor"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></g></svg>
-                            <input className="!outline-0 !ring-0 focus:!outline-0 focus:!ring-0 w-full" type="text" placeholder="First Name" value={shippingForm?.last_name || ""} onChange={e => setShippingForm({ ...(shippingForm || {}), last_name: e.target.value })}/>
-                          </label>
-                        </fieldset>
+                  {/* Shipping Address Card */}
+                  <div className="bg-white p-8 rounded-lg border border-[#DBE3EA] shadow-sm flex flex-col h-full">
+                    <h3 className="text-lg font-bold text-[#1C2530] mb-6 border-b border-[#DBE3EA] pb-4">Shipping Address</h3>
+                    <div className="space-y-4 flex-1">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-gray-500 uppercase">First Name</label>
+                          <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="first_name" value={shippingForm?.first_name || ""} onChange={handleShippingInput} />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-gray-500 uppercase">Last Name</label>
+                          <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="last_name" value={shippingForm?.last_name || ""} onChange={handleShippingInput} />
+                        </div>
                       </div>
 
-                      <div className="flex gap-5 w-full">
-                        <fieldset className="fieldset w-full">
-                          <legend className="fieldset-legend">Address Line 1</legend>
-                          <label className="input validator w-full">
-                            <svg className="!h-[1.2em] opacity-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.545M12.75 21h7.5V10.75M2.25 21h1.5m18 0h-18M2.25 9l4.5-1.636M18.75 3l-1.5.545m0 6.205 3 1m1.5.5-1.5-.5M6.75 7.364V3h-3v18m3-13.636 10.5-3.819" /></svg>
-                            <input className="!outline-0 !ring-0 focus:!outline-0 focus:!ring-0 w-full" type="text" placeholder="Address Line 1" value={shippingForm?.address_1 || ""} onChange={e => setShippingForm({ ...(shippingForm || {}), address_1: e.target.value })}/>
-                          </label>
-                        </fieldset>
-                        <fieldset className="fieldset w-full">
-                          <legend className="fieldset-legend">Address Line 2</legend>
-                          <label className="input validator w-full">
-                            <svg className="!h-[1.2em] opacity-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.545M12.75 21h7.5V10.75M2.25 21h1.5m18 0h-18M2.25 9l4.5-1.636M18.75 3l-1.5.545m0 6.205 3 1m1.5.5-1.5-.5M6.75 7.364V3h-3v18m3-13.636 10.5-3.819" /></svg>
-                            <input className="!outline-0 !ring-0 focus:!outline-0 focus:!ring-0 w-full" type="text" placeholder="Address Line 2" value={shippingForm?.address_2 || ""} onChange={e => setShippingForm({ ...(shippingForm || {}), address_2: e.target.value })}/>
-                          </label>
-                        </fieldset>
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Address Line 1</label>
+                        <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="address_1" value={shippingForm?.address_1 || ""} onChange={handleShippingInput} />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Address Line 2 (Optional)</label>
+                        <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="address_2" value={shippingForm?.address_2 || ""} onChange={handleShippingInput} />
                       </div>
 
-                      <div className="flex gap-5 w-full">
-                        <fieldset className="fieldset w-full">
-                          <legend className="fieldset-legend">City</legend>
-                          <label className="input validator w-full">
-                            <svg className="!h-[1.2em] opacity-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" /></svg>
-                            <input className="!outline-0 !ring-0 focus:!outline-0 focus:!ring-0 w-full" type="text" placeholder="City" value={shippingForm?.city || ""} onChange={e => setShippingForm({ ...(shippingForm || {}), city: e.target.value })}/>
-                          </label>
-                        </fieldset>
-                        <fieldset className="fieldset w-full">
-                          <legend className="fieldset-legend">Postcode</legend>
-                          <label className="input validator w-full">
-                            <svg className="!h-[1.2em] opacity-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg>
-                            <input className="!outline-0 !ring-0 focus:!outline-0 focus:!ring-0 w-full" type="text" placeholder="Postcode" value={shippingForm?.postcode || ""} onChange={e => setShippingForm({ ...(shippingForm || {}), postcode: e.target.value })}/>
-                          </label>
-                        </fieldset>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-gray-500 uppercase">City</label>
+                          <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="city" value={shippingForm?.city || ""} onChange={handleShippingInput} />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-gray-500 uppercase">Postcode</label>
+                          <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="postcode" value={shippingForm?.postcode || ""} onChange={handleShippingInput} />
+                        </div>
                       </div>
-                      <fieldset className="fieldset w-full">
-                        <legend className="fieldset-legend">Country</legend>
-                        <label className="input validator w-full">
-                          <svg className="!h-[1.2em] opacity-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m20.893 13.393-1.135-1.135a2.252 2.252 0 0 1-.421-.585l-1.08-2.16a.414.414 0 0 0-.663-.107.827.827 0 0 1-.812.21l-1.273-.363a.89.89 0 0 0-.738 1.595l.587.39c.59.395.674 1.23.172 1.732l-.2.2c-.212.212-.33.498-.33.796v.41c0 .409-.11.809-.32 1.158l-1.315 2.191a2.11 2.11 0 0 1-1.81 1.025 1.055 1.055 0 0 1-1.055-1.055v-1.172c0-.92-.56-1.747-1.414-2.089l-.655-.261a2.25 2.25 0 0 1-1.383-2.46l.007-.042a2.25 2.25 0 0 1 .29-.787l.09-.15a2.25 2.25 0 0 1 2.37-1.048l1.178.236a1.125 1.125 0 0 0 1.302-.795l.208-.73a1.125 1.125 0 0 0-.578-1.315l-.665-.332-.091.091a2.25 2.25 0 0 1-1.591.659h-.18c-.249 0-.487.1-.662.274a.931.931 0 0 1-1.458-1.137l1.411-2.353a2.25 2.25 0 0 0 .286-.76m11.928 9.869A9 9 0 0 0 8.965 3.525m11.928 9.868A9 9 0 1 1 8.965 3.525" /></svg>
-                          <input className="!outline-0 !ring-0 focus:!outline-0 focus:!ring-0 w-full" type="text" placeholder="Country" value={shippingForm?.country || ""} onChange={e => setShippingForm({ ...(shippingForm || {}), country: e.target.value })}/>
-                        </label>
-                      </fieldset>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Country</label>
+                        <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="country" value={shippingForm?.country || ""} onChange={handleShippingInput} />
+                      </div>
                     </div>
-                    <button onClick={handleSaveShipping} disabled={shippingSaving} className="mt-3 px-6 py-2 bg-blue-600 text-white rounded-sm ml-auto">
+                    
+                    {shippingSuccess && <p className="text-green-600 text-xs mt-3">{shippingSuccess}</p>}
+                    {shippingError && <p className="text-red-600 text-xs mt-3">{shippingError}</p>}
+
+                    <button 
+                      onClick={handleSaveShipping} 
+                      disabled={shippingSaving} 
+                      className="mt-6 w-full bg-[#1C2530] text-white font-bold py-3 rounded-sm hover:bg-black transition-colors disabled:opacity-50"
+                    >
                       {shippingSaving ? "Saving..." : "Save Shipping Address"}
                     </button>
                   </div>
@@ -694,13 +680,13 @@ function AccountContent() {
           </section>
         </div>
       </div>
-  </main>
-
+    </main>
+  );
 }
 
 export default function AccountPage() {
   return (
-    <Suspense fallback={<div className="p-10 text-gray-500">Loading account...</div>}>
+    <Suspense fallback={<div className="p-10 text-gray-500 font-sans flex justify-center">Loading account...</div>}>
       <AccountContent />
     </Suspense>
   );

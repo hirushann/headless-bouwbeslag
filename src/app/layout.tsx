@@ -110,7 +110,7 @@ export default function RootLayout({
                     <li>
                       <Link href="/blog">Blogs</Link>
                     </li>
-                    <li>Help & Support</li>
+                    {/* <li>Help & Support</li> */}
                     <li>
                       <Link href="/contact">Contact</Link>
                     </li>

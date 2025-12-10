@@ -1252,7 +1252,7 @@ export default function ProductPageClient({ product }: { product: any }) {
                                 </summary>
                                 <div className="px-6 pb-4 text-gray-700 space-y-4">
                                     <div className='mt-1 flex flex-col gap-3'>
-                                        <p className='text-[#3D4752] font-normal text-base'>Wij beloven je dat je dit artikel elders niet goedkoper tegenkomt. Is dat wel zo? Dan matchen wij de prijs én geven je nog eens 10% extra korting op de prijs van de concurrent. <a href="">Meld hier</a> je laagste prijs match aanvraag. <br></br> Om je te helpen te googelen om de producten bij concurrenten te vinden geven we hier al de artikelnummers waarvan wij weten dat dit artikel bekend staat:</p>
+                                        <p className='text-[#3D4752] font-normal text-base'>Wij beloven je dat je dit artikel elders niet goedkoper tegenkomt. Is dat wel zo? Dan matchen wij de prijs én geven je nog eens 10% extra korting op de prijs van de concurrent. <a className='text-[#0066FF] font-bold' href="/laagste-prijs-garantie">Meld hier</a> je laagste prijs match aanvraag. <br></br> Om je te helpen te googelen om de producten bij concurrenten te vinden geven we hier al de artikelnummers waarvan wij weten dat dit artikel bekend staat:</p>
                                         {(() => {
                                           if (!product?.meta_data) return null;
                                           const keys = [

@@ -6,12 +6,8 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: "http",
-        hostname: "staging-plugin-test.test",
-      },
-      {
         protocol: "https",
-        hostname: "staging-plugin-test.test",
+        hostname: "app.bouwbeslag.nl",
       },
       {
         protocol: "https",

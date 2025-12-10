@@ -53,7 +53,7 @@ export default function BestSellersCarousel({ products }: BestSellersCarouselPro
         <p className="text-[#3D4752] mb-8">Check our best seller products on bouwbeslag.nl website right now</p>
         <div className="relative">
             <div ref={trackRef} className="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 no-scrollbar">
-                {products.map((p) => (
+                {(Array.isArray(products) ? products : []).map((p) => (
                     <div key={p.id} className="snap-start shrink-0 w-[24%]">
                     <ProductCard product={p} />
                     </div>

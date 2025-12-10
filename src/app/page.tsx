@@ -14,19 +14,38 @@ export default async function Home() {
   const bestSellers = await api
     .get("products", { per_page: 10 })
     .then((res: any) => res.data)
-    .catch(() => []);
+    .catch((err) => {
+      console.error("Error fetching best sellers:", err.response?.data || err.message);
+      return [];
+    });
 
   const recommended = await api
     .get("products", { featured: true, per_page: 10 })
     .then((res: any) => res.data)
-    .catch(() => []);
+    .catch((err) => {
+      console.error("Error fetching recommended products:", err.response?.data || err.message);
+      return [];
+    });
 
   const categories = await api
     .get("products/categories", { per_page: 50 })
     .then((res: any) => res.data)
-    .catch(() => []);
+    .catch((err) => {
+      console.error("Error fetching categories:", err.response?.data || err.message);
+      return [];
+    });
 
-  const posts = await fetchPosts(3).catch(() => []);
+  const posts = await fetchPosts(3).catch((err) => {
+    console.error("Error fetching posts:", err.response?.data || err.message);
+    return [];
+  });
+
+  console.log("--- DEBUG DATA FETCH ---");
+  console.log("Best Sellers:", Array.isArray(bestSellers) ? bestSellers.length : bestSellers);
+  console.log("Recommended:", Array.isArray(recommended) ? recommended.length : recommended);
+  console.log("Categories:", Array.isArray(categories) ? categories.length : categories);
+  console.log("Posts:", Array.isArray(posts) ? posts.length : posts);
+  console.log("------------------------");
 
   return (
     <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start font-sans bg-[#F5F5F5]">
@@ -89,7 +108,7 @@ export default async function Home() {
           <p className="text-[#3D4752] mb-8">Bekijk al onze categorieën om te vinden wat u nodig heeft</p>
           <div className="relative">
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-              {categories
+              {(Array.isArray(categories) ? categories : [])
                 .filter((cat: { parent: number }) => cat.parent === 0)
                 .map((cat: { id: number; name: string; image?: { src?: string }; parent: number; count?: number }) => (
                 <div key={cat.id} className="border border-[#DBE3EA] rounded-sm p-4 shadow-[0px_20px_24px_0px_#0000000A] relative flex flex-col h-full">
@@ -160,7 +179,7 @@ export default async function Home() {
           <p className="text-[#3D4752] mb-8">Bekijk ons laatste artikel voor zinvolle inhoud of winkeltips</p>
           <div className="relative">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              {posts.map((post: { id: number; title: { rendered: string }; excerpt: { rendered: string }; date: string; _embedded?: any }) => (
+              {(Array.isArray(posts) ? posts : []).map((post: { id: number; title: { rendered: string }; excerpt: { rendered: string }; date: string; _embedded?: any }) => (
                 <div key={post.id}>
                   <Image
                     className="mb-3 rounded-sm h-[250px] w-full object-cover"

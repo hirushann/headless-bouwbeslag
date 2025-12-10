@@ -25,7 +25,7 @@ export default function CategoriesSidebar({ categories }: CategoriesSidebarProps
             <p className="font-bold text-[22px]">All Categories</p>
         </div>
 
-      {categories .filter((cat) => cat.parent === 0) .map((cat) => { const subs = categories.filter((s) => s.parent === cat.id);
+      {(Array.isArray(categories) ? categories : []).filter((cat) => cat.parent === 0) .map((cat) => { const subs = (Array.isArray(categories) ? categories : []).filter((s) => s.parent === cat.id);
           return subs.length > 0 ? (
             <div key={cat.id} className="collapse collapse-arrow !rounded-0">
               <input type="checkbox" />
