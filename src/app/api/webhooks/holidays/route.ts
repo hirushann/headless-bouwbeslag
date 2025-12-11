@@ -6,9 +6,15 @@ export async function POST(req: Request) {
     try {
         // 1. Security Check
         const authHeader = req.headers.get('authorization');
+
+        // Extract token from "Bearer <token>"
+        const token = authHeader && authHeader.startsWith("Bearer ")
+            ? authHeader.split(" ")[1]
+            : null;
+
         const expectedToken = "2d93eb85ca303b730d46050b33e801f1";
 
-        if (authHeader !== expectedToken) {
+        if (!token || token !== expectedToken) {
             return NextResponse.json(
                 { error: 'Unauthorized' },
                 { status: 401 }
