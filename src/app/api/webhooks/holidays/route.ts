@@ -4,6 +4,17 @@ import path from 'path';
 
 export async function POST(req: Request) {
     try {
+        // 1. Security Check
+        const authHeader = req.headers.get('authorization');
+        const expectedToken = "Bearer 2d93eb85ca303b730d46050b33e801f1"; // In production, move this to process.env.HOLIDAY_WEBHOOK_SECRET
+
+        if (authHeader !== expectedToken) {
+            return NextResponse.json(
+                { error: 'Unauthorized' },
+                { status: 401 }
+            );
+        }
+
         const body = await req.json();
 
         // Validate input

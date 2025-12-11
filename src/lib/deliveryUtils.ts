@@ -1,6 +1,6 @@
 import { addDays, format, isAfter, isBefore, isSameDay, isWeekend, nextMonday, setHours, setMinutes, startOfDay } from "date-fns";
 import { nl } from "date-fns/locale";
-// import holidayData from "@/data/holidays.json";
+import holidayData from "@/data/holidays.json";
 
 // ------------------------------------------------------------------
 // CONFIGURATION
@@ -21,11 +21,11 @@ const CUTOFF_MINUTE = 0;
 // So we will block SUNDAY and MONDAY by default logic or hardcode them here.
 // For robustness, I will add a helper to check if a date is blocked.
 
-// const BLOCKED_DATES = holidayData.dates;
-const BLOCKED_DATES = [
-    "2025-12-25",
-    "2025-12-26",
-];
+const BLOCKED_DATES = holidayData.dates;
+// const BLOCKED_DATES = [
+//     "2025-12-25",
+//     "2025-12-26",
+// ];
 
 // Helper to check if a specific date string (YYYY-MM-DD) is in our blocked list
 const isBlockedDate = (date: Date): boolean => {
