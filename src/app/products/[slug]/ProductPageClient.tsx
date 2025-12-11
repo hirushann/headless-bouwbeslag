@@ -9,8 +9,9 @@ import ProductCard from "@/components/ProductCard";
 import { useCartStore } from "@/lib/cartStore";
 import { fetchMedia } from "@/lib/wordpress";
 import { COLOR_MAP } from "@/config/colorMap";
+import { getDeliveryInfo } from "@/lib/deliveryUtils";
 
-export default function ProductPageClient({ product }: { product: any }) {
+export default function ProductPageClient({ product, taxRate = 21 }: { product: any; taxRate?: number }) {
   // 🔍 DEBUG: log full product data coming into this page
   useEffect(() => {
     console.log("🟦 ProductPageClient → product data:", product);
@@ -175,16 +176,20 @@ export default function ProductPageClient({ product }: { product: any }) {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isOutOfStock, setIsOutOfStock] = useState(false);
   const [availableStock, setAvailableStock] = useState<number | null>(null);
+  const [backordersAllowed, setBackordersAllowed] = useState(false);
   const [addCartSuccess, setAddCartSuccess] = useState(false);
   const [addCartError, setAddCartError] = useState(false);
   // Derived state: is quantity input exceeding available stock
   const isQuantityInvalid =
-    availableStock !== null && quantity > availableStock;
+    availableStock !== null && 
+    !backordersAllowed && // Only block if backorders DISABLED
+    quantity > availableStock;
   // Cart-aware: quantity of this product already in cart
   const cartItemQuantity =
     items?.find((item: any) => item.id === product?.id)?.quantity ?? 0;
   const isStockLimitReached =
     availableStock !== null &&
+    !backordersAllowed && // Only block if backorders DISABLED
     cartItemQuantity >= availableStock;
   // UX-grade stock check on page load
   useEffect(() => {
@@ -195,7 +200,11 @@ export default function ProductPageClient({ product }: { product: any }) {
         const res = await api.get(`products/${product.id}`);
         const wcProduct = res.data;
 
-        if (wcProduct.stock_status !== "instock") {
+        // Check if backorders are allowed (yes or notify)
+        const isBackorder = wcProduct.backorders === "yes" || wcProduct.backorders === "notify" || wcProduct.backorders_allowed === true;
+        setBackordersAllowed(isBackorder);
+
+        if (wcProduct.stock_status !== "instock" && !isBackorder) {
           setIsOutOfStock(true);
           return;
         }
@@ -205,7 +214,7 @@ export default function ProductPageClient({ product }: { product: any }) {
           typeof wcProduct.stock_quantity === "number"
         ) {
           setAvailableStock(wcProduct.stock_quantity);
-          if (wcProduct.stock_quantity <= 0) {
+          if (wcProduct.stock_quantity <= 0 && !isBackorder) {
             setIsOutOfStock(true);
           }
         }
@@ -503,16 +512,20 @@ export default function ProductPageClient({ product }: { product: any }) {
       const res = await api.get(`products/${productId}`);
       const wcProduct = res.data;
 
-      // If Woo says out of stock
-      if (wcProduct.stock_status !== "instock") {
+      // Check backorders again just to be safe with the fresh data
+      const backordersAllowed = wcProduct.backorders === "yes" || wcProduct.backorders === "notify" || wcProduct.backorders_allowed === true;
+
+      // If Woo says out of stock AND backorders not allowed
+      if (wcProduct.stock_status !== "instock" && wcProduct.stock_status !== "onbackorder" && !backordersAllowed) {
         toast.error("Dit product is momenteel niet op voorraad.");
         return false;
       }
 
-      // If stock management enabled, validate quantity
+      // If stock management enabled, validate quantity ONLY if backorders are NOT allowed
       if (
         wcProduct.manage_stock &&
         typeof wcProduct.stock_quantity === "number" &&
+        !backordersAllowed &&
         qty > wcProduct.stock_quantity
       ) {
         toast.error(
@@ -698,15 +711,28 @@ export default function ProductPageClient({ product }: { product: any }) {
                       const saleRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
                       const currency = product.currency_symbol || "€";
                       const advised = advisedRaw !== undefined && advisedRaw !== null && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
-                      const sale = saleRaw !== undefined && saleRaw !== null && !isNaN(parseFloat(saleRaw)) ? parseFloat(saleRaw) : null;
+                      const saleRawNum = saleRaw !== undefined && saleRaw !== null && !isNaN(parseFloat(saleRaw)) ? parseFloat(saleRaw) : null;
                       
+                      // Direct price from standard WooCommerce field
+                      const sale = product.price ? parseFloat(product.price) : null;
+
                       // Get packing_type attribute
                       const packingType = product?.attributes?.find((attr: any) => attr.slug === "pa_packing_type")?.options?.[0];
 
                       let discountPercent: number | null = null;
                       if (advised && sale && advised > 0) {
-                        discountPercent = Math.round(((advised - sale) / advised) * 100);
+                        // Correct logic: show discount if Advised > Sale
+                        // But wait, the user wants "crucial_data_unit_price" as advised which might include/exclude VAT?
+                        // Assuming advised price also needs VAT or is comparable. 
+                        // Typically advised prices on B2B might be ex VAT too.
+                        // For safety, let's treat "advised" as "as-is" unless instructed otherwise, or apply VAT too.
+                        // Given user only mentioned sales price fix, I will apply VAT to Sales Price.
+                        // If advised looks weird, we might need to apply VAT there too.
+                        // Let's apply VAT to Advised as well for consistency if it's "unit price".
+                        const advisedWithTax = advised * (1 + (taxRate / 100));
+                        discountPercent = Math.round(((advisedWithTax - sale) / advisedWithTax) * 100);
                       }
+                      
                       return (
                         <div className="flex items-center gap-4">
                           {sale !== null && sale !== undefined ? (
@@ -714,7 +740,7 @@ export default function ProductPageClient({ product }: { product: any }) {
                               <div className="flex items-baseline gap-1">
                               <span className="text-2xl lg:text-3xl font-bold text-[#0066FF]">
                                 {currency}
-                                {sale.toFixed(2)}
+                                {sale.toFixed(2).replace('.', ',')}
                               </span>
                                 {packingType && (
                                   <span className="text-base lg:text-lg font-medium text-[#3D4752] ml-3">
@@ -902,7 +928,7 @@ export default function ProductPageClient({ product }: { product: any }) {
                     )}
 
                     <div className='bg-[#E4EFFF] py-3 px-5 rounded-md'> 
-                        <p className='text-[#3D4752] font-normal text-base'>Heb jij beroepsmatig op regelmatige basis bouwbeslag nodig? <a href="#" className='text-[#0066FF] font-bold'>Klik hier </a> en meld je aan voor een zakelijk account met de scherpste inkoopprijzen.</p>
+                        <p className='text-[#3D4752] font-normal text-base'>Heb jij beroepsmatig op regelmatige basis bouwbeslag nodig? <a href="/garantie-aanvraag" className='text-[#0066FF] font-bold'>Klik hier </a> en meld je aan voor een zakelijk account met de scherpste inkoopprijzen.</p>
                     </div>
 
                     {/* Quantity Selector and Add to Cart */}
@@ -952,9 +978,13 @@ export default function ProductPageClient({ product }: { product: any }) {
                             <button
                               type="button"
                               onClick={() =>
-                                setQuantity((prev) =>
-                                  availableStock !== null ? Math.min(prev + 1, availableStock) : prev + 1
-                                )
+                                setQuantity((prev) => {
+                                  // If limit exists AND backorders disabled, clamp. Else just increment.
+                                  if (availableStock !== null && !backordersAllowed) {
+                                    return Math.min(prev + 1, availableStock);
+                                  }
+                                  return prev + 1;
+                                })
                               }
                               className="flex justify-center px-5 py-3 text-2xl cursor-pointer border-l border-[#EDEDED]"
                             >+</button>
@@ -994,11 +1024,12 @@ export default function ProductPageClient({ product }: { product: any }) {
                                     name: product.name,
                                     price: (() => {
                                       const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
-                                      const advisedRaw = getMeta("crucial_data_unit_price");
                                       const saleRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
-                                      const advised = advisedRaw && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
-                                      const sale = saleRaw && !isNaN(parseFloat(saleRaw)) ? parseFloat(saleRaw) : null;
-                                      let basePrice = sale ?? advised ?? 0;
+                                      const sale = saleRaw && !isNaN(parseFloat(saleRaw)) ? parseFloat(saleRaw) : 0;
+                                      // Direct price from standard WooCommerce field
+                                      const priceWithTax = product.price ? parseFloat(product.price) : 0;
+                                      
+                                      let basePrice = priceWithTax;
                                       if (selectedDiscount !== null) {
                                         const pct = discounts[selectedDiscount]?.percentage ?? 0;
                                         if (pct > 0) {
@@ -1063,10 +1094,53 @@ export default function ProductPageClient({ product }: { product: any }) {
                         </div>
                     </div>
 
-                    <div className='bg-[#FFE1E1] py-3 px-5 rounded-md'> 
-                        <p className='text-[#FF5E00] font-semibold text-lg'>Dit artikel moet besteld worden</p>
-                        <p className='text-[#3D4752] font-normal text-sm'>Indien je nu bestelt wordt dit artikel vandaag verzonden</p>
-                    </div>
+                    {/* Delivery Info Box */}
+                    {(() => {
+                      const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
+                      
+                      // Defaults: 1 day if stock, 30 days if no stock (from user request)
+                      const stockLeadRaw = getMeta("crucial_data_delivery_if_stock");
+                      const noStockLeadRaw = getMeta("crucial_data_delivery_if_no_stock");
+                      
+                      const leadTimeInStock = stockLeadRaw && !isNaN(parseInt(stockLeadRaw)) ? parseInt(stockLeadRaw) : 1;
+                      const leadTimeNoStock = noStockLeadRaw && !isNaN(parseInt(noStockLeadRaw)) ? parseInt(noStockLeadRaw) : 30;
+
+                      // Stock data
+                      const stockStatus = product?.stock_status || 'instock';
+                      const stockQty = availableStock; // Use our state which is synced with Woo
+                      
+                      const info = getDeliveryInfo(
+                        stockStatus,
+                        quantity,
+                        stockQty,
+                        leadTimeInStock,
+                        leadTimeNoStock
+                      );
+                      
+                      if (info.type === "IN_STOCK") {
+                         return (
+                           <div className='bg-[#EDFCF2] py-3 px-5 rounded-md'> 
+                               <p className='text-[#03B955] font-semibold text-lg'>Dit product is op voorraad</p>
+                               <p className='text-[#3D4752] font-normal text-sm'>{info.message}</p>
+                           </div>
+                         );
+                      } else if (info.type === "PARTIAL_STOCK") {
+                         return (
+                           <div className='bg-[#EDFCF2] py-3 px-5 rounded-md'> 
+                               <p className='text-[#03B955] font-semibold text-lg'>Dit product is op voorraad</p>
+                               <p className='text-[#3D4752] font-normal text-sm'>{info.message}</p>
+                           </div>
+                         );
+                      } else {
+                         // Backorder / No Stock
+                         return (
+                           <div className='bg-[#FFE1E1] py-3 px-5 rounded-md'> 
+                               <p className='text-[#FF5E00] font-semibold text-lg'>Dit artikel moet besteld worden</p>
+                               <p className='text-[#3D4752] font-normal text-sm'>{info.message}</p>
+                           </div>
+                         );
+                      }
+                    })()}
 
                     <div>
                         <p className='text-[#212121] font-medium text-lg mb-3'>Heb je vragen over dit product? Wij helpen je graag!</p>
@@ -1218,19 +1292,30 @@ export default function ProductPageClient({ product }: { product: any }) {
                                       {/* WooCommerce Product Attributes */}
                                       {/* ------------------------- */}
                                       {product.attributes && product.attributes.length > 0 &&
-                                        product.attributes.map((attr: any, idx: number) => {
-                                          const isEven = (idx % 2 === 0);
-                                          return (
-                                            <tr key={idx} className={isEven ? "" : "bg-[#F3F8FF]"}>
-                                              <td className="px-6 py-3 font-medium text-gray-900">
-                                                {attr.name}
-                                              </td>
-                                              <td className="px-6 py-3">
-                                                {attr.options?.join(", ")}
-                                              </td>
-                                            </tr>
-                                          );
-                                        })
+                                        product.attributes
+                                          .filter((attr: any) => !attr.name.toLowerCase().endsWith(" unit"))
+                                          .map((attr: any, idx: number) => {
+                                            const isEven = (idx % 2 === 0);
+                                            // Find corresponding unit attribute (e.g. "Values" -> "Values Unit")
+                                            // Helper to find case-insensitive match
+                                            const unitAttrName = `${attr.name} Unit`;
+                                            const unitAttr = product.attributes.find(
+                                              (a: any) => a.name.toLowerCase() === unitAttrName.toLowerCase()
+                                            );
+                                            const unitValue = unitAttr ? unitAttr.options?.[0] : "";
+                                            const mainValue = attr.options?.join(", ");
+
+                                            return (
+                                              <tr key={idx} className={isEven ? "" : "bg-[#F3F8FF]"}>
+                                                <td className="px-6 py-3 font-medium text-gray-900">
+                                                  {attr.name}
+                                                </td>
+                                                <td className="px-6 py-3">
+                                                  {mainValue} {unitValue}
+                                                </td>
+                                              </tr>
+                                            );
+                                          })
                                       }
 
                                     </tbody>
@@ -2014,19 +2099,13 @@ export default function ProductPageClient({ product }: { product: any }) {
                                 id: product.id,
                                 name: product.name,
                                 price: (() => {
+                                  // Simplified for mobile sticky
                                   const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
-                                  const advisedRaw = getMeta("crucial_data_unit_price");
                                   const saleRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
-                                  const advised = advisedRaw && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
-                                  const sale = saleRaw && !isNaN(parseFloat(saleRaw)) ? parseFloat(saleRaw) : null;
-                                  let basePrice = sale ?? advised ?? 0;
-                                  if (selectedDiscount !== null) {
-                                    const pct = discounts[selectedDiscount]?.percentage ?? 0;
-                                    if (pct > 0) {
-                                      basePrice = basePrice - (basePrice * pct) / 100;
-                                    }
-                                  }
-                                  return basePrice;
+                                  const sale = saleRaw && !isNaN(parseFloat(saleRaw)) ? parseFloat(saleRaw) : 0;
+                                  
+                                  // Direct price from standard WooCommerce field
+                                  return product.price ? parseFloat(product.price) : 0;
                                 })(),
                                 quantity,
                                 image: product?.images?.[0]?.src || "/afbeelding.png",

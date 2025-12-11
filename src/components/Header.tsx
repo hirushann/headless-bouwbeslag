@@ -335,7 +335,7 @@ export default function Header() {
         <div className={`fixed top-0 right-0 h-full w-full lg:w-150 bg-white shadow-lg z-[70] transform transition-transform duration-300 ${ isCartOpen ? "translate-x-0" : "translate-x-full" }`} aria-hidden={!isCartOpen}>
           <div className="flex flex-col h-full">
             <div className="flex justify-between items-center border-b border-[#E9E9E9] p-4 bg-[#F7F7F7]">
-              <h2 className="text-lg font-medium text-[#1C2530]">Toegevoegd aan winkelmand</h2>
+              <p className="text-lg font-medium text-[#1C2530]">Toegevoegd aan winkelmand</p>
               <button onClick={() => setIsCartOpen(false)} aria-label="Close cart" className="text-2xl font-bold leading-none hover:text-gray-600">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-6 cursor-pointer"><path fillRule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" /></svg>
               </button>

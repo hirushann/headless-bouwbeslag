@@ -26,7 +26,20 @@ async function getProductBySlug(slug: string) {
     return full?.data ?? null;
   } catch (error) {
     console.error("SSR product fetch failed:", error);
-    return null;
+  }
+}
+
+async function getStandardTaxRate(): Promise<number> {
+  try {
+    const res = await api.get("taxes");
+    const rates = res.data;
+    // Look for "standard" class (often empty string or 'standard')
+    // We'll take the first one or default to 21
+    const standard = rates.find((r: any) => r.class === "standard" || r.class === "");
+    return standard && standard.rate ? parseFloat(standard.rate) : 21;
+  } catch (error) {
+    console.error("Tax fetch failed, defaulting to 21:", error);
+    return 21;
   }
 }
 
@@ -85,9 +98,11 @@ export default async function Page({ params }: PageProps) {
     );
   }
 
+  const taxRate = await getStandardTaxRate();
+
   /**
-   * Pass FULL product to client component.
+   * Pass FULL product and taxRate to client component.
    * Nothing else renders here.
    */
-  return <ProductPageClient product={product} />;
+  return <ProductPageClient product={product} taxRate={taxRate} />;
 }

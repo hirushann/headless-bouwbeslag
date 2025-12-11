@@ -46,12 +46,12 @@ export default function ShopProductCard({ product }: { product: any }) {
           <p className="text-xl font-bold text-[#1C2530]">
             €{cleanPrice(product.price)}
           </p>
-          <p className="text-[#03B955] text-sm font-normal">Delivery in 3 days</p>
+          {/* <p className="text-[#03B955] text-sm font-normal">Delivery in 3 days</p> */}
         </div>
 
-        <span className="text-xs text-[#B7B7B7] mb-3 font-normal">
+        {/* <span className="text-xs text-[#B7B7B7] mb-3 font-normal">
           {product.type?.toUpperCase() || "SET"}
-        </span>
+        </span> */}
 
         <button
           onClick={() => {

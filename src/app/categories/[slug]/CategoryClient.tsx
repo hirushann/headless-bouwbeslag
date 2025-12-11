@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import api from "@/lib/woocommerce";
 import ShopProductCard from "@/components/ShopProductCard";
 import { motion } from "framer-motion";
@@ -45,6 +45,7 @@ export default function CategoryClient({
   attributes,
 }: CategoryClientProps) {
   const [products, setProducts] = useState<any[]>([]);
+  const [rawProducts, setRawProducts] = useState<any[]>([]);
   const [selectedFilters, setSelectedFilters] = useState<{ [key: number]: Set<number> }>({});
   const [productsLoading, setProductsLoading] = useState<boolean>(false);
   const [filtersLoading, setFiltersLoading] = useState<boolean>(false);
@@ -85,6 +86,7 @@ export default function CategoryClient({
         }
 
         const res = await api.get("products", params);
+        setRawProducts(res.data);
         let prods = res.data;
 
         if (Object.keys(selectedFilters).length > 0) {
@@ -137,11 +139,55 @@ export default function CategoryClient({
     });
   };
 
-  const colorAttribute = (attributes as Attribute[]).find(
+  // ------------------------------------------------------------------
+  // DYNAMIC FILTER LOGIC
+  // Only show attributes/terms that exist in the currently loaded `rawProducts`.
+  // ------------------------------------------------------------------
+  const relevantAttributes = useMemo(() => {
+    if (!rawProducts || rawProducts.length === 0) return [];
+
+    // 1. Collect all "Option Names" present for each Attribute ID
+    const presentOptions = new Map<number, Set<string>>();
+
+    rawProducts.forEach((p) => {
+      if (!Array.isArray(p.attributes)) return;
+      p.attributes.forEach((pAttr: any) => {
+        // pAttr = { id: 1, name: "Color", options: ["Blue", "Red"] }
+        if (!presentOptions.has(pAttr.id)) {
+          presentOptions.set(pAttr.id, new Set());
+        }
+        const set = presentOptions.get(pAttr.id)!;
+        pAttr.options.forEach((opt: string) => set.add(opt));
+      });
+    });
+
+    // 2. Filter the Global Attributes list
+    return attributes
+      .map((attr) => {
+        const presentSet = presentOptions.get(attr.id);
+        if (!presentSet) return null; // Attribute ID not found in any product
+
+        // Filter terms: keep term only if its NAME is in the presentSet
+        // (WooCommerce API matches terms by Name in the product.attributes.options array)
+        const validTerms = attr.terms.filter((term: AttributeTerm) =>
+          presentSet.has(term.name)
+        );
+
+        if (validTerms.length === 0) return null;
+
+        return {
+          ...attr,
+          terms: validTerms,
+        };
+      })
+      .filter(Boolean) as Attribute[];
+  }, [rawProducts, attributes]);
+
+  const colorAttribute = relevantAttributes.find(
     (attr) => attr.name.toLowerCase() === "color"
   );
 
-  const otherAttributes = (attributes as Attribute[]).filter(
+  const otherAttributes = relevantAttributes.filter(
     (attr) => attr.name.toLowerCase() !== "color"
   );
 

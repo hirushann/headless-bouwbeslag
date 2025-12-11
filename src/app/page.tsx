@@ -14,38 +14,19 @@ export default async function Home() {
   const bestSellers = await api
     .get("products", { per_page: 10 })
     .then((res: any) => res.data)
-    .catch((err) => {
-      console.error("Error fetching best sellers:", err.response?.data || err.message);
-      return [];
-    });
+    .catch(() => []);
 
   const recommended = await api
     .get("products", { featured: true, per_page: 10 })
     .then((res: any) => res.data)
-    .catch((err) => {
-      console.error("Error fetching recommended products:", err.response?.data || err.message);
-      return [];
-    });
+    .catch(() => []);
 
   const categories = await api
     .get("products/categories", { per_page: 50 })
     .then((res: any) => res.data)
-    .catch((err) => {
-      console.error("Error fetching categories:", err.response?.data || err.message);
-      return [];
-    });
+    .catch(() => []);
 
-  const posts = await fetchPosts(3).catch((err) => {
-    console.error("Error fetching posts:", err.response?.data || err.message);
-    return [];
-  });
-
-  console.log("--- DEBUG DATA FETCH ---");
-  console.log("Best Sellers:", Array.isArray(bestSellers) ? bestSellers.length : bestSellers);
-  console.log("Recommended:", Array.isArray(recommended) ? recommended.length : recommended);
-  console.log("Categories:", Array.isArray(categories) ? categories.length : categories);
-  console.log("Posts:", Array.isArray(posts) ? posts.length : posts);
-  console.log("------------------------");
+  const posts = await fetchPosts(3).catch(() => []);
 
   return (
     <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start font-sans bg-[#F5F5F5]">
@@ -64,22 +45,22 @@ export default async function Home() {
         <FadeIn className="hidden lg:flex gap-6 items-center font-sans mb-4" delay={0.2}>
           <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
             <Image className="" src="/card1icon.png" alt="" width={48} height={48} />
-            <h2 className="text-[#1C2530] font-semibold text-lg">Gegarandeerd de beste prijs</h2>
+            <p className="text-[#1C2530] font-semibold text-lg">Gegarandeerd de beste prijs</p>
             <p className="text-[#3D4752] font-normal text-sm">Wij betalen zelf ook niet graag te veel. Op 95% van ons assortiment zit een beste prijs garantie. </p>
           </div>
           <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
             <Image className="" src="/card2icon.png" alt="" width={48} height={48} />
-            <h2 className="text-[#1C2530] font-semibold text-lg">30 dagen retour</h2>
+            <p className="text-[#1C2530] font-semibold text-lg">30 dagen retour</p>
             <p className="text-[#3D4752] font-normal text-sm">Tja, is dit nog een USP? Ook bij ons kun je spullen terugsturen als het niet is zoals je verwachtte.</p>
           </div>
           <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
             <Image className="" src="/card3icon.png" alt="" width={48} height={48} />
-            <h2 className="text-[#1C2530] font-semibold text-lg">De beste service</h2>
+            <p className="text-[#1C2530] font-semibold text-lg">De beste service</p>
             <p className="text-[#3D4752] font-normal text-sm">Het begint bij de productinformatie: bij ons is die zo compleet mogelijk. Daarna nog vragen? Wij staan voor je klaar!</p>
           </div>
           <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
             <Image className="" src="/card4icon.png" alt="" width={48} height={48} />
-            <h2 className="text-[#1C2530] font-semibold text-lg">Uitsluitend  A-merken</h2>
+            <p className="text-[#1C2530] font-semibold text-lg">Uitsluitend  A-merken</p>
             <p className="text-[#3D4752] font-normal text-sm">Er zijn genoeg sites waar je voor een tientje deurklinken koopt. Wij houden het liever bij merken die zich bewezen hebben.</p>
           </div>
         </FadeIn>
