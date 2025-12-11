@@ -39,6 +39,11 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
   const items = useCartStore((state) => state.items);
   const [selectedImage, setSelectedImage] = useState('/afbeelding.png');
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [currentUrl, setCurrentUrl] = useState("");
+
+  useEffect(() => {
+    setCurrentUrl(window.location.href);
+  }, []);
 
   // ✅ Initialize gallery images from SSR product
   useEffect(() => {
@@ -830,7 +835,7 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
 
                         <div className="flex gap-3">
                           {orderColors.map((colour: { name: string; color: string; slug?: string }) => (
-                            <Link key={colour.slug} href={colour.slug ? `/products/${colour.slug}` : "#"}>
+                            <Link key={colour.slug} href={colour.slug ? `/${colour.slug}` : "#"}>
                               <button className="w-8 h-8 rounded-full border border-gray-300 cursor-pointer hover:ring-2 hover:ring-blue-500" style={{ backgroundColor: colour.color }} aria-label={colour.name} title={colour.name} />
                             </Link>
                           ))}
@@ -876,7 +881,7 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                         >
                           {orderModels.map((model: any, index: number) => (
                             <Link
-                              href={`/products/${model.slug}`}
+                              href={`/${model.slug}`}
                               key={`${model.id}-${index}`}
                               className="flex-shrink-0 w-32 flex flex-col items-center gap-2"
                             >
@@ -1337,7 +1342,16 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                                 </summary>
                                 <div className="px-6 pb-4 text-gray-700 space-y-4">
                                     <div className='mt-1 flex flex-col gap-3'>
-                                        <p className='text-[#3D4752] font-normal text-base'>Wij beloven je dat je dit artikel elders niet goedkoper tegenkomt. Is dat wel zo? Dan matchen wij de prijs én geven je nog eens 10% extra korting op de prijs van de concurrent. <a className='text-[#0066FF] font-bold' href="/laagste-prijs-garantie">Meld hier</a> je laagste prijs match aanvraag. <br></br> Om je te helpen te googelen om de producten bij concurrenten te vinden geven we hier al de artikelnummers waarvan wij weten dat dit artikel bekend staat:</p>
+                                        <p className='text-[#3D4752] font-normal text-base'>
+                                          Wij beloven je dat je dit artikel elders niet goedkoper tegenkomt. Is dat wel zo? Dan matchen wij de prijs én geven je nog eens 10% extra korting op de prijs van de concurrent. 
+                                          <a 
+                                            className='text-[#0066FF] font-bold mx-1.5' 
+                                            href={`/laagste-prijs-garantie?product=${encodeURIComponent(currentUrl)}`}
+                                          >
+                                             Meld hier 
+                                          </a> 
+                                           je laagste prijs match aanvraag. <br></br> Om je te helpen te googelen om de producten bij concurrenten te vinden geven we hier al de artikelnummers waarvan wij weten dat dit artikel bekend staat:
+                                        </p>
                                         {(() => {
                                           if (!product?.meta_data) return null;
                                           const keys = [

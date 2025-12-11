@@ -10,6 +10,8 @@ import CategoriesSidebar from "@/components/carousels/CategoriesSidebar";
 import HeroSection from "@/components/HeroSection";
 import FadeIn from "@/components/animations/FadeIn";
 
+export const revalidate = 0;
+
 export default async function Home() {
   const bestSellers = await api
     .get("products", { per_page: 10 })

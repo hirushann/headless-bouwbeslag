@@ -45,7 +45,7 @@ export default function ProductCard({ product }: { product: any }) {
 
   return (
     <div className="snap-start shrink-0 w-[100%] border border-[#E2E2E2] rounded-sm shadow-sm bg-[#F7F7F7] flex flex-col h-full">
-      <Link href={`/products/${product.slug}`} className="relative h-48 bg-white rounded-tl-lg rounded-tr-lg overflow-hidden">
+      <Link href={`/${product.slug}`} className="relative h-48 bg-white rounded-tl-lg rounded-tr-lg overflow-hidden">
         <Image src={imgSrc} alt={product.name || "Product image"} fill className="object-contain"/>
 
         {/* Dynamic stock badge */}
@@ -57,7 +57,7 @@ export default function ProductCard({ product }: { product: any }) {
       </Link>
 
       <div className="p-4 flex flex-col flex-1">
-        <Link href={`/products/${product.slug}`} className="text-lg font-medium mb-1 line-clamp-2 text-[#1C2530]">
+        <Link href={`/${product.slug}`} className="text-lg font-medium mb-1 line-clamp-2 text-[#1C2530]">
           {product.name || "Untitled Product"}
         </Link>
 
