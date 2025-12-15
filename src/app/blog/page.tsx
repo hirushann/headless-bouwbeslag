@@ -94,38 +94,73 @@ export default async function BlogPage() {
           <h1 className="font-bold text-6xl mb-8 text-[#1C2530]">Onze Blogs</h1>
         </FadeIn>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 font-sans">
-          {(Array.isArray(posts) ? posts : []).map((post: any, index: number) => (
-            <FadeIn key={post.id} delay={index * 0.1}>
-              <Link href={`/blog/${post.slug}`}>
-                <div className="border-0 rounded-md overflow-hidden">
-                  <Image
-                    src={
-                      post._embedded?.["wp:featuredmedia"]?.[0]?.source_url ||
-                      "/default-fallback-image.png"
-                    }
-                    alt={post.title.rendered}
-                    width={600}
-                    height={400}
-                    className="w-full h-[250px] object-cover rounded-sm"
-                  />
-                  <div className="py-4 px-1 flex flex-col gap-2">
-                    <p className="text-[#0066FF] text-sm">
-                      {formatDate(post.date)}
-                    </p>
-                    <p
-                      className="text-xl font-semibold hover:underline text-[#1C2530]"
-                      dangerouslySetInnerHTML={{ __html: post.title.rendered }}
+        {Array.isArray(posts) && posts.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 font-sans">
+            {posts.map((post: any, index: number) => (
+              <FadeIn key={post.id} delay={index * 0.1}>
+                <Link href={`/blog/${post.slug}`}>
+                  <div className="border-0 rounded-md overflow-hidden">
+                    <Image
+                      src={
+                        post._embedded?.["wp:featuredmedia"]?.[0]?.source_url ||
+                        "/default-fallback-image.png"
+                      }
+                      alt={post.title.rendered}
+                      width={600}
+                      height={400}
+                      className="w-full h-[250px] object-cover rounded-sm"
                     />
-                    <p className="text-[#3D4752] text-sm line-clamp-2 font-normal">
-                      {stripHtml(post.excerpt?.rendered || "")}
-                    </p>
+                    <div className="py-4 px-1 flex flex-col gap-2">
+                      <p className="text-[#0066FF] text-sm">
+                        {formatDate(post.date)}
+                      </p>
+                      <p
+                        className="text-xl font-semibold hover:underline text-[#1C2530]"
+                        dangerouslySetInnerHTML={{ __html: post.title.rendered }}
+                      />
+                      <p className="text-[#3D4752] text-sm line-clamp-2 font-normal">
+                        {stripHtml(post.excerpt?.rendered || "")}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                </Link>
+              </FadeIn>
+            ))}
+          </div>
+        ) : (
+          <FadeIn delay={0.1}>
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="bg-gray-100 p-6 rounded-full mb-4 text-[#3D4752]">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-12 h-12"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 0 1-2.25 2.25M16.5 7.5V18a2.25 2.25 0 0 0 2.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 0 0 2.25 2.25h13.5M6 7.5h3v3H6v-3Z"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-[#1C2530] mb-2">
+                Geen blogs gevonden
+              </h2>
+              <p className="text-[#3D4752] max-w-md">
+                Er zijn momenteel geen blogartikelen beschikbaar. Kom later terug voor nieuwe updates en tips.
+              </p>
+              <Link
+                href="/"
+                className="mt-6 border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-6 py-2.5 font-semibold text-sm hover:text-white hover:bg-[#0066FF] transition-colors"
+               >
+                Terug naar Home
               </Link>
-            </FadeIn>
-          ))}
-        </div>
+            </div>
+          </FadeIn>
+        )}
       </div>
     </main>
   );

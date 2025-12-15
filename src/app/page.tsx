@@ -152,49 +152,51 @@ export default async function Home() {
         </div>
 
         {/* Read our blog */}
-        <FadeIn className="w-full py-10 px-5 lg:px-0" delay={0.5}>
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="text-3xl font-bold text-[#1C2530]">Lees onze blog</h2>
-            <div className="flex gap-2 items-center">
-              <a href="/blog" className="border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">Bekijk alles</a>
+        {posts && posts.length > 0 && (
+          <FadeIn className="w-full py-10 px-5 lg:px-0" delay={0.5}>
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-3xl font-bold text-[#1C2530]">Lees onze blog</h2>
+              <div className="flex gap-2 items-center">
+                <a href="/blog" className="border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">Bekijk alles</a>
+              </div>
             </div>
-          </div>
-          <p className="text-[#3D4752] mb-8">Bekijk ons laatste artikel voor zinvolle inhoud of winkeltips</p>
-          <div className="relative">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              {(Array.isArray(posts) ? posts : []).map((post: { id: number; title: { rendered: string }; excerpt: { rendered: string }; date: string; _embedded?: any }) => (
-                <div key={post.id}>
-                  <Image
-                    className="mb-3 rounded-sm h-[250px] w-full object-cover"
-                    src={
-                      post._embedded?.["wp:featuredmedia"]?.[0]?.source_url ||
-                      post._embedded?.["wp:featuredmedia"]?.[0]?.media_details?.sizes?.full?.source_url ||
-                      "/default-fallback-image.png"
-                    }
-                    alt={post.title.rendered}
-                    width={500}
-                    height={200}
-                  />
-                  <div className="flex flex-col gap-2">
-                    <p className="text-[#0066FF] font-normal text-sm">
-                      {new Date(post.date).toISOString().split("T")[0]}
-                    </p>
-                    <div
-                      className="text-[#1C2530] font-semibold text-xl"
-                      dangerouslySetInnerHTML={{ __html: post.title.rendered }}
+            <p className="text-[#3D4752] mb-8">Bekijk ons laatste artikel voor zinvolle inhoud of winkeltips</p>
+            <div className="relative">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                {(Array.isArray(posts) ? posts : []).map((post: { id: number; title: { rendered: string }; excerpt: { rendered: string }; date: string; _embedded?: any }) => (
+                  <div key={post.id}>
+                    <Image
+                      className="mb-3 rounded-sm h-[250px] w-full object-cover"
+                      src={
+                        post._embedded?.["wp:featuredmedia"]?.[0]?.source_url ||
+                        post._embedded?.["wp:featuredmedia"]?.[0]?.media_details?.sizes?.full?.source_url ||
+                        "/default-fallback-image.png"
+                      }
+                      alt={post.title.rendered}
+                      width={500}
+                      height={200}
                     />
-                    {post.excerpt?.rendered ? (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-[#0066FF] font-normal text-sm">
+                        {new Date(post.date).toISOString().split("T")[0]}
+                      </p>
                       <div
-                        className="text-[#3D4752] font-normal text-sm"
-                        dangerouslySetInnerHTML={{ __html: post.excerpt.rendered }}
+                        className="text-[#1C2530] font-semibold text-xl"
+                        dangerouslySetInnerHTML={{ __html: post.title.rendered }}
                       />
-                    ) : null}
+                      {post.excerpt?.rendered ? (
+                        <div
+                          className="text-[#3D4752] font-normal text-sm"
+                          dangerouslySetInnerHTML={{ __html: post.excerpt.rendered }}
+                        />
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        </FadeIn>
+          </FadeIn>
+        )}
 
         {/* Bottom Content */}
         <FadeIn className="w-full py-10 px-5 lg:px-0" delay={0.6}>
