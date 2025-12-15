@@ -21,7 +21,7 @@ const CUTOFF_MINUTE = 0;
 // So we will block SUNDAY and MONDAY by default logic or hardcode them here.
 // For robustness, I will add a helper to check if a date is blocked.
 
-const BLOCKED_DATES = holidayData.dates;
+const BLOCKED_DATES: string[] = holidayData.dates;
 // const BLOCKED_DATES = [
 //     "2025-12-25",
 //     "2025-12-26",
