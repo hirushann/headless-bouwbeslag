@@ -86,6 +86,66 @@ export async function generateMetadata(
 /* ----------------------------------------------------
  | ✅ PAGE (SERVER COMPONENT)
  ---------------------------------------------------- */
+/* ----------------------------------------------------
+ | ✅ STRUCTURED DATA (JSON-LD)
+ ---------------------------------------------------- */
+function generateStructuredData(product: any, taxRate: number) {
+  if (!product) return null;
+
+  // Helper to safely get meta data
+  const getMeta = (key: string) =>
+    product.meta_data?.find((m: any) => m.key === key)?.value;
+
+  // Price Calculation Logic
+  // We assume product.price is the definitive selling price (likely includes tax if B2C options are standard).
+  // Schema.org expects dot decimal.
+  let price = product.price ? parseFloat(product.price) : 0;
+  
+  const currency = "EUR"; 
+  const description =
+    product.short_description?.replace(/<[^>]+>/g, "") ||
+    product.description?.replace(/<[^>]+>/g, "") ||
+    "";
+  
+  const images = product.images?.map((img: any) => img.src) || [];
+
+  const availability =
+    product.stock_status === "instock"
+      ? "https://schema.org/InStock"
+      : "https://schema.org/OutOfStock";
+
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    image: images,
+    description: description,
+    sku: product.sku,
+    brand: {
+      "@type": "Brand",
+      name: product.brands?.[0]?.name || "Bouwbeslag",
+    },
+    offers: {
+      "@type": "Offer",
+      url: `https://bouwbeslag.nl/${product.slug}`,
+      priceCurrency: currency,
+      price: price.toFixed(2),
+      priceValidUntil: "2025-12-31", 
+      itemCondition: "https://schema.org/NewCondition",
+      availability: availability,
+      seller: {
+        "@type": "Organization",
+        name: "Bouwbeslag",
+      },
+    },
+  };
+
+  return schema;
+}
+
+/* ----------------------------------------------------
+ | ✅ PAGE (SERVER COMPONENT)
+ ---------------------------------------------------- */
 export default async function Page({ params }: PageProps) {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
@@ -99,10 +159,23 @@ export default async function Page({ params }: PageProps) {
   }
 
   const taxRate = await getStandardTaxRate();
+  const structuredData = generateStructuredData(product, taxRate);
 
   /**
    * Pass FULL product and taxRate to client component.
    * Nothing else renders here.
    */
-  return <ProductPageClient product={product} taxRate={taxRate} />;
+  return (
+    <>
+      {structuredData && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(structuredData),
+          }}
+        />
+      )}
+      <ProductPageClient product={product} taxRate={taxRate} />
+    </>
+  );
 }
