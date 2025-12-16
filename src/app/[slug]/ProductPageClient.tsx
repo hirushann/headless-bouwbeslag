@@ -2043,7 +2043,7 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
             <div className="flex flex-col lg:flex-row items-center gap-3 lg:gap-4 justify-center max-w-[1440px] mx-auto">
                 <div className="flex items-center gap-4 w-full lg:w-auto justify-center lg:justify-between lg:justify-start flex-wrap lg:flex-nowrap">
                     <div className='flex justify-center items-center'>
-                      <p className="text-xl lg:text-3xl font-bold text-[#1C2530]">
+                      <p className="text-base md:text-xl lg:text-3xl font-bold text-[#1C2530]">
                         {(() => {
                           const getMeta = (key: string) =>
                             product?.meta_data?.find((m: any) => m.key === key)?.value;
@@ -2079,9 +2079,9 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                         <button
                           type="button"
                           onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                          className="px-5 py-3 text-2xl cursor-pointer border-r border-[#EDEDED]"
+                          className="lg:px-5 px-2 lg:py-3 py-1 text-lg lg:text-2xl cursor-pointer border-r border-[#EDEDED]"
                         >-</button>
-                        <div className="px-6 py-2 text-base font-medium text-center min-w-[60px] flex items-center justify-center">
+                        <div className="lg:px-6 px-2 lg:py-2 py-1 text-base font-medium text-cente  r lg:min-w-[60px] min-w-[40px] flex items-center justify-center">
                             {quantity.toString().padStart(1, '0')}
                         </div>
                         <button
@@ -2091,11 +2091,11 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                               availableStock !== null ? Math.min(prev + 1, availableStock) : prev + 1
                             )
                           }
-                          className="flex justify-center px-5 py-3 text-2xl cursor-pointer border-l border-[#EDEDED]"
+                          className="flex justify-center lg:px-5 px-2 lg:py-3 py-1 text-lg lg:text-2xl cursor-pointer border-l border-[#EDEDED]"
                         >+</button>
                     </div>
 
-                    <div className='w-full lg:w-auto'>
+                    <div className='w-1/2 lg:w-auto'>
                       <div className="relative group">
                         <button
                           type="button"
@@ -2105,7 +2105,7 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                             isQuantityInvalid ||
                             isStockLimitReached
                           }
-                          className={`cursor-pointer flex-1 px-6 py-4 rounded-sm transition font-semibold flex items-center justify-center gap-3 w-full
+                          className={`cursor-pointer flex-1 px-3 py-2 lg:px-6 lg:py-4 rounded-sm transition font-semibold flex items-center justify-center gap-1 lg:gap-3 w-full
                             ${
                               isOutOfStock || isQuantityInvalid || isStockLimitReached
                                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
@@ -2173,16 +2173,16 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                         >
                           {/* Loader spinner if adding, else success, error or cart icon */}
                           {isAddingToCart ? (
-                            <svg className="size-6 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4"></circle><path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
+                            <svg className="size-6 animate-spin hidden lg:block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4"></circle><path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
                           ) : addCartSuccess ? (
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="white" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="white" className="size-6  hidden lg:block"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                           ) : addCartError ? (
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="#FF3B3B" className="size-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="#FF3B3B" className="size-6  hidden lg:block">
                               <circle cx="12" cy="12" r="10" stroke="#FF3B3B" strokeWidth="2" fill="none"/>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5m0 4h.01" stroke="#FF3B3B" strokeWidth="2"/>
                             </svg>
                           ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="white" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="white" className="size-6  hidden lg:block"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>
                           )}
                           In winkelwagen
                         </button>
