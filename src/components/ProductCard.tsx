@@ -1,8 +1,10 @@
-"use client";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCartStore } from "@/lib/cartStore";
-
+import { getDeliveryInfo } from "@/lib/deliveryUtils";
+import { fetchProductStock } from "@/lib/woocommerce";
+import toast from "react-hot-toast";
 const WP_BASE: string =
   (process.env.NEXT_PUBLIC_WC_URL as string) ||
   (process.env.NEXT_PUBLIC_WORDPRESS_API_URL as string) ||
@@ -42,6 +44,8 @@ export default function ProductCard({ product }: { product: any }) {
 
   const rawImg: string | undefined = product.images?.[0]?.src;
   const imgSrc = normalizeImageUrl(rawImg);
+
+  const [isAdding, setIsAdding] = useState(false);
 
   return (
     <div className="snap-start shrink-0 w-[100%] border border-[#E2E2E2] rounded-sm shadow-sm bg-[#F7F7F7] flex flex-col h-full">
@@ -89,20 +93,67 @@ export default function ProductCard({ product }: { product: any }) {
         </span>
 
         <button
-          onClick={() => {
-            console.log("Adding to cart:", product.name, "ID:", product.id);
-            addItem({
-              id: product.id,
-              name: product.name,
-              price: Number(product.sale_price || product.regular_price || product.price || 0),
-              quantity: 1,
-              image: product.images?.[0]?.src,
-            });
+          disabled={isAdding}
+          onClick={async () => {
+            if (isAdding) return;
+            setIsAdding(true);
+
+            try {
+               // 1. Fetch real-time stock
+               const stockData = await fetchProductStock(product.id);
+               
+               if (!stockData) {
+                  toast.error("Fout bij ophalen voorraad.");
+                  setIsAdding(false);
+                  return;
+               }
+
+               const { stock_status, stock_quantity, manage_stock, backorders, backorders_allowed } = stockData;
+               const isBackorderAllowed = backorders === "yes" || backorders === "notify" || backorders_allowed === true;
+
+               // 2. Validate Stock Status
+               if (stock_status !== "instock" && stock_status !== "onbackorder" && !isBackorderAllowed) {
+                  toast.error("Dit product is momenteel niet op voorraad.");
+                  setIsAdding(false);
+                  return;
+               }
+
+               // 3. Validate Quantity (we are adding 1)
+               if (manage_stock && typeof stock_quantity === "number" && !isBackorderAllowed && 1 > stock_quantity) {
+                  toast.error(`Niet op voorraad. Maximaal beschikbaar: ${stock_quantity}`);
+                  setIsAdding(false);
+                  return;
+               }
+
+               // 4. Success - Add to Cart
+               addItem({
+                  id: product.id,
+                  name: product.name,
+                  price: Number(product.sale_price || product.regular_price || product.price || 0),
+                  quantity: 1,
+                  image: product.images?.[0]?.src,
+                  deliveryText: getDeliveryInfo(product.stock_status, 1, product.stock_quantity ?? null).short,
+                  deliveryType: getDeliveryInfo(product.stock_status, 1, product.stock_quantity ?? null).type,
+               });
+               toast.success("Product toegevoegd aan winkelwagen!");
+
+            } catch (err) {
+               console.error(err);
+               toast.error("Er ging iets mis. Probeer het opnieuw.");
+            } finally {
+               setIsAdding(false);
+            }
           }}
-          className="mt-auto text-center bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 transition flex items-center justify-center gap-2 font-semibold"
+          className={`mt-auto text-center py-3 rounded-md transition flex items-center justify-center gap-2 font-semibold ${isAdding ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white`}
         >
-          <span><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6" width="20" height="20"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg></span>
-          <span>Add to Cart</span>
+          {isAdding ? (
+             <span>Checking...</span>
+          ) : (
+             <>
+                <span><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6" width="20" height="20"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg></span>
+                <span>Add to Cart</span>
+             </>
+          )}
         </button>
       </div>
     </div>

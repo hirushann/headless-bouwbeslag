@@ -52,13 +52,13 @@ export async function generateMetadata(
       title: seoTitle,
       description: seoDescription,
       alternates: {
-        canonical: `${siteUrl}/blog/${slug}`,
+        canonical: `${siteUrl}/kennisbank/${slug}`,
       },
       openGraph: {
         title: seoTitle,
         description: seoDescription,
         type: "article",
-        url: `${siteUrl}/blog/${slug}`,
+        url: `${siteUrl}/kennisbank/${slug}`,
         images: image ? [{ url: image }] : [],
       },
     };
@@ -123,7 +123,7 @@ export default async function SingleBlogPage({
           </span>
           <span>Home</span>
         </Link>
-        / <Link href="/blog">Blogs</Link>
+        / <Link href="/kennisbank">Kennisbank</Link>
         /{" "}
         <span
           dangerouslySetInnerHTML={{ __html: post.title.rendered }}

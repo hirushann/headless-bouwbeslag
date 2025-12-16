@@ -23,8 +23,13 @@ export default function LoginPage() {
       localStorage.setItem("token", res.token);
       localStorage.setItem("user", JSON.stringify(res));
       router.push("/account");
-    } catch (err) {
-      setError("Ongeldige gebruikersnaam of wachtwoord");
+    } catch (err: any) {
+      console.error("Login error details:", err.response?.data || err);
+      // Try to get specific message from JWT response, fallback to generic
+      const apiMessage = err.response?.data?.message;
+      // Strip HTML tags if WP sends them (WP often sends <strong>ERROR</strong>...)
+      const cleanMessage = apiMessage ? apiMessage.replace(/<[^>]*>/g, '') : "Ongeldige gebruikersnaam of wachtwoord";
+      setError(cleanMessage);
     } finally {
       setLoading(false);
     }

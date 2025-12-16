@@ -142,8 +142,8 @@ export const getDeliveryInfo = (
     const now = new Date();
 
     // SCENARIO 1: FULLY IN STOCK
-    // If (stock >= qty)
-    if (stockQuantity !== null && stockQuantity >= quantityRequested) {
+    // If (stock >= qty) OR (stock is null AND status is 'instock')
+    if ((stockQuantity !== null && stockQuantity >= quantityRequested) || (stockQuantity === null && stockStatus === "instock")) {
         const date = calculateDeliveryDate(leadTimeInStock);
         return {
             type: "IN_STOCK", // Green

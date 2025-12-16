@@ -1024,28 +1024,43 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                                     return;
                                   }
 
-                                  await addItem({
-                                    id: product.id,
-                                    name: product.name,
-                                    price: (() => {
-                                      const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
-                                      const saleRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
-                                      const sale = saleRaw && !isNaN(parseFloat(saleRaw)) ? parseFloat(saleRaw) : 0;
-                                      // Direct price from standard WooCommerce field
-                                      const priceWithTax = product.price ? parseFloat(product.price) : 0;
-                                      
-                                      let basePrice = priceWithTax;
-                                      if (selectedDiscount !== null) {
-                                        const pct = discounts[selectedDiscount]?.percentage ?? 0;
-                                        if (pct > 0) {
-                                          basePrice = basePrice - (basePrice * pct) / 100;
+                                    await addItem({
+                                      id: product.id,
+                                      name: product.name,
+                                      price: (() => {
+                                        const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
+                                        const saleRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
+                                        const sale = saleRaw && !isNaN(parseFloat(saleRaw)) ? parseFloat(saleRaw) : 0;
+                                        // Direct price from standard WooCommerce field
+                                        const priceWithTax = product.price ? parseFloat(product.price) : 0;
+                                        
+                                        let basePrice = priceWithTax;
+                                        if (selectedDiscount !== null) {
+                                          const pct = discounts[selectedDiscount]?.percentage ?? 0;
+                                          if (pct > 0) {
+                                            basePrice = basePrice - (basePrice * pct) / 100;
+                                          }
                                         }
-                                      }
-                                      return basePrice;
-                                    })(),
-                                    quantity,
-                                    image: product?.images?.[0]?.src || "/afbeelding.png",
-                                  });
+                                        return basePrice;
+                                      })(),
+                                      quantity,
+                                      image: product?.images?.[0]?.src || "/afbeelding.png",
+                                      deliveryText: getDeliveryInfo(
+                                        product.stock_status,
+                                        quantity,
+                                        product.stock_quantity ?? null,
+                                        1,
+                                        30
+                                      ).short,
+                                      deliveryType: getDeliveryInfo(
+                                        product.stock_status,
+                                        quantity,
+                                        product.stock_quantity ?? null,
+                                        1,
+                                        30
+                                      ).type,
+
+                                    });
                                   toast.success("Product toegevoegd aan winkelwagen!", {
                                     duration: 3000,
                                     position: "top-right",
@@ -2123,6 +2138,20 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                                 })(),
                                 quantity,
                                 image: product?.images?.[0]?.src || "/afbeelding.png",
+                                deliveryText: getDeliveryInfo(
+                                  product.stock_status,
+                                  quantity,
+                                  product.stock_quantity ?? null,
+                                  1, // Default leadTimeInStock
+                                  30 // Default leadTimeNoStock
+                                ).short,
+                                deliveryType: getDeliveryInfo(
+                                  product.stock_status,
+                                  quantity,
+                                  product.stock_quantity ?? null,
+                                  1,
+                                  30
+                                ).type,
                               });
                               toast.success("Product added to cart!", {
                                 duration: 3000,

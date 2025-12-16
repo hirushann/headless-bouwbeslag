@@ -56,12 +56,12 @@ export async function generateMetadata(): Promise<Metadata> {
     title,
     description,
     alternates: {
-      canonical: `${siteUrl}/blog`,
+      canonical: `${siteUrl}/kennisbank`,
     },
     openGraph: {
       title,
       description,
-      url: `${siteUrl}/blog`,
+      url: `${siteUrl}/kennisbank`,
       type: "website",
     },
   };
@@ -86,7 +86,7 @@ export default async function BlogPage() {
               </span>
               <span>Home</span>
             </Link>{" "}
-            / Blogs
+            / Kennisbank
           </div>
         </FadeIn>
 
@@ -98,7 +98,7 @@ export default async function BlogPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 font-sans">
             {posts.map((post: any, index: number) => (
               <FadeIn key={post.id} delay={index * 0.1}>
-                <Link href={`/blog/${post.slug}`}>
+                <Link href={`/kennisbank/${post.slug}`}>
                   <div className="border-0 rounded-md overflow-hidden">
                     <Image
                       src={

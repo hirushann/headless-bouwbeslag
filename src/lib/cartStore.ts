@@ -10,6 +10,8 @@ interface CartItem {
   color?: string;
   brand?: string;
   model?: string;
+  deliveryText?: string;
+  deliveryType?: string;
 }
 
 interface CartState {
@@ -33,7 +35,7 @@ export const useCartStore = create<CartState>()(
             return {
               items: state.items.map((i) =>
                 i.id === item.id
-                  ? { ...i, quantity: i.quantity + item.quantity }
+                  ? { ...i, ...item, quantity: i.quantity + item.quantity }
                   : i
               ),
             };
@@ -47,7 +49,7 @@ export const useCartStore = create<CartState>()(
             return {
               items: state.items.map((i) =>
                 i.id === item.id
-                  ? { ...i, quantity: i.quantity + item.quantity }
+                  ? { ...i, ...item, quantity: i.quantity + item.quantity }
                   : i
               ),
             };

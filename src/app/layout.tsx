@@ -4,14 +4,16 @@ import "./globals.css";
 import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { Toaster } from "react-hot-toast";
+import { getShippingSettings } from "@/lib/woocommerce";
 
 const dmsans = DM_Sans({
   variable: "--font-dm-sans",
 });
 
 export const metadata: Metadata = {
-  title: "Bouwbeslag",
-  description: "The largest assortment of door and window hardware in Europe",
+  title: "Bouwbeslag & Deurbeslag van A-Merken | Laagste Prijs Garantie",
+  description: "Ontdek hoogwaardig bouw- en deurbeslag van topmerken. Groot assortiment, scherpe prijzen, snelle levering en deskundig advies. Bouwbeslag.nl – altijd A-kwaliteit.",
 };
 
 export const viewport = {
@@ -21,15 +23,18 @@ export const viewport = {
   userScalable: false,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const shippingSettings = await getShippingSettings();
+
   return (
     <html lang="en">
       <body className={`${dmsans.variable} font-sans antialiased`} >
-        <Header />
+        <Toaster position="top-right" />
+        <Header shippingSettings={shippingSettings} />
 
         {children}
 
@@ -108,7 +113,7 @@ export default function RootLayout({
                       <Link href="/privacy-policy">Privacybeleid</Link>
                     </li>
                     <li>
-                      <Link href="/blog">Blogs</Link>
+                      <Link href="/kennisbank">Blogs</Link>
                     </li>
                     {/* <li>Help & Support</li> */}
                     <li>

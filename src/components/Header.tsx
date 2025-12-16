@@ -4,8 +4,13 @@ import Link from "next/link";
 import { useCartStore } from "@/lib/cartStore";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { syncRemoveItem } from "@/lib/cartApi";
 
-export default function Header() {
+export default function Header({
+  shippingSettings,
+}: {
+  shippingSettings?: { flatRate: number; freeShippingThreshold: number | null };
+}) {
   const items = useCartStore((state) => state.items);
   const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -14,7 +19,12 @@ export default function Header() {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-  const shipping = 0; // Free shipping
+
+  const { flatRate = 0, freeShippingThreshold = null } = shippingSettings || {};
+
+  const isFreeShipping =
+    freeShippingThreshold !== null && subtotal >= freeShippingThreshold;
+  const shipping = isFreeShipping ? 0 : flatRate;
 
   const increaseQuantity = (id: number) => {
     const item = useCartStore.getState().items.find((i) => i.id === Number(id));
@@ -32,6 +42,8 @@ export default function Header() {
 
   const removeItem = (id: number) => {
     useCartStore.getState().removeItem(Number(id));
+    // Trigger background sync to remove from WP session
+    syncRemoveItem(Number(id)).catch(err => console.error("Background sync failed:", err));
   };
 
   useEffect(() => {
@@ -75,11 +87,13 @@ export default function Header() {
   const buildCheckoutUrl = () => {
     if (!items.length) return null;
 
-    const params = items
-      .map((item) => `${item.id}:${item.quantity}`)
-      .join(",");
+    const ids = items.map((item) => item.id).join(",");
+    const quantities = items.map((item) => item.quantity).join(",");
 
-    return `https://app.bouwbeslag.nl/checkout/?add-to-cart=${params}`;
+    const baseUrl = (process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "https://app.bouwbeslag.nl").replace(/\/$/, "");
+    
+    // Using standard WooCommerce pattern for multiple items (requires support or plugin often, but standard syntax)
+    return `${baseUrl}/checkout/?add-to-cart=${ids}&quantity=${quantities}`;
   };
 
   // STEP 3: Log URL whenever cart items change
@@ -165,12 +179,16 @@ export default function Header() {
               </div>
             </div>
             <div className="flex gap-1.5 items-center">
-              <div className="tooltip tooltip-bottom flex" data-tip="Need any help?">
-                <button className="m-0">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" className="size-7 lg:size-5" fill="#000000"><path d="M528 320C528 205.1 434.9 112 320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320zM64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576C178.6 576 64 461.4 64 320zM320 240C302.3 240 288 254.3 288 272C288 285.3 277.3 296 264 296C250.7 296 240 285.3 240 272C240 227.8 275.8 192 320 192C364.2 192 400 227.8 400 272C400 319.2 364 339.2 344 346.5L344 350.3C344 363.6 333.3 374.3 320 374.3C306.7 374.3 296 363.6 296 350.3L296 342.2C296 321.7 310.8 307 326.1 302C332.5 299.9 339.3 296.5 344.3 291.7C348.6 287.5 352 281.7 352 272.1C352 254.4 337.7 240.1 320 240.1zM288 432C288 414.3 302.3 400 320 400C337.7 400 352 414.3 352 432C352 449.7 337.7 464 320 464C302.3 464 288 449.7 288 432z" /></svg>
-                </button>
+              <div className="tooltip tooltip-bottom flex" data-tip="Antwoord op al je vragen">
+                <Link className="flex items-center" href="/hulp">
+                  <button className="m-0 cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" className="size-7 lg:size-5" fill="#000000"><path d="M528 320C528 205.1 434.9 112 320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320zM64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576C178.6 576 64 461.4 64 320zM320 240C302.3 240 288 254.3 288 272C288 285.3 277.3 296 264 296C250.7 296 240 285.3 240 272C240 227.8 275.8 192 320 192C364.2 192 400 227.8 400 272C400 319.2 364 339.2 344 346.5L344 350.3C344 363.6 333.3 374.3 320 374.3C306.7 374.3 296 363.6 296 350.3L296 342.2C296 321.7 310.8 307 326.1 302C332.5 299.9 339.3 296.5 344.3 291.7C348.6 287.5 352 281.7 352 272.1C352 254.4 337.7 240.1 320 240.1zM288 432C288 414.3 302.3 400 320 400C337.7 400 352 414.3 352 432C352 449.7 337.7 464 320 464C302.3 464 288 449.7 288 432z" /></svg>
+                  </button>
+                </Link>
               </div>
-              <span className="hidden lg:block font-medium text-base">Help</span>
+              <Link href="/hulp" className="flex items-center">
+                 <span className="hidden lg:block font-medium text-base cursor-pointer">Hulp</span>
+              </Link>
             </div>
             <div className="flex lg:hidden">
               <button>
@@ -179,22 +197,12 @@ export default function Header() {
             </div>
             {/* My Account Dropdown */}
             {!isLoggedIn ? (
-              <select
-                className="select select-ghost font-medium text-base !border-0 focus:border-0 !outline-0 !box-shadow-none hidden lg:block"
-                defaultValue="account"
-                onChange={(e) => {
-                  if (e.target.value === "login") {
-                    router.push("/account/login");
-                  }
-                  // Always reset to "account"
-                  e.target.value = "account";
-                }}
+              <Link 
+                href="/account/login"
+                className="font-medium text-base hidden lg:block cursor-pointer"
               >
-                <option value="account" disabled>
-                  My Account
-                </option>
-                <option value="login">Login</option>
-              </select>
+                Mijn account
+              </Link>
             ) : (
               <select
                 className="select select-ghost font-medium text-base !border-0 focus:border-0 !outline-0 !box-shadow-none hidden lg:block cursor-pointer"
@@ -221,7 +229,7 @@ export default function Header() {
                 }}
               >
                 <option className="cursor-pointer" value="account" disabled>
-                  My Account
+                  Mijn account
                 </option>
                 {/* <option className="cursor-pointer" value="account">My Account</option> */}
                 <option className="cursor-pointer" value="orders">Orders</option>
@@ -260,7 +268,7 @@ export default function Header() {
               >
                 <div className="w-full rounded-[4px] bg-white">
                   <label className="input validator w-full border-0 rounded-[5px] bg-white">
-                    <input className="bg-white" type="text" placeholder="Search something..." value={query} onChange={(e) => setQuery(e.target.value)} />
+                    <input className="bg-white" type="text" placeholder="Start met zoeken..." value={query} onChange={(e) => setQuery(e.target.value)} />
                   </label>
                 </div>
                 <button type="submit" className="btn bg-[#d4d7f6] rounded-[4px] border-0 shadow-none">
@@ -275,38 +283,38 @@ export default function Header() {
                 <div className="bg-[#0066FF] flex gap-1 py-4 px-5 w-max items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="25" height="25" fill="#ffffff"><path d="M96 96C113.7 96 128 110.3 128 128L128 464C128 472.8 135.2 480 144 480L544 480C561.7 480 576 494.3 576 512C576 529.7 561.7 544 544 544L144 544C99.8 544 64 508.2 64 464L64 128C64 110.3 78.3 96 96 96zM192 160C192 142.3 206.3 128 224 128L416 128C433.7 128 448 142.3 448 160C448 177.7 433.7 192 416 192L224 192C206.3 192 192 177.7 192 160zM224 240L352 240C369.7 240 384 254.3 384 272C384 289.7 369.7 304 352 304L224 304C206.3 304 192 289.7 192 272C192 254.3 206.3 240 224 240zM224 352L480 352C497.7 352 512 366.3 512 384C512 401.7 497.7 416 480 416L224 416C206.3 416 192 401.7 192 384C192 366.3 206.3 352 224 352z" /></svg>
                   <span className="text-white font-normal text-sm">
-                    All Categories
+                    Categorieën
                   </span>
                 </div>
               </a>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
                 <span className="text-white font-normal text-sm">
-                  Interior door fittings
+                  Deurklink
                 </span>
               </div>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
                 <span className="text-white font-normal text-sm">
-                  Exterior door fittings
+                  Cilinder
                 </span>
               </div>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
                 <span className="text-white font-normal text-sm">
-                  Window hardware
+                  Tochtstrip
                 </span>
               </div>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
                 <span className="text-white font-normal text-sm">
-                  Sliding door hardware
+                  Deurstopper
                 </span>
               </div>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <span className="text-white font-normal text-sm">Assortment</span>
+                <span className="text-white font-normal text-sm">Deurbeslag</span>
               </div>
             </div>
             <div className="flex justify-start items-center">
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <Link href="/blog">
-                  <span className="text-white font-normal text-sm cursor-pointer">Blog</span>
+                <Link href="/kennisbank">
+                  <span className="text-white font-normal text-sm cursor-pointer">Kennisbank</span>
                 </Link>
               </div>
               {/* <div className="bg-[#2B394A] flex gap-1 py-4 px-5 w-max items-center">
@@ -335,7 +343,7 @@ export default function Header() {
         <div className={`fixed top-0 right-0 h-full w-full lg:w-150 bg-white shadow-lg z-[70] transform transition-transform duration-300 ${ isCartOpen ? "translate-x-0" : "translate-x-full" }`} aria-hidden={!isCartOpen}>
           <div className="flex flex-col h-full">
             <div className="flex justify-between items-center border-b border-[#E9E9E9] p-4 bg-[#F7F7F7]">
-              <p className="text-lg font-medium text-[#1C2530]">Toegevoegd aan winkelmand</p>
+              <p className="text-lg font-medium text-[#1C2530]">Winkelmand</p>
               <button onClick={() => setIsCartOpen(false)} aria-label="Close cart" className="text-2xl font-bold leading-none hover:text-gray-600">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-6 cursor-pointer"><path fillRule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" /></svg>
               </button>
@@ -360,15 +368,16 @@ export default function Header() {
                                 </div>
                             )}
                             <div>
-                            <h3 className="font-semibold">{item.name}</h3>
+                                <h3 className="font-semibold">{item.name}</h3>
                                 {(item.color || item.brand || item.model) && (
-                                  <div className="flex gap-2 flex-wrap mt-1">
+                                  <div className="flex gap-2 flex-wrap mt-1 mb-2">
                                       {item.color && <p className="text-sm text-gray-600 border-r border-[#E6E6E6] pr-2 last:border-0 last:pr-0">Color: {item.color}</p>}
                                       {item.brand && <p className="text-sm text-gray-600 border-r border-[#E6E6E6] pr-2 last:border-0 last:pr-0">Brand: {item.brand}</p>}
                                       {item.model && <p className="text-sm text-gray-600 border-r border-[#E6E6E6] pr-2 last:border-0 last:pr-0">Model: {item.model}</p>}
                                   </div>
                                 )}
-                            <p className="text-green-600 text-sm mt-1">Direct leverbaar</p>
+                                
+                                <p className="text-[#03B955] text-xs font-semibold mt-1">{item.deliveryText || "Direct leverbaar"}</p>
                             </div>
                         </div>
                         <div className="flex w-full lg:w-auto flex-row-reverse lg:flex-col items-center lg:items-end gap-2">
@@ -410,7 +419,7 @@ export default function Header() {
                 </div>
                 <div className="flex justify-between mb-3 text-base font-medium text-[#3D4752]">
                   <span>Shipping</span>
-                  <span>Free</span>
+                  <span>{shipping === 0 ? "Free" : `€${shipping.toFixed(2)}`}</span>
                 </div>
                 <div className="flex justify-between mb-4 text-base">
                   <p className="font-bold">Total amount <span className="font-medium">(incl 21% VAT)</span></p>
