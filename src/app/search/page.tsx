@@ -48,9 +48,10 @@ async function fetchTermsForAttribute(attributeId: number): Promise<AttributeTer
   return res.data || [];
 }
 
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-export default function SearchPage() {
+function SearchContent() {
   const searchParams = useSearchParams();
   const query = searchParams?.get('q') || "";
   const [products, setProducts] = useState<Product[]>([]);
@@ -363,5 +364,13 @@ export default function SearchPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div>Loading search...</div>}>
+      <SearchContent />
+    </Suspense>
   );
 }
