@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { syncAddItem, syncRemoveItem } from "./cartApi";
 
 interface CartItem {
   id: number;
@@ -28,7 +29,10 @@ export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
-      addItem: (item) =>
+      addItem: (item) => {
+        // Sync with backend in background
+        syncAddItem(item.id, item.quantity).catch(err => console.error("Error syncing cart add:", err));
+
         set((state) => {
           const exists = state.items.find((i) => i.id === item.id);
           if (exists) {
@@ -41,8 +45,12 @@ export const useCartStore = create<CartState>()(
             };
           }
           return { items: [...state.items, item] };
-        }),
-      addToCart: (item) =>
+        });
+      },
+      addToCart: (item) => {
+        // Sync with backend in background
+        syncAddItem(item.id, item.quantity).catch(err => console.error("Error syncing cart add:", err));
+
         set((state) => {
           const exists = state.items.find((i) => i.id === item.id);
           if (exists) {
@@ -55,10 +63,11 @@ export const useCartStore = create<CartState>()(
             };
           }
           return { items: [...state.items, item] };
-        }),
+        });
+      },
       removeItem: (id) => {
         // Sync with backend in background
-        fetch(`https://app.bouwbeslag.nl/?remove-product=${id}`, { mode: 'no-cors' }).catch(err => console.error("Error syncing cart removal:", err));
+        syncRemoveItem(id).catch(err => console.error("Error syncing cart removal:", err));
 
         set((state) => ({ items: state.items.filter((i) => i.id !== id) }));
       },

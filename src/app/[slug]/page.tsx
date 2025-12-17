@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import api from "@/lib/woocommerce";
 import ProductPageClient from "./ProductPageClient";
+import CategoryClient from "../categories/[slug]/CategoryClient";
 
 /* ----------------------------------------------------
  | Types
@@ -9,9 +10,26 @@ type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+}
+
+interface AttributeTerm {
+  id: number;
+  name: string;
+}
+
+interface Attribute {
+  id: number;
+  name: string;
+  terms: AttributeTerm[];
+}
+
 /* ----------------------------------------------------
- | Server-side product fetch
- | (Used by both page & metadata)
+ | Server-side Fetch Helpers
  ---------------------------------------------------- */
 async function getProductBySlug(slug: string) {
   try {
@@ -26,6 +44,49 @@ async function getProductBySlug(slug: string) {
     return full?.data ?? null;
   } catch (error) {
     console.error("SSR product fetch failed:", error);
+    return null;
+  }
+}
+
+async function getCategoryBySlug(slug: string): Promise<Category | null> {
+  try {
+    const res = await api.get("products/categories", { slug });
+    if (!res.data || res.data.length === 0) return null;
+    return res.data[0];
+  } catch (error) {
+    console.error("SSR category fetch failed:", error);
+    return null;
+  }
+}
+
+async function fetchAttributes(): Promise<Attribute[]> {
+  try {
+    const res = await api.get("products/attributes");
+    const attributesData = res.data || [];
+    const attributesWithTerms: Attribute[] = [];
+
+    for (const attr of attributesData) {
+      const termsRes = await fetchTermsForAttribute(attr.id);
+      attributesWithTerms.push({
+        id: attr.id,
+        name: attr.name,
+        terms: termsRes,
+      });
+    }
+
+    return attributesWithTerms;
+  } catch (error) {
+    console.error("Attributes fetch failed:", error);
+    return [];
+  }
+}
+
+async function fetchTermsForAttribute(attributeId: number): Promise<AttributeTerm[]> {
+  try {
+    const res = await api.get(`products/attributes/${attributeId}/terms`);
+    return res.data || [];
+  } catch (error) {
+    return [];
   }
 }
 
@@ -50,42 +111,75 @@ export async function generateMetadata(
   { params }: PageProps
 ): Promise<Metadata> {
   const { slug } = await params;
+  
+  // 1. Try Product first
   const product = await getProductBySlug(slug);
-  if (!product) return {};
+  if (product) {
+    const meta = product.meta_data || [];
+    const metaTitle =
+      meta.find((m: any) => m.key === "description_meta_title")?.value ||
+      product.name;
 
-  const meta = product.meta_data || [];
+    const metaDescription =
+      meta.find((m: any) => m.key === "description_meta_description")?.value ||
+      product.short_description ||
+      "";
 
-  const metaTitle =
-    meta.find((m: any) => m.key === "description_meta_title")?.value ||
-    product.name;
-
-  const metaDescription =
-    meta.find((m: any) => m.key === "description_meta_description")?.value ||
-    product.short_description ||
-    "";
-
-  return {
-    title: metaTitle,
-    description: metaDescription,
-    alternates: {
-      canonical: `/${product.slug}`,
-    },
-    openGraph: {
+    return {
       title: metaTitle,
       description: metaDescription,
-      type: "website",
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: metaTitle,
-      description: metaDescription,
-    },
-  };
+      alternates: {
+        canonical: `/${product.slug}`,
+      },
+      openGraph: {
+        title: metaTitle,
+        description: metaDescription,
+        type: "website",
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: metaTitle,
+        description: metaDescription,
+      },
+    };
+  }
+
+  // 2. Try Category next
+  const category = await getCategoryBySlug(slug);
+  if (category) {
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
+    // Using root URL for canonical since that's what we are implementing
+    const canonicalUrl = `${siteUrl}/${slug}`;
+
+    const title = `${category.name} | Bouwbeslag`;
+    const description =
+      category.description
+        ?.replace(/<[^>]+>/g, "")
+        .slice(0, 160) || "";
+
+    return {
+      title,
+      description,
+      alternates: {
+        canonical: canonicalUrl,
+      },
+      openGraph: {
+        title,
+        description,
+        url: canonicalUrl,
+        type: "website",
+      },
+      robots: {
+        index: true,
+        follow: true,
+      },
+    };
+  }
+
+  // 3. Not Found
+  return {};
 }
 
-/* ----------------------------------------------------
- | ✅ PAGE (SERVER COMPONENT)
- ---------------------------------------------------- */
 /* ----------------------------------------------------
  | ✅ STRUCTURED DATA (JSON-LD)
  ---------------------------------------------------- */
@@ -148,34 +242,51 @@ function generateStructuredData(product: any, taxRate: number) {
  ---------------------------------------------------- */
 export default async function Page({ params }: PageProps) {
   const { slug } = await params;
+  
+  // 1. Check Product
   const product = await getProductBySlug(slug);
 
-  if (!product) {
+  if (product) {
+    const taxRate = await getStandardTaxRate();
+    const structuredData = generateStructuredData(product, taxRate);
+
     return (
-      <div className="flex items-center justify-center min-h-[300px]">
-        <span>Product niet gevonden.</span>
-      </div>
+      <>
+        {structuredData && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(structuredData),
+            }}
+          />
+        )}
+        <ProductPageClient product={product} taxRate={taxRate} />
+      </>
     );
   }
 
-  const taxRate = await getStandardTaxRate();
-  const structuredData = generateStructuredData(product, taxRate);
+  // 2. Check Category
+  const category = await getCategoryBySlug(slug);
+  if (category) {
+    const attributes = await fetchAttributes();
+    const subCategoriesRes = await api.get("products/categories", {
+      parent: category.id,
+    });
+    const subCategories = subCategoriesRes.data || [];
 
-  /**
-   * Pass FULL product and taxRate to client component.
-   * Nothing else renders here.
-   */
+    return (
+      <CategoryClient
+        category={category}
+        attributes={attributes}
+        subCategories={subCategories}
+      />
+    );
+  }
+
+  // 3. Not Found
   return (
-    <>
-      {structuredData && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(structuredData),
-          }}
-        />
-      )}
-      <ProductPageClient product={product} taxRate={taxRate} />
-    </>
+    <div className="flex items-center justify-center min-h-[300px]">
+      <span>Product of categorie niet gevonden.</span>
+    </div>
   );
 }
