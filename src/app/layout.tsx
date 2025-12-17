@@ -31,7 +31,7 @@ export default async function RootLayout({
   const shippingSettings = await getShippingSettings();
 
   return (
-    <html lang="en">
+    <html lang="en" data-theme="light">
       <body className={`${dmsans.variable} font-sans antialiased`} >
         <Toaster position="top-right" />
         <Header shippingSettings={shippingSettings} />

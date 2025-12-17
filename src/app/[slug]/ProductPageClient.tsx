@@ -9,7 +9,19 @@ import ProductCard from "@/components/ProductCard";
 import { useCartStore } from "@/lib/cartStore";
 import { fetchMedia } from "@/lib/wordpress";
 import { COLOR_MAP } from "@/config/colorMap";
+// import { syncAddToCart, syncRemoveItem, syncUpdateItemQty } from "@/lib/cartApi";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
+
+// Helper to format values: remove trailing zeros from decimals (e.g. "200.00" -> "200")
+const formatSpecValue = (value: string | number | null | undefined): string => {
+  if (value === null || value === undefined) return "";
+  const strVal = String(value);
+  // Check if the string represents a valid number
+  if (!isNaN(Number(strVal)) && strVal.trim() !== "") {
+    return String(parseFloat(strVal));
+  }
+  return strVal;
+};
 
 export default function ProductPageClient({ product, taxRate = 21 }: { product: any; taxRate?: number }) {
   // 🔍 DEBUG: log full product data coming into this page
@@ -739,16 +751,19 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                       }
                       
                       return (
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-1.5 lg:gap-4">
                           {sale !== null && sale !== undefined ? (
                             <>
-                              <div className="flex items-baseline gap-1">
-                              <span className="text-2xl lg:text-3xl font-bold text-[#0066FF]">
+                              <div className="flex items-baseline gap-1.5">
+                              <span className="text-xl md:text-2xl lg:text-3xl font-bold text-[#0066FF]">
                                 {currency}
                                 {sale.toFixed(2).replace('.', ',')}
                               </span>
+                                  {/* <span className="text-base lg:text-lg font-medium text-[#3D4752]">
+                                   per: Stuk
+                                  </span> */}
                                 {packingType && (
-                                  <span className="text-base lg:text-lg font-medium text-[#3D4752] ml-3">
+                                  <span className="text-base lg:text-lg font-medium text-[#3D4752] lg:ml-3">
                                    per: {packingType}
                                   </span>
                                 )}
@@ -759,14 +774,14 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                                   // data-tip={`Discount from ${currency}${advised.toFixed(2)}`}
                                   data-tip={`T.o.v. verkoopadviesprijs leverancier`}
                                 >
-                                  <button className="bg-[#FF5E00] px-[12px] py-[5px] rounded-sm text-white text-[13px] font-bold cursor-pointer">
+                                  <button className="bg-[#FF5E00] px-[6px] lg:px-[12px] py-[2px] lg:py-[5px] rounded-sm text-white text-[12px] lg:text-[13px] font-bold cursor-pointer">
                                     {discountPercent}% korting
                                   </button>
                                 </div>
                               ) : null}
                               {isCheapestPriceEnabled && (
                                 <button
-                                  className='bg-[#5ca139] px-[12px] py-[5px] rounded-sm text-white text-[13px] font-bold cursor-pointer'
+                                  className='bg-[#5ca139] px-[6px] lg:px-[12px] py-[2px] lg:py-[5px] rounded-sm text-white text-[12px] lg:text-[13px] font-bold cursor-pointer'
                                     onClick={() => {
                                       if (vergelijkRef.current) {
                                         vergelijkRef.current.open = true;
@@ -1164,45 +1179,53 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
 
                     <div>
                         <p className='text-[#212121] font-medium text-lg mb-3'>Heb je vragen over dit product? Wij helpen je graag!</p>
-                        <div className='flex gap-3 items-center justify-center'>
-                            <a href={`mailto:contact@bouwbeslag.nl?subject=${encodeURIComponent(productTitle)}`} className='border border-[#0066FF] rounded-sm py-2.5 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors'>
+                        <div className='flex gap-1.5 lg:gap-3 items-center justify-center'>
+                            <a href={`mailto:contact@bouwbeslag.nl?subject=${encodeURIComponent(productTitle)}`} className='border border-[#0066FF] rounded-sm py-2.5 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-1.5 lg:gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors'>
                                 <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-5 transition-colors"><path d="M1.5 8.67v8.58a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3V8.67l-8.928 5.493a3 3 0 0 1-3.144 0L1.5 8.67Z" /><path d="M22.5 6.908V6.75a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3v.158l9.714 5.978a1.5 1.5 0 0 0 1.572 0L22.5 6.908Z" /></svg></span>
                                 Mail ons
                             </a>
-                            <a href={`https://wa.me/31614384844?text=${encodeURIComponent(`Hoi! Ik heb een vraag over ${productTitle} (SKU: ${productSKU}). Die vraag luidt:`)}`} className='border border-[#0066FF] rounded-sm py-2 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors' target="_blank" rel="noopener noreferrer">
+                            <a href={`https://wa.me/31614384844?text=${encodeURIComponent(`Hoi! Ik heb een vraag over ${productTitle} (SKU: ${productSKU}). Die vraag luidt:`)}`} className='border border-[#0066FF] rounded-sm py-2 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-1.5 lg:gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors' target="_blank" rel="noopener noreferrer">
                                 <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" fill="currentColor" className="size-6"><path d="M476.9 161.1C435 119.1 379.2 96 319.9 96C197.5 96 97.9 195.6 97.9 318C97.9 357.1 108.1 395.3 127.5 429L96 544L213.7 513.1C246.1 530.8 282.6 540.1 319.8 540.1L319.9 540.1C442.2 540.1 544 440.5 544 318.1C544 258.8 518.8 203.1 476.9 161.1zM319.9 502.7C286.7 502.7 254.2 493.8 225.9 477L219.2 473L149.4 491.3L168 423.2L163.6 416.2C145.1 386.8 135.4 352.9 135.4 318C135.4 216.3 218.2 133.5 320 133.5C369.3 133.5 415.6 152.7 450.4 187.6C485.2 222.5 506.6 268.8 506.5 318.1C506.5 419.9 421.6 502.7 319.9 502.7zM421.1 364.5C415.6 361.7 388.3 348.3 383.2 346.5C378.1 344.6 374.4 343.7 370.7 349.3C367 354.9 356.4 367.3 353.1 371.1C349.9 374.8 346.6 375.3 341.1 372.5C308.5 356.2 287.1 343.4 265.6 306.5C259.9 296.7 271.3 297.4 281.9 276.2C283.7 272.5 282.8 269.3 281.4 266.5C280 263.7 268.9 236.4 264.3 225.3C259.8 214.5 255.2 216 251.8 215.8C248.6 215.6 244.9 215.6 241.2 215.6C237.5 215.6 231.5 217 226.4 222.5C221.3 228.1 207 241.5 207 268.8C207 296.1 226.9 322.5 229.6 326.2C232.4 329.9 268.7 385.9 324.4 410C359.6 425.2 373.4 426.5 391 423.9C401.7 422.3 423.8 410.5 428.4 397.5C433 384.5 433 373.4 431.6 371.1C430.3 368.6 426.6 367.2 421.1 364.5z"/></svg></span>
                                 WhatsApp
                             </a>
-                            <a href="tel:+31614384844" className='border border-[#0066FF] rounded-sm py-2.5 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors'>
+                            <a href="tel:+31614384844" className='border border-[#0066FF] rounded-sm py-2.5 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-1.5 lg:gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors'>
                                 <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" fill="currentColor" className="size-5"><path d="M376 32C504.1 32 608 135.9 608 264C608 277.3 597.3 288 584 288C570.7 288 560 277.3 560 264C560 162.4 477.6 80 376 80C362.7 80 352 69.3 352 56C352 42.7 362.7 32 376 32zM384 224C401.7 224 416 238.3 416 256C416 273.7 401.7 288 384 288C366.3 288 352 273.7 352 256C352 238.3 366.3 224 384 224zM352 152C352 138.7 362.7 128 376 128C451.1 128 512 188.9 512 264C512 277.3 501.3 288 488 288C474.7 288 464 277.3 464 264C464 215.4 424.6 176 376 176C362.7 176 352 165.3 352 152zM176.1 65.4C195.8 60 216.4 70.1 224.2 88.9L264.7 186.2C271.6 202.7 266.8 221.8 252.9 233.2L208.8 269.3C241.3 340.9 297.8 399.3 368.1 434.2L406.7 387C418 373.1 437.1 368.4 453.7 375.2L551 415.8C569.8 423.6 579.9 444.2 574.5 463.9L573 469.4C555.4 534.1 492.9 589.3 416.6 573.2C241.6 536.1 103.9 398.4 66.8 223.4C50.7 147.1 105.9 84.6 170.5 66.9L176 65.4z"/></svg></span>
                                 Bel ons
                             </a>
                         </div>
                     </div>
                     </motion.div>
-                <div className='text-[#1C2530] font-bold text-3xl mt-3 lg:mt-8 block lg:hidden'>
-                    <h3 className='text-lg'>Handig om erbij te bestellen</h3>
-                    <div className='grid grid-cols-1 lg:grid-cols-3 gap-2 lg:gap-4 mt-4'>
-                      {matchingProducts.length > 0 && (
-                        <button onClick={() => scrollToSection("accessories-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende accessoires</button>
-                      )}
-                      {matchingKnobroseKeys.length > 0 && (
-                        <button onClick={() => scrollToSection("knobroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende rozetten</button>
-                      )}
-                      {matchingRoseKeys.length > 0 && (
-                        <button onClick={() => scrollToSection("matchingroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende sleutelrozetten</button>
-                      )}
-                      {pcroseKeys.length > 0 && (
-                        <button onClick={() => scrollToSection("pcroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende cilinderrozetten</button>
-                      )}
-                      {blindtoiletroseKeys.length > 0 && (
-                        <button onClick={() => scrollToSection("blindtoiletroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende blinde rozetten</button>
-                      )}
-                      {musthaveprodKeys.length > 0 && (
-                        <button onClick={() => scrollToSection("musthaveprod-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Aanbevolen</button>
-                      )}   
+                    {(matchingProducts.length > 0 ||
+                      matchingKnobroseKeys.length > 0 ||
+                      matchingRoseKeys.length > 0 ||
+                      pcroseKeys.length > 0 ||
+                      blindtoiletroseKeys.length > 0 ||
+                      musthaveprodKeys.length > 0
+                    ) && (
+                    <div className='text-[#1C2530] font-bold text-3xl mt-8 lg:hidden block'>
+                        <h3>Handig om erbij te bestellen</h3>
+                        <div className='grid grid-cols-1 lg:grid-cols-3 gap-2 lg:gap-4 mt-4'>
+                          {matchingProducts.length > 0 && (
+                            <button onClick={() => scrollToSection("accessories-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende accessoires</button>
+                          )}
+                          {matchingKnobroseKeys.length > 0 && (
+                            <button onClick={() => scrollToSection("knobroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende rozetten</button>
+                          )}
+                          {matchingRoseKeys.length > 0 && (
+                            <button onClick={() => scrollToSection("matchingroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende sleutelrozetten</button>
+                          )}
+                          {pcroseKeys.length > 0 && (
+                            <button onClick={() => scrollToSection("pcroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende cilinderrozetten</button>
+                          )}
+                          {blindtoiletroseKeys.length > 0 && (
+                            <button onClick={() => scrollToSection("blindtoiletroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende blinde rozetten</button>
+                          )}
+                          {musthaveprodKeys.length > 0 && (
+                            <button onClick={() => scrollToSection("musthaveprod-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Aanbevolen</button>
+                          )}   
+                        </div>
                     </div>
-                </div>
+                    )}
             </div>
 
             <div className='mt-8'>
@@ -1259,7 +1282,7 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                                       {productSKU && (
                                         <tr className="">
                                           <td className="px-6 py-3 font-medium text-gray-900">SKU</td>
-                                          <td className="px-6 py-3">{productSKU}</td>
+                                          <td className="px-6 py-3">{formatSpecValue(productSKU)}</td>
                                         </tr>
                                       )}
 
@@ -1267,7 +1290,7 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                                         <tr>
                                           <td className="px-6 py-3 font-medium text-gray-900">Breedte</td>
                                           <td className="px-6 py-3">
-                                            {productWidth}{productWidthUnit}
+                                            {formatSpecValue(productWidth)}{productWidthUnit}
                                           </td>
                                         </tr>
                                       )}
@@ -1276,7 +1299,7 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                                         <tr className="bg-[#F3F8FF]">
                                           <td className="px-6 py-3 font-medium text-gray-900">Hoogte</td>
                                           <td className="px-6 py-3">
-                                            {productHeight}{productHeightUnit}
+                                            {formatSpecValue(productHeight)}{productHeightUnit}
                                           </td>
                                         </tr>
                                       )}
@@ -1285,7 +1308,7 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                                         <tr>
                                           <td className="px-6 py-3 font-medium text-gray-900">Lengte</td>
                                           <td className="px-6 py-3">
-                                            {productLength} {productLengthUnit}
+                                            {formatSpecValue(productLength)} {productLengthUnit}
                                           </td>
                                         </tr>
                                       )}
@@ -1331,7 +1354,7 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                                                   {attr.name}
                                                 </td>
                                                 <td className="px-6 py-3">
-                                                  {mainValue} {unitValue}
+                                                  {formatSpecValue(mainValue)} {unitValue}
                                                 </td>
                                               </tr>
                                             );
@@ -2041,7 +2064,7 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                     isVisible ? 'translate-y-0' : 'translate-y-full'
                   }`}>
             <div className="flex flex-col lg:flex-row items-center gap-3 lg:gap-4 justify-center max-w-[1440px] mx-auto">
-                <div className="flex items-center gap-4 w-full lg:w-auto justify-center lg:justify-between lg:justify-start flex-wrap lg:flex-nowrap">
+                <div className="flex items-center gap-4 w-full lg:w-auto justify-center lg:justify-between lg:justify-start flex-nowrap">
                     <div className='flex justify-center items-center'>
                       <p className="text-base md:text-xl lg:text-3xl font-bold text-[#1C2530]">
                         {(() => {

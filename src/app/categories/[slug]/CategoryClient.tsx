@@ -287,7 +287,7 @@ export default function CategoryClient({
           {/* Main Content */}
           <main className="flex-1">
             <div className="flex justify-between items-end mb-4">
-              <p className="text-3xl font-bold">{category?.name ?? "Category"}</p>
+              <p className="text-xl lg:text-3xl font-bold">{category?.name ?? "Category"}</p>
               <div className='flex gap-3 '>
                 <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="select focus:outline-0 focus:ring-0 w-32 border border-[#808D9A] rounded-sm bg-[F7F7F7] h-8">
                   <option disabled={true} value="">Sorteer op</option>

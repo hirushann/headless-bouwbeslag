@@ -24,11 +24,7 @@ interface Attribute {
   terms: AttributeTerm[];
 }
 
-interface Params {
-  searchParams: {
-    q?: string;
-  };
-}
+
 
 async function fetchAttributes(): Promise<Attribute[]> {
   const res = await api.get("products/attributes");
@@ -52,8 +48,11 @@ async function fetchTermsForAttribute(attributeId: number): Promise<AttributeTer
   return res.data || [];
 }
 
-export default function SearchPage({ searchParams }: Params) {
-  const query = searchParams?.q || "";
+import { useSearchParams } from 'next/navigation';
+
+export default function SearchPage() {
+  const searchParams = useSearchParams();
+  const query = searchParams?.get('q') || "";
   const [products, setProducts] = useState<Product[]>([]);
   const [attributes, setAttributes] = useState<Attribute[]>([]);
   const [selectedFilters, setSelectedFilters] = useState<{ [key: number]: Set<number> }>({});
@@ -61,6 +60,7 @@ export default function SearchPage({ searchParams }: Params) {
   const [productsLoading, setProductsLoading] = useState<boolean>(false);
   const [showAllColors, setShowAllColors] = useState(false);
   const [sortBy, setSortBy] = useState<string>("");
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     async function loadAttributes() {
@@ -174,10 +174,10 @@ export default function SearchPage({ searchParams }: Params) {
 
   return (
     <div className="bg-[#F7F7F7]">
-      <div className="max-w-[1440px] mx-auto py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
+      <div className="max-w-[1440px] mx-auto py-8 px-4">
+        <div className="flex flex-col lg:flex-row lg:gap-8">
 
-          <aside className="w-full lg:w-1/4">
+          <aside className="w-full lg:w-1/4 relative">
             <nav className="mb-4 text-sm flex gap-2">
                 <a href="/" className="hover:underline flex items-center gap-2 font-medium text-sm text-[#4F4F4F]">
                 <span><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg></span>
@@ -188,23 +188,95 @@ export default function SearchPage({ searchParams }: Params) {
                 </p> / 
                 <span className='text-[#9C9C9C]'>{query}</span>
             </nav>
-            <div className='border-0 bg-white p-4 rounded-lg'>
+            <div className='relative'>
+                <button
+                type="button"
+                onClick={() => setShowFilters(false)}
+                className={`${showFilters ? 'block' : 'hidden'} lg:hidden block absolute top-3 right-3 text-gray-500 hover:text-gray-700 transition z-50`}
+                aria-label="Close Filters"
+                >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                </button>
+                <div className={`${showFilters ? 'max-h-[2000px] opacity-100 p-4' : 'max-h-0 opacity-0 lg:p-4'} overflow-hidden transition-all duration-300 ease-in-out lg:max-h-full lg:opacity-100 lg:block bg-white rounded-lg border-0`}>
               {/* Filters */}
               <>
                 {/* Color Filter First */}
                 {colorAttribute && (
-                  <div key={colorAttribute.id} className="mb-6">
-                    <h3 className="font-medium mb-3 text-[#212121] text-lg">{colorAttribute.name}</h3>
-                    <div className="grid grid-cols-5 gap-4">
-                      {(showAllColors ? colorAttribute.terms : colorAttribute.terms.slice(0, 10)).map(term => {
-                        const isSelected = selectedFilters[colorAttribute.id]?.has(term.id) || false;
-                        return (
-                          <div key={term.id} className="flex flex-col items-center">
-                            <button
-                              type="button"
-                              className={`w-8 h-8 rounded-full border-2 ${isSelected ? 'ring-2 ring-blue-500' : 'border-gray-300'}`}
-                              style={{ backgroundColor: term.name.toLowerCase() }}
-                              onClick={() => {
+                  <div key={colorAttribute.id} className="collapse collapse-arrow bg-base-100 rounded-none border-b border-[#F7F7F7]">
+                    <input type="checkbox" defaultChecked />
+                    <div className="collapse-title text-lg font-medium text-[#212121] px-0">
+                      {colorAttribute.name}
+                    </div>
+                    <div className="collapse-content px-0">
+                      <div className="grid grid-cols-5 gap-4">
+                        {(showAllColors ? colorAttribute.terms : colorAttribute.terms.slice(0, 10)).map(term => {
+                          const isSelected = selectedFilters[colorAttribute.id]?.has(term.id) || false;
+                          return (
+                            <div key={term.id} className="flex flex-col items-center">
+                              <button
+                                type="button"
+                                className={`w-8 h-8 rounded-full border-2 ${isSelected ? 'ring-2 ring-blue-500' : 'border-gray-300'}`}
+                                style={{ backgroundColor: term.name.toLowerCase() }}
+                                onClick={() => {
+                                  setSelectedFilters(prev => {
+                                    const newFilters: { [key: number]: Set<number> } = {};
+
+                                    for (const [id, terms] of Object.entries(prev)) {
+                                      newFilters[Number(id)] = new Set(terms);
+                                    }
+
+                                    if (!newFilters[colorAttribute.id]) {
+                                      newFilters[colorAttribute.id] = new Set();
+                                    }
+
+                                    if (newFilters[colorAttribute.id].has(term.id)) {
+                                      newFilters[colorAttribute.id].delete(term.id);
+                                      if (newFilters[colorAttribute.id].size === 0) {
+                                        delete newFilters[colorAttribute.id];
+                                      }
+                                    } else {
+                                      newFilters[colorAttribute.id].add(term.id);
+                                    }
+
+                                    return newFilters;
+                                  });
+                                }}
+                                aria-label={term.name}
+                              />
+                              <span className="mt-1 text-xs text-center text-gray-700">{term.name}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {colorAttribute.terms.length > 10 && !showAllColors && (
+                        <button
+                          type="button"
+                          className="mt-4 w-full py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm font-medium"
+                          onClick={() => setShowAllColors(true)}
+                        >
+                          View all Colours
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Other Attributes */}
+                {otherAttributes.map(attr => (
+                  <div key={attr.id} className="collapse collapse-arrow bg-base-100 rounded-none border-b border-[#F7F7F7]">
+                    <input type="checkbox" defaultChecked />
+                    <div className="collapse-title text-lg font-medium text-[#212121] px-0">
+                      {attr.name}
+                    </div>
+                    <div className="collapse-content px-0">
+                      <div className="flex flex-col gap-2 text-sm text-gray-700">
+                        {attr.terms.map(term => (
+                          <label key={term.id} className="flex items-start gap-1">
+                            <input
+                              type="checkbox"
+                              className="mr-2 w-[40px] h-[20px] rounded-sm border border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0"
+                              checked={selectedFilters[attr.id]?.has(term.id) || false}
+                              onChange={() => {
                                 setSelectedFilters(prev => {
                                   const newFilters: { [key: number]: Set<number> } = {};
 
@@ -212,94 +284,43 @@ export default function SearchPage({ searchParams }: Params) {
                                     newFilters[Number(id)] = new Set(terms);
                                   }
 
-                                  if (!newFilters[colorAttribute.id]) {
-                                    newFilters[colorAttribute.id] = new Set();
+                                  if (!newFilters[attr.id]) {
+                                    newFilters[attr.id] = new Set();
                                   }
 
-                                  if (newFilters[colorAttribute.id].has(term.id)) {
-                                    newFilters[colorAttribute.id].delete(term.id);
-                                    if (newFilters[colorAttribute.id].size === 0) {
-                                      delete newFilters[colorAttribute.id];
+                                  if (newFilters[attr.id].has(term.id)) {
+                                    newFilters[attr.id].delete(term.id);
+                                    if (newFilters[attr.id].size === 0) {
+                                      delete newFilters[attr.id];
                                     }
                                   } else {
-                                    newFilters[colorAttribute.id].add(term.id);
+                                    newFilters[attr.id].add(term.id);
                                   }
 
                                   return newFilters;
                                 });
                               }}
-                              aria-label={term.name}
                             />
-                            <span className="mt-1 text-xs text-center text-gray-700">{term.name}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {colorAttribute.terms.length > 10 && !showAllColors && (
-                      <button
-                        type="button"
-                        className="mt-4 w-full py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm font-medium"
-                        onClick={() => setShowAllColors(true)}
-                      >
-                        View all Colours
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {/* Other Attributes */}
-                {otherAttributes.map(attr => (
-                  <div key={attr.id} className="mb-8">
-                    <h3 className="font-medium mb-3 text-[#212121] text-lg">{attr.name}</h3>
-                    <div className="flex flex-col gap-2 text-sm text-gray-700">
-                      {attr.terms.map(term => (
-                        <label key={term.id} className="flex items-start gap-1">
-                          <input
-                            type="checkbox"
-                            className="mr-2 w-[40px] h-[20px] rounded-sm border border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0"
-                            checked={selectedFilters[attr.id]?.has(term.id) || false}
-                            onChange={() => {
-                              setSelectedFilters(prev => {
-                                const newFilters: { [key: number]: Set<number> } = {};
-
-                                for (const [id, terms] of Object.entries(prev)) {
-                                  newFilters[Number(id)] = new Set(terms);
-                                }
-
-                                if (!newFilters[attr.id]) {
-                                  newFilters[attr.id] = new Set();
-                                }
-
-                                if (newFilters[attr.id].has(term.id)) {
-                                  newFilters[attr.id].delete(term.id);
-                                  if (newFilters[attr.id].size === 0) {
-                                    delete newFilters[attr.id];
-                                  }
-                                } else {
-                                  newFilters[attr.id].add(term.id);
-                                }
-
-                                return newFilters;
-                              });
-                            }}
-                          />
-                          {term.name}
-                        </label>
-                      ))}
+                            {term.name}
+                          </label>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 ))}
                 <button onClick={() => setSelectedFilters({})} className="text-sm text-red-500 hover:underline mb-4">Clear Filters</button>
               </>
             </div>
+            </div>
           </aside>
 
           {/* Main Content */}
           <main className="flex-1">
-            <div className="flex justify-between items-start mt-8 mb-4">
+            <div className="flex justify-between items-start mt-3 lg:mt-8 mb-4">
               <div>
                 <h1 className="text-base font-medium text-[#4F4F4F]">{products.length} results found</h1>
               </div>
+              <div className='flex gap-3 items-center'>
               <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="select focus:outline-0 focus:ring-0 w-32 border border-[#808D9A] rounded-sm bg-[F7F7F7] h-8">
                 <option disabled={true} value="">Sort by</option>
                 <option value="popularity">Popularity</option>
@@ -308,6 +329,18 @@ export default function SearchPage({ searchParams }: Params) {
                 <option value="price-low-high">Price: Low to High</option>
                 <option value="price-high-low">Price: High to Low</option>
               </select>
+                <button type="button" className="lg:hidden px-2 py-1 w-auto text-left bg-white border border-gray-300 rounded-md font-medium" onClick={() => setShowFilters(!showFilters)} aria-expanded={showFilters} aria-controls="filters-section">
+                  {showFilters ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Products Grid */}

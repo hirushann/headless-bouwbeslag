@@ -56,8 +56,12 @@ export const useCartStore = create<CartState>()(
           }
           return { items: [...state.items, item] };
         }),
-      removeItem: (id) =>
-        set((state) => ({ items: state.items.filter((i) => i.id !== id) })),
+      removeItem: (id) => {
+        // Sync with backend in background
+        fetch(`https://app.bouwbeslag.nl/?remove-product=${id}`, { mode: 'no-cors' }).catch(err => console.error("Error syncing cart removal:", err));
+
+        set((state) => ({ items: state.items.filter((i) => i.id !== id) }));
+      },
       updateQty: (id, qty) =>
         set((state) => ({
           items: state.items.map((i) =>

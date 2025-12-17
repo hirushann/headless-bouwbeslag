@@ -43,8 +43,27 @@ export default async function Categories() {
   let categories: Category[] = [];
 
   try {
-    const res = await api.get("products/categories", { per_page: 50 });
-    categories = Array.isArray(res.data) ? res.data : [];
+    let page = 1;
+    let fetching = true;
+
+    while (fetching) {
+      const res = await api.get("products/categories", {
+        per_page: 100,
+        page: page,
+      });
+      
+      const data = res.data || [];
+      if (Array.isArray(data) && data.length > 0) {
+        categories = [...categories, ...data];
+        if (data.length < 100) {
+          fetching = false;
+        } else {
+          page++;
+        }
+      } else {
+        fetching = false;
+      }
+    }
   } catch (err: any) {
     console.error("Error fetching categories:", err.response?.data || err.message);
   }
@@ -55,7 +74,7 @@ export default async function Categories() {
 
   return (
     <main className="font-sans bg-[#F7F7F7]">
-        <div className="max-w-[1440px] mx-auto px-1 py-10 ">
+        <div className="max-w-[1440px] mx-auto px-4 lg:px-1 py-10 ">
             {/* Breadcrumb */}
             <div className="text-sm text-gray-500 mb-6 flex items-center gap-3">
                 <Link href="/" className="hover:underline flex items-center gap-1 text-black">
@@ -66,7 +85,7 @@ export default async function Categories() {
             </div>
 
             {/* Heading */}
-            <h1 className="text-3xl font-bold text-[#1C2530] mb-2">Winkel op categorie</h1>
+            <p className="text-3xl font-bold text-[#1C2530] mb-2">Winkel op categorie</p>
             <p className="text-gray-600 mb-8 text-sm font-normal">
                 Bekijk al onze categorieën om te vinden wat je nodig hebt
             </p>
@@ -74,7 +93,7 @@ export default async function Categories() {
             {/* Categories Grid */}
             <CategoriesGrid categories={categories} />
         </div>
-        <div className="bg-white py-5">
+        <div className="bg-white py-5 hidden lg:block">
             <div className="max-w-[1440px] mx-auto px-1">
                 <div className="flex gap-6 items-center font-sans mb-4">
                     <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">

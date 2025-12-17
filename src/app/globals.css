@@ -3,6 +3,7 @@
 @plugin "@tailwindcss/typography";
 
 :root {
+  color-scheme: light;
   --background: #ffffff;
   --foreground: #1C2530;
 }
@@ -21,7 +22,7 @@
   }
 } */
 
-html,
+/* html, */
 body {
   background: var(--background);
   color: var(--foreground);
