@@ -948,7 +948,7 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                     )}
 
                     <div className='bg-[#E4EFFF] py-3 px-5 rounded-md'> 
-                        <p className='text-[#3D4752] font-normal text-base'>Heb jij beroepsmatig op regelmatige basis bouwbeslag nodig? <a href="/garantie-aanvraag" className='text-[#0066FF] font-bold'>Klik hier </a> en meld je aan voor een zakelijk account met de scherpste inkoopprijzen.</p>
+                        <p className='text-[#3D4752] font-normal text-base'>Heb jij beroepsmatig op regelmatige basis bouwbeslag nodig? <a href="/zakelijk-aanmelden" className='text-[#0066FF] font-bold'>Klik hier </a> en meld je aan voor een zakelijk account met de scherpste inkoopprijzen.</p>
                     </div>
 
                     {/* Quantity Selector and Add to Cart */}

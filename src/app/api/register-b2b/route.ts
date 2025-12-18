@@ -63,6 +63,10 @@ export async function POST(req: Request) {
                 {
                     key: "billing_company",
                     value: company_name
+                },
+                {
+                    key: "_is_b2b_registration",
+                    value: "yes"
                 }
             ],
         };
