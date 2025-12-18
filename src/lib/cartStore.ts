@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { syncAddItem, syncRemoveItem } from "./cartApi";
+import { syncAddItem, syncRemoveItem, syncUpdateItem } from "./cartApi";
 
 interface CartItem {
   id: number;
@@ -71,12 +71,16 @@ export const useCartStore = create<CartState>()(
 
         set((state) => ({ items: state.items.filter((i) => i.id !== id) }));
       },
-      updateQty: (id, qty) =>
+      updateQty: (id, qty) => {
+        // Sync with backend
+        syncUpdateItem(id, qty).catch(err => console.error("Error syncing qty:", err));
+
         set((state) => ({
           items: state.items.map((i) =>
             i.id === id ? { ...i, quantity: qty } : i
           ),
-        })),
+        }));
+      },
       clearCart: () => set({ items: [] }),
       total: () =>
         get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),

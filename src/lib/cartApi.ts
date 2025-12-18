@@ -9,8 +9,10 @@ const STORE_API_URL = `${(process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "").repla
 // Add item via Proxy
 export const addItemToRemoteCart = async (productId: number, quantity: number, nonce?: string) => {
     try {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
         const headers: any = { 'Content-Type': 'application/json' };
         if (nonce) headers['X-WC-Store-API-Nonce'] = nonce;
+        if (token) headers['Authorization'] = `Bearer ${token}`;
 
         // Call our local proxy
         const res = await axios.post('/api/cart/sync',
@@ -34,8 +36,10 @@ export const addItemToRemoteCart = async (productId: number, quantity: number, n
 // Remove item via Proxy
 export const removeRemoteCartItemProxy = async (productId: number, nonce?: string) => {
     try {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
         const headers: any = { 'Content-Type': 'application/json' };
         if (nonce) headers['X-WC-Store-API-Nonce'] = nonce;
+        if (token) headers['Authorization'] = `Bearer ${token}`;
 
         const res = await axios.post('/api/cart/sync',
             {
@@ -51,7 +55,32 @@ export const removeRemoteCartItemProxy = async (productId: number, nonce?: strin
         console.warn(`Sync: Error removing product ${productId}:`, error.message);
         return null;
     }
-}
+};
+
+// Update item via Proxy
+export const updateRemoteCartItemProxy = async (productId: number, quantity: number, nonce?: string) => {
+    try {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        const headers: any = { 'Content-Type': 'application/json' };
+        if (nonce) headers['X-WC-Store-API-Nonce'] = nonce;
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const res = await axios.post('/api/cart/sync',
+            {
+                action: 'update',
+                productId,
+                quantity
+            },
+            {
+                headers
+            }
+        );
+        return res.data;
+    } catch (error: any) {
+        console.warn(`Sync: Error updating product ${productId}:`, error.message);
+        return null;
+    }
+};
 
 // --- PUBLIC COMPOSITES ---
 
@@ -76,7 +105,12 @@ export const syncAddItem = async (productId: number, quantity: number) => {
     let nonce = cartRes?.nonce;
 
     console.log(`Syncing add: Adding product ${productId} with Nonce: ${nonce ? 'Yes' : 'No'}`);
-    await addItemToRemoteCart(productId, quantity, nonce);
+    const result = await addItemToRemoteCart(productId, quantity, nonce);
+    if (!result) {
+        console.error("Syncing add failed: Check proxy logs.");
+    } else {
+        console.log("Syncing add success:", result);
+    }
 };
 
 export const syncRemoveItem = async (productId: number) => {
@@ -86,6 +120,14 @@ export const syncRemoveItem = async (productId: number) => {
     // But we should pass the nonce if we have it.
     const cartRes = await fetchRemoteCart();
     await removeRemoteCartItemProxy(productId, cartRes?.nonce);
+};
+
+
+
+export const syncUpdateItem = async (productId: number, quantity: number) => {
+    // Sync update: Fetch cart to get nonce (and maybe key if needed later), then call proxy
+    const cartRes = await fetchRemoteCart();
+    await updateRemoteCartItemProxy(productId, quantity, cartRes?.nonce);
 };
 
 // Deprecated
