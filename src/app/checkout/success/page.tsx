@@ -3,10 +3,10 @@
 
 import { useCartStore } from "@/lib/cartStore";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function CheckoutSuccessPage() {
+function SuccessContent() {
   const clearCart = useCartStore((state) => state.clearCart);
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
@@ -15,13 +15,6 @@ export default function CheckoutSuccessPage() {
   useEffect(() => {
     // Immediately clear the cart on MOUNT
     clearCart();
-    // Also clear localStorage manually just in case persistent store misses it
-    // because sometimes Zustand persist hydration can be tricky with SSR
-    if (typeof window !== "undefined") {
-        // We rely on Zustand's clearCart to do the right thing, 
-        // but we can also fire the 'storage' event if needed.
-        // For now, clearCart() changes the store which updates local storage.
-    }
     setCleared(true);
   }, [clearCart]);
 
@@ -49,5 +42,13 @@ export default function CheckoutSuccessPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function CheckoutSuccessPage() {
+  return (
+    <Suspense fallback={<div className="min-h-[60vh] flex justify-center items-center">Loading...</div>}>
+      <SuccessContent />
+    </Suspense>
   );
 }
