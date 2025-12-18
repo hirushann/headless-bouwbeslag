@@ -228,7 +228,7 @@ export default function Header({
                   e.target.value = "account";
                 }}
               >
-                <option className="cursor-pointer" value="account" disabled>
+                <option className="cursor-pointer" value="account">
                   Mijn account
                 </option>
                 {/* <option className="cursor-pointer" value="account">My Account</option> */}

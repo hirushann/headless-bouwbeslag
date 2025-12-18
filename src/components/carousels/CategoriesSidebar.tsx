@@ -44,7 +44,7 @@ const CategoryItem = ({ category, allCategories }: { category: Category; allCate
 
   return (
     <Link
-      href={`/categories/${category.slug}`}
+      href={`/${category.slug}`}
       className="block font-normal text-sm text-[#3D4752] py-3 px-4 hover:text-[#0066FF]"
     >
       {category.name}
