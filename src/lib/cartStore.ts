@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { syncAddItem, syncRemoveItem, syncUpdateItem } from "./cartApi";
+import { syncAddItem, syncRemoveItem, syncUpdateItem, fetchRemoteCart } from "./cartApi";
 
 interface CartItem {
   id: number;
@@ -22,6 +22,7 @@ interface CartState {
   removeItem: (id: number) => void;
   updateQty: (id: number, qty: number) => void;
   clearCart: () => void;
+  syncWithServer: () => Promise<void>;
   total: () => number;
 }
 
@@ -82,6 +83,40 @@ export const useCartStore = create<CartState>()(
         }));
       },
       clearCart: () => set({ items: [] }),
+      syncWithServer: async () => {
+        try {
+          const remote = await fetchRemoteCart();
+          if (remote && remote.data) {
+            const remoteItems = remote.data.items; // items from WP
+            const localItems = get().items;
+
+            // 1. If remote is empty but local is not, CLEAR local (Order success case)
+            if (remoteItems.length === 0 && localItems.length > 0) {
+              console.log("Smart Sync: Remote cart is empty (Order placed?), clearing local cart.");
+              set({ items: [] });
+              return;
+            }
+
+            // 2. Optional: If remote has items, update local to match remote (Conflict resolution)
+            // For now, let's trust the server if it has data.
+            if (remoteItems.length > 0) {
+              // Map WP items to local format if needed, or just warn if mismatch
+              // A simple check: if counts match, good enough?
+              // Let's do a strict sync for now: If remote has items, use remote items.
+              // But we need to map WP item shape to our CartItem interface.
+              // WP Item has: id, quantity, name, prices, etc.
+              // Our CartItem has: id, name, price, quantity, image...
+
+              // Implementing full sync might be complex due to data shape. 
+              // The primary goal is "Clear if empty".
+              // So we stick to condition #1 for now.
+              console.log("Smart Sync: Remote has items", remoteItems.length);
+            }
+          }
+        } catch (err) {
+          console.warn("Smart Sync failed:", err);
+        }
+      },
       total: () =>
         get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
     }),
