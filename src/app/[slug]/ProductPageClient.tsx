@@ -798,7 +798,7 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                                   </span>
                                 )}
                               </div>
-                              {advised !== null && discountPercent !== null && advised > sale ? (
+                              {advised !== null && sale !== null && discountPercent !== null && advised > sale ? (
                                 <div
                                   className="tooltip tooltip-right"
                                   // data-tip={`Discount from ${currency}${advised.toFixed(2)}`}
