@@ -85,9 +85,7 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
   const [thumbIndex, setThumbIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [selectedDiscount, setSelectedDiscount] = useState<number | null>(null);
-
-  const [brandImageUrl, setBrandImageUrl] = useState<string | null>(null);
-
+  // --- DISCOUNTS LOGIC ---
   const discounts = React.useMemo(() => {
     const arr: { quantity: number; percentage: number }[] = [];
     if (!product?.meta_data) return arr;
@@ -100,9 +98,67 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
         arr.push({ quantity: q, percentage: p });
       }
     }
-    arr.sort((a, b) => a.quantity - b.quantity);
-    return arr;
+    return arr.sort((a, b) => a.quantity - b.quantity);
   }, [product]);
+
+
+
+
+  // --- PRICE CALCULATION LOGIC (Hoisted) ---
+  const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
+  
+  // Dynamic Price Logic
+  const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
+  const b2bKey = "crucial_data_b2b_and_b2c_sales_price_b2b";
+  const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
+  
+  let sale = product.price ? parseFloat(product.price) : 0;
+  const targetKey = isB2B ? b2bKey : b2cKey;
+  const acfPriceRaw = getMeta(targetKey);
+  if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
+      sale = parseFloat(acfPriceRaw);
+  } else if (isB2B) {
+      // Fallback
+      const b2cFallback = getMeta(b2cKey);
+      if (b2cFallback && !isNaN(parseFloat(b2cFallback))) sale = parseFloat(b2cFallback);
+  }
+
+  const advisedRaw = getMeta("crucial_data_unit_price");
+  const advised = advisedRaw && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
+  
+  // Tax Logic
+  const taxMultiplier = 1 + (taxRate / 100);
+  const finalPrice = isB2B ? sale : (sale ? sale * taxMultiplier : 0);
+  const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
+  
+  // Base Price for Total Display (Inc/Ex VAT dependent on role)
+  let displayBasePrice = finalPrice ?? advised ?? 0;
+  // Base Price for Cart (Always Ex-VAT 'sale' price, logic handled below)
+  let cartBasePrice = sale; 
+
+  let discountPercent: number | null = null;
+    if (advised && sale && advised > 0) {
+    const advisedWithTax = advised * taxMultiplier;
+    const comparePrice = isB2B ? sale : (sale ? sale * taxMultiplier : 0);
+    discountPercent = Math.round(((advisedWithTax - comparePrice) / advisedWithTax) * 100);
+  }
+
+  // Apply volume discount if selected
+  if (selectedDiscount !== null) {
+    const pct = discounts[selectedDiscount]?.percentage ?? 0;
+    if (pct > 0) {
+      displayBasePrice = displayBasePrice - (displayBasePrice * pct) / 100;
+      cartBasePrice = cartBasePrice - (cartBasePrice * pct) / 100;
+    }
+  }
+
+  const totalPrice = displayBasePrice * quantity;
+  const currency = product.currency_symbol || "€";
+
+
+  const [brandImageUrl, setBrandImageUrl] = useState<string | null>(null);
+
+
 
   // Find highest applicable tier for a given quantity
   const findDiscountIndex = React.useCallback((qty: number) => {
@@ -577,6 +633,63 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
     );
   }
   
+  // --- SHARED ADD TO CART HANDLER ---
+  const handleAddToCart = async () => {
+    if (isAddingToCart) return;
+    setAddCartError(false);
+    setAddCartSuccess(false);
+    try {
+      setIsAddingToCart(true);
+
+      const stockOk = await checkStockBeforeAdd(product.id, quantity);
+      if (!stockOk) {
+        setIsAddingToCart(false);
+        return;
+      }
+
+      await addItem({
+        id: product.id,
+        name: product.name,
+        price: cartBasePrice, // Use the shared Ex-VAT price
+        quantity,
+        image: product?.images?.[0]?.src || "/afbeelding.png",
+        deliveryText: getDeliveryInfo(
+          product.stock_status,
+          quantity,
+          product.stock_quantity ?? null,
+          1,
+          30
+        ).short,
+        deliveryType: getDeliveryInfo(
+          product.stock_status,
+          quantity,
+          product.stock_quantity ?? null,
+          1,
+          30
+        ).type,
+        slug: product.slug,
+        stockStatus: product.stock_status,
+        stockQuantity: product.stock_quantity ?? null,
+        leadTimeInStock: 1, // Default from page code
+        leadTimeNoStock: 30 // Default from page code
+      });
+      toast.success("Product toegevoegd aan winkelwagen!", {
+        duration: 3000,
+        position: "top-right",
+      });
+      setAddCartSuccess(true);
+      setTimeout(() => {
+        setAddCartSuccess(false);
+      }, 3000);
+    } catch (error) {
+      setAddCartError(true);
+      setTimeout(() => {
+        setAddCartError(false);
+      }, 3000);
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
 
   return (
     <div className='bg-[#F5F5F5] font-sans'>
@@ -622,7 +735,7 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                   <React.Fragment key={cat.id}>
                     <span>/</span>
                     <Link
-                      href={`/category/${cat.slug}`}
+                      href={`/${cat.slug}`}
                       className="hover:underline text-black"
                     >
                       {cat.name}
@@ -948,8 +1061,8 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                       </div>
                     )}
 
-                    {/* Volume Discount Section */}
-                    {discounts.length > 0 && (
+                    {/* Volume Discount Section - B2C Only */}
+                    {discounts.length > 0 && !(userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"))) && (
                       <div className="bg-white border border-white rounded-lg p-4 flex items-center gap-8">
                         <p className="font-semibold text-base lg:text-lg">Volume korting:</p>
                         <div className="flex gap-8 items-start">
@@ -1072,91 +1185,7 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                                     : "bg-blue-600 text-white hover:bg-blue-700"
                                 }`}
-                              onClick={async () => {
-                                if (isAddingToCart) return;
-                                setAddCartError(false);
-                                setAddCartSuccess(false);
-                                try {
-                                  setIsAddingToCart(true);
-
-                                  const stockOk = await checkStockBeforeAdd(product.id, quantity);
-                                  if (!stockOk) {
-                                    setIsAddingToCart(false);
-                                    return;
-                                  }
-
-                                    await addItem({
-                                      id: product.id,
-                                      name: product.name,
-                                      price: (() => {
-                                      const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
-                                        
-                                        // Dynamic Price Logic
-                                        const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
-                                        const b2bKey = "crucial_data_b2b_and_b2c_sales_price_b2b";
-                                        const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
-                                        
-                                        let sale = product.price ? parseFloat(product.price) : 0;
-                                        const targetKey = isB2B ? b2bKey : b2cKey;
-                                        const acfPriceRaw = getMeta(targetKey);
-                                        if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
-                                            sale = parseFloat(acfPriceRaw);
-                                        } else if (isB2B) {
-                                            const b2cFallback = getMeta(b2cKey);
-                                            if (b2cFallback && !isNaN(parseFloat(b2cFallback))) sale = parseFloat(b2cFallback);
-                                        }
-
-                                        // Tax Logic
-                                        const taxMultiplier = 1 + (taxRate / 100);
-                                        const finalPrice = isB2B ? sale : (sale * taxMultiplier);
-
-                                        // CART: Always store Ex-VAT price
-                                        const priceForCart = sale;
-                                        
-                                        let basePrice = priceForCart;
-                                        if (selectedDiscount !== null) {
-                                          const pct = discounts[selectedDiscount]?.percentage ?? 0;
-                                          if (pct > 0) {
-                                            basePrice = basePrice - (basePrice * pct) / 100;
-                                          }
-                                        }
-                                        return basePrice;
-                                      })(),
-                                      quantity,
-                                      image: product?.images?.[0]?.src || "/afbeelding.png",
-                                      deliveryText: getDeliveryInfo(
-                                        product.stock_status,
-                                        quantity,
-                                        product.stock_quantity ?? null,
-                                        1,
-                                        30
-                                      ).short,
-                                      deliveryType: getDeliveryInfo(
-                                        product.stock_status,
-                                        quantity,
-                                        product.stock_quantity ?? null,
-                                        1,
-                                        30
-                                      ).type,
-
-                                    });
-                                  toast.success("Product toegevoegd aan winkelwagen!", {
-                                    duration: 3000,
-                                    position: "top-right",
-                                  });
-                                  setAddCartSuccess(true);
-                                  setTimeout(() => {
-                                    setAddCartSuccess(false);
-                                  }, 3000);
-                                } catch (error) {
-                                  setAddCartError(true);
-                                  setTimeout(() => {
-                                    setAddCartError(false);
-                                  }, 3000);
-                                } finally {
-                                  setIsAddingToCart(false);
-                                }
-                              }}
+                              onClick={handleAddToCart}
                             >
                               {/* Loader spinner if adding, else success, error or cart icon */}
                               {isAddingToCart ? (
@@ -1235,7 +1264,7 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                          return (
                            <div className='bg-[#FFE1E1] py-3 px-5 rounded-md'> 
                                <p className='text-[#FF5E00] font-semibold text-lg'>Dit artikel moet besteld worden</p>
-                               <p className='text-[#3D4752] font-normal text-sm'>{info.message}</p>
+                               <p className='text-[#3D4752] font-bold text-sm'>{info.message}</p>
                            </div>
                          );
                       }
@@ -2127,43 +2156,39 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                   transition-transform duration-300 ease-in-out z-50 ${
                     isVisible ? 'translate-y-0' : 'translate-y-full'
                   }`}>
+
             <div className="flex flex-col lg:flex-row items-center gap-3 lg:gap-4 justify-center max-w-[1440px] mx-auto">
-                <div className="flex items-center gap-4 w-full lg:w-auto justify-center lg:justify-between lg:justify-start flex-nowrap">
+                <div className="flex flex-nowrap lg:flex-nowrap items-center gap-1.5 lg:gap-4 mt-4 justify-between">
                     <div className='flex justify-center items-center'>
-                      <p className="text-base md:text-xl lg:text-3xl font-bold text-[#1C2530]">
+                      <p className="text-2xl lg:text-3xl font-bold text-[#1C2530]">
                         {(() => {
-                          const getMeta = (key: string) =>
-                            product?.meta_data?.find((m: any) => m.key === key)?.value;
-                            
-                          // Dynamic Price Logic
+                          const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
+                          const currency = product.currency_symbol || "€";
+                          
+                          // Dynamic Price Logic (duped for now)
                           const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
                           const b2bKey = "crucial_data_b2b_and_b2c_sales_price_b2b";
                           const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
                           
                           let sale = product.price ? parseFloat(product.price) : null;
                           const targetKey = isB2B ? b2bKey : b2cKey;
-                          
                           const acfPriceRaw = getMeta(targetKey);
                           if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
                               sale = parseFloat(acfPriceRaw);
                           } else if (isB2B) {
+                              // Fallback
                               const b2cFallback = getMeta(b2cKey);
                               if (b2cFallback && !isNaN(parseFloat(b2cFallback))) sale = parseFloat(b2cFallback);
                           }
 
                           const advisedRaw = getMeta("crucial_data_unit_price");
-                          const advised =
-                            advisedRaw && !isNaN(parseFloat(advisedRaw))
-                              ? parseFloat(advisedRaw)
-                              : null;
+                          const advised = advisedRaw && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
                           
                           // Tax Logic
                           const taxMultiplier = 1 + (taxRate / 100);
-                          const finalPrice = isB2B ? sale : (sale ? sale * taxMultiplier : null);
-
-                          let basePrice = finalPrice ?? advised ?? 0;
+                          const finalPrice = isB2B ? sale : (sale ? sale * taxMultiplier : 0);
                           
-                          const currency = product.currency_symbol || "€";
+                          let basePrice = finalPrice ?? advised ?? 0;
 
                           // Apply volume discount if selected
                           if (selectedDiscount !== null) {
@@ -2174,38 +2199,40 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                           }
 
                           const totalPrice = basePrice * quantity;
-                          const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
 
-                          return isLoading ? "..." : (
-                             <>
-                                {currency}{totalPrice.toFixed(2)} <span className="text-xs font-normal">{taxLabel}</span>
-                             </>
-                          );
+                          return isLoading ? "..." : `${currency}${totalPrice.toFixed(2)}`;
                         })()}
                       </p>
+                      <span className="text-xs text-gray-500 font-normal ml-2">
+                          {userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator")) ? "(excl. BTW)" : "(incl. BTW)"}
+                      </span>
                     </div>
 
                     <div className="flex border border-[#EDEDED] shadow-xs rounded-sm overflow-hidden bg-white">
                         <button
                           type="button"
                           onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                          className="lg:px-5 px-2 lg:py-3 py-1 text-lg lg:text-2xl cursor-pointer border-r border-[#EDEDED]"
+                          className="px-5 py-3 text-2xl cursor-pointer border-r border-[#EDEDED]"
                         >-</button>
-                        <div className="lg:px-6 px-2 lg:py-2 py-1 text-base font-medium text-cente  r lg:min-w-[60px] min-w-[40px] flex items-center justify-center">
+                        <div className="px-6 py-2 text-base font-medium text-center min-w-[60px] flex items-center justify-center">
                             {quantity.toString().padStart(1, '0')}
                         </div>
                         <button
                           type="button"
                           onClick={() =>
-                            setQuantity((prev) =>
-                              availableStock !== null ? Math.min(prev + 1, availableStock) : prev + 1
-                            )
+                            setQuantity((prev) => {
+                              // If limit exists AND backorders disabled, clamp. Else just increment.
+                              if (availableStock !== null && !backordersAllowed) {
+                                return Math.min(prev + 1, availableStock);
+                              }
+                              return prev + 1;
+                            })
                           }
-                          className="flex justify-center lg:px-5 px-2 lg:py-3 py-1 text-lg lg:text-2xl cursor-pointer border-l border-[#EDEDED]"
+                          className="flex justify-center px-5 py-3 text-2xl cursor-pointer border-l border-[#EDEDED]"
                         >+</button>
                     </div>
 
-                    <div className='w-1/2 lg:w-auto'>
+                    <div className=''>
                       <div className="relative group">
                         <button
                           type="button"
@@ -2215,84 +2242,26 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                             isQuantityInvalid ||
                             isStockLimitReached
                           }
-                          className={`cursor-pointer flex-1 px-3 py-2 lg:px-6 lg:py-4 rounded-sm transition font-semibold flex items-center justify-center gap-1 lg:gap-3 w-full
+                          className={`cursor-pointer flex-1 px-6 py-4 rounded-sm transition font-semibold flex items-center justify-center gap-3 w-full
                             ${
                               isOutOfStock || isQuantityInvalid || isStockLimitReached
                                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                                 : "bg-blue-600 text-white hover:bg-blue-700"
                             }`}
-                          onClick={async () => {
-                            if (isAddingToCart) return;
-                            setAddCartError(false);
-                            setAddCartSuccess(false);
-                            try {
-                              setIsAddingToCart(true);
-
-                              const stockOk = await checkStockBeforeAdd(product.id, quantity);
-                              if (!stockOk) {
-                                setIsAddingToCart(false);
-                                return;
-                              }
-
-                              await addItem({
-                                id: product.id,
-                                name: product.name,
-                                price: (() => {
-                                  // Simplified for mobile sticky
-                                  const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
-                                  const saleRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
-                                  const sale = saleRaw && !isNaN(parseFloat(saleRaw)) ? parseFloat(saleRaw) : 0;
-                                  
-                                  // Direct price from standard WooCommerce field
-                                  return product.price ? parseFloat(product.price) : 0;
-                                })(),
-                                quantity,
-                                image: product?.images?.[0]?.src || "/afbeelding.png",
-                                deliveryText: getDeliveryInfo(
-                                  product.stock_status,
-                                  quantity,
-                                  product.stock_quantity ?? null,
-                                  1, // Default leadTimeInStock
-                                  30 // Default leadTimeNoStock
-                                ).short,
-                                deliveryType: getDeliveryInfo(
-                                  product.stock_status,
-                                  quantity,
-                                  product.stock_quantity ?? null,
-                                  1,
-                                  30
-                                ).type,
-                              });
-                              toast.success("Product added to cart!", {
-                                duration: 3000,
-                                position: "top-right",
-                              });
-                              setAddCartSuccess(true);
-                              setTimeout(() => {
-                                setAddCartSuccess(false);
-                              }, 3000);
-                            } catch (error) {
-                              setAddCartError(true);
-                              setTimeout(() => {
-                                setAddCartError(false);
-                              }, 3000);
-                            } finally {
-                              setIsAddingToCart(false);
-                            }
-                          }}
+                          onClick={handleAddToCart}
                         >
                           {/* Loader spinner if adding, else success, error or cart icon */}
                           {isAddingToCart ? (
-                            <svg className="size-6 animate-spin hidden lg:block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4"></circle><path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
+                            <svg className="size-6 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4"></circle><path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
                           ) : addCartSuccess ? (
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="white" className="size-6  hidden lg:block"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="white" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                           ) : addCartError ? (
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="#FF3B3B" className="size-6  hidden lg:block">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="#FF3B3B" className="size-6">
                               <circle cx="12" cy="12" r="10" stroke="#FF3B3B" strokeWidth="2" fill="none"/>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5m0 4h.01" stroke="#FF3B3B" strokeWidth="2"/>
                             </svg>
                           ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="white" className="size-6  hidden lg:block"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="white" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>
                           )}
                           In winkelwagen
                         </button>

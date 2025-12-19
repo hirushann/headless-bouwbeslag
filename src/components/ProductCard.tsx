@@ -174,6 +174,7 @@ export default function ProductCard({ product, userRole: propUserRole }: { produ
                   image: product.images?.[0]?.src,
                   deliveryText: getDeliveryInfo(product.stock_status, 1, product.stock_quantity ?? null).short,
                   deliveryType: getDeliveryInfo(product.stock_status, 1, product.stock_quantity ?? null).type,
+                  slug: product.slug,
                });
                toast.success("Product toegevoegd aan winkelwagen!");
 

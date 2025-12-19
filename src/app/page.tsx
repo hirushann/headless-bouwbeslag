@@ -93,7 +93,7 @@ export default async function Home() {
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
               {(Array.isArray(categories) ? categories : [])
                 .filter((cat: { parent: number }) => cat.parent === 0)
-                .map((cat: { id: number; name: string; image?: { src?: string }; parent: number; count?: number }) => (
+                .map((cat: { id: number; name: string; slug: string; image?: { src?: string }; parent: number; count?: number }) => (
                 <div key={cat.id} className="border border-[#DBE3EA] rounded-sm p-4 shadow-[0px_20px_24px_0px_#0000000A] relative flex flex-col h-full">
                   <Image
                     className="mb-3 rounded-sm hidden lg:block"
@@ -141,9 +141,11 @@ export default async function Home() {
                     </div>
                   </div>
                   <div className="w-full mt-auto">
-                    <button className="!w-full border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">
-                      Bekijk alle {cat.name}
-                    </button>
+                    <Link href={`/${cat.slug}`}>
+                      <button className="!w-full border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">
+                        Bekijk alle {cat.name}
+                      </button>
+                    </Link>
                   </div>
                 </div>
               ))}

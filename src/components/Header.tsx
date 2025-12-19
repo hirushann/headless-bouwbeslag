@@ -6,6 +6,7 @@ import { useUserContext } from "@/context/UserContext";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { syncRemoveItem } from "@/lib/cartApi";
+import { getDeliveryInfo } from "@/lib/deliveryUtils";
 
 export default function Header({
   shippingSettings,
@@ -92,33 +93,14 @@ export default function Header({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []); 
 
-  // STEP 1: Add buildCheckoutUrl helper above handler
-  const buildCheckoutUrl = () => {
-    if (!items.length) return null;
 
-    const ids = items.map((item) => item.id).join(",");
-    const quantities = items.map((item) => item.quantity).join(",");
-
-    const baseUrl = (process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "https://app.bouwbeslag.nl").replace(/\/$/, "");
-    
-    // Using standard WooCommerce pattern for multiple items (requires support or plugin often, but standard syntax)
-    return `${baseUrl}/checkout/?add-to-cart=${ids}&quantity=${quantities}`;
-  };
-
-  // STEP 3: Log URL whenever cart items change
-  useEffect(() => {
-    const checkoutUrl = buildCheckoutUrl();
-    if (checkoutUrl) {
-      console.log("Checkout URL (pre-click):", checkoutUrl);
-    }
-  }, [items]);
 
   // STEP 2: Update click handler to use helper
   const handleCheckoutRedirect = () => {
-    const checkoutUrl = buildCheckoutUrl();
-    if (!checkoutUrl) return;
-
-    window.location.href = checkoutUrl;
+    // Instead of building external URL, we just go to our local checkout page
+    // The checkout page will handle adding items via URL params itself
+    if (items.length === 0) return;
+    router.push("/checkout");
   };
 
   return (
@@ -381,15 +363,33 @@ export default function Header({
                   {items.map((item) => (
                     <div key={item.id} className="flex gap-2 items-center justify-between p-3 mb-3 border border-[#DEDEDE] rounded-sm relative flex-col lg:flex-row">
                         <div className="flex items-center gap-4">
-                            {item.image ? (
-                                <img src={item.image} alt={item.name} className="w-28 h-28 object-cover rounded bg-gray-100" />
+                            {item.slug ? (
+                              <Link href={`/${item.slug}`}>
+                                {item.image ? (
+                                    <img src={item.image} alt={item.name} className="w-28 h-28 object-cover rounded bg-gray-100 cursor-pointer hover:opacity-80 transition" />
+                                ) : (
+                                    <div className="w-28 h-28 bg-gray-100 rounded flex items-center justify-center text-gray-400 cursor-pointer hover:opacity-80 transition">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-8"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
+                                    </div>
+                                )}
+                              </Link>
                             ) : (
-                                <div className="w-28 h-28 bg-gray-100 rounded flex items-center justify-center text-gray-400">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-8"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
-                                </div>
+                                item.image ? (
+                                    <img src={item.image} alt={item.name} className="w-28 h-28 object-cover rounded bg-gray-100" />
+                                ) : (
+                                    <div className="w-28 h-28 bg-gray-100 rounded flex items-center justify-center text-gray-400">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-8"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
+                                    </div>
+                                )
                             )}
                             <div>
-                                <h3 className="font-semibold">{item.name}</h3>
+                                {item.slug ? (
+                                  <Link href={`/${item.slug}`} className="hover:text-blue-600 transition">
+                                    <h3 className="font-semibold">{item.name}</h3>
+                                  </Link>
+                                ) : (
+                                  <h3 className="font-semibold">{item.name}</h3>
+                                )}
                                 {(item.color || item.brand || item.model) && (
                                   <div className="flex gap-2 flex-wrap mt-1 mb-2">
                                       {item.color && <p className="text-sm text-gray-600 border-r border-[#E6E6E6] pr-2 last:border-0 last:pr-0">Color: {item.color}</p>}
@@ -398,7 +398,28 @@ export default function Header({
                                   </div>
                                 )}
                                 
-                                <p className="text-[#03B955] text-xs font-semibold mt-1">{item.deliveryText || "Direct leverbaar"}</p>
+                                {(() => {
+                                  // Recalculate dynamic delivery info mostly for color coding match
+                                  // Use stored values if available, otherwise fallback (though existing items might miss new fields, hence defaults)
+                                  const info = getDeliveryInfo(
+                                    item.stockStatus || 'instock',
+                                    item.quantity,
+                                    item.stockQuantity !== undefined ? item.stockQuantity : null,
+                                    item.leadTimeInStock || 1,
+                                    item.leadTimeNoStock || 30
+                                  );
+
+                                  // Determine color based on type (matching ProductPageClient logic)
+                                  let colorClass = "text-[#03B955]"; // Green (In stock)
+                                  if (info.type === "PARTIAL_STOCK") colorClass = "text-[#03B955]"; // Green
+                                  else if (info.type === "BACKORDER" || info.type === "OUT_OF_STOCK") colorClass = "text-[#FF5E00]"; // Orange/Red
+
+                                  return (
+                                    <p className={`${colorClass} text-xs font-semibold mt-1`}>
+                                      {info.message}
+                                    </p>
+                                  );
+                                })()}
                             </div>
                         </div>
                         <div className="flex w-full lg:w-auto flex-row-reverse lg:flex-col items-center lg:items-end gap-2">
@@ -440,7 +461,14 @@ export default function Header({
                 </div>
                 <div className="flex justify-between mb-3 text-base font-medium text-[#3D4752]">
                   <span>Verzendkosten</span>
-                  <span>{displayShipping === 0 ? "Gratis" : `€${displayShipping.toFixed(2)}`}</span>
+                  <span>
+                    {isFreeShipping 
+                      ? "Gratis" 
+                      : displayShipping === 0 
+                        ? "N.t.b." 
+                        : `€${displayShipping.toFixed(2)}`
+                    }
+                  </span>
                 </div>
                 <div className="flex justify-between mb-4 text-base">
                   <p className="font-bold">Totaalbedrag 

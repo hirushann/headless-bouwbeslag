@@ -34,7 +34,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   });
 
   const categories = (Array.isArray(categoryRes?.data) ? categoryRes.data : []).map((cat: any) => ({
-    url: `${baseUrl}/category/${cat.slug}`,
+    url: `${baseUrl}/${cat.slug}`,
     lastModified: new Date(),
   }));
 

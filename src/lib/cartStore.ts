@@ -13,6 +13,11 @@ interface CartItem {
   model?: string;
   deliveryText?: string;
   deliveryType?: string;
+  slug?: string;
+  stockStatus?: string;
+  stockQuantity?: number | null;
+  leadTimeInStock?: number;
+  leadTimeNoStock?: number;
 }
 
 interface CartState {

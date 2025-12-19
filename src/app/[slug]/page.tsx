@@ -63,16 +63,18 @@ async function fetchAttributes(): Promise<Attribute[]> {
   try {
     const res = await api.get("products/attributes");
     const attributesData = res.data || [];
-    const attributesWithTerms: Attribute[] = [];
-
-    for (const attr of attributesData) {
-      const termsRes = await fetchTermsForAttribute(attr.id);
-      attributesWithTerms.push({
-        id: attr.id,
-        name: attr.name,
-        terms: termsRes,
-      });
-    }
+    
+    // Parallelize fetching terms for all attributes
+    const attributesWithTerms = await Promise.all(
+      attributesData.map(async (attr: any) => {
+        const termsRes = await fetchTermsForAttribute(attr.id);
+        return {
+          id: attr.id,
+          name: attr.name,
+          terms: termsRes,
+        };
+      })
+    );
 
     return attributesWithTerms;
   } catch (error) {
@@ -112,8 +114,13 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { slug } = await params;
   
+  // Parallel fetch for metadata optimization
+  const [product, category] = await Promise.all([
+    getProductBySlug(slug),
+    getCategoryBySlug(slug)
+  ]);
+
   // 1. Try Product first
-  const product = await getProductBySlug(slug);
   if (product) {
     const meta = product.meta_data || [];
     const metaTitle =
@@ -145,7 +152,6 @@ export async function generateMetadata(
   }
 
   // 2. Try Category next
-  const category = await getCategoryBySlug(slug);
   if (category) {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
     // Using root URL for canonical since that's what we are implementing
@@ -243,10 +249,15 @@ function generateStructuredData(product: any, taxRate: number) {
 export default async function Page({ params }: PageProps) {
   const { slug } = await params;
   
-  // 1. Check Product
-  const product = await getProductBySlug(slug);
+  // 1. Check Product & Category in Parallel
+  // This drastically reduces load time for category pages, as we don't wait for product fetch to fail.
+  const [product, category] = await Promise.all([
+    getProductBySlug(slug),
+    getCategoryBySlug(slug)
+  ]);
 
   if (product) {
+    // Determine tax rate only if product exists
     const taxRate = await getStandardTaxRate();
     const structuredData = generateStructuredData(product, taxRate);
 
@@ -266,12 +277,13 @@ export default async function Page({ params }: PageProps) {
   }
 
   // 2. Check Category
-  const category = await getCategoryBySlug(slug);
   if (category) {
-    const attributes = await fetchAttributes();
-    const subCategoriesRes = await api.get("products/categories", {
-      parent: category.id,
-    });
+    // Parallelize fetching attributes and subcategories
+    const [attributes, subCategoriesRes] = await Promise.all([
+        fetchAttributes(),
+        api.get("products/categories", { parent: category.id })
+    ]);
+    
     const subCategories = subCategoriesRes.data || [];
 
     return (

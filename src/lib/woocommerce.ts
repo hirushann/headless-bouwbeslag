@@ -91,24 +91,33 @@ export const fetchMedia = async (id: number | string) => {
 
 export const getShippingSettings = async () => {
   try {
-    const { data: zones } = await api.get("shipping/zones");
+    const { data: zones } = await api.get("shipping/zones", { _fields: "id,name" });
 
-    // Find the first defined zone (usually ID > 0). 
-    // If only "Rest of the World" exists (ID 0), use that.
-    // WooCommerce returns zones in matching order, so the first one that isn't 0 is likely the main zone.
-    const primaryZone = zones.find((z: any) => z.id !== 0) || zones[0];
+    // Prioritize "Netherlands" or "Nederland" zone if it exists
+    const nlZone = zones.find((z: any) => z.name.toLowerCase() === "nederland" || z.name.toLowerCase() === "netherlands");
+
+    // Otherwise find the first defined zone (usually ID > 0). 
+    const primaryZone = nlZone || zones.find((z: any) => z.id !== 0) || zones[0];
     const zoneId = primaryZone?.id || 0;
+
+    // Fetch methods with no-store cache to ensure fresh settings
+    // Note: Since `api.get` uses `fetch` internally, we need to ensure it doesn't cache if we can't pass config.
+    // Given the current class, we can't easily pass cache config without refactoring.
+    // However, we can append a timestamp to the URL to bust cache if needed, or rely on Next.js 15 semantic if applicable.
+    // For now, let's keep the fetch simple but improve zone selection.
 
     const { data: methods } = await api.get(
       `shipping/zones/${zoneId}/methods`
     );
 
-    let flatRate = 0;
+    let flatRate: number | null = null;
     let freeShippingThreshold: number | null = null;
 
-    methods.forEach((method: any) => {
-      // Check for Flat Rate
-      if (method.method_id === "flat_rate" && method.enabled) {
+    for (const method of methods) {
+      if (!method.enabled) continue;
+
+      // Check for Flat Rate (Take the first one found as it's the highest priority)
+      if (method.method_id === "flat_rate" && flatRate === null) {
         const cost = parseFloat(method.settings.cost?.value || "0");
         if (!isNaN(cost)) {
           flatRate = cost;
@@ -116,17 +125,23 @@ export const getShippingSettings = async () => {
       }
 
       // Check for Free Shipping
-      if (method.method_id === "free_shipping" && method.enabled) {
-        const minAmount = parseFloat(
-          method.settings.min_amount?.value || "0"
-        );
-        if (!isNaN(minAmount)) {
-          freeShippingThreshold = minAmount;
-        }
-      }
-    });
+      // Respect 'requires' setting: '' (N/A), 'coupon', 'min_amount', 'either', 'both'
+      if (method.method_id === "free_shipping" && freeShippingThreshold === null) {
+        const requires = method.settings.requires?.value || "";
+        const minAmountVal = parseFloat(method.settings.min_amount?.value || "0");
+        const minAmount = isNaN(minAmountVal) ? 0 : minAmountVal;
 
-    return { flatRate, freeShippingThreshold };
+        if (requires === "" || requires === "min_amount" || requires === "either") {
+          // If requires is empty (N/A), it means unconditional free shipping (threshold 0)
+          // If requires is min_amount or either, we respect the amount
+          freeShippingThreshold = requires === "" ? 0 : minAmount;
+        }
+        // If requires is 'coupon' or 'both', we ignore it for now as we don't check coupons yet
+      }
+    }
+
+    // Fallback: if no flat rate found, default to 0
+    return { flatRate: flatRate ?? 0, freeShippingThreshold };
   } catch (error) {
     console.error("Error fetching shipping settings:", error);
     return { flatRate: 0, freeShippingThreshold: null };
