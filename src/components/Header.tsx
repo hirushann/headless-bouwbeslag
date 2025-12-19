@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCartStore } from "@/lib/cartStore";
+import { useUserContext } from "@/context/UserContext";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { syncRemoveItem } from "@/lib/cartApi";
@@ -14,9 +15,16 @@ export default function Header({
   const items = useCartStore((state) => state.items);
   const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  
+  const { userRole } = useUserContext();
+  const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
+  const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
 
   const subtotal = items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+    (sum, item) => {
+       const displayedItemPrice = isB2B ? item.price : item.price * 1.21;
+       return sum + displayedItemPrice * item.quantity;
+    },
     0
   );
 
@@ -25,6 +33,7 @@ export default function Header({
   const isFreeShipping =
     freeShippingThreshold !== null && subtotal >= freeShippingThreshold;
   const shipping = isFreeShipping ? 0 : flatRate;
+  const displayShipping = isB2B ? shipping : shipping * 1.21;
 
   const increaseQuantity = (id: number) => {
     const item = useCartStore.getState().items.find((i) => i.id === Number(id));
@@ -411,8 +420,8 @@ export default function Header({
                                 />
                                 <button onClick={() => increaseQuantity(item.id)} className="border-l border-[#EDEDED] cursor-pointer px-3 py-1 text-lg font-bold text-gray-700 hover:bg-gray-200" aria-label={`Increase quantity of ${item.name}`}>+</button>
                             </div>
-                            <span className="font-bold text-lg">
-                            €{(item.price * item.quantity).toFixed(2)}
+                            <span className="font-bold text-lg flex flex-col">
+                            €{((isB2B ? item.price : item.price * 1.21) * item.quantity).toFixed(2)} <span className="text-xs font-normal text-gray-500">{taxLabel}</span>
                             </span>
                             <button onClick={() => removeItem(item.id)} aria-label={`Remove ${item.name} from cart`} className="text-red-600 hover:text-red-800 cursor-pointer bg-[#FFEAEB] rounded-full p-1 absolute -top-2 -right-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-4"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
@@ -431,14 +440,21 @@ export default function Header({
                 </div>
                 <div className="flex justify-between mb-3 text-base font-medium text-[#3D4752]">
                   <span>Verzendkosten</span>
-                  <span>{shipping === 0 ? "Gratis" : `€${shipping.toFixed(2)}`}</span>
+                  <span>{displayShipping === 0 ? "Gratis" : `€${displayShipping.toFixed(2)}`}</span>
                 </div>
                 <div className="flex justify-between mb-4 text-base">
                   <p className="font-bold">Totaalbedrag 
-                    {/* <span className="font-medium">(incl 21% VAT)</span> */}
-                    </p>
-                  <span className="font-bold">€{(subtotal + shipping).toFixed(2)}</span>
+                    <span className="font-normal text-xs ml-1.5">{taxLabel}</span>
+                  </p>
+                  <span className="font-bold">€{(subtotal + displayShipping).toFixed(2)}</span>
                 </div>
+                {items.length > 0 && isB2B && (
+                     <div className="flex justify-between mb-4 text-sm text-gray-500">
+                        <span>Totaal (incl. BTW)</span>
+                        {/* Subtotal is Ex-VAT here. Shipping is assumed Ex-VAT (flatRate). Add 21% to total. */}
+                        <span>€{((subtotal + shipping) * 1.21).toFixed(2)}</span>
+                     </div>
+                )}
                 <button onClick={handleCheckoutRedirect} className="w-full bg-[#0066FF] text-white font-bold px-4 py-3.5 rounded-sm text-base">
                   Afrekenen
                 </button>

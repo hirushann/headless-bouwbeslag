@@ -39,7 +39,7 @@ export async function POST(req: Request) {
             first_name,
             last_name,
             username: email,
-            role,
+            role: role,
             billing: {
                 first_name,
                 last_name,
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
                     value: company_name
                 },
                 {
-                    key: "_is_b2b_registration",
+                    key: "is_b2b_registration",
                     value: "yes"
                 }
             ],

@@ -23,19 +23,53 @@ function normalizeImageUrl(url?: string): string {
   return url;
 }
 
-export default function ProductCard({ product }: { product: any }) {
+import { useUserContext } from "@/context/UserContext";
+
+export default function ProductCard({ product, userRole: propUserRole }: { product: any; userRole?: string[] | null }) {
+  const { userRole: contextUserRole, isLoading } = useUserContext();
+  const userRole = propUserRole || contextUserRole;
+
   // Format price safely (remove weird HTML entities)
   const cleanPrice = (price: string) =>
     price?.replace(/&#[0-9]+;|&[a-z]+;/gi, "").trim();
 
+  // Dynamic Price Logic
+  const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
+  const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
+  const b2bKey = "crucial_data_b2b_and_b2c_sales_price_b2b";
+  const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
+  
+  // Default to standard product.price
+  let sale = product.price ? parseFloat(product.price) : null;
+  const startKey = isB2B ? b2bKey : b2cKey;
+  const acfPriceRaw = getMeta(startKey);
+  
+  if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
+      sale = parseFloat(acfPriceRaw);
+  } else if (isB2B) {
+     const b2cFallback = getMeta(b2cKey);
+     if (b2cFallback && !isNaN(parseFloat(b2cFallback))) {
+         sale = parseFloat(b2cFallback);
+     }
+  }
+
+  // Use this calculated 'sale' price for everything
+  const TAX_RATE = 21;
+  const taxMultiplier = 1 + (TAX_RATE / 100);
+  
+  const finalPrice = sale !== null 
+     ? (isB2B ? sale : sale * taxMultiplier) 
+     : (product.price ? parseFloat(product.price) * (isB2B ? 1 : taxMultiplier) : null);
+     
+  const displayPrice = finalPrice !== null ? finalPrice.toFixed(2) : cleanPrice(product.price);
+  const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
+  
+  // Recalculate discount based on this new price vs regular/advised
+  // Assuming regular_price is the 'advised' or standard price for comparison
+  const regular = product.regular_price ? parseFloat(product.regular_price) : null;
   const discount =
-    product.regular_price && product.sale_price
-      ? Math.round(
-          ((parseFloat(product.regular_price) -
-            parseFloat(product.sale_price)) /
-            parseFloat(product.regular_price)) *
-            100
-        )
+    regular && sale && regular > sale
+      ? Math.round(((regular - sale) / regular) * 100)
       : null;
 
   const addItem = useCartStore((state) => state.addItem);
@@ -73,18 +107,24 @@ export default function ProductCard({ product }: { product: any }) {
         )} */}
 
         <div className="flex items-center gap-2 mb-2">
-          <p className="text-2xl font-bold text-[#1C2530]">
-            €{cleanPrice(product.price)}
-          </p>
-          {discount && (
-            <>
-              <span className="text-base line-through text-[#1C2530] font-normal">
-                €{product.regular_price}
-              </span>
-              <span className="bg-[#FF9800] text-white text-xs px-2 py-0.5 font-bold">
-                {discount}% off
-              </span>
-            </>
+          {isLoading ? (
+             <div className="h-8 w-24 bg-gray-200 animate-pulse rounded"></div>
+          ) : (
+             <>
+                <p className="text-2xl font-bold text-[#1C2530]">
+                    €{displayPrice} <span className="text-xs font-normal text-gray-500">{taxLabel}</span>
+                </p>
+                {/* {discount && (
+                    <>
+                    <span className="text-base line-through text-[#1C2530] font-normal">
+                        €{product.regular_price}
+                    </span>
+                    <span className="bg-[#FF9800] text-white text-xs px-2 py-0.5 font-bold">
+                        {discount}% off
+                    </span>
+                    </>
+                )} */}
+             </>
           )}
         </div>
 
@@ -129,7 +169,7 @@ export default function ProductCard({ product }: { product: any }) {
                addItem({
                   id: product.id,
                   name: product.name,
-                  price: Number(product.sale_price || product.regular_price || product.price || 0),
+                  price: sale !== null ? sale : Number(product.regular_price || product.price || 0),
                   quantity: 1,
                   image: product.images?.[0]?.src,
                   deliveryText: getDeliveryInfo(product.stock_status, 1, product.stock_quantity ?? null).short,

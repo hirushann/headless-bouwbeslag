@@ -1,5 +1,7 @@
 "use client";
+import axios from 'axios';
 import React, { useState, useRef, useEffect, use } from 'react';
+import { useUserContext } from "@/context/UserContext";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import api from "@/lib/woocommerce";
@@ -53,9 +55,16 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [currentUrl, setCurrentUrl] = useState("");
 
+
   useEffect(() => {
     setCurrentUrl(window.location.href);
-  }, []);
+  }, []); // Only run once for URL
+
+  const { userRole, isLoading } = useUserContext();
+
+  useEffect(() => {
+    console.log("💰 VAT Rate (from Server):", taxRate);
+  }, [taxRate]);
 
   // ✅ Initialize gallery images from SSR product
   useEffect(() => {
@@ -722,46 +731,67 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
 
                     {/* Price and Discount */}
                     {(() => {
-                      const getMeta = (key: string) =>
-                        product?.meta_data?.find((m: any) => m.key === key)?.value;
-                      const advisedRaw = getMeta("crucial_data_unit_price");
-                      const saleRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
-                      const currency = product.currency_symbol || "€";
-                      const advised = advisedRaw !== undefined && advisedRaw !== null && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
-                      const saleRawNum = saleRaw !== undefined && saleRaw !== null && !isNaN(parseFloat(saleRaw)) ? parseFloat(saleRaw) : null;
+                      const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
                       
-                      // Direct price from standard WooCommerce field
-                      const sale = product.price ? parseFloat(product.price) : null;
+                      // Dynamic Price Logic
+                      const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
+                      const b2bKey = "crucial_data_b2b_and_b2c_sales_price_b2b";
+                      const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
+                      
+                      // 1. Get Advised Price
+                      const advisedRaw = getMeta("crucial_data_unit_price");
+                      const advised = advisedRaw !== undefined && advisedRaw !== null && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
+                      
+                      if (isLoading) {
+                          return <div className="h-8 w-32 bg-gray-200 animate-pulse rounded"></div>;
+                      }
 
-                      // Get packing_type attribute
+                      // 2. Get Sales Price (B2B or B2C)
+                      // Default to standard product.price
+                      let sale = product.price ? parseFloat(product.price) : null; 
+                      
+                      // Override with ACF if available
+                      const startKey = isB2B ? b2bKey : b2cKey;
+                      const acfPriceRaw = getMeta(startKey);
+                      if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
+                          sale = parseFloat(acfPriceRaw);
+                      } else if (isB2B) {
+                         // Fallback for B2B: if B2B price missing, check B2C? Or keep standard?
+                         // Let's check B2C as secondary fallback if B2B is empty, or just keep standard.
+                         // Often B2B price might be missing if same as B2C.
+                         const b2cFallback = getMeta(b2cKey);
+                         if (b2cFallback && !isNaN(parseFloat(b2cFallback))) {
+                             sale = parseFloat(b2cFallback);
+                         }
+                      }
+                      
+                      const currency = product.currency_symbol || "€";
                       const packingType = product?.attributes?.find((attr: any) => attr.slug === "pa_packing_type")?.options?.[0];
+
+                      // Tax Logic
+                      const taxMultiplier = 1 + (taxRate / 100);
+                      const finalPrice = isB2B ? sale : (sale ? sale * taxMultiplier : null);
+                      const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
 
                       let discountPercent: number | null = null;
                       if (advised && sale && advised > 0) {
-                        // Correct logic: show discount if Advised > Sale
-                        // But wait, the user wants "crucial_data_unit_price" as advised which might include/exclude VAT?
-                        // Assuming advised price also needs VAT or is comparable. 
-                        // Typically advised prices on B2B might be ex VAT too.
-                        // For safety, let's treat "advised" as "as-is" unless instructed otherwise, or apply VAT too.
-                        // Given user only mentioned sales price fix, I will apply VAT to Sales Price.
-                        // If advised looks weird, we might need to apply VAT there too.
-                        // Let's apply VAT to Advised as well for consistency if it's "unit price".
-                        const advisedWithTax = advised * (1 + (taxRate / 100));
-                        discountPercent = Math.round(((advisedWithTax - sale) / advisedWithTax) * 100);
+                        const advisedWithTax = advised * taxMultiplier;
+                        const comparePrice = isB2B ? sale : (sale ? sale * taxMultiplier : 0);
+                        discountPercent = Math.round(((advisedWithTax - comparePrice) / advisedWithTax) * 100);
                       }
                       
                       return (
                         <div className="flex items-center gap-1.5 lg:gap-4">
-                          {sale !== null && sale !== undefined ? (
+                          {finalPrice !== null && finalPrice !== undefined ? (
                             <>
                               <div className="flex items-baseline gap-1.5">
                               <span className="text-xl md:text-2xl lg:text-3xl font-bold text-[#0066FF]">
                                 {currency}
-                                {sale.toFixed(2).replace('.', ',')}
+                                {finalPrice.toFixed(2).replace('.', ',')}
                               </span>
-                                  {/* <span className="text-base lg:text-lg font-medium text-[#3D4752]">
-                                   per: Stuk
-                                  </span> */}
+                                <span className="text-xs font-normal text-[#3D4752]">
+                                    {taxLabel}
+                                </span>
                                 {packingType && (
                                   <span className="text-base lg:text-lg font-medium text-[#3D4752] lg:ml-3">
                                    per: {packingType}
@@ -956,20 +986,33 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                         <div className='w-5/12 lg:w-3/12 flex justify-center items-center'>
                         <p className="text-2xl lg:text-3xl font-bold text-[#1C2530]">
                           {(() => {
-                            const getMeta = (key: string) =>
-                              product?.meta_data?.find((m: any) => m.key === key)?.value;
-                            const advisedRaw = getMeta("crucial_data_unit_price");
-                            const saleRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
+                            const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
                             const currency = product.currency_symbol || "€";
-                            const advised =
-                              advisedRaw && !isNaN(parseFloat(advisedRaw))
-                                ? parseFloat(advisedRaw)
-                                : null;
-                            const sale =
-                              saleRaw && !isNaN(parseFloat(saleRaw))
-                                ? parseFloat(saleRaw)
-                                : null;
-                            let basePrice = sale ?? advised ?? 0;
+                            
+                            // Dynamic Price Logic (duped for now)
+                            const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
+                            const b2bKey = "crucial_data_b2b_and_b2c_sales_price_b2b";
+                            const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
+                            
+                            let sale = product.price ? parseFloat(product.price) : null;
+                            const targetKey = isB2B ? b2bKey : b2cKey;
+                            const acfPriceRaw = getMeta(targetKey);
+                            if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
+                                sale = parseFloat(acfPriceRaw);
+                            } else if (isB2B) {
+                                // Fallback
+                                const b2cFallback = getMeta(b2cKey);
+                                if (b2cFallback && !isNaN(parseFloat(b2cFallback))) sale = parseFloat(b2cFallback);
+                            }
+
+                            const advisedRaw = getMeta("crucial_data_unit_price");
+                            const advised = advisedRaw && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
+                            
+                            // Tax Logic
+                            const taxMultiplier = 1 + (taxRate / 100);
+                            const finalPrice = isB2B ? sale : (sale ? sale * taxMultiplier : 0);
+                            
+                            let basePrice = finalPrice ?? advised ?? 0;
 
                             // Apply volume discount if selected
                             if (selectedDiscount !== null) {
@@ -981,9 +1024,12 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
 
                             const totalPrice = basePrice * quantity;
 
-                            return `${currency}${totalPrice.toFixed(2)}`;
+                            return isLoading ? "..." : `${currency}${totalPrice.toFixed(2)}`;
                           })()}
                         </p>
+                        <span className="text-xs text-gray-500 font-normal ml-2">
+                             {userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator")) ? "(excl. BTW)" : "(incl. BTW)"}
+                        </span>
                         </div>
 
                         <div className="flex border border-[#EDEDED] shadow-xs rounded-sm overflow-hidden bg-white w-auto lg:w-3/12">
@@ -1043,13 +1089,31 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                                       id: product.id,
                                       name: product.name,
                                       price: (() => {
-                                        const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
-                                        const saleRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
-                                        const sale = saleRaw && !isNaN(parseFloat(saleRaw)) ? parseFloat(saleRaw) : 0;
-                                        // Direct price from standard WooCommerce field
-                                        const priceWithTax = product.price ? parseFloat(product.price) : 0;
+                                      const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
                                         
-                                        let basePrice = priceWithTax;
+                                        // Dynamic Price Logic
+                                        const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
+                                        const b2bKey = "crucial_data_b2b_and_b2c_sales_price_b2b";
+                                        const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
+                                        
+                                        let sale = product.price ? parseFloat(product.price) : 0;
+                                        const targetKey = isB2B ? b2bKey : b2cKey;
+                                        const acfPriceRaw = getMeta(targetKey);
+                                        if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
+                                            sale = parseFloat(acfPriceRaw);
+                                        } else if (isB2B) {
+                                            const b2cFallback = getMeta(b2cKey);
+                                            if (b2cFallback && !isNaN(parseFloat(b2cFallback))) sale = parseFloat(b2cFallback);
+                                        }
+
+                                        // Tax Logic
+                                        const taxMultiplier = 1 + (taxRate / 100);
+                                        const finalPrice = isB2B ? sale : (sale * taxMultiplier);
+
+                                        // CART: Always store Ex-VAT price
+                                        const priceForCart = sale;
+                                        
+                                        let basePrice = priceForCart;
                                         if (selectedDiscount !== null) {
                                           const pct = discounts[selectedDiscount]?.percentage ?? 0;
                                           if (pct > 0) {
@@ -1711,7 +1775,7 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                             className="flex-shrink-0 w-[320px] snap-start"
                             style={{ scrollSnapAlign: "start" }}
                           >
-                            <ProductCard product={mp} />
+                            <ProductCard product={mp} userRole={userRole} />
                           </div>
                         ))}
                       </div>
@@ -2070,18 +2134,36 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                         {(() => {
                           const getMeta = (key: string) =>
                             product?.meta_data?.find((m: any) => m.key === key)?.value;
+                            
+                          // Dynamic Price Logic
+                          const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
+                          const b2bKey = "crucial_data_b2b_and_b2c_sales_price_b2b";
+                          const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
+                          
+                          let sale = product.price ? parseFloat(product.price) : null;
+                          const targetKey = isB2B ? b2bKey : b2cKey;
+                          
+                          const acfPriceRaw = getMeta(targetKey);
+                          if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
+                              sale = parseFloat(acfPriceRaw);
+                          } else if (isB2B) {
+                              const b2cFallback = getMeta(b2cKey);
+                              if (b2cFallback && !isNaN(parseFloat(b2cFallback))) sale = parseFloat(b2cFallback);
+                          }
+
                           const advisedRaw = getMeta("crucial_data_unit_price");
-                          const saleRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
-                          const currency = product.currency_symbol || "€";
                           const advised =
                             advisedRaw && !isNaN(parseFloat(advisedRaw))
                               ? parseFloat(advisedRaw)
                               : null;
-                          const sale =
-                            saleRaw && !isNaN(parseFloat(saleRaw))
-                              ? parseFloat(saleRaw)
-                              : null;
-                          let basePrice = sale ?? advised ?? 0;
+                          
+                          // Tax Logic
+                          const taxMultiplier = 1 + (taxRate / 100);
+                          const finalPrice = isB2B ? sale : (sale ? sale * taxMultiplier : null);
+
+                          let basePrice = finalPrice ?? advised ?? 0;
+                          
+                          const currency = product.currency_symbol || "€";
 
                           // Apply volume discount if selected
                           if (selectedDiscount !== null) {
@@ -2092,8 +2174,13 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                           }
 
                           const totalPrice = basePrice * quantity;
+                          const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
 
-                          return `${currency}${totalPrice.toFixed(2)}`;
+                          return isLoading ? "..." : (
+                             <>
+                                {currency}{totalPrice.toFixed(2)} <span className="text-xs font-normal">{taxLabel}</span>
+                             </>
+                          );
                         })()}
                       </p>
                     </div>

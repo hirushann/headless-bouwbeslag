@@ -6,6 +6,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import { Toaster } from "react-hot-toast";
 import { getShippingSettings } from "@/lib/woocommerce";
+import { UserProvider } from "@/context/UserContext"; // Import UserProvider
 
 const dmsans = DM_Sans({
   variable: "--font-dm-sans",
@@ -34,9 +35,10 @@ export default async function RootLayout({
     <html lang="en" data-theme="light">
       <body className={`${dmsans.variable} font-sans antialiased`} >
         <Toaster position="top-right" />
-        <Header shippingSettings={shippingSettings} />
-
-        {children}
+        <UserProvider>
+          <Header shippingSettings={shippingSettings} />
+          {children}
+        </UserProvider>
 
         <footer className="font-sans">
           <div className="lg:w-full bg-[#0066FF] overflow-scroll lg:overflow-hidden px-5 lg:px-0">
