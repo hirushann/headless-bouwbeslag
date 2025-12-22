@@ -1686,7 +1686,11 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                                       <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
                                   </summary>
                                   <div className="px-6 pb-4 text-gray-700 space-y-4">
-                                      <img src={technicalDrawingUrl} alt="Technical drawing" className="w-full h-auto rounded-md" />
+                                      <iframe 
+                                          src={`/api/proxy?url=${encodeURIComponent(technicalDrawingUrl || "")}`}
+                                          className="w-full h-[500px] rounded-md border-0"
+                                          title="Technische documentatie"
+                                      />
                                   </div>
                               </details>
                           </div>
