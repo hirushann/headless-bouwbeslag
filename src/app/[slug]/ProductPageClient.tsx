@@ -472,6 +472,72 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
     }
   }, [product]);
 
+  // --- Helper to fetch and set related products by meta key prefix ---
+  const fetchRelatedGroup = React.useCallback(async (prefix: string, setter: React.Dispatch<React.SetStateAction<any[]>>, limit: number = 8) => {
+    if (!product || !Array.isArray(product.meta_data)) return;
+
+    const skus: string[] = [];
+    for (let i = 1; i <= limit; i++) {
+        // Try exact match first
+        const val = product.meta_data.find((m: any) => m.key === `${prefix}${i}`)?.value;
+        if (val && typeof val === 'string' && val.trim() !== '') {
+            skus.push(val.trim());
+        }
+    }
+
+    if (skus.length === 0) {
+        setter([]);
+        return;
+    }
+
+    // console.log(`🔍 Fetching related group for prefix "${prefix}": found SKUs`, skus);
+
+    try {
+        const results = await Promise.all(
+            skus.map(async (sku) => {
+                try {
+                    const res = await api.get("products", { sku });
+                    return Array.isArray(res.data) && res.data[0] ? res.data[0] : null;
+                } catch (e) {
+                    // console.error(`Failed to fetch related product for ${prefix} (sku: ${sku})`, e);
+                    return null;
+                }
+            })
+        );
+        setter(results.filter((item) => item !== null));
+    } catch (err) {
+        console.error(`Error in fetchRelatedGroup for ${prefix}`, err);
+    }
+  }, [product]);
+
+  // --- Fetch Related Accessories & Parts ---
+  useEffect(() => {
+     // 1. Matching Accessories -> matchingProducts
+     // Key found: related_matching_product_1
+     fetchRelatedGroup('related_matching_product_', setMatchingProducts);
+
+     // 2. Matching Knob Roses -> matchingKnobroseKeys
+     // Key found: related_matching_knobrose_1
+     fetchRelatedGroup('related_matching_knobrose_', setMatchingKnobRoseProducts);
+
+     // 3. Matching Key Roses -> matchingRoseKeys
+     // Key found: related_matching_keyrose_1
+     fetchRelatedGroup('related_matching_keyrose_', setMatchingRoseKeys);
+
+     // 4. Matching PC Roses -> pcroseKeys
+     // Key found: related_matching_pcrose_1
+     fetchRelatedGroup('related_matching_pcrose_', setPcRoseKeys);
+
+     // 5. Matching Blind Toilet Roses -> blindtoiletroseKeys
+     // Key found: related_matching_toiletrose_1
+     fetchRelatedGroup('related_matching_toiletrose_', setblindtoiletroseKeys);
+
+     // 6. Must Have Products -> musthaveprodKeys
+     // Key found: related_must_have_product_1
+     fetchRelatedGroup('related_must_have_product_', setMusthaveprodKeys);
+
+  }, [fetchRelatedGroup]);
+
   const scrollToSection = (id: string) => {
   const el = document.getElementById(id);
   if (el) {
@@ -565,6 +631,18 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
       fetchMedia(careMeta.value).then(media =>
         setCareInstructions(media?.source_url || null)
       );
+    }
+
+    const techDrawMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_technical_drawing");
+    // console.log("🔍 DEBUG: Tech Drawing Meta:", techDrawMeta);
+    if (techDrawMeta?.value) {
+      // console.log("🔍 DEBUG: Fetching Tech Drawing for ID:", techDrawMeta.value);
+      fetchMedia(techDrawMeta.value).then(media => {
+        // console.log("🔍 DEBUG: Tech Drawing Media Result for ID " + techDrawMeta.value + ":", media);
+        setTechnicalDrawingUrl(media?.source_url || null);
+      });
+    } else {
+        // console.log("❌ DEBUG: No assets_technical_drawing meta key found in product:", product?.name);
     }
   }, [product]);
 

@@ -2,7 +2,7 @@ const WP_API_URL = process.env.NEXT_PUBLIC_WORDPRESS_API_URL as string;
 const CK = process.env.NEXT_PUBLIC_WC_CONSUMER_KEY as string;
 const CS = process.env.NEXT_PUBLIC_WC_CONSUMER_SECRET as string;
 
-class WooCommerceClient {
+export class WooCommerceClient {
   private url: string;
   private consumerKey: string;
   private consumerSecret: string;

@@ -137,6 +137,51 @@ function SearchContent() {
     loadProducts();
   }, [query, selectedFilters, attributes, sortBy]);
 
+  // ------------------------------------------------------------------
+  // DYNAMIC FILTER LOGIC
+  // ------------------------------------------------------------------
+  const relevantAttributes = React.useMemo(() => {
+    if (!products || products.length === 0) return [];
+
+    // 1. Collect all "Option Names" present for each Attribute ID
+    const presentOptions = new Map<number, Set<string>>();
+
+    products.forEach((p) => {
+      if (!Array.isArray(p.attributes)) return;
+      p.attributes.forEach((pAttr: any) => {
+        if (!presentOptions.has(pAttr.id)) {
+          presentOptions.set(pAttr.id, new Set());
+        }
+        const set = presentOptions.get(pAttr.id)!;
+        pAttr.options.forEach((opt: string) => set.add(opt));
+      });
+    });
+
+    // 2. Filter the Global Attributes list
+    return attributes
+      .map((attr) => {
+        const presentSet = presentOptions.get(attr.id);
+        if (!presentSet) return null; 
+
+        // Normalize for comparison
+        const validTerms = attr.terms.filter((term: AttributeTerm) => {
+             // Case-insensitive check and trim
+            return Array.from(presentSet).some(pOpt => pOpt.trim().toLowerCase() === term.name.trim().toLowerCase());
+        });
+
+        if (validTerms.length === 0) return null;
+
+        return {
+          ...attr,
+          terms: validTerms,
+        };
+      })
+      .filter(Boolean) as Attribute[];
+  }, [products, attributes]);
+
+  const colorAttribute = relevantAttributes.find(attr => attr.name.toLowerCase() === "color");
+  const otherAttributes = relevantAttributes.filter(attr => attr.name.toLowerCase() !== "color");
+
   if (filtersLoading) {
     return (
       <div className="bg-[#F7F7F7]">
@@ -170,8 +215,7 @@ function SearchContent() {
     );
   }
 
-  const colorAttribute = attributes.find(attr => attr.name.toLowerCase() === "color");
-  const otherAttributes = attributes.filter(attr => attr.name.toLowerCase() !== "color");
+
 
   return (
     <div className="bg-[#F7F7F7]">

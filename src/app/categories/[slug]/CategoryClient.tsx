@@ -161,17 +161,23 @@ export default function CategoryClient({
       });
     });
 
-    // 2. Filter the Global Attributes list
-    return attributes
+      return attributes
       .map((attr) => {
         const presentSet = presentOptions.get(attr.id);
+        
+        // DEBUG: Log if we are checking an attribute
+        // console.log(`Checking Attr ${attr.name} (${attr.id}). Present Options:`, presentSet ? Array.from(presentSet) : "None");
+
         if (!presentSet) return null; // Attribute ID not found in any product
 
         // Filter terms: keep term only if its NAME is in the presentSet
         // (WooCommerce API matches terms by Name in the product.attributes.options array)
-        const validTerms = attr.terms.filter((term: AttributeTerm) =>
-          presentSet.has(term.name)
-        );
+        // Normalize for comparison
+        const validTerms = attr.terms.filter((term: AttributeTerm) => {
+            // Case-insensitive check and trim
+            const match = Array.from(presentSet).some(pOpt => pOpt.trim().toLowerCase() === term.name.trim().toLowerCase());
+            return match;
+        });
 
         if (validTerms.length === 0) return null;
 
@@ -277,6 +283,12 @@ export default function CategoryClient({
                       </div>
                     </div>
                   ))}
+                  {/* Debug Info */}
+                  <div className="mb-4 p-2 bg-yellow-100 text-xs text-black border border-yellow-300">
+                    <p>Raw Prods: {rawProducts?.length || 0}</p>
+                    <p>Global Attrs: {attributes?.length || 0}</p>
+                    <p>Relevant Attrs: {relevantAttributes?.length || 0}</p>
+                  </div>
                   <button onClick={() => setSelectedFilters({})} className="text-sm text-red-500 hover:underline mb-4">Filters wissen</button>
                 </>
               )}
