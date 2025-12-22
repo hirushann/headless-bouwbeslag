@@ -291,27 +291,29 @@ export default function Header({
                 </div>
               </a>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <span className="text-white font-normal text-sm">
-                  Deurklink
-                </span>
+                <Link href="/deurklink">
+                  <span className="text-white font-normal text-sm">Deurklink</span>
+                </Link>
               </div>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <span className="text-white font-normal text-sm">
-                  Cilinder
-                </span>
+                <Link href="/cilinders">
+                  <span className="text-white font-normal text-sm">Cilinder</span>
+                </Link>
               </div>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <span className="text-white font-normal text-sm">
-                  Tochtstrip
-                </span>
+                <Link href="/tochtstrip">
+                  <span className="text-white font-normal text-sm">Tochtstrip</span>
+                </Link>
               </div>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <span className="text-white font-normal text-sm">
-                  Deurstopper
-                </span>
+                <Link href="/deurstoppers">
+                  <span className="text-white font-normal text-sm">Deurstopper</span>
+                </Link>
               </div>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <span className="text-white font-normal text-sm">Deurbeslag</span>
+                <Link href="/deurbeslag">
+                  <span className="text-white font-normal text-sm">Deurbeslag</span>
+                </Link>
               </div>
             </div>
             <div className="flex justify-start items-center">

@@ -366,7 +366,7 @@ function SearchContent() {
                 <h1 className="text-base font-medium text-[#4F4F4F]">{products.length} results found</h1>
               </div>
               <div className='flex gap-3 items-center'>
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="select focus:outline-0 focus:ring-0 w-32 border border-[#808D9A] rounded-sm bg-[F7F7F7] h-8">
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="select focus:outline-0 focus:ring-0 w-32 border border-[#808D9A] rounded-sm bg-[F7F7F7] h-8 w-full">
                 <option disabled={true} value="">Sort by</option>
                 <option value="popularity">Popularity</option>
                 <option value="rating">Rating</option>

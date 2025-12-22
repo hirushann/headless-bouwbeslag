@@ -20,8 +20,6 @@ const item = {
   show: { opacity: 1, y: 0 }
 };
 
-
-
 type AttributeTerm = {
   id: number;
   name: string;
@@ -152,7 +150,6 @@ export default function CategoryClient({
     rawProducts.forEach((p) => {
       if (!Array.isArray(p.attributes)) return;
       p.attributes.forEach((pAttr: any) => {
-        // pAttr = { id: 1, name: "Color", options: ["Blue", "Red"] }
         if (!presentOptions.has(pAttr.id)) {
           presentOptions.set(pAttr.id, new Set());
         }
@@ -170,11 +167,9 @@ export default function CategoryClient({
 
         if (!presentSet) return null; // Attribute ID not found in any product
 
-        // Filter terms: keep term only if its NAME is in the presentSet
         // (WooCommerce API matches terms by Name in the product.attributes.options array)
         // Normalize for comparison
         const validTerms = attr.terms.filter((term: AttributeTerm) => {
-            // Case-insensitive check and trim
             const match = Array.from(presentSet).some(pOpt => pOpt.trim().toLowerCase() === term.name.trim().toLowerCase());
             return match;
         });
@@ -284,11 +279,11 @@ export default function CategoryClient({
                     </div>
                   ))}
                   {/* Debug Info */}
-                  <div className="mb-4 p-2 bg-yellow-100 text-xs text-black border border-yellow-300">
+                  {/* <div className="mb-4 p-2 bg-yellow-100 text-xs text-black border border-yellow-300">
                     <p>Raw Prods: {rawProducts?.length || 0}</p>
                     <p>Global Attrs: {attributes?.length || 0}</p>
                     <p>Relevant Attrs: {relevantAttributes?.length || 0}</p>
-                  </div>
+                  </div> */}
                   <button onClick={() => setSelectedFilters({})} className="text-sm text-red-500 hover:underline mb-4">Filters wissen</button>
                 </>
               )}
@@ -301,7 +296,7 @@ export default function CategoryClient({
             <div className="flex justify-between items-end mb-4">
               <p className="text-xl lg:text-3xl font-bold">{category?.name ?? "Category"}</p>
               <div className='flex gap-3 '>
-                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="select focus:outline-0 focus:ring-0 w-32 border border-[#808D9A] rounded-sm bg-[F7F7F7] h-8">
+                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="select focus:outline-0 focus:ring-0 w-32 border border-[#808D9A] rounded-sm bg-[F7F7F7] h-8 w-full">
                   <option disabled={true} value="">Sorteer op</option>
                   <option value="popularity">Populariteit</option>
                   <option value="rating">Beoordeling</option>
