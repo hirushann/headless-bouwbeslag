@@ -23,19 +23,21 @@ export default function CheckoutPage() {
     // Construct the WP checkout URL with auto-add params
     const url = `${baseUrl}/checkout/?add-to-cart=${ids}&quantity=${quantities}`;
     setCheckoutUrl(url);
+
+    // Redirect immediately
+    window.location.href = url;
   }, [items, router]);
 
-  if (!checkoutUrl) {
-    return (
+  return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
           <div className="loading loading-spinner loading-lg text-primary"></div>
-          <p className="mt-4 text-gray-600">Laden van checkout...</p>
+          <p className="mt-4 text-gray-600">Doorverwijzen naar checkout...</p>
         </div>
       </div>
-    );
-  }
+  );
 
+  /*
   return (
     <div className="w-full h-screen bg-white">
       <iframe
@@ -46,4 +48,5 @@ export default function CheckoutPage() {
       />
     </div>
   );
+  */
 }
