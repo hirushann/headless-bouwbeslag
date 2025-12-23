@@ -984,8 +984,8 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                                     {taxLabel}
                                 </span>
                                 {packingType && (
-                                  <span className="text-base lg:text-lg font-medium text-[#3D4752] lg:ml-3">
-                                   per: {packingType}
+                                  <span className="text-md font-normal text-[#3D4752]">
+                                   per {packingType}
                                   </span>
                                 )}
                               </div>
