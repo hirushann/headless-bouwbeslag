@@ -70,11 +70,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
         // 3. If still no role, fetch from API
         if (!role) {
-          const WP_API_URL =
-            process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "https://app.bouwbeslag.nl";
           try {
             const res = await axios.get(
-              `${WP_API_URL}/wp-json/wp/v2/users/me?context=edit`,
+              `/api/user/me`,
               {
                 headers: { Authorization: `Bearer ${token}` },
               }
