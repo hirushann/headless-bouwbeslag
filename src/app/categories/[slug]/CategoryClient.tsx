@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import api from "@/lib/woocommerce";
 import ShopProductCard from "@/components/ShopProductCard";
+import Link from "next/link";
 import { motion } from "framer-motion";
 
 const container = {
@@ -35,12 +36,14 @@ type CategoryClientProps = {
   category: any;
   subCategories: any[];
   attributes: any[];
+  currentSlug: string[];
 };
 
 export default function CategoryClient({
   category,
   subCategories,
   attributes,
+  currentSlug,
 }: CategoryClientProps) {
   const [products, setProducts] = useState<any[]>([]);
   const [rawProducts, setRawProducts] = useState<any[]>([]);
@@ -49,7 +52,7 @@ export default function CategoryClient({
   const [filtersLoading, setFiltersLoading] = useState<boolean>(false);
   const [showAllColors, setShowAllColors] = useState(false);
   const [sortBy, setSortBy] = useState<string>("");
-  const [activeSubCategories, setActiveSubCategories] = useState<Set<number>>(new Set());
+  // const [activeSubCategories, setActiveSubCategories] = useState<Set<number>>(new Set()); // nested url change
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
@@ -65,11 +68,9 @@ export default function CategoryClient({
       try {
         let params: any = { per_page: 20 };
 
-        if (activeSubCategories.size > 0) {
-          params.category = Array.from(activeSubCategories).join(",");
-        } else {
-          params.category = category.id;
-        }
+        // For nested URLs, we always just valid the current category's ID
+        // The subcategory logic is now handled by navigating to a new URL
+        params.category = category.id;
 
         if (sortBy) {
           if (sortBy === "price-low-high") {
@@ -110,7 +111,7 @@ export default function CategoryClient({
     }
 
     loadProducts();
-  }, [category, selectedFilters, sortBy, activeSubCategories]);
+  }, [category, selectedFilters, sortBy]);
 
   const toggleFilter = (attrId: number, termId: number) => {
     setSelectedFilters(prev => {
@@ -320,30 +321,21 @@ export default function CategoryClient({
 
             {/* Subcategories */}
             <div className='flex gap-4 pb-4 flex-wrap'>
-              {subCategories.map((sub) => (
-                <button
-                  key={sub.id}
-                  className={`px-3.5 py-1.5 rounded-sm text-sm font-medium border border-[#D0DFEE] bg-[#F2F7FF] text-[#4F4F4F] cursor-pointer ${
-                    activeSubCategories.has(sub.id)
-                      ? 'bg-[#F2F7FF] text-[#0066FF] border-[#0066FF]'
-                      : 'bg-white text-gray-700 border-gray-300'
-                  }`}
-                  onClick={() => {
-                    setActiveSubCategories((prev) => {
-                      const newSet = new Set(prev);
-                      if (newSet.has(sub.id)) {
-                        newSet.delete(sub.id);
-                      } else {
-                        newSet.clear(); // Only allow one active subcategory at a time
-                        newSet.add(sub.id);
-                      }
-                      return newSet;
-                    });
-                  }}
-                >
-                  {sub.name}
-                </button>
-              ))}
+              {subCategories.map((sub) => {
+                const parentPath = currentSlug.join("/");
+                // Ensure no double slashes if something is weird, though join should be fine
+                const href = `/${parentPath}/${sub.slug}`;
+                
+                return (
+                  <Link
+                    key={sub.id}
+                    href={href}
+                    className="px-3.5 py-1.5 rounded-sm text-sm font-medium border border-[#D0DFEE] bg-[#F2F7FF] text-[#4F4F4F] cursor-pointer hover:bg-blue-50 transition-colors"
+                  >
+                    {sub.name}
+                  </Link>
+                );
+              })}
             </div>
 
             {/* Products Grid */}
@@ -378,8 +370,8 @@ export default function CategoryClient({
               />
             )}
 
-            {/* Show subcategory description below if selected */}
-            {Array.from(activeSubCategories).length === 1 && (() => {
+            {/* Show subcategory description below if selected - REMOVED since we navigate now */}
+            {/* {Array.from(activeSubCategories).length === 1 && (() => {
               const selectedSub = subCategories.find(
                 (s) => s.id === Array.from(activeSubCategories)[0]
               );
@@ -391,7 +383,7 @@ export default function CategoryClient({
                   />
                 )
               );
-            })()}
+            })()} */}
           </main>
         </div>
       </div>

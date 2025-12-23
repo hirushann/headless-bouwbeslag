@@ -25,7 +25,7 @@ const formatSpecValue = (value: string | number | null | undefined): string => {
   return strVal;
 };
 
-export default function ProductPageClient({ product, taxRate = 21 }: { product: any; taxRate?: number }) {
+export default function ProductPageClient({ product, taxRate = 21, slug }: { product: any; taxRate?: number; slug?: string[] }) {
   // 🔍 DEBUG: log full product data coming into this page
   useEffect(() => {
     console.log("🟦 ProductPageClient → product data:", product);
@@ -809,17 +809,27 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                   (a: any, b: any) => (a.parent || 0) - (b.parent || 0)
                 );
 
-                return sorted.slice(0, 2).map((cat: any, idx: number) => (
-                  <React.Fragment key={cat.id}>
-                    <span>/</span>
-                    <Link
-                      href={`/${cat.slug}`}
-                      className="hover:underline text-black"
-                    >
-                      {cat.name}
-                    </Link>
-                  </React.Fragment>
-                ));
+                return sorted.slice(0, 2).map((cat: any, idx: number) => {
+                  // Construct nested path using the sorted array up to the current index
+                  // e.g. Parent -> /parent-slug
+                  //      Child  -> /parent-slug/child-slug
+                  const nestedPath = sorted
+                    .slice(0, idx + 1)
+                    .map((c: any) => c.slug)
+                    .join("/");
+
+                  return (
+                    <React.Fragment key={cat.id}>
+                      <span>/</span>
+                      <Link
+                        href={`/${nestedPath}`}
+                        className="hover:underline text-black"
+                      >
+                        {cat.name}
+                      </Link>
+                    </React.Fragment>
+                  );
+                });
               })()}
             </motion.div>
             <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">

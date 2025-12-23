@@ -14,9 +14,20 @@ interface CategoriesSidebarProps {
   categories: Category[];
 }
 
-const CategoryItem = ({ category, allCategories }: { category: Category; allCategories: Category[] }) => {
+const CategoryItem = ({ category, allCategories, parentPath = "" }: { category: Category; allCategories: Category[]; parentPath?: string }) => {
   const children = allCategories.filter((c) => c.parent === category.id);
   const hasChildren = children.length > 0;
+
+  // Construct full path for this category
+  // If parentPath exists, append current slug. Otherwise starting slug.
+  // Note: parentPath is expected to start with "/" if it exists, or handle it here.
+  // Strategy: Ensure parentPath always starts with "/" if distinct, or build cleanly.
+  
+  // Actually, easiest is:
+  // Top level: parentPath is empty. href = `/${category.slug}`.
+  // Recursive: parentPath passed is `/${category.slug}`.
+  
+  const href = parentPath ? `${parentPath}/${category.slug}` : `/${category.slug}`;
 
   if (hasChildren) {
     return (
@@ -24,7 +35,7 @@ const CategoryItem = ({ category, allCategories }: { category: Category; allCate
         <input type="checkbox" className="min-h-0 py-0" />
         <div className="collapse-title font-normal text-sm text-[#3D4752] py-3 min-h-0 flex items-center pr-4">
             <Link 
-              href={`/${category.slug}`} 
+              href={href} 
               className="hover:text-[#0066FF] hover:underline z-10 relative"
               onClick={(e) => e.stopPropagation()} 
             >
@@ -34,7 +45,7 @@ const CategoryItem = ({ category, allCategories }: { category: Category; allCate
         <div className="collapse-content text-sm pl-4 !pb-0">
           <div className="border-l border-gray-200 pl-2">
             {children.map((child) => (
-              <CategoryItem key={child.id} category={child} allCategories={allCategories} />
+              <CategoryItem key={child.id} category={child} allCategories={allCategories} parentPath={href} />
             ))}
           </div>
         </div>
@@ -44,7 +55,7 @@ const CategoryItem = ({ category, allCategories }: { category: Category; allCate
 
   return (
     <Link
-      href={`/${category.slug}`}
+      href={href}
       className="block font-normal text-sm text-[#3D4752] py-3 px-4 hover:text-[#0066FF]"
     >
       {category.name}

@@ -38,7 +38,34 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return allItems;
   };
 
-  // 1. Fetch All Products
+  // 1. Fetch All Categories First (needed for products lookup)
+  const allCategories = await fetchAll("products/categories", { hide_empty: true });
+
+  // Build category map for parent lookup
+  const catMap = new Map();
+  allCategories.forEach((cat: any) => catMap.set(cat.id, cat));
+
+  // Helper to resolve full path
+  const getCategoryPath = (catId: number): string => {
+    let path = "";
+    let currentId = catId;
+    const visited = new Set(); // Prevent infinite loops
+
+    while (currentId !== 0 && catMap.has(currentId) && !visited.has(currentId)) {
+      visited.add(currentId);
+      const cat = catMap.get(currentId);
+      path = path ? `${cat.slug}/${path}` : cat.slug;
+      currentId = cat.parent;
+    }
+    return path;
+  };
+
+  const categories = allCategories.map((cat: any) => ({
+    url: `${baseUrl}/${getCategoryPath(cat.id)}`,
+    lastModified: new Date(),
+  }));
+
+  // 2. Fetch All Products
   const allProducts = await fetchAll("products", { status: "publish" });
 
   const products = allProducts.map((product: any) => {
@@ -47,21 +74,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       meta.find((m: any) => m.key === "description_slug")?.value ||
       product.slug;
 
+    // const finalSlug = nestedPath ? `${nestedPath}/${acfSlug}` : acfSlug;
+    const finalSlug = acfSlug;
+
     return {
-      url: `${baseUrl}/${acfSlug}`,
+      url: `${baseUrl}/${finalSlug}`,
       lastModified: product.date_modified
         ? new Date(product.date_modified)
         : new Date(),
     };
   });
-
-  // 2. Fetch All Categories
-  const allCategories = await fetchAll("products/categories", { hide_empty: true });
-
-  const categories = allCategories.map((cat: any) => ({
-    url: `${baseUrl}/${cat.slug}`,
-    lastModified: new Date(),
-  }));
 
   return [...staticPages, ...categories, ...products];
 }

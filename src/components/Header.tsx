@@ -229,16 +229,16 @@ export default function Header({
                     <a href="/categories">Categorieën</a>  
                   </li>
                   <li>
-                    <a href="#">Deurklink</a>  
+                    <a href="/deurbeslag/deurklink">Deurklink</a>  
                   </li>
                   <li>
-                    <a href="#">Cilinder</a>  
+                    <a href="/deurbeslag/cilinders">Cilinder</a>  
                   </li>
                   <li>
-                    <a href="#">Tochtstrip</a>  
+                    <a href="/deurbeslag/tochtstrip">Tochtstrip</a>  
                   </li>
                   <li>
-                    <a href="#">Deurstopper</a>  
+                    <a href="/deurbeslag/deurstoppers">Deurstopper</a>  
                   </li>
                 </ul>
               </div>
@@ -275,22 +275,22 @@ export default function Header({
                 </div>
               </a>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <Link href="/deurklink">
+                <Link href="/deurbeslag/deurklink">
                   <span className="text-white font-normal text-sm">Deurklink</span>
                 </Link>
               </div>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <Link href="/cilinders">
+                <Link href="/deurbeslag/cilinders">
                   <span className="text-white font-normal text-sm">Cilinder</span>
                 </Link>
               </div>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <Link href="/tochtstrip">
+                <Link href="/deurbeslag/tochtstrip">
                   <span className="text-white font-normal text-sm">Tochtstrip</span>
                 </Link>
               </div>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <Link href="/deurstoppers">
+                <Link href="/deurbeslag/deurstoppers">
                   <span className="text-white font-normal text-sm">Deurstopper</span>
                 </Link>
               </div>

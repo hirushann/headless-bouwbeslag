@@ -275,7 +275,7 @@ export default async function Page({ params }: PageProps) {
             }}
           />
         )}
-        <ProductPageClient product={product} taxRate={taxRate} />
+        <ProductPageClient product={product} taxRate={taxRate} slug={slug} />
       </>
     );
   }
@@ -295,6 +295,7 @@ export default async function Page({ params }: PageProps) {
         category={category}
         attributes={attributes}
         subCategories={subCategories}
+        currentSlug={slug}
       />
     );
   }
