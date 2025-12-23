@@ -130,6 +130,7 @@ export default async function CategoryPage({ params }: Params) {
       category={category}
       attributes={attributes}
       subCategories={subCategories}
+      currentSlug={[slug]}
     />
   );
 }
