@@ -150,7 +150,7 @@ export default function Header({
             >
               <div className="w-full rounded-[5px]">
                 <label className="input validator w-full border-0 rounded-[5px] bg-white">
-                  <input className="bg-white" type="text" placeholder="Search something..." value={query} onChange={(e) => setQuery(e.target.value)} />
+                  <input className="bg-white" type="text" placeholder="Zoek iets..." value={query} onChange={(e) => setQuery(e.target.value)} />
                 </label>
               </div>
               <button type="submit" className="btn bg-[#2332C51A] rounded-[4px] border-0 shadow-none">
