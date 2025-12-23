@@ -5,7 +5,7 @@ const CS = process.env.NEXT_PUBLIC_WC_CONSUMER_SECRET as string;
 const WP_API_URL = process.env.NEXT_PUBLIC_WORDPRESS_API_URL as string;
 
 // Initialize the client for WP V2 endpoints
-const wpApi = new WooCommerceClient({
+export const wpApi = new WooCommerceClient({
   url: WP_API_URL,
   consumerKey: CK,
   consumerSecret: CS,

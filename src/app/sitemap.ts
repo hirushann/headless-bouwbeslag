@@ -1,4 +1,5 @@
 import api from "@/lib/woocommerce";
+import { wpApi } from "@/lib/wordpress";
 import { MetadataRoute } from "next";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -7,16 +8,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages = [
     { url: `${baseUrl}/`, lastModified: new Date() },
     { url: `${baseUrl}/products`, lastModified: new Date() },
+    { url: `${baseUrl}/contact`, lastModified: new Date() },
+    { url: `${baseUrl}/garantie-aanvraag`, lastModified: new Date() },
+    { url: `${baseUrl}/hulp`, lastModified: new Date() },
+    { url: `${baseUrl}/kennisbank`, lastModified: new Date() },
+    { url: `${baseUrl}/laagste-prijs-garantie`, lastModified: new Date() },
+    { url: `${baseUrl}/privacy-policy`, lastModified: new Date() },
+    { url: `${baseUrl}/return-policy`, lastModified: new Date() },
+    { url: `${baseUrl}/terms-and-conditions`, lastModified: new Date() },
+    { url: `${baseUrl}/zakelijk-aanmelden`, lastModified: new Date() },
   ];
 
   // Helper to fetch ALL items with pagination
-  const fetchAll = async (endpoint: string, extraParams = {}) => {
+  // Updated to accept optional client, defaults to WC api
+  const fetchAll = async (endpoint: string, extraParams = {}, client: any = api) => {
     let page = 1;
     let allItems: any[] = [];
 
     while (true) {
       try {
-        const res = await api.get(endpoint, {
+        const res = await client.get(endpoint, {
           per_page: 100,
           page: page,
           ...extraParams
@@ -85,5 +96,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     };
   });
 
-  return [...staticPages, ...categories, ...products];
+  // 3. Fetch All Blog Posts
+  const allPosts = await fetchAll("posts", { status: "publish" }, wpApi);
+
+  const posts = allPosts.map((post: any) => ({
+    url: `${baseUrl}/kennisbank/${post.slug}`,
+    lastModified: post.modified ? new Date(post.modified) : new Date(),
+  }));
+
+  return [...staticPages, ...categories, ...products, ...posts];
 }
