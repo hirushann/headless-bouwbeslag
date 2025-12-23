@@ -1693,7 +1693,7 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
                                       /> */}
                                       <img
                                           src={`/api/proxy?url=${encodeURIComponent(technicalDrawingUrl || "")}`}
-                                          className="w-full h-[500px] rounded-md border-0"
+                                          className="w-full h-[500px] object-contain rounded-md border-0"
                                           alt="Technische documentatie"
                                         />
                                   </div>
