@@ -1174,53 +1174,20 @@ export default function ProductPageClient({ product, taxRate = 21 }: { product: 
 
                     {/* Quantity Selector and Add to Cart */}
                     <div className="flex flex-wrap lg:flex-nowrap items-center gap-4 mt-4 justify-between">
-                        <div className='w-5/12 lg:w-3/12 flex justify-center items-center'>
-                        <p className="text-2xl lg:text-3xl font-bold text-[#1C2530]">
-                          {(() => {
-                            const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
-                            const currency = product.currency_symbol || "€";
-                            
-                            // Dynamic Price Logic (duped for now)
-                            const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
-                            const b2bKey = "crucial_data_b2b_and_b2c_sales_price_b2b";
-                            const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
-                            
-                            let sale = product.price ? parseFloat(product.price) : null;
-                            const targetKey = isB2B ? b2bKey : b2cKey;
-                            const acfPriceRaw = getMeta(targetKey);
-                            if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
-                                sale = parseFloat(acfPriceRaw);
-                            } else if (isB2B) {
-                                // Fallback
-                                const b2cFallback = getMeta(b2cKey);
-                                if (b2cFallback && !isNaN(parseFloat(b2cFallback))) sale = parseFloat(b2cFallback);
-                            }
-
-                            const advisedRaw = getMeta("crucial_data_unit_price");
-                            const advised = advisedRaw && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
-                            
-                            // Tax Logic
-                            const taxMultiplier = 1 + (taxRate / 100);
-                            const finalPrice = isB2B ? sale : (sale ? sale * taxMultiplier : 0);
-                            
-                            let basePrice = finalPrice ?? advised ?? 0;
-
-                            // Apply volume discount if selected
-                            if (selectedDiscount !== null) {
-                              const pct = discounts[selectedDiscount]?.percentage ?? 0;
-                              if (pct > 0) {
-                                basePrice = basePrice - (basePrice * pct) / 100;
-                              }
-                            }
-
-                            const totalPrice = basePrice * quantity;
-
-                            return isLoading ? "..." : `${currency}${totalPrice.toFixed(2)}`;
-                          })()}
-                        </p>
-                        <span className="text-xs text-gray-500 font-normal ml-2">
-                             {userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator")) ? "(excl. BTW)" : "(incl. BTW)"}
-                        </span>
+                        <div className='w-5/12 lg:w-4/12 flex flex-col justify-center items-center'>
+                            <div className='flex items-baseline'>
+                                <p className="text-2xl lg:text-3xl font-bold text-[#1C2530]">
+                                    {isLoading ? "..." : `${currency}${totalPrice.toFixed(2)}`}
+                                </p>
+                                <span className="text-xs text-gray-500 font-normal ml-2">
+                                    {userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator")) ? "(excl. BTW)" : "(incl. BTW)"}
+                                </span>
+                            </div>
+                            {selectedDiscount !== null && (
+                                <span className="text-xs text-gray-500 font-normal mt-1">
+                                    {currency}{displayBasePrice.toFixed(2)} per stuk
+                                </span>
+                            )}
                         </div>
 
                         <div className="flex border border-[#EDEDED] shadow-xs rounded-sm overflow-hidden bg-white w-auto lg:w-3/12">

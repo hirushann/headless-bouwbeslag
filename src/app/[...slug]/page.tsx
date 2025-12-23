@@ -7,7 +7,7 @@ import CategoryClient from "../categories/[slug]/CategoryClient";
  | Types
  ---------------------------------------------------- */
 type PageProps = {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ slug: string[] }>;
 };
 
 interface Category {
@@ -113,11 +113,13 @@ export async function generateMetadata(
   { params }: PageProps
 ): Promise<Metadata> {
   const { slug } = await params;
+  // Use the last segment of the slug array for lookup
+  const currentSlug = slug[slug.length - 1];
   
   // Parallel fetch for metadata optimization
   const [product, category] = await Promise.all([
-    getProductBySlug(slug),
-    getCategoryBySlug(slug)
+    getProductBySlug(currentSlug),
+    getCategoryBySlug(currentSlug)
   ]);
 
   // 1. Try Product first
@@ -154,8 +156,8 @@ export async function generateMetadata(
   // 2. Try Category next
   if (category) {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
-    // Using root URL for canonical since that's what we are implementing
-    const canonicalUrl = `${siteUrl}/${slug}`;
+    // Reconstruct canonical URL from the slug array
+    const canonicalUrl = `${siteUrl}/${slug.join('/')}`;
 
     const title = `${category.name} | Bouwbeslag`;
     const description =
@@ -248,12 +250,14 @@ function generateStructuredData(product: any, taxRate: number) {
  ---------------------------------------------------- */
 export default async function Page({ params }: PageProps) {
   const { slug } = await params;
+  // Use the last segment of the slug array for lookup
+  const currentSlug = slug[slug.length - 1];
   
   // 1. Check Product & Category in Parallel
   // This drastically reduces load time for category pages, as we don't wait for product fetch to fail.
   const [product, category] = await Promise.all([
-    getProductBySlug(slug),
-    getCategoryBySlug(slug)
+    getProductBySlug(currentSlug),
+    getCategoryBySlug(currentSlug)
   ]);
 
   if (product) {

@@ -80,21 +80,6 @@ export default function Header({
     return () => window.removeEventListener("storage", checkLogin);
   }, []);
 
-  const [isVisible, setIsVisible] = useState(true);
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollPos = window.pageYOffset;
-      setIsVisible(currentScrollPos > 50);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    handleScroll();
-
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []); 
-
-
-
   // STEP 2: Update click handler to use helper
   const handleCheckoutRedirect = () => {
     // Instead of building external URL, we just go to our local checkout page
@@ -104,8 +89,7 @@ export default function Header({
   };
 
   return (
-    <div className="bg-[#F7F7F7] w-full relative">
-      
+    <>
       <div className="shadow-[0px_4px_40px_0px_#00000012] bg-white w-full p-2">
         <div className="max-w-[1440px] mx-auto relative flex justify-between items-center w-full">
           <div className="flex justify-start items-center gap-3 w-3/4 font-sans text-sm">
@@ -133,7 +117,7 @@ export default function Header({
         </div>
       </div>
 
-      <div className={`transition-all duration-300 bg-[#F7F7F7] w-full ${isVisible ? 'fixed top-0 left-0 z-50' : ''}`}>
+      <div className="transition-all duration-300 bg-[#F7F7F7] w-full sticky top-0 z-50">
         <div className="max-w-[1440px] mx-auto flex justify-between items-center py-4 font-sans px-2 lg:px-0">
           <a href="/">
             <img className="w-56 lg:w-64" src="/logo.png" alt="" />
@@ -493,6 +477,6 @@ export default function Header({
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
