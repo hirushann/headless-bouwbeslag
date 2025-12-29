@@ -29,7 +29,29 @@ type AttributeTerm = {
 type Attribute = {
   id: number;
   name: string;
+  slug: string;
   terms: AttributeTerm[];
+};
+
+// Map Attribute Slugs (from Woo) to ACF Keys
+// Inspect your console logs to find the correct slugs and ACF keys
+const ATTRIBUTE_TO_ACF_MAP: Record<string, string> = {
+  // Mappings based on generated slugs from Dutch names
+  'nokmaat': 'camsize',
+  'kleur': 'colors',
+  'afwerking': 'finishes',
+  'handleidingstaal': 'languages',
+  'materiaal': 'materials',
+  'verpakkingstype': 'packing_types',
+  'schild-of-rozetuitvoering': 'rosette_type',
+  'vorm': 'shape',
+  'uitvoering': 'executions',
+  'soort-kwaliteit': 'type_of_quality', // "Type of Quality" or "Soort Kwaliteit"? Assuming generic translation
+  'binnen-buiten': 'site_addresses', // "Binnen / Buiten" -> site_addresses (based on user info)
+  
+  // Fallbacks if existing slugs somehow appear
+  'pa_cam_size': 'camsize',
+  'pa_color': 'colors',
 };
 
 type CategoryClientProps = {
@@ -85,9 +107,15 @@ export default function CategoryClient({
           }
         }
 
-        const res = await api.get("products", params);
-        setRawProducts(res.data);
-        let prods = res.data;
+        // Use local API proxy to avoid CORS
+        // Convert params object to query string
+        const queryString = new URLSearchParams(params as any).toString();
+        const res = await fetch(`/api/products?${queryString}`);
+        if (!res.ok) throw new Error('Failed to fetch products');
+        
+        const data = await res.json();
+        setRawProducts(data);
+        let prods = data;
 
         if (Object.keys(selectedFilters).length > 0) {
           prods = prods.filter((product: any) =>
@@ -106,6 +134,8 @@ export default function CategoryClient({
         }
 
         setProducts(prods);
+      } catch (err) {
+        console.error(err);
       } finally {
         setProductsLoading(false);
       }
@@ -142,6 +172,7 @@ export default function CategoryClient({
   // ------------------------------------------------------------------
   // DYNAMIC FILTER LOGIC
   // Only show attributes/terms that exist in the currently loaded `rawProducts`.
+  // AND match the ACF configuration from the category
   // ------------------------------------------------------------------
   const relevantAttributes = useMemo(() => {
     if (!rawProducts || rawProducts.length === 0) return [];
@@ -162,12 +193,55 @@ export default function CategoryClient({
 
       return attributes
       .map((attr) => {
-        const presentSet = presentOptions.get(attr.id);
-        
-        // DEBUG: Log if we are checking an attribute
-        // console.log(`Checking Attr ${attr.name} (${attr.id}). Present Options:`, presentSet ? Array.from(presentSet) : "None");
+        // ACF Filtering Logic
+        if (category && category.acf) {
+            // Determine the ACF key for this attribute
+            
+            // Client-side Polyfill for Slug if missing
+            let slug = attr.slug;
+            if (!slug && attr.name) {
+                 slug = attr.name.toLowerCase()
+                    .replace(/\s+\/\s+/g, '-') 
+                    .replace(/\s+/g, '-')      
+                    .replace(/[^\w\u00C0-\u00FF-]+/g, '')
+                    .replace(/-+/g, '-');
+                 console.log(`🔧 Client-side Polyfilled slug for "${attr.name}": "${slug}"`);
+            }
 
-        if (!presentSet) return null; // Attribute ID not found in any product
+            let acfKey = ATTRIBUTE_TO_ACF_MAP[slug];
+            
+            // Fallback: Try to derive it if not in map
+            if (!acfKey && slug) {
+                // e.g. pa_packing-types -> packing_types
+                acfKey = slug.replace(/^pa_/, '').replace(/-/g, '_');
+            } else if (!slug) {
+                 console.warn(`⚠️ Attribute has NO SLUG and NO NAME to generate from:`, attr);
+            }
+            
+            if (acfKey && category.acf) {
+                const isEnabled = category.acf[acfKey];
+
+                // Debug log to help user find the right mapping
+                console.log(`Attribute: ${attr.name} (${slug}) -> ACF Key: ${acfKey} -> Enabled: ${isEnabled} (Type: ${typeof isEnabled})`);
+
+                // Check for boolean false or string "false"
+                if (isEnabled === false || isEnabled === "false") {
+                     console.log(`❌ BLOCKED Attribute: ${attr.name}`);
+                     return null;
+                } else {
+                     console.log(`✅ ALLOWED Attribute: ${attr.name} (ACF check passed or indeterminate)`);
+                }
+            } else {
+                 console.log(`⚠️ NO ACF MAPPING/KEY for Attribute: ${attr.name} (${slug}). Defaulting to ALLOWED.`);
+            }
+        }
+
+        const presentSet = presentOptions.get(attr.id);
+
+        if (!presentSet) {
+             console.log(`⚠️ Attribute: ${attr.name} has no options present in products. BLOCKED.`);
+             return null; 
+        }
 
         // (WooCommerce API matches terms by Name in the product.attributes.options array)
         // Normalize for comparison
@@ -184,7 +258,9 @@ export default function CategoryClient({
         };
       })
       .filter(Boolean) as Attribute[];
-  }, [rawProducts, attributes]);
+  }, [rawProducts, attributes, category]);
+
+  console.log("🔥 FINAL RELEVANT ATTRIBUTES:", relevantAttributes.map(a => a.name));
 
   const colorAttribute = relevantAttributes.find(
     (attr) => attr.name.toLowerCase() === "color"
@@ -280,12 +356,6 @@ export default function CategoryClient({
                       </div>
                     </div>
                   ))}
-                  {/* Debug Info */}
-                  {/* <div className="mb-4 p-2 bg-yellow-100 text-xs text-black border border-yellow-300">
-                    <p>Raw Prods: {rawProducts?.length || 0}</p>
-                    <p>Global Attrs: {attributes?.length || 0}</p>
-                    <p>Relevant Attrs: {relevantAttributes?.length || 0}</p>
-                  </div> */}
                   <button onClick={() => setSelectedFilters({})} className="text-sm text-red-500 hover:underline mb-4">Filters wissen</button>
                 </>
               )}
@@ -343,7 +413,7 @@ export default function CategoryClient({
             {productsLoading && products.length === 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 lg:gap-6">
                 {[...Array(8)].map((_, i) => (
-                  <div key={i} className="h-64 bg-gray-200 rounded animate-pulse"></div>
+                  <div key={i} className="h-6 bg-gray-200 rounded animate-pulse"></div>
                 ))}
               </div>
             ) : products.length === 0 ? (
@@ -370,21 +440,6 @@ export default function CategoryClient({
                 dangerouslySetInnerHTML={{ __html: category.description }}
               />
             )}
-
-            {/* Show subcategory description below if selected - REMOVED since we navigate now */}
-            {/* {Array.from(activeSubCategories).length === 1 && (() => {
-              const selectedSub = subCategories.find(
-                (s) => s.id === Array.from(activeSubCategories)[0]
-              );
-              return (
-                selectedSub?.description && (
-                  <div
-                    className="mt-4 mb-8 prose prose-blue max-w-none leading-relaxed text-gray-800 category-description-style"
-                    dangerouslySetInnerHTML={{ __html: selectedSub.description }}
-                  />
-                )
-              );
-            })()} */}
           </main>
         </div>
       </div>

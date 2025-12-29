@@ -26,6 +26,7 @@ interface AttributeTerm {
 interface Attribute {
   id: number;
   name: string;
+  slug: string;
   terms: AttributeTerm[];
 }
 
@@ -57,13 +58,39 @@ async function fetchCategory(slug: string): Promise<Category | null> {
 async function fetchAttributes(): Promise<Attribute[]> {
   const res = await api.get("products/attributes");
   const attributesData = res.data || [];
+  
+  if (attributesData.length > 0) {
+      console.log('API Attributes Data Sample:', JSON.stringify(attributesData[0], null, 2));
+  }
+
   const attributesWithTerms: Attribute[] = [];
 
   for (const attr of attributesData) {
     const termsRes = await fetchTermsForAttribute(attr.id);
+    
+    // Polyfill slug from name if missing (API issue)
+    let slug = attr.slug;
+    
+    // Explicitly check for empty string or null/undefined
+    if (!slug || slug.trim() === "") {
+       if (attr.name) {
+           slug = attr.name.toLowerCase()
+                    .replace(/\s+\/\s+/g, '-') // Replace " / " with "-"
+                    .replace(/\s+/g, '-')      // Replace spaces with "-"
+                    .replace(/[^\w\u00C0-\u00FF-]+/g, '') // Remove non-word chars
+                    .replace(/-+/g, '-');      // Collapse dashes
+           
+           console.log(`🔹 Generated Slug for "${attr.name}": "${slug}"`);
+       } else {
+           slug = `attr-${attr.id}`; // Fallback if no name
+           console.log(`⚠️ No Name for attribute ID ${attr.id}, using fallback slug: ${slug}`);
+       }
+    }
+
     attributesWithTerms.push({
       id: attr.id,
       name: attr.name,
+      slug: slug || "", // Ensure string
       terms: termsRes,
     });
   }
