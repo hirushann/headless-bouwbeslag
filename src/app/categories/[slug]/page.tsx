@@ -38,7 +38,19 @@ interface Params {
 async function fetchCategory(slug: string): Promise<Category | null> {
   const res = await api.get("products/categories", { slug });
   if (!res.data || res.data.length === 0) return null;
-  console.log('Category Data for ' + slug + ':', JSON.stringify(res.data[0], null, 2));
+  const categoryId = res.data[0].id;
+  
+  // Fetch full category details by ID to ensure we get all fields (like ACF)
+  try {
+    const fullRes = await api.get(`products/categories/${categoryId}`);
+    if (fullRes.data) {
+      console.log(`Full Category Data for ID ${categoryId} (slug: ${slug}):`, JSON.stringify(fullRes.data, null, 2));
+      return fullRes.data;
+    }
+  } catch (error) {
+    console.error(`Error fetching full category details for ID ${categoryId}:`, error);
+  }
+
   return res.data[0];
 }
 

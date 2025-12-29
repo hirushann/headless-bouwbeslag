@@ -45,6 +45,7 @@ export default function CategoryClient({
   attributes,
   currentSlug,
 }: CategoryClientProps) {
+  console.log("CategoryClient received category:", category);
   const [products, setProducts] = useState<any[]>([]);
   const [rawProducts, setRawProducts] = useState<any[]>([]);
   const [selectedFilters, setSelectedFilters] = useState<{ [key: number]: Set<number> }>({});
