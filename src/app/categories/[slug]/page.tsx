@@ -38,6 +38,7 @@ interface Params {
 async function fetchCategory(slug: string): Promise<Category | null> {
   const res = await api.get("products/categories", { slug });
   if (!res.data || res.data.length === 0) return null;
+  console.log('Category Data for ' + slug + ':', JSON.stringify(res.data[0], null, 2));
   return res.data[0];
 }
 
