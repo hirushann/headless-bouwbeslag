@@ -8,10 +8,12 @@ import { useRouter } from "next/navigation";
 import { syncRemoveItem } from "@/lib/cartApi";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
 
+import { ShippingMethod } from "@/lib/woocommerce";
+
 export default function Header({
-  shippingSettings,
+  shippingMethods,
 }: {
-  shippingSettings?: { flatRate: number; freeShippingThreshold: number | null };
+  shippingMethods: ShippingMethod[];
 }) {
   const items = useCartStore((state) => state.items);
   const isCartOpen = useCartStore((state) => state.isCartOpen);
@@ -30,7 +32,28 @@ export default function Header({
     0
   );
 
-  const { flatRate = 0, freeShippingThreshold = null } = shippingSettings || {};
+  // Derive simple settings for sidecart display (defaulting to Flat Rate)
+  let flatRate = 0;
+  let freeShippingThreshold: number | null = null;
+  
+  if (shippingMethods && Array.isArray(shippingMethods)) {
+      const flatMethod = shippingMethods.find(m => m.methodId === 'flat_rate' && m.enabled);
+      if (flatMethod) flatRate = flatMethod.cost;
+
+      const freeMethod = shippingMethods.find(m => m.methodId === 'free_shipping' && m.enabled);
+      // Logic for free shipping threshold if we saved it in the method object (we did in getShippingMethods as 'minAmount')
+      // TypeScript might complain if ShippingMethod interface doesn't have minAmount optional.
+      // Let's check woocommerce.ts interface. I pushed it with `...(method.method_id === "free_shipping" && { ... })` casting as any.
+      // So accessing it as any or explicitly.
+      if (freeMethod) {
+          const m = freeMethod as any;
+          if (m.requires === 'min_amount' || m.requires === 'either') {
+               freeShippingThreshold = parseFloat(m.minAmount || '0');
+          } else if (m.requires === '') {
+              freeShippingThreshold = 0;
+          }
+      }
+  }
 
   const isFreeShipping =
     freeShippingThreshold !== null && subtotal >= freeShippingThreshold;

@@ -36,7 +36,7 @@ export default async function RootLayout({
       <body className={`${dmsans.variable} font-sans antialiased`} >
         <Toaster position="top-right" />
         <UserProvider>
-          <Header shippingSettings={shippingSettings} />
+          <Header shippingMethods={shippingSettings} />
           {children}
         </UserProvider>
 
