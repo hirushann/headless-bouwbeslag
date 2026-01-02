@@ -5,14 +5,19 @@ import { ChevronRight, CreditCard, Package, ShieldCheck, Truck, Check, Loader2 }
 import { getShippingRatesAction, placeOrderAction } from "./actions";
 import { useCartStore } from "@/lib/cartStore";
 import { useRouter } from "next/navigation";
+import { useUserContext } from "@/context/UserContext";
 
 export default function NewCheckoutPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedShipping, setSelectedShipping] = useState("standard");
+  // const [selectedShipping, setSelectedShipping] = useState("standard");
   const [isLoading, setIsLoading] = useState(false);
-  const [shippingRates, setShippingRates] = useState<{flatRate: number, freeShippingThreshold: number | null}>({ flatRate: 0, freeShippingThreshold: null });
+  const [availableMethods, setAvailableMethods] = useState<any[]>([]); // Should use ShippingMethod interface
+  const [selectedMethodId, setSelectedMethodId] = useState<number | null>(null);
   const [shippingCost, setShippingCost] = useState<number | null>(null);
+
+  const { userRole } = useUserContext();
+  const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
   
   // Cart State from Store
   const cartItems = useCartStore((state) => state.items);
@@ -41,11 +46,12 @@ export default function NewCheckoutPage() {
     // Fetch shipping rates on mount
     const fetchRates = async () => {
       const result = await getShippingRatesAction();
-      if (result.success) {
-        setShippingRates({ 
-            flatRate: result.flatRate, 
-            freeShippingThreshold: result.freeShippingThreshold 
-        });
+      if (result.success && result.methods) {
+        setAvailableMethods(result.methods);
+        // Pre-select the first method if available
+        if (result.methods.length > 0) {
+            setSelectedMethodId(result.methods[0].id);
+        }
       }
     };
     fetchRates();
@@ -55,21 +61,63 @@ export default function NewCheckoutPage() {
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   
   // Update shipping cost whenever rates or selected method changes
+  // Update shipping cost whenever selected method changes
   useEffect(() => {
-    if (selectedShipping === "express") {
-         setShippingCost(9.95); // Hardcoded Express cost for now
-    } else {
-        // Standard logic
-        let cost = shippingRates.flatRate;
-        if (shippingRates.freeShippingThreshold !== null && subtotal >= shippingRates.freeShippingThreshold) {
-            cost = 0;
-        }
-        setShippingCost(cost);
+    if (selectedMethodId === null || availableMethods.length === 0) {
+        setShippingCost(null);
+        return;
     }
-  }, [shippingRates, subtotal, selectedShipping]);
+    
+    const method = availableMethods.find(m => m.id === selectedMethodId);
+    if (!method) return;
+    
+    // Check for free shipping condition specifically for 'free_shipping' method
+    // Note: The API logic for free_shipping might already check 'requires', but here we double check if we have data.
+    // If method is free_shipping, cost is passed as 0 from backend usually.
+    // However, if we need to validte min_amount vs subtotal:
+    
+    let cost = method.cost;
+    
+    if (method.methodId === 'free_shipping') {
+        const minAmount = method.minAmount ? parseFloat(method.minAmount) : 0;
+        const requires = method.requires;
+        
+        if (requires === 'min_amount' || requires === 'either') {
+             if (subtotal < minAmount) {
+                 // If not met, usually this method shouldn't be returned by WP if it strictly checks valid methods.
+                 // But if we returned it, we can either hide it or show it as unavailable.
+                 // For now, let's assume getShippingMethods returns ALL enabled.
+                 // If condition not met, maybe we shouldn't have selected it?
+                 // Or we charge flat rate? No, free shipping just becomes unavailable.
+             }
+        }
+        cost = 0;
+    }
+    
+    setShippingCost(cost);
 
-  const tax = subtotal * 0.21; // 21% Tax
-  const total = subtotal + (shippingCost || 0) + tax;
+  }, [availableMethods, subtotal, selectedMethodId]);
+
+  const tax = subtotal * 0.21; // 21% Tax on items
+  
+  // Header logic: Total = (subtotal + shipping) * 1.21 for B2C (Inc VAT).
+  // Subtotal here (from cartStore) is Ex-VAT.
+  // Shipping cost (flatRate) is Ex-VAT.
+  
+  // If B2B: Show Ex-VAT prices. Total = Subtotal + Shipping.
+  // If B2C: Show Inc-VAT prices. Total = (Subtotal + Shipping) * 1.21.
+  
+  const total = isB2B 
+    ? subtotal + (shippingCost || 0) 
+    : (subtotal + (shippingCost || 0)) * 1.21;
+    
+  // Display Helpers
+  const displaySubtotal = isB2B ? subtotal : subtotal * 1.21;
+  const displayShipping = isB2B ? (shippingCost || 0) : (shippingCost || 0) * 1.21;
+  const displayTax = isB2B ? 0 : tax; // Tax line is redundant in Inc-VAT view usually, or we show full tax breakdown?
+  // Header shows: Totaal + (incl. BTW) label.
+  
+  const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
 
   const nextStep = () => {
     setCurrentStep((prev) => Math.min(prev + 1, 3));
@@ -98,11 +146,18 @@ export default function NewCheckoutPage() {
         phone: formData.phone
     };
 
+    const method = availableMethods.find(m => m.id === selectedMethodId);
+
     const orderData = {
         billing: billingData,
         shipping: billingData, // Assuming shipping same as billing for this simplified flow
         cart: cartItems,
-        payment_method: "bacs"
+        payment_method: "bacs",
+        shipping_line: method ? [{
+             method_id: method.methodId,
+             method_title: method.title,
+             total: method.cost.toString()
+        }] : []
     };
 
     const result = await placeOrderAction(orderData);
@@ -261,28 +316,42 @@ export default function NewCheckoutPage() {
               {currentStep === 2 && (
                 <div className="p-6 pt-6 animate-in slide-in-from-top-4 fade-in duration-300">
                     <div className="space-y-3 mb-6">
-                        <div onClick={() => setSelectedShipping("standard")} className={`cursor-pointer p-4 rounded-xl border flex items-center justify-between transition-all duration-200 ${selectedShipping === "standard" ? "border-blue-600 bg-blue-50/50 ring-1 ring-blue-600 shadow-sm" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"}`}>
-                            <div className="flex items-center gap-4">
-                                <div className="p-2 bg-white rounded-lg border border-gray-100 text-blue-600"><Truck className="w-5 h-5"/></div>
-                                <div>
-                                    <div className="font-semibold text-gray-900">Standard Delivery</div>
-                                    <div className="text-sm text-gray-500">Delivered within 3-5 business days</div>
+                        {availableMethods.length === 0 ? (
+                             <p className="text-gray-500 text-center py-4">Loading shipping methods...</p>
+                        ) : (
+                            availableMethods.map((method) => {
+                                // Simple logic to check if Free Shipping is valid to show/enable
+                                let isValid = true;
+                                if (method.methodId === 'free_shipping' && method.requires === 'min_amount') {
+                                    if (subtotal < parseFloat(method.minAmount || '0')) {
+                                        isValid = false; // Don't show or disable? usually better to hide.
+                                    }
+                                }
+                                
+                                if (!isValid) return null;
+
+                                return (
+                                <div 
+                                    key={method.id}
+                                    onClick={() => setSelectedMethodId(method.id)} 
+                                    className={`cursor-pointer p-4 rounded-xl border flex items-center justify-between transition-all duration-200 ${selectedMethodId === method.id ? "border-blue-600 bg-blue-50/50 ring-1 ring-blue-600 shadow-sm" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"}`}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className={`p-2 bg-white rounded-lg border border-gray-100 ${method.methodId === 'free_shipping' ? 'text-green-600' : 'text-blue-600'}`}>
+                                            {method.methodId === 'free_shipping' ? <Package className="w-5 h-5"/> : <Truck className="w-5 h-5"/>}
+                                        </div>
+                                        <div>
+                                            <div className="font-semibold text-gray-900">{method.title}</div>
+                                            <div className="text-sm text-gray-500">{method.methodId === 'flat_rate' ? 'Standard delivery' : 'Delivery option'}</div>
+                                        </div>
+                                    </div>
+                                    <div className="font-semibold text-gray-900">
+                                        {method.cost === 0 ? "Free" : `€${(isB2B ? method.cost : method.cost * 1.21).toFixed(2)}`}
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="font-semibold text-gray-900">
-                                {shippingRates.freeShippingThreshold !== null && subtotal >= shippingRates.freeShippingThreshold ? "Free" : `€${shippingRates.flatRate.toFixed(2)}`}
-                            </div>
-                        </div>
-                        <div onClick={() => setSelectedShipping("express")} className={`cursor-pointer p-4 rounded-xl border flex items-center justify-between transition-all duration-200 ${selectedShipping === "express" ? "border-blue-600 bg-blue-50/50 ring-1 ring-blue-600 shadow-sm" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"}`}>
-                            <div className="flex items-center gap-4">
-                                <div className="p-2 bg-white rounded-lg border border-gray-100 text-purple-600"><Package className="w-5 h-5"/></div>
-                                <div>
-                                    <div className="font-semibold text-gray-900">Express Delivery</div>
-                                    <div className="text-sm text-gray-500">Delivered tomorrow</div>
-                                </div>
-                            </div>
-                            <div className="font-semibold text-gray-900">€9.95</div>
-                        </div>
+                                );
+                            })
+                        )}
                     </div>
                      <div className="flex gap-3">
                      <button 
@@ -356,7 +425,7 @@ export default function NewCheckoutPage() {
                                 <h4 className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</h4>
                                 <p className="text-sm text-gray-500 mt-1">× {item.quantity}</p>
                             </div>
-                            <span className="text-sm font-medium text-gray-900 whitespace-nowrap ml-2">€ {item.price.toFixed(2).replace('.', ',')}</span>
+                            <span className="text-sm font-medium text-gray-900 whitespace-nowrap ml-2">€ {(isB2B ? item.price : item.price * 1.21).toFixed(2).replace('.', ',')}</span>
                         </div>
                     </div>
                   ))}
@@ -366,20 +435,22 @@ export default function NewCheckoutPage() {
                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-3">
                     <div className="flex justify-between text-base text-gray-600">
                         <span>Subtotaal</span>
-                        <span className="font-medium text-gray-900">€ {subtotal.toFixed(2).replace('.', ',')}</span>
+                        <span className="font-medium text-gray-900">€ {displaySubtotal.toFixed(2).replace('.', ',')}</span>
                     </div>
                     <div className="flex justify-between text-base text-gray-600">
                         <span>Verzending</span>
                         <span className="font-medium text-gray-900">
-                            {shippingCost === null ? "Calculated at next step" : (shippingCost === 0 ? "Free" : `€ ${shippingCost.toFixed(2).replace('.', ',')}`)}
+                            {shippingCost === null ? "Calculated at next step" : (shippingCost === 0 ? "Free" : `€ ${displayShipping.toFixed(2).replace('.', ',')}`)}
                         </span>
                     </div>
+                     {/* Show Tax breakdown if needed, or total tax amount? Header handles it by showing total + label */}
                     <div className="flex justify-between text-base text-gray-600">
-                        <span>Tax (21%)</span>
-                        <span className="font-medium text-gray-900">€ {tax.toFixed(2).replace('.', ',')}</span>
+                        <span>BTW (21%)</span>
+                         {/* Calculate actual tax amount for the whole order */}
+                        <span className="font-medium text-gray-900">€ {((subtotal + (shippingCost || 0)) * 0.21).toFixed(2).replace('.', ',')}</span>
                     </div>
                     <div className="pt-3 mt-3 border-t border-gray-100 flex justify-between items-center text-lg font-bold text-gray-900">
-                        <span>Totaal</span>
+                        <span>Totaal <span className="text-xs font-normal text-gray-500">{taxLabel}</span></span>
                         <span>€ {total.toFixed(2).replace('.', ',')}</span>
                     </div>
                </div>

@@ -1,6 +1,6 @@
 import api from "./woocommerce";
 
-export async function createOrder(cart: any[], billing: any) {
+export async function createOrder(cart: any[], billing: any, shipping_lines: any[] = []) {
   try {
     const response = await api.post("orders", {
       payment_method: "bacs",
@@ -12,6 +12,7 @@ export async function createOrder(cart: any[], billing: any) {
         product_id: item.id,
         quantity: item.quantity,
       })),
+      shipping_lines,
     });
 
     return response.data;
