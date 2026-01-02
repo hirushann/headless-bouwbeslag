@@ -29,6 +29,8 @@ interface CartState {
   clearCart: () => void;
   syncWithServer: () => Promise<void>;
   total: () => number;
+  isCartOpen: boolean;
+  setCartOpen: (isOpen: boolean) => void;
 }
 
 export const useCartStore = create<CartState>()(
@@ -124,6 +126,8 @@ export const useCartStore = create<CartState>()(
       },
       total: () =>
         get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
+      isCartOpen: false,
+      setCartOpen: (isOpen) => set({ isCartOpen: isOpen }),
     }),
     { name: "cart-storage" }
   )

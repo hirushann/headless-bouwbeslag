@@ -14,8 +14,9 @@ export default function Header({
   shippingSettings?: { flatRate: number; freeShippingThreshold: number | null };
 }) {
   const items = useCartStore((state) => state.items);
+  const isCartOpen = useCartStore((state) => state.isCartOpen);
+  const setCartOpen = useCartStore((state) => state.setCartOpen);
   const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
-  const [isCartOpen, setIsCartOpen] = useState(false);
   
   const { userRole } = useUserContext();
   const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
@@ -85,7 +86,8 @@ export default function Header({
     // Instead of building external URL, we just go to our local checkout page
     // The checkout page will handle adding items via URL params itself
     if (items.length === 0) return;
-    router.push("/checkout");
+    setCartOpen(false);
+    router.push("/new-checkout");
   };
 
   return (
@@ -146,7 +148,7 @@ export default function Header({
             <div className="flex">
               <div className="indicator">
                 <span className="indicator-item badge badge-secondary text-xs font-bold bg-blue-800 rounded-full border-0 text-white">{totalQty}</span>
-                <button onClick={() => setIsCartOpen(true)} className="cursor-pointer btn btn-ghost p-0 bg-transparent m-0 relative hover:bg-transparent focus:bg-transparent active:bg-transparent hover:border-0" aria-label="Open cart">
+                <button onClick={() => setCartOpen(true)} className="cursor-pointer btn btn-ghost p-0 bg-transparent m-0 relative hover:bg-transparent focus:bg-transparent active:bg-transparent hover:border-0" aria-label="Open cart">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-7 lg:size-8">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"/>
                   </svg>
@@ -325,7 +327,7 @@ export default function Header({
               ? "opacity-100 pointer-events-auto"
               : "opacity-0 pointer-events-none"
           }`}
-          onClick={() => setIsCartOpen(false)}
+          onClick={() => setCartOpen(false)}
           aria-label="Close cart backdrop"
         />
         {/* Drawer */}
@@ -333,7 +335,7 @@ export default function Header({
           <div className="flex flex-col h-full">
             <div className="flex justify-between items-center border-b border-[#E9E9E9] p-4 bg-[#F7F7F7]">
               <p className="text-lg font-medium text-[#1C2530]">Winkelmand</p>
-              <button onClick={() => setIsCartOpen(false)} aria-label="Close cart" className="text-2xl font-bold leading-none hover:text-gray-600">
+              <button onClick={() => setCartOpen(false)} aria-label="Close cart" className="text-2xl font-bold leading-none hover:text-gray-600">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-6 cursor-pointer"><path fillRule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" /></svg>
               </button>
             </div>
@@ -342,7 +344,7 @@ export default function Header({
                 <div className="flex flex-col items-center justify-center h-full text-center p-8">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-16 text-gray-300 mb-4"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>
                     <p className="text-gray-500 font-medium">Je winkelwagen is leeg</p>
-                    <button onClick={() => setIsCartOpen(false)} className="mt-4 text-[#0066FF] font-semibold hover:underline">Verder winkelen</button>
+                    <button onClick={() => setCartOpen(false)} className="mt-4 text-[#0066FF] font-semibold hover:underline">Verder winkelen</button>
                 </div>
               ) : (
                 <>

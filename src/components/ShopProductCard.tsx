@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCartStore } from "@/lib/cartStore";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
-import { fetchProductStock } from "@/lib/woocommerce";
+import { checkStockAction } from "@/app/actions";
 import toast from "react-hot-toast";
 
 import { fixImageSrc } from "@/lib/image-utils";
@@ -70,13 +70,15 @@ export default function ShopProductCard({ product }: { product: any }) {
 
             try {
                // 1. Fetch real-time stock
-               const stockData = await fetchProductStock(product.id);
+               const stockRes = await checkStockAction(product.id);
                
-               if (!stockData) {
-                  toast.error("Fout bij ophalen voorraad.");
+               if (!stockRes.success || !stockRes.data) {
+                  toast.error(stockRes.error || "Fout bij ophalen voorraad.");
                   setIsAdding(false);
                   return;
                }
+
+               const stockData = stockRes.data;
 
                const { stock_status, stock_quantity, manage_stock, backorders, backorders_allowed } = stockData;
                const isBackorderAllowed = backorders === "yes" || backorders === "notify" || backorders_allowed === true;

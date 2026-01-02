@@ -13,6 +13,7 @@ import { fetchMedia } from "@/lib/wordpress";
 import { COLOR_MAP } from "@/config/colorMap";
 // import { syncAddToCart, syncRemoveItem, syncUpdateItemQty } from "@/lib/cartApi";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
+import { checkStockAction } from "@/app/actions";
 
 // Helper to format values: remove trailing zeros from decimals (e.g. "200.00" -> "200")
 const formatSpecValue = (value: string | number | null | undefined): string => {
@@ -669,7 +670,12 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
   // Checks real-time stock before allowing add-to-cart
   const checkStockBeforeAdd = async (productId: number, qty: number) => {
     try {
-      const res = await api.get(`products/${productId}`);
+      const res = await checkStockAction(productId);
+      
+      if (!res.success || !res.data) {
+          throw new Error(res.error || "Failed to fetch product data");
+      }
+
       const wcProduct = res.data;
 
       // Check backorders again just to be safe with the fresh data
@@ -756,6 +762,10 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         position: "top-right",
       });
       setAddCartSuccess(true);
+      
+      // Auto-open sidecart
+      useCartStore.getState().setCartOpen(true);
+
       setTimeout(() => {
         setAddCartSuccess(false);
       }, 3000);
