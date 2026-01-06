@@ -164,11 +164,14 @@ export default function NewCheckoutPage() {
     setIsLoading(false);
 
     if (result.success) {
-        // alert(`Order placed successfully! Order ID: ${result.data.id}`);
-      // clearCart(); // Cart is cleared on the success page
+        if ((result as any).redirectUrl) {
+            window.location.href = (result as any).redirectUrl;
+            return;
+        }
+
+        // Fallback for non-payment orders (if any)
       const orderId = (result as any).data?.id || (result as any).orderId;
       router.push(`/checkout/success?orderId=${orderId}`); // Clear cart on success
-        // Redirect logic would go here
     } else {
         alert(`Order Failed: ${result.message}`);
     }
