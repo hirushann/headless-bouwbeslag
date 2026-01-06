@@ -152,7 +152,7 @@ export default function NewCheckoutPage() {
         billing: billingData,
         shipping: billingData, // Assuming shipping same as billing for this simplified flow
         cart: cartItems,
-        payment_method: "bacs",
+        payment_method: "mollie",
         shipping_line: method ? [{
              method_id: method.methodId,
              method_title: method.title,
@@ -382,9 +382,10 @@ export default function NewCheckoutPage() {
               
                {currentStep === 3 && (
                  <div className="p-6 pt-0 animate-in slide-in-from-top-4 fade-in duration-300">
-                    <div className="p-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 text-center text-gray-400 mb-6">
-                        <CreditCard className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                        <p>Currently supporting Direct Bank Transfer (BACS).</p>
+                    <div className="p-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 text-center text-gray-500 mb-6">
+                        <CreditCard className="w-8 h-8 mx-auto mb-2 text-blue-600" />
+                        <p className="font-semibold">Online Payment</p>
+                        <p className="text-sm">Pay securely with iDEAL, Credit Card, Bancontact, and more via Mollie.</p>
                     </div>
                      <button 
                         onClick={handlePlaceOrder}
