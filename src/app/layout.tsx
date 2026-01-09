@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DM_Sans } from "next/font/google";
+import { DM_Sans, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Image from "next/image";
 import Link from "next/link";
@@ -10,11 +10,20 @@ import { UserProvider } from "@/context/UserContext"; // Import UserProvider
 
 const dmsans = DM_Sans({
   variable: "--font-dm-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
   title: "Bouwbeslag & Deurbeslag van A-Merken | Laagste Prijs Garantie",
   description: "Ontdek hoogwaardig bouw- en deurbeslag van topmerken. Groot assortiment, scherpe prijzen, snelle levering en deskundig advies. Bouwbeslag.nl – altijd A-kwaliteit.",
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export const viewport = {
@@ -33,7 +42,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en" data-theme="light">
-      <body className={`${dmsans.variable} font-sans antialiased`} >
+      <body className={`${dmsans.variable} ${geistMono.variable} font-sans antialiased`} >
         <Toaster position="top-right" />
         <UserProvider>
           <Header shippingMethods={shippingSettings} />

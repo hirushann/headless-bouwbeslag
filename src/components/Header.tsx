@@ -373,9 +373,9 @@ export default function Header({
                 <>
                   {items.map((item) => (
                     <div key={item.id} className="flex gap-2 items-center justify-between p-3 mb-3 border border-[#DEDEDE] rounded-sm relative flex-col lg:flex-row">
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-4 justify-start w-full">
                             {item.slug ? (
-                              <Link href={`/${item.slug}`}>
+                              <Link className="w-1/3 flex items-center justify-start" href={`/${item.slug}`}>
                                 {item.image ? (
                                     <img src={item.image} alt={item.name} className="w-28 h-28 object-cover rounded bg-gray-100 cursor-pointer hover:opacity-80 transition" />
                                 ) : (
@@ -393,7 +393,7 @@ export default function Header({
                                     </div>
                                 )
                             )}
-                            <div>
+                            <div className="w-2/3">
                                 {item.slug ? (
                                   <Link href={`/${item.slug}`} className="hover:text-blue-600 transition">
                                     <h3 className="font-semibold">{item.name}</h3>
@@ -410,36 +410,44 @@ export default function Header({
                                 )}
                                 
                                 {(() => {
-                                  // Recalculate dynamic delivery info mostly for color coding match
-                                  // Use stored values if available, otherwise fallback (though existing items might miss new fields, hence defaults)
-                                  const info = getDeliveryInfo(
-                                    item.stockStatus || 'instock',
-                                    item.quantity,
-                                    item.stockQuantity !== undefined ? item.stockQuantity : null,
-                                    item.leadTimeInStock || 1,
-                                    item.leadTimeNoStock || 30
-                                  );
+                                  // text: item.deliveryText OR fallback
+                                  // type: item.deliveryType OR fallback
+                                  
+                                  let message = item.deliveryText;
+                                  let type = item.deliveryType;
 
-                                  // Determine color based on type (matching ProductPageClient logic)
+                                  if (!message) {
+                                      const info = getDeliveryInfo(
+                                        item.stockStatus || 'instock',
+                                        item.quantity,
+                                        item.stockQuantity !== undefined ? item.stockQuantity : null,
+                                        item.leadTimeInStock || 1,
+                                        item.leadTimeNoStock || 30
+                                      );
+                                      message = info.short;
+                                      type = info.type;
+                                  }
+
+                                  // Determine color based on type
                                   let colorClass = "text-[#03B955]"; // Green (In stock)
-                                  if (info.type === "PARTIAL_STOCK") colorClass = "text-[#03B955]"; // Green
-                                  else if (info.type === "BACKORDER" || info.type === "OUT_OF_STOCK") colorClass = "text-[#FF5E00]"; // Orange/Red
+                                  if (type === "PARTIAL_STOCK") colorClass = "text-[#03B955]"; // Green
+                                  else if (type === "BACKORDER" || type === "OUT_OF_STOCK") colorClass = "text-[#FF5E00]"; // Orange/Red
 
                                   return (
                                     <p className={`${colorClass} text-xs font-semibold mt-1`}>
-                                      {info.message}
+                                      {message}
                                     </p>
                                   );
                                 })()}
                             </div>
                         </div>
                         <div className="flex w-full lg:w-auto flex-row-reverse lg:flex-col items-center lg:items-end gap-2">
-                            <div className="flex items-center border border-[#EDEDED] shadow-xs rounded-sm">
+                            <div className="flex items-center border border-[#EDEDED] shadow-xs rounded-sm w-auto">
                                 <button onClick={() => decreaseQuantity(item.id)} className="border-r border-[#EDEDED] cursor-pointer px-3 py-1 text-lg font-bold text-gray-700 hover:bg-gray-200" aria-label={`Decrease quantity of ${item.name}`}>−</button>
                                 <input
                                   type="number"
                                   min={1}
-                                  className="w-12 text-center px-2 py-1 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  className="w-14 text-center px-2 py-1 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                   value={item.quantity}
                                   onChange={(e) => {
                                     const newQuantity = Math.max(

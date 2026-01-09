@@ -1,8 +1,10 @@
+"use client";
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCartStore } from "@/lib/cartStore";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
+import { useUserContext } from "@/context/UserContext";
 import { checkStockAction } from "@/app/actions";
 import toast from "react-hot-toast";
 
@@ -43,20 +45,80 @@ export default function ShopProductCard({ product }: { product: any }) {
         </Link>
 
       <div className="p-2 lg:p-4 flex flex-col flex-1">
-        <Link href={`/${product.slug}`} className="text-base lg:text-lg font-medium mb-1 line-clamp-2 text-[#1C2530]">
+        <Link href={`/${product.slug}`} className="text-base lg:text-lg font-medium mb-1 line-clamp-3 text-[#1C2530]">
           {product.name || "Untitled Product"}
         </Link>
 
-        <div className="flex items-center gap-2 mb-2">
-          <p className="text-xl font-bold text-[#1C2530]">
-            €{cleanPrice(product.price)}
-          </p>
+      <div className="flex flex-col mb-2">
+          {(() => {
+             const userRole = useUserContext().userRole;
+             const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
+             
+             // Helper
+             const getMeta = (k: string) => product?.meta_data?.find((m: any) => m.key === k)?.value;
+
+             // Logic from ProductPageClient
+             const taxRate = 21;
+             const taxMultiplier = 1 + (taxRate / 100);
+
+             const b2bKey = "crucial_data_b2b_and_b2c_sales_price_b2b";
+             const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
+             
+             let sale = product.price ? parseFloat(product.price) : 0;
+             const targetKey = isB2B ? b2bKey : b2cKey;
+             const acfPriceRaw = getMeta(targetKey);
+             
+             if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
+                sale = parseFloat(acfPriceRaw);
+             } else if (isB2B) {
+                const b2cFallback = getMeta(b2cKey);
+                if (b2cFallback && !isNaN(parseFloat(b2cFallback))) sale = parseFloat(b2cFallback);
+             }
+
+             const advisedRaw = getMeta("crucial_data_unit_price");
+             const advised = advisedRaw && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
+
+             const finalPrice = isB2B ? sale : (sale ? sale * taxMultiplier : 0);
+             const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
+             
+             // Calculate advised display price (if it exists)
+             let advisedDisplay: number | null = null;
+             if (advised) {
+                 advisedDisplay = isB2B ? advised : advised * taxMultiplier;
+             }
+             
+             // Fallback to standard WC regular/sale if ACF advised is missing but standard fields exist (optional, but good for safety)
+             // But strictly following ProductPage logic:
+             const showStrikeThrough = advisedDisplay !== null && finalPrice < advisedDisplay;
+             
+             return (
+               <div className="flex flex-col items-start">
+                 {showStrikeThrough && advisedDisplay !== null && (
+                   <span className="text-gray-400 line-through text-xs font-normal">
+                      {new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(advisedDisplay)}
+                   </span>
+                 )}
+                 <div className="flex items-end gap-1 flex-wrap">
+                    <span className="text-xl font-bold text-[#1C2530]">
+                        {new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(finalPrice)}
+                    </span>
+                    <span className="text-[10px] text-gray-500 mb-1">{taxLabel}</span>
+                 </div>
+               </div>
+             );
+          })()}
         </div>
-        
+
         {(() => {
             const deliveryInfo = getDeliveryInfo(product.stock_status, 1, product.stock_quantity ?? null);
+            
+            // Determine color based on type (matching Header Cart logic)
+            let colorClass = "text-[#03B955]"; // Green (In stock)
+            if (deliveryInfo.type === "PARTIAL_STOCK") colorClass = "text-[#03B955]"; // Green
+            else if (deliveryInfo.type === "BACKORDER" || deliveryInfo.type === "OUT_OF_STOCK") colorClass = "text-[#FF5E00]"; // Orange/Red
+
             return (
-                 <p className="text-[#03B955] text-xs font-normal mb-3">
+                 <p className={`${colorClass} text-xs font-normal mb-3`}>
                     {deliveryInfo.short}
                  </p>
             );
@@ -98,9 +160,11 @@ export default function ShopProductCard({ product }: { product: any }) {
                }
 
                // 4. Success - Add to Cart
+               const customTitle = product?.meta_data?.find((m: any) => m.key === "description_bouwbeslag_title")?.value || product.name;
+
                addItem({
                   id: product.id,
-                  name: product.name,
+                  name: customTitle,
                   price: Number(product.sale_price || product.regular_price || product.price || 0),
                   quantity: 1,
                   image: product.images?.[0]?.src,

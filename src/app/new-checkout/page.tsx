@@ -31,15 +31,15 @@ export default function NewCheckoutPage() {
 
   // Form State
   const [formData, setFormData] = useState({
-    firstName: "Roary",
-    lastName: "Morton",
-    country: "Netherlands",
-    street: "14 South Hague Road",
-    apartment: "Anim ea explicabo B",
-    postcode: "ESTTEMPORIBUSAPER",
-    city: "Qui mollitia ipsa o",
-    phone: "+1 (906) 678-5903",
-    email: "radaz@mailinator.com"
+    firstName: "",
+    lastName: "",
+    country: "",
+    street: "",
+    apartment: "",
+    postcode: "",
+    city: "",
+    phone: "",
+    email: ""
   });
 
   useEffect(() => {
@@ -57,46 +57,76 @@ export default function NewCheckoutPage() {
     fetchRates();
   }, []);
 
+  useEffect(() => {
+    // Scroll to the top of the active step when it changes
+    const element = document.getElementById(`step-${currentStep}`);
+    if (element) {
+        const headerOffset = 120; 
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+        window.scrollTo({
+            top: offsetPosition,
+            behavior: "smooth"
+        });
+    }
+  }, [currentStep]);
+
   // Calculate totals
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   
   // Update shipping cost whenever rates or selected method changes
-  // Update shipping cost whenever selected method changes
+  // Derive valid methods
+  const validMethods = React.useMemo(() => {
+    return availableMethods.filter(method => {
+       if (method.methodId === 'free_shipping') {
+         // Check requires
+         if (method.requires === 'min_amount' || method.requires === 'either') {
+             const minAmount = method.minAmount ? parseFloat(method.minAmount) : 0;
+             if (subtotal < minAmount) return false;
+         }
+       }
+       return true;
+    });
+  }, [availableMethods, subtotal]);
+
+  // Update shipping cost whenever rates or selected method changes
+  // AND Auto-select if needed
   useEffect(() => {
-    if (selectedMethodId === null || availableMethods.length === 0) {
+    // 1. If we have valid methods but none selected (or selected is invalid), select first one
+    if (validMethods.length > 0) {
+        const currentValid = validMethods.find(m => m.id === selectedMethodId);
+        if (!selectedMethodId || !currentValid) {
+            setSelectedMethodId(validMethods[0].id);
+            return; // Effect will re-run with new ID
+        }
+    } else {
+        // No valid methods? Deselect
+        if (selectedMethodId) setSelectedMethodId(null);
+    }
+    
+    // 2. Calculate Cost
+    if (selectedMethodId === null) {
         setShippingCost(null);
         return;
     }
     
-    const method = availableMethods.find(m => m.id === selectedMethodId);
-    if (!method) return;
-    
-    // Check for free shipping condition specifically for 'free_shipping' method
-    // Note: The API logic for free_shipping might already check 'requires', but here we double check if we have data.
-    // If method is free_shipping, cost is passed as 0 from backend usually.
-    // However, if we need to validte min_amount vs subtotal:
+    const method = validMethods.find(m => m.id === selectedMethodId);
+    if (!method) {
+        setShippingCost(null);
+        return;
+    }
     
     let cost = method.cost;
-    
+    // Special handling if free shipping is technically "costly" in DB but free in practice? 
+    // Usually woo returns 0. But just in case:
     if (method.methodId === 'free_shipping') {
-        const minAmount = method.minAmount ? parseFloat(method.minAmount) : 0;
-        const requires = method.requires;
-        
-        if (requires === 'min_amount' || requires === 'either') {
-             if (subtotal < minAmount) {
-                 // If not met, usually this method shouldn't be returned by WP if it strictly checks valid methods.
-                 // But if we returned it, we can either hide it or show it as unavailable.
-                 // For now, let's assume getShippingMethods returns ALL enabled.
-                 // If condition not met, maybe we shouldn't have selected it?
-                 // Or we charge flat rate? No, free shipping just becomes unavailable.
-             }
-        }
-        cost = 0;
+        cost = 0; 
     }
     
     setShippingCost(cost);
 
-  }, [availableMethods, subtotal, selectedMethodId]);
+  }, [validMethods, selectedMethodId]);
 
   const tax = subtotal * 0.21; // 21% Tax on items
   
@@ -196,9 +226,9 @@ export default function NewCheckoutPage() {
       return (
           <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
               <Package className="w-16 h-16 text-gray-300 mb-4" />
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Your cart is empty</h2>
-              <p className="text-gray-500 mb-6">Add some products to proceed to checkout.</p>
-              <a href="/" className="btn btn-primary bg-blue-600 border-none text-white rounded-xl">Continue Shopping</a>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Je winkelwagen is leeg</h2>
+              <p className="text-gray-500 mb-6">Voeg enkele producten toe om door te gaan naar de checkout.</p>
+              <a href="/" className="btn btn-primary bg-blue-600 border-none text-white rounded-xl">Verder winkelen</a>
           </div>
       );
   }
@@ -211,7 +241,7 @@ export default function NewCheckoutPage() {
           <div className="lg:col-span-7 space-y-6">
             
             {/* Step 1: Billing Details */}
-            <div className={`bg-white rounded-2xl shadow-sm border transition-all duration-300 overflow-hidden ${currentStep === 1 ? "border-blue-600 ring-1 ring-blue-600 shadow-md" : "border-gray-200"}`}>
+            <div id="step-1" className={`bg-white rounded-2xl shadow-sm border transition-all duration-300 overflow-hidden ${currentStep === 1 ? "border-blue-600 ring-1 ring-blue-600 shadow-md" : "border-gray-200"}`}>
               <div 
                 className={`p-6 flex items-center justify-between cursor-pointer ${currentStep === 1 ? "border-b border-gray-100" : ""}`}
                 onClick={() => goToStep(1)}
@@ -224,10 +254,10 @@ export default function NewCheckoutPage() {
                   ) : (
                     <span className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold shadow-md ${currentStep === 1 ? "bg-blue-600 text-white shadow-blue-200" : "bg-gray-100 text-gray-500"}`}>1</span>
                   )}
-                  <span className={currentStep > 1 ? "text-gray-900" : "text-gray-900"}>Billing Details</span>
+                  <span className={currentStep > 1 ? "text-gray-900" : "text-gray-900"}>Factuurgegevens</span>
                 </h2>
                 {currentStep > 1 && (
-                  <button className="text-sm font-medium text-blue-600 hover:text-blue-700 underline">Edit</button>
+                  <button className="text-sm font-medium text-blue-600 hover:text-blue-700 underline">Bewerken</button>
                 )}
               </div>
               
@@ -237,20 +267,20 @@ export default function NewCheckoutPage() {
                     {/* Name Fields */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div className="form-control">
-                        <label className={labelParams}>First name <span className="text-red-500">*</span></label>
+                        <label className={labelParams}>Voornaam <span className="text-red-500">*</span></label>
                         <input type="text" className={inputParams} value={formData.firstName} onChange={(e) => handleInputChange("firstName", e.target.value)} />
                       </div>
                       <div className="form-control">
-                        <label className={labelParams}>Last name <span className="text-red-500">*</span></label>
+                        <label className={labelParams}>Achternaam <span className="text-red-500">*</span></label>
                         <input type="text" className={inputParams} value={formData.lastName} onChange={(e) => handleInputChange("lastName", e.target.value)} />
                       </div>
                     </div>
 
                      {/* Country */}
                      <div className="form-control">
-                        <label className={labelParams}>Country/Region <span className="text-red-500">*</span></label>
+                        <label className={labelParams}>Land <span className="text-red-500">*</span></label>
                         <select className={`select w-full bg-gray-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all rounded-lg h-12 font-normal text-base`} value={formData.country} onChange={(e) => handleInputChange("country", e.target.value)}>
-                            <option disabled>Select a country/region...</option>
+                            <option disabled>Selecteer een land...</option>
                             <option>Netherlands</option>
                             <option>Belgium</option>
                             <option>Germany</option>
@@ -259,9 +289,9 @@ export default function NewCheckoutPage() {
 
                     {/* Street Address */}
                     <div className="form-control">
-                        <label className={labelParams}>Street and house number <span className="text-red-500">*</span></label>
-                        <input type="text" placeholder="House number and street name" className={`${inputParams} mb-3`} value={formData.street} onChange={(e) => handleInputChange("street", e.target.value)} />
-                        <input type="text" placeholder="Apartment, suite, unit, etc. (optional)" className={inputParams} value={formData.apartment} onChange={(e) => handleInputChange("apartment", e.target.value)} />
+                        <label className={labelParams}>Straat en huisnummer <span className="text-red-500">*</span></label>
+                        <input type="text" placeholder="Huisnummer en straatnaam" className={`${inputParams} mb-3`} value={formData.street} onChange={(e) => handleInputChange("street", e.target.value)} />
+                        <input type="text" placeholder="Appartement, suite, unit, enz. (optioneel)" className={inputParams} value={formData.apartment} onChange={(e) => handleInputChange("apartment", e.target.value)} />
                     </div>
 
                     {/* Postcode & City */}
@@ -270,17 +300,17 @@ export default function NewCheckoutPage() {
                         <input type="text" className={inputParams} value={formData.postcode} onChange={(e) => handleInputChange("postcode", e.target.value)} />
                     </div>
                      <div className="form-control">
-                        <label className={labelParams}>City <span className="text-red-500">*</span></label>
+                        <label className={labelParams}>Plaats <span className="text-red-500">*</span></label>
                         <input type="text" className={inputParams} value={formData.city} onChange={(e) => handleInputChange("city", e.target.value)} />
                     </div>
 
                     {/* Phone & Email */}
                     <div className="form-control">
-                      <label className={labelParams}>Phone (optional)</label>
+                      <label className={labelParams}>Telefoon (optioneel)</label>
                       <input type="tel" className={inputParams} value={formData.phone} onChange={(e) => handleInputChange("phone", e.target.value)} />
                     </div>
                     <div className="form-control">
-                      <label className={labelParams}>Email address <span className="text-red-500">*</span></label>
+                      <label className={labelParams}>Email adres <span className="text-red-500">*</span></label>
                       <input type="email" className={inputParams} value={formData.email} onChange={(e) => handleInputChange("email", e.target.value)} />
                     </div>
                   </div>
@@ -289,14 +319,14 @@ export default function NewCheckoutPage() {
                     onClick={nextStep}
                     className="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white border-none min-h-[48px] px-8 rounded-xl font-semibold shadow-lg shadow-blue-600/20 w-auto"
                   >
-                    Next Step
+                    Volgende stap
                   </button>
                 </div>
               )}
             </div>
 
             {/* Step 2: Shipping Method (Renumbered) */}
-             <div className={`bg-white rounded-2xl shadow-sm border transition-all duration-300 overflow-hidden ${currentStep === 2 ? "border-blue-600 ring-1 ring-blue-600 shadow-md" : "border-gray-200"} ${currentStep < 2 ? "opacity-60 grayscale-[0.5]" : ""}`}>
+             <div id="step-2" className={`bg-white rounded-2xl shadow-sm border transition-all duration-300 overflow-hidden ${currentStep === 2 ? "border-blue-600 ring-1 ring-blue-600 shadow-md" : "border-gray-200"} ${currentStep < 2 ? "opacity-60 grayscale-[0.5]" : ""}`}>
               <div 
                 className={`p-6 flex items-center justify-between ${currentStep > 2 ? "cursor-pointer" : ""} ${currentStep === 2 ? "border-b border-gray-100" : ""}`}
                 onClick={() => goToStep(2)}
@@ -309,30 +339,20 @@ export default function NewCheckoutPage() {
                   ) : (
                    <span className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold shadow-md ${currentStep === 2 ? "bg-blue-600 text-white shadow-blue-200" : "bg-gray-100 text-gray-500"}`}>2</span>
                   )}
-                  Shipping Method
+                  Verzendmethode
                 </h2>
                 {currentStep > 2 && (
-                  <button className="text-sm font-medium text-blue-600 hover:text-blue-700 underline">Edit</button>
+                  <button className="text-sm font-medium text-blue-600 hover:text-blue-700 underline">Bewerken</button>
                 )}
               </div>
               
               {currentStep === 2 && (
                 <div className="p-6 pt-6 animate-in slide-in-from-top-4 fade-in duration-300">
                     <div className="space-y-3 mb-6">
-                        {availableMethods.length === 0 ? (
-                             <p className="text-gray-500 text-center py-4">Loading shipping methods...</p>
+                        {validMethods.length === 0 ? (
+                             <p className="text-gray-500 text-center py-4">Verzendmethoden laden...</p>
                         ) : (
-                            availableMethods.map((method) => {
-                                // Simple logic to check if Free Shipping is valid to show/enable
-                                let isValid = true;
-                                if (method.methodId === 'free_shipping' && method.requires === 'min_amount') {
-                                    if (subtotal < parseFloat(method.minAmount || '0')) {
-                                        isValid = false; // Don't show or disable? usually better to hide.
-                                    }
-                                }
-                                
-                                if (!isValid) return null;
-
+                            validMethods.map((method) => {
                                 return (
                                 <div 
                                     key={method.id}
@@ -361,13 +381,13 @@ export default function NewCheckoutPage() {
                         onClick={() => goToStep(1)}
                         className="btn btn-ghost text-gray-500 hover:text-gray-700 hover:bg-gray-100"
                       >
-                        Back
+                        Terug
                       </button>
                     <button 
                         onClick={nextStep}
                         className="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white border-none min-h-[48px] px-8 rounded-xl font-semibold shadow-lg shadow-blue-600/20"
                     >
-                        Next Step
+                        Volgende stap
                     </button>
                   </div>
                 </div>
@@ -375,11 +395,11 @@ export default function NewCheckoutPage() {
             </div>
 
             {/* Step 3: Payment (Renumbered) */}
-             <div className={`bg-white rounded-2xl shadow-sm border transition-all duration-300 overflow-hidden ${currentStep === 3 ? "border-blue-600 ring-1 ring-blue-600 shadow-md" : "border-gray-200"} ${currentStep < 3 ? "opacity-60 grayscale-[0.5]" : ""}`}>
+             <div id="step-3" className={`bg-white rounded-2xl shadow-sm border transition-all duration-300 overflow-hidden ${currentStep === 3 ? "border-blue-600 ring-1 ring-blue-600 shadow-md" : "border-gray-200"} ${currentStep < 3 ? "opacity-60 grayscale-[0.5]" : ""}`}>
               <div className="p-6 flex items-center justify-between border-b border-transparent">
                 <h2 className="text-xl font-semibold flex items-center gap-3">
                    <span className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold shadow-md ${currentStep === 3 ? "bg-blue-600 text-white shadow-blue-200" : "bg-gray-100 text-gray-500"}`}>3</span>
-                  Payment
+                  Betaling
                 </h2>
               </div>
               
@@ -387,22 +407,22 @@ export default function NewCheckoutPage() {
                  <div className="p-6 pt-0 animate-in slide-in-from-top-4 fade-in duration-300">
                     <div className="p-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 text-center text-gray-500 mb-6">
                         <CreditCard className="w-8 h-8 mx-auto mb-2 text-blue-600" />
-                        <p className="font-semibold">Online Payment</p>
-                        <p className="text-sm">Pay securely with iDEAL, Credit Card, Bancontact, and more via Mollie.</p>
+                        <p className="font-semibold">Betaling</p>
+                        <p className="text-sm">Betalen met iDEAL, Credit Card, Bancontact, en meer via Mollie.</p>
                     </div>
                      <button 
                         onClick={handlePlaceOrder}
                         disabled={isLoading}
                         className="w-full btn btn-primary bg-green-600 hover:bg-green-700 text-white border-none h-14 rounded-xl text-lg font-bold shadow-lg shadow-green-600/20 flex items-center justify-center gap-2"
                     >
-                         {isLoading ? <Loader2 className="w-5 h-5 animate-spin"/> : `Confirm & Pay €${total.toFixed(2)}`}
+                         {isLoading ? <Loader2 className="w-5 h-5 animate-spin"/> : `Bevestig & Betalen €${total.toFixed(2)}`}
                     </button>
                     <div className="flex justify-center mt-4">
                         <button 
                             onClick={() => goToStep(2)}
                             className="btn btn-ghost btn-sm text-gray-500 hover:text-gray-700"
                         >
-                            Back to Shipping Method
+                            Terug naar Verzendmethode
                         </button>
                     </div>
                  </div>
