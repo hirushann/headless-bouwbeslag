@@ -271,7 +271,7 @@ export default function CategoryClient({
   );
 
   return (
-    <div className="bg-[#F7F7F7]">
+    <div className="bg-[#F7F7F7] min-h-screen">
       <div className="max-w-[1440px] mx-auto py-8 px-5 lg:px-0">
         <div className="flex flex-col lg:flex-row gap-2 lg:gap-8">
           

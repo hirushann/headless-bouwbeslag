@@ -31,7 +31,7 @@ export default async function Home() {
   const posts = await fetchPosts(3).catch(() => []);
 
   return (
-    <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start font-sans bg-[#F5F5F5]">
+    <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start font-sans bg-[#F5F5F5] min-h-screen">
       <div className="max-w-[1440px] mx-auto">
 
         {/* Categories Sidebar + Hero Section */}

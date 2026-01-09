@@ -73,7 +73,7 @@ export default async function Categories() {
   console.log("-----------------------------");
 
   return (
-    <main className="font-sans bg-[#F7F7F7]">
+    <main className="font-sans bg-[#F7F7F7] min-h-screen">
         <div className="max-w-[1440px] mx-auto px-4 lg:px-1 py-10 ">
             {/* Breadcrumb */}
             <div className="text-sm text-gray-500 mb-6 flex items-center gap-3">
