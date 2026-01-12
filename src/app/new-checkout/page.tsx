@@ -135,14 +135,35 @@ export default function NewCheckoutPage() {
 
   }, [validMethods, selectedMethodId]);
 
-  // Coupon Logic
+  /* 
+    Enhanced Coupon Validation:
+    We need to pass:
+    - Current Cart Total (for min/max spend)
+    - Cart Items (for product restrictions)
+    - Customer Email (for email restrictions)
+
+    Note on Total: 
+    WP "Min/Max Spend" usually refers to the Subtotal Ex Tax? Or Inc Tax?
+    WooCommerce standard: "The minimum spend is based on the subtotal **before** tax." (unless setting changed).
+    Our `subtotal` variable is Ex-VAT sum of items.
+  */
+
   const handleApplyCoupon = async () => {
       if (!couponCode.trim()) return;
       
       setIsCouponLoading(true);
       setCouponMessage(null);
       
-      const result = await validateCouponAction(couponCode);
+      // Prepare data for validation
+      // cartItems has { id, ... }. We need to ensure we pass IDs as numbers.
+      const simplifiedItems = cartItems.map(item => ({ product_id: item.id }));
+      
+      const result = await validateCouponAction(
+          couponCode, 
+          subtotal, // Ex VAT subtotal
+          simplifiedItems,
+          formData.email // current email input
+      );
       
       if (result.success && result.coupon) {
           setAppliedCoupon(result.coupon);

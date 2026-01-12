@@ -17,15 +17,32 @@ export async function getShippingRatesAction() {
     }
 }
 
-export async function validateCouponAction(code: string) {
+export async function validateCouponAction(
+    code: string,
+    cartTotal: number = 0,
+    cartItems: { product_id: number }[] = [],
+    email: string = ""
+) {
     try {
+        console.log(`Validating coupon '${code}'. Total: ${cartTotal}, Items: ${cartItems.length}, Email: ${email}`);
+
         const coupon = await getCouponByCode(code);
 
         if (!coupon) {
+            console.log("Coupon not found");
             return { success: false, message: "Invalid coupon code" };
         }
 
-        // Basic validation: Check expiry
+        console.log("Coupon details:", {
+            id: coupon.id,
+            code: coupon.code,
+            min: coupon.minimum_amount,
+            max: coupon.maximum_amount,
+            expiry: coupon.date_expires,
+            product_ids: coupon.product_ids
+        });
+
+        // 1. Expiry Check
         if (coupon.date_expires) {
             const expiry = new Date(coupon.date_expires);
             if (expiry < new Date()) {
@@ -33,9 +50,61 @@ export async function validateCouponAction(code: string) {
             }
         }
 
-        // Check usage limit if applicable (simple check, full check done by WP on order creation but good to fail early)
-        if (coupon.usage_limit > 0 && coupon.usage_count >= coupon.usage_limit) {
+        // 2. Usage Limit Check
+        const usageLimit = parseInt(String(coupon.usage_limit || 0));
+        const usageCount = parseInt(String(coupon.usage_count || 0));
+
+        if (usageLimit > 0 && usageCount >= usageLimit) {
             return { success: false, message: "Coupon usage limit reached" };
+        }
+
+        // 3. Minimum Spend Check
+        const minAmount = parseFloat(String(coupon.minimum_amount || "0"));
+        if (minAmount > 0) {
+            if (cartTotal < minAmount) {
+                return { success: false, message: `Minimum spend of €${minAmount.toFixed(2)} required` };
+            }
+        }
+
+        // 4. Maximum Spend Check
+        const maxAmount = parseFloat(String(coupon.maximum_amount || "0"));
+        if (maxAmount > 0) {
+            if (cartTotal > maxAmount) {
+                return { success: false, message: `Maximum spend of €${maxAmount.toFixed(2)} exceeded` };
+            }
+        }
+
+        // 5. Email Restrictions Check
+        if (coupon.email_restrictions && coupon.email_restrictions.length > 0) {
+            if (!email) {
+                return { success: false, message: "This coupon is restricted to specific emails. Please enter your email." };
+            }
+            const allowedEmails = coupon.email_restrictions;
+            if (!allowedEmails.includes(email)) {
+                return { success: false, message: "This coupon is not valid for your email address" };
+            }
+        }
+
+        // 6. Product Inclusion Check
+        if (coupon.product_ids && coupon.product_ids.length > 0) {
+            const couponProductIds = coupon.product_ids.map((id: any) => Number(id));
+            const cartProductIds = cartItems.map((item: any) => Number(item.product_id));
+
+            const hasIncludedProduct = cartProductIds.some((id: number) => couponProductIds.includes(id));
+            if (!hasIncludedProduct) {
+                return { success: false, message: "This coupon is not valid for the items in your cart" };
+            }
+        }
+
+        // 7. Product Exclusion Check
+        if (coupon.excluded_product_ids && coupon.excluded_product_ids.length > 0) {
+            const couponExcludedIds = coupon.excluded_product_ids.map((id: any) => Number(id));
+            const cartProductIds = cartItems.map((item: any) => Number(item.product_id));
+
+            const hasExcludedProduct = cartProductIds.some((id: number) => couponExcludedIds.includes(id));
+            if (hasExcludedProduct) {
+                return { success: false, message: "This coupon cannot be used with some items in your cart" };
+            }
         }
 
         return { success: true, coupon };
