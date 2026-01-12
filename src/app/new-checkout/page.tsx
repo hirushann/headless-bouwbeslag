@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ChevronRight, CreditCard, Package, ShieldCheck, Truck, Check, Loader2 } from "lucide-react";
-import { getShippingRatesAction, placeOrderAction } from "./actions";
+import { ChevronRight, CreditCard, Package, ShieldCheck, Truck, Check, Loader2, Tag, X } from "lucide-react";
+import { getShippingRatesAction, placeOrderAction, validateCouponAction } from "./actions";
 import { useCartStore } from "@/lib/cartStore";
 import { useRouter } from "next/navigation";
 import { useUserContext } from "@/context/UserContext";
@@ -41,6 +41,13 @@ export default function NewCheckoutPage() {
     phone: "",
     email: ""
   });
+
+  // Coupon State
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [couponMessage, setCouponMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [isCouponLoading, setIsCouponLoading] = useState(false);
+  const [isCouponOpen, setIsCouponOpen] = useState(false);
 
   useEffect(() => {
     // Fetch shipping rates on mount
@@ -128,7 +135,52 @@ export default function NewCheckoutPage() {
 
   }, [validMethods, selectedMethodId]);
 
-  const tax = subtotal * 0.21; // 21% Tax on items
+  // Coupon Logic
+  const handleApplyCoupon = async () => {
+      if (!couponCode.trim()) return;
+      
+      setIsCouponLoading(true);
+      setCouponMessage(null);
+      
+      const result = await validateCouponAction(couponCode);
+      
+      if (result.success && result.coupon) {
+          setAppliedCoupon(result.coupon);
+          setCouponMessage({ type: 'success', text: `Coupon "${result.coupon.code}" applied!` });
+          setCouponCode(""); 
+      } else {
+          setCouponMessage({ type: 'error', text: result.message || "Invalid coupon" });
+          setAppliedCoupon(null);
+      }
+      setIsCouponLoading(false);
+  };
+
+  const removeCoupon = () => {
+      setAppliedCoupon(null);
+      setCouponMessage(null);
+  };
+
+  const calculateDiscount = () => {
+      if (!appliedCoupon) return 0;
+      
+      const subtotalVal = subtotal; // Ex VAT basic subtotal
+      let discount = 0;
+
+      if (appliedCoupon.discount_type === 'percent') {
+          const amount = parseFloat(appliedCoupon.amount);
+          discount = (subtotalVal * amount) / 100;
+      } else if (appliedCoupon.discount_type === 'fixed_cart') {
+          const amount = parseFloat(appliedCoupon.amount);
+          // Amount is Gross (Inc VAT). We need the Ex VAT amount to deduct from Ex VAT subtotal.
+          discount = amount / 1.21;
+      }
+      
+      return discount;
+  };
+
+  const discountAmount = calculateDiscount();
+
+  const tax = (subtotal - discountAmount) * 0.21; // Tax on discounted items
   
   // Header logic: Total = (subtotal + shipping) * 1.21 for B2C (Inc VAT).
   // Subtotal here (from cartStore) is Ex-VAT.
@@ -138,11 +190,14 @@ export default function NewCheckoutPage() {
   // If B2C: Show Inc-VAT prices. Total = (Subtotal + Shipping) * 1.21.
   
   const total = isB2B 
-    ? subtotal + (shippingCost || 0) 
-    : (subtotal + (shippingCost || 0)) * 1.21;
+    ? (subtotal - discountAmount) + (shippingCost || 0)
+    : ((subtotal - discountAmount) + (shippingCost || 0)) * 1.21;
     
-  // Display Helpers
+  // Display Helpers -- Adjusted for discount
+  // Note: Discount is usually applied to item prices (subtotal).
+  
   const displaySubtotal = isB2B ? subtotal : subtotal * 1.21;
+  const displayDiscount = isB2B ? discountAmount : discountAmount * 1.21;
   const displayShipping = isB2B ? (shippingCost || 0) : (shippingCost || 0) * 1.21;
   const displayTax = isB2B ? 0 : tax; // Tax line is redundant in Inc-VAT view usually, or we show full tax breakdown?
   // Header shows: Totaal + (incl. BTW) label.
@@ -187,6 +242,9 @@ export default function NewCheckoutPage() {
              method_id: method.methodId,
              method_title: method.title,
              total: method.cost.toString()
+        }] : [],
+        coupon_lines: appliedCoupon ? [{
+            code: appliedCoupon.code
         }] : []
     };
 
@@ -461,6 +519,70 @@ export default function NewCheckoutPage() {
                         <span>Subtotaal</span>
                         <span className="font-medium text-gray-900">€ {displaySubtotal.toFixed(2).replace('.', ',')}</span>
                     </div>
+
+                    {/* Coupon Section */}
+                     <div className="border-b border-gray-100 pb-4 mb-2">
+                        {!appliedCoupon ? (
+                            <div className="mt-2">
+                                <button
+                                    onClick={() => setIsCouponOpen(!isCouponOpen)}
+                                    className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                                >
+                                    <Tag className="w-4 h-4" />
+                                    {isCouponOpen ? "Sluiten" : "Heb je een kortingscode?"}
+                                </button>
+                                
+                                {isCouponOpen && (
+                                    <div className="mt-3 animate-in slide-in-from-top-2 fade-in duration-200">
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={couponCode}
+                                                onChange={(e) => setCouponCode(e.target.value)}
+                                                placeholder="Code invullen"
+                                                className="input input-sm flex-1 bg-gray-50 border-gray-300 focus:border-blue-500 rounded-lg h-10"
+                                                onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
+                                            />
+                                            <button
+                                                onClick={handleApplyCoupon}
+                                                disabled={isCouponLoading || !couponCode}
+                                                className="btn btn-sm bg-gray-900 text-white border-none hover:bg-black h-10 px-4 rounded-lg"
+                                            >
+                                                {isCouponLoading ? <Loader2 className="w-4 h-4 animate-spin"/> : "Toepassen"}
+                                            </button>
+                                        </div>
+                                        {couponMessage && (
+                                            <p className={`text-xs mt-2 ${couponMessage.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
+                                                {couponMessage.text}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                             <div className="mt-2 bg-green-50 border border-green-100 rounded-lg p-3 flex justify-between items-center">
+                                 <div>
+                                    <div className="flex items-center gap-2 text-green-700 font-medium text-sm">
+                                        <Tag className="w-4 h-4" />
+                                        <span>Coupon: {appliedCoupon.code}</span>
+                                    </div>
+                                    <div className="text-xs text-green-600 mt-0.5">
+                                        {appliedCoupon.discount_type === 'percent' ? `${appliedCoupon.amount}% korting` : `€${appliedCoupon.amount} korting`}
+                                    </div>
+                                 </div>
+                                 <button onClick={removeCoupon} className="text-gray-400 hover:text-red-500 transition-colors p-1">
+                                    <X className="w-4 h-4" />
+                                 </button>
+                             </div>
+                        )}
+                    </div>
+
+                    {appliedCoupon && (
+                        <div className="flex justify-between text-base text-green-600 font-medium">
+                            <span>Korting</span>
+                            <span>- € {displayDiscount.toFixed(2).replace('.', ',')}</span>
+                        </div>
+                    )}
                     <div className="flex justify-between text-base text-gray-600">
                         <span>Verzending</span>
                         <span className="font-medium text-gray-900">
@@ -471,7 +593,7 @@ export default function NewCheckoutPage() {
                     <div className="flex justify-between text-base text-gray-600">
                         <span>BTW (21%)</span>
                          {/* Calculate actual tax amount for the whole order */}
-                        <span className="font-medium text-gray-900">€ {((subtotal + (shippingCost || 0)) * 0.21).toFixed(2).replace('.', ',')}</span>
+                        <span className="font-medium text-gray-900">€ {(((subtotal - discountAmount) + (shippingCost || 0)) * 0.21).toFixed(2).replace('.', ',')}</span>
                     </div>
                     <div className="pt-3 mt-3 border-t border-gray-100 flex justify-between items-center text-lg font-bold text-gray-900">
                         <span>Totaal <span className="text-xs font-normal text-gray-500">{taxLabel}</span></span>

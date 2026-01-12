@@ -177,4 +177,16 @@ export const fetchProductStock = async (id: number) => {
   }
 };
 
+export const getCouponByCode = async (code: string) => {
+  try {
+    const { data } = await api.get("coupons", {
+      params: { code: code },
+    });
+    return data && data.length > 0 ? data[0] : null;
+  } catch (error) {
+    console.error("Error fetching coupon:", error);
+    return null;
+  }
+};
+
 export default api;

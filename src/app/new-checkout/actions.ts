@@ -1,6 +1,6 @@
 "use server";
 
-import { getShippingSettings } from "@/lib/woocommerce";
+import { getShippingSettings, getCouponByCode } from "@/lib/woocommerce";
 import { createOrder } from "@/lib/woocommerce-order";
 import mollieClient from "@/lib/mollie";
 import { redirect } from "next/navigation";
@@ -17,9 +17,37 @@ export async function getShippingRatesAction() {
     }
 }
 
+export async function validateCouponAction(code: string) {
+    try {
+        const coupon = await getCouponByCode(code);
+
+        if (!coupon) {
+            return { success: false, message: "Invalid coupon code" };
+        }
+
+        // Basic validation: Check expiry
+        if (coupon.date_expires) {
+            const expiry = new Date(coupon.date_expires);
+            if (expiry < new Date()) {
+                return { success: false, message: "Coupon has expired" };
+            }
+        }
+
+        // Check usage limit if applicable (simple check, full check done by WP on order creation but good to fail early)
+        if (coupon.usage_limit > 0 && coupon.usage_count >= coupon.usage_limit) {
+            return { success: false, message: "Coupon usage limit reached" };
+        }
+
+        return { success: true, coupon };
+    } catch (error) {
+        console.error("Failed to validate coupon:", error);
+        return { success: false, message: "Error validating coupon" };
+    }
+}
+
 export async function placeOrderAction(data: any) {
     try {
-        const order = await createOrder(data.cart, data.billing, data.shipping_line);
+        const order = await createOrder(data.cart, data.billing, data.shipping_line, "mollie", "Mollie Payment", data.coupon_lines);
         if (order && order.id) {
             const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
             const isLocal = siteUrl.includes('localhost');

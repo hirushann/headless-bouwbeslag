@@ -992,49 +992,54 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                       }
                       
                       return (
-                        <div className="flex items-center gap-1.5 lg:gap-4">
+                        <div className="flex justify-evenly lg:justify-start items-center gap-1.5 lg:gap-4">
                           {finalPrice !== null && finalPrice !== undefined ? (
                             <>
                               <div className="flex items-baseline gap-1.5">
-                                <span className="text-xl md:text-2xl lg:text-3xl font-bold text-[#0066FF]">
-                                  {currency}
-                                  {finalPrice.toFixed(2).replace('.', ',')}
-                                </span>
-                                <span className="text-xs font-normal text-[#3D4752]">
-                                    {taxLabel}
-                                </span>
+                                <div className='flex flex-col lg:flex-row items-baseline gap-1.5'>
+                                  <span className="text-xl md:text-2xl lg:text-3xl font-bold text-[#0066FF]">
+                                    {currency}
+                                    {finalPrice.toFixed(2).replace('.', ',')}
+                                  </span>
+                                  <span className="text-xs font-normal text-[#3D4752]">
+                                      {taxLabel}
+                                  </span>
+                                </div>
                                 {packingType && (
                                   <span className="text-md font-normal text-[#3D4752]">
                                    per {packingType}
                                   </span>
                                 )}
                               </div>
-                              {advised !== null && sale !== null && discountPercent !== null && advised > sale ? (
-                                <div
-                                  className="tooltip tooltip-right"
-                                  // data-tip={`Discount from ${currency}${advised.toFixed(2)}`}
-                                  data-tip={`T.o.v. verkoopadviesprijs leverancier`}
-                                >
-                                  <button className="bg-[#FF5E00] px-[6px] lg:px-[12px] py-[2px] lg:py-[5px] rounded-sm text-white text-[12px] lg:text-[13px] font-bold cursor-pointer">
-                                    {discountPercent}% korting
+                              <div className='flex gap-1.5 lg:gap-4 flex-col lg:flex-row'>
+                                {advised !== null && sale !== null && discountPercent !== null && advised > sale ? (
+                                  <div
+                                    className="tooltip tooltip-right"
+                                    // data-tip={`Discount from ${currency}${advised.toFixed(2)}`}
+                                    data-tip={`T.o.v. verkoopadviesprijs leverancier`}
+                                  >
+                                    <button className="bg-[#FF5E00] px-[6px] lg:px-[12px] py-[2px] lg:py-[5px] rounded-sm text-white text-[12px] lg:text-[13px] font-bold cursor-pointer">
+                                      {discountPercent}% korting
+                                    </button>
+                                  </div>
+                                ) : null}
+
+                                {isCheapestPriceEnabled && (
+                                  <button
+                                    className='bg-[#5ca139] px-[6px] lg:px-[12px] py-[2px] lg:py-[5px] rounded-sm text-white text-[12px] lg:text-[13px] font-bold cursor-pointer'
+                                      onClick={() => {
+                                        if (vergelijkRef.current) {
+                                          vergelijkRef.current.open = true;
+                                          const yOffset = -280; // Increased offset to prevent header overlap
+                                          const y = vergelijkRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                                          window.scrollTo({ top: y, behavior: "smooth" });
+                                        }
+                                      }}
+                                  >
+                                    Laagste prijs garantie
                                   </button>
-                                </div>
-                              ) : null}
-                              {isCheapestPriceEnabled && (
-                                <button
-                                  className='bg-[#5ca139] px-[6px] lg:px-[12px] py-[2px] lg:py-[5px] rounded-sm text-white text-[12px] lg:text-[13px] font-bold cursor-pointer'
-                                    onClick={() => {
-                                      if (vergelijkRef.current) {
-                                        vergelijkRef.current.open = true;
-                                        const yOffset = -280; // Increased offset to prevent header overlap
-                                        const y = vergelijkRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
-                                        window.scrollTo({ top: y, behavior: "smooth" });
-                                      }
-                                    }}
-                                >
-                                  Laagste prijs garantie
-                                </button>
-                              )}
+                                )}
+                              </div>
                             </>
                           ) : (
                             advised !== null ? (
@@ -1194,7 +1199,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
 
                     {/* Quantity Selector and Add to Cart */}
                     <div className="flex flex-wrap lg:flex-nowrap items-center gap-4 mt-4 justify-between">
-                        <div className='w-6/12 lg:w-4/12 flex flex-col justify-center items-center'>
+                        <div className='w-5/12 lg:w-4/12 flex flex-col justify-center items-center'>
                             <div className='flex items-baseline'>
                                 <p className="text-2xl lg:text-3xl font-bold text-[#1C2530]">
                                     {isLoading ? "..." : `${currency}${totalPrice.toFixed(2)}`}
@@ -1210,11 +1215,11 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                             )}
                         </div>
 
-                        <div className="flex border border-[#EDEDED] shadow-xs rounded-sm overflow-hidden bg-white w-auto lg:w-3/12">
+                        <div className="flex border border-[#EDEDED] shadow-xs rounded-sm overflow-hidden bg-white w-auto">
                             <button
                               type="button"
                               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                              className="px-5 py-3 text-2xl cursor-pointer border-r border-[#EDEDED]"
+                              className="px-5 py-3 text-2xl cursor-pointer border-r border-[#EDEDED] min-w-[50px]"
                             >-</button>
                             <div className="px-6 py-2 text-base font-medium text-center min-w-[60px] flex items-center justify-center">
                                 {quantity.toString().padStart(1, '0')}
@@ -1230,11 +1235,11 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                                   return prev + 1;
                                 })
                               }
-                              className="flex justify-center px-5 py-3 text-2xl cursor-pointer border-l border-[#EDEDED]"
+                              className="flex justify-center px-5 py-3 text-2xl cursor-pointer border-l border-[#EDEDED] min-w-[50px]"
                             >+</button>
                         </div>
 
-                        <div className='w-full lg:w-6/12' ref={addToCartRef}>
+                        <div className='w-full lg:w-5/12' ref={addToCartRef}>
                           <div className="relative group">
                             <button
                               type="button"
