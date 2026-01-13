@@ -963,22 +963,22 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                       }
 
                       // 2. Get Sales Price (B2B or B2C)
-                      // Default to standard product.price
-                      let sale = product.price ? parseFloat(product.price) : null; 
+                      // 2. Get Sales Price (B2B or B2C)
+                      let sale = 0;
                       
-                      // Override with ACF if available
-                      const startKey = isB2B ? b2bKey : b2cKey;
-                      const acfPriceRaw = getMeta(startKey);
-                      if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
-                          sale = parseFloat(acfPriceRaw);
-                      } else if (isB2B) {
-                         // Fallback for B2B: if B2B price missing, check B2C? Or keep standard?
-                         // Let's check B2C as secondary fallback if B2B is empty, or just keep standard.
-                         // Often B2B price might be missing if same as B2C.
-                         const b2cFallback = getMeta(b2cKey);
-                         if (b2cFallback && !isNaN(parseFloat(b2cFallback))) {
-                             sale = parseFloat(b2cFallback);
-                         }
+                      if (isB2B) {
+                          if (product.regular_price) {
+                              sale = parseFloat(product.regular_price);
+                          } else if (product.price) {
+                              sale = parseFloat(product.price);
+                          }
+                      } else {
+                          // B2C: Standard Product Price or ACF override
+                          sale = product.price ? parseFloat(product.price) : 0; 
+                          const acfPriceRaw = getMeta(b2cKey);
+                          if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
+                              sale = parseFloat(acfPriceRaw);
+                          }
                       }
                       
                       const currency = product.currency_symbol || "€";
@@ -2254,15 +2254,20 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                           const b2bKey = "crucial_data_b2b_and_b2c_sales_price_b2b";
                           const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
                           
-                          let sale = product.price ? parseFloat(product.price) : null;
-                          const targetKey = isB2B ? b2bKey : b2cKey;
-                          const acfPriceRaw = getMeta(targetKey);
-                          if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
-                              sale = parseFloat(acfPriceRaw);
-                          } else if (isB2B) {
-                              // Fallback
-                              const b2cFallback = getMeta(b2cKey);
-                              if (b2cFallback && !isNaN(parseFloat(b2cFallback))) sale = parseFloat(b2cFallback);
+                          let sale = 0;
+                          
+                          if (isB2B) {
+                              if (product.regular_price) {
+                                  sale = parseFloat(product.regular_price);
+                              } else if (product.price) {
+                                  sale = parseFloat(product.price);
+                              }
+                          } else {
+                              sale = product.price ? parseFloat(product.price) : 0;
+                              const acfPriceRaw = getMeta(b2cKey);
+                              if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
+                                  sale = parseFloat(acfPriceRaw);
+                              }
                           }
 
                           const advisedRaw = getMeta("crucial_data_unit_price");
