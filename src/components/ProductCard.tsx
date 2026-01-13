@@ -87,10 +87,13 @@ export default function ProductCard({ product, userRole: propUserRole }: { produ
 
   const [isAdding, setIsAdding] = useState(false);
 
+  // Title logic
+  const productTitle = product?.meta_data?.find((m: any) => m.key === "description_bouwbeslag_title")?.value || product?.name || "Untitled Product";
+
   return (
     <div className="snap-start shrink-0 w-[100%] border border-[#E2E2E2] rounded-sm shadow-sm bg-[#F7F7F7] flex flex-col h-full">
       <Link href={`/${product.slug}`} className="relative h-32 lg:h-48 bg-white rounded-tl-lg rounded-tr-lg overflow-hidden">
-        <Image src={imgSrc} alt={product.name || "Product image"} fill className="object-contain"/>
+        <Image src={imgSrc} alt={productTitle} fill className="object-contain"/>
 
         {/* Dynamic stock badge */}
         {/* {product.stock_status === "instock" ? (
@@ -101,8 +104,8 @@ export default function ProductCard({ product, userRole: propUserRole }: { produ
       </Link>
 
       <div className="p-2 lg:p-4 flex flex-col flex-1">
-        <Link href={`/${product.slug}`} className="text-base lg:text-lg font-medium mb-1 line-clamp-2 text-[#1C2530]">
-          {product.name || "Untitled Product"}
+        <Link href={`/${product.slug}`} className="text-base lg:text-lg font-medium mb-1 line-clamp-3 text-[#1C2530]">
+          {productTitle}
         </Link>
 
         {/* Brand / first attribute */}
@@ -134,9 +137,9 @@ export default function ProductCard({ product, userRole: propUserRole }: { produ
           )}
         </div>
 
-        <span className="text-xs text-[#B7B7B7] mb-3 font-normal">
+        {/* <span className="text-xs text-[#B7B7B7] mb-3 font-normal">
           {product.type?.toUpperCase() || "SET"}
-        </span>
+        </span> */}
 
         <button
           disabled={isAdding}

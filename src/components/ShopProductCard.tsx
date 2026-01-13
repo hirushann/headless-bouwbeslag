@@ -29,12 +29,15 @@ export default function ShopProductCard({ product }: { product: any }) {
 
   // console.log("Rendering ProductCard:", product.name, "ID:", product.id);
 
+  // Title logic
+  const productTitle = product?.meta_data?.find((m: any) => m.key === "description_bouwbeslag_title")?.value || product?.name || "Untitled Product";
+
   const [isAdding, setIsAdding] = useState(false);
 
   return (
     <div className="snap-start shrink-0 w-[100%] border border-[#E2E2E2] rounded-lg shadow-sm bg-[#F7F7F7] flex flex-col h-full">
         <Link href={`/${product.slug}`} className="relative h-32 lg:h-48 bg-white rounded-tl-lg rounded-tr-lg overflow-hidden">
-            <Image src={fixImageSrc(product.images?.[0]?.src)} alt={product.name || "Product image"} fill className="object-contain"/>
+            <Image src={fixImageSrc(product.images?.[0]?.src)} alt={productTitle} fill className="object-contain"/>
 
             {/* Dynamic stock badge */}
             {/* {product.stock_status === "instock" ? (
@@ -46,7 +49,7 @@ export default function ShopProductCard({ product }: { product: any }) {
 
       <div className="p-2 lg:p-4 flex flex-col flex-1">
         <Link href={`/${product.slug}`} className="text-base lg:text-lg font-medium mb-1 line-clamp-3 text-[#1C2530]">
-          {product.name || "Untitled Product"}
+          {productTitle}
         </Link>
 
       <div className="flex flex-col mb-2">

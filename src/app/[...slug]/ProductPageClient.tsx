@@ -1203,10 +1203,10 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                     </div>
 
                     {/* Quantity Selector and Add to Cart */}
-                    <div className="flex flex-wrap lg:flex-nowrap items-center gap-4 mt-4 justify-between">
+                    <div className="flex flex-wrap lg:flex-nowrap items-center gap-3 lg:gap-4 mt-4 justify-between">
                         <div className='w-5/12 lg:w-4/12 flex flex-col justify-center items-center'>
                             <div className='flex items-baseline'>
-                                <p className="text-2xl lg:text-3xl font-bold text-[#1C2530]">
+                                <p className="text-xl lg:text-3xl font-bold text-[#1C2530]">
                                     {isLoading ? "..." : `${currency}${totalPrice.toFixed(2)}`}
                                 </p>
                                 <span className="text-xs text-gray-500 font-normal ml-2">
@@ -1551,7 +1551,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                                         <p className='text-[#3D4752] font-normal text-base'>
                                           Wij beloven je dat je dit artikel elders niet goedkoper tegenkomt. Is dat wel zo? Dan matchen wij de prijs én geven je nog eens 10% extra korting op de prijs van de concurrent. 
                                           <a 
-                                            className='text-[#0066FF] font-bold mx-1.5' 
+                                            className='text-[#0066FF] font-bold mx-1.5' rel='nofollow'
                                             href={`/laagste-prijs-garantie?product=${encodeURIComponent(currentUrl)}`}
                                           >
                                              Meld hier 

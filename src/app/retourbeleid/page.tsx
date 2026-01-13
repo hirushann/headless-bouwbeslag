@@ -83,7 +83,7 @@ export default function ReturnPolicyPage() {
           U bent verantwoordelijk voor de kosten en het risico van het retourneren van de goederen naar ons. U dient de goederen naar het volgende adres te sturen:
         </p>
         <p className="mb-4">
-          [Fysiek adres vereist]
+          Oenerweg 30, 8181RJ Heerde
         </p>
         <p className="mb-4">
           Wij kunnen niet verantwoordelijk worden gehouden voor goederen die beschadigd of verloren zijn gegaan tijdens de retourzending. Daarom raden wij een verzekerde en traceerbare postservice aan. Wij kunnen geen restitutie verlenen zonder daadwerkelijke ontvangst van de goederen of bewijs van ontvangen retourlevering.

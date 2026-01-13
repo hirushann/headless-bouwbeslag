@@ -6,6 +6,8 @@ import { getShippingRatesAction, placeOrderAction, validateCouponAction, checkPo
 import { useCartStore } from "@/lib/cartStore";
 import { useRouter } from "next/navigation";
 import { useUserContext } from "@/context/UserContext";
+import toast from "react-hot-toast";
+import Link from "next/link";
 
 export default function NewCheckoutPage() {
   const router = useRouter();
@@ -33,6 +35,7 @@ export default function NewCheckoutPage() {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
+    companyName: "",
     country: "Netherlands",
     street: "",
     houseNumber: "", // New field
@@ -45,6 +48,7 @@ export default function NewCheckoutPage() {
   
   const [isCheckingPostcode, setIsCheckingPostcode] = useState(false);
   const [postcodeError, setPostcodeError] = useState<string | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Address lookup effect
   useEffect(() => {
@@ -281,13 +285,19 @@ export default function NewCheckoutPage() {
   };
 
   const handlePlaceOrder = async () => {
+    // Validate Terms
+    if (!termsAccepted) {
+        toast.error("Je moet akkoord gaan met de algemene voorwaarden om door te gaan.");
+        return;
+    }
+
     setIsLoading(true);
     
     // Construct billing object for WooCommerce
     const billingData = {
         first_name: formData.firstName,
         last_name: formData.lastName,
-
+        company: formData.companyName,
         address_1: `${formData.street} ${formData.houseNumber}`,
         address_2: formData.apartment,
         city: formData.city,
@@ -401,6 +411,12 @@ export default function NewCheckoutPage() {
                       </div>
                     </div>
 
+                      {/* Company Name (Optional) */}
+                      <div className="form-control">
+                        <label className={labelParams}>Bedrijfsnaam (optioneel)</label>
+                        <input type="text" className={inputParams} value={formData.companyName} onChange={(e) => handleInputChange("companyName", e.target.value)} />
+                      </div>
+
                      {/* Country */}
                      <div className="form-control">
                         <label className={labelParams}>Land <span className="text-red-500">*</span></label>
@@ -477,7 +493,7 @@ export default function NewCheckoutPage() {
                       <input type="tel" className={inputParams} value={formData.phone} onChange={(e) => handleInputChange("phone", e.target.value)} />
                     </div>
                     <div className="form-control">
-                      <label className={labelParams}>Email adres <span className="text-red-500">*</span></label>
+                      <label className={labelParams}>E-mail adres <span className="text-red-500">*</span></label>
                       <input type="email" className={inputParams} value={formData.email} onChange={(e) => handleInputChange("email", e.target.value)} />
                     </div>
                   </div>
@@ -577,6 +593,20 @@ export default function NewCheckoutPage() {
                         <p className="font-semibold">Betaling</p>
                         <p className="text-sm">Betalen met iDEAL, Credit Card, Bancontact, en meer via Mollie.</p>
                     </div>
+
+                     <div className="flex items-center mb-6 px-1">
+                        <input 
+                            type="checkbox" 
+                            id="terms" 
+                            checked={termsAccepted} 
+                            onChange={(e) => setTermsAccepted(e.target.checked)} 
+                            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                        />
+                        <label htmlFor="terms" className="ml-3 text-sm text-gray-700 cursor-pointer select-none">
+                            Ik ga akkoord met de <a href="/algemene-voorwaarden" target="_blank" className="text-blue-600 hover:text-blue-800 underline">algemene voorwaarden</a>
+                        </label>
+                     </div>
+
                      <button 
                         onClick={handlePlaceOrder}
                         disabled={isLoading}
@@ -608,12 +638,24 @@ export default function NewCheckoutPage() {
                   {/* Real Cart Items */}
                   {cartItems.map((item, index) => (
                     <div key={index} className="flex gap-4 p-4 border border-gray-100 rounded-lg bg-gray-50/50">
-                        <div className="w-16 h-16 bg-white rounded-md border border-gray-200 flex items-center justify-center flex-shrink-0">
-                             {item.image ? <img src={item.image} alt={item.name} className="w-full h-full object-cover rounded-md" /> : <Package className="w-8 h-8 text-gray-300" />}
+                        <div className="w-16 h-16 bg-white rounded-md border border-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+                             {item.slug ? (
+                                <Link href={`/${item.slug}`} className="block w-full h-full">
+                                    {item.image ? <img src={item.image} alt={item.name} className="w-full h-full object-cover rounded-md" /> : <Package className="w-8 h-8 text-gray-300 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />}
+                                </Link>
+                             ) : (
+                                item.image ? <img src={item.image} alt={item.name} className="w-full h-full object-cover rounded-md" /> : <Package className="w-8 h-8 text-gray-300" />
+                             )}
                         </div>
                         <div className="flex-1 flex justify-between">
                             <div>
-                                <h4 className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</h4>
+                                {item.slug ? (
+                                    <Link href={`/${item.slug}`} className="hover:text-blue-600 transition-colors">
+                                        <h4 className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</h4>
+                                    </Link>
+                                ) : (
+                                    <h4 className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</h4>
+                                )}
                                 <p className="text-sm text-gray-500 mt-1">× {item.quantity}</p>
                             </div>
                             <span className="text-sm font-medium text-gray-900 whitespace-nowrap ml-2">€ {(isB2B ? item.price : item.price * 1.21).toFixed(2).replace('.', ',')}</span>

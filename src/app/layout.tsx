@@ -112,10 +112,10 @@ export default async function RootLayout({
                   <p className="text-white font-bold text-xl mb-5">Handige links</p>
                   <ul className="text-[#C4C4C4] text-base font-normal flex flex-col gap-3">
                     <li>
-                      <Link href="/terms-and-conditions">Algemene Voorwaarden</Link>
+                      <Link href="/algemene-voorwaarden">Algemene Voorwaarden</Link>
                     </li>
                     <li>
-                      <Link href="/return-policy">Retourbeleid</Link>
+                      <Link href="/retourbeleid">Retourbeleid</Link>
                     </li>
                     <li>
                       <Link href="/privacy-policy">Privacybeleid</Link>

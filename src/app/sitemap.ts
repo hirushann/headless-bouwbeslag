@@ -7,15 +7,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const staticPages = [
     { url: `${baseUrl}/`, lastModified: new Date() },
-    { url: `${baseUrl}/products`, lastModified: new Date() },
+    // { url: `${baseUrl}/products`, lastModified: new Date() },
     { url: `${baseUrl}/contact`, lastModified: new Date() },
     { url: `${baseUrl}/garantie-aanvraag`, lastModified: new Date() },
     { url: `${baseUrl}/hulp`, lastModified: new Date() },
     { url: `${baseUrl}/kennisbank`, lastModified: new Date() },
     { url: `${baseUrl}/laagste-prijs-garantie`, lastModified: new Date() },
     { url: `${baseUrl}/privacy-policy`, lastModified: new Date() },
-    { url: `${baseUrl}/return-policy`, lastModified: new Date() },
-    { url: `${baseUrl}/terms-and-conditions`, lastModified: new Date() },
+    { url: `${baseUrl}/retourbeleid`, lastModified: new Date() },
+    { url: `${baseUrl}/algemene-voorwaarden`, lastModified: new Date() },
     { url: `${baseUrl}/zakelijk-aanmelden`, lastModified: new Date() },
   ];
 
