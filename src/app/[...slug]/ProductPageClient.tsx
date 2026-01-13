@@ -110,18 +110,23 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
   
   // Dynamic Price Logic
   const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
-  const b2bKey = "crucial_data_b2b_and_b2c_sales_price_b2b";
-  const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
+
+  let sale = 0;
   
-  let sale = product.price ? parseFloat(product.price) : 0;
-  const targetKey = isB2B ? b2bKey : b2cKey;
-  const acfPriceRaw = getMeta(targetKey);
-  if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
-      sale = parseFloat(acfPriceRaw);
-  } else if (isB2B) {
-      // Fallback
-      const b2cFallback = getMeta(b2cKey);
-      if (b2cFallback && !isNaN(parseFloat(b2cFallback))) sale = parseFloat(b2cFallback);
+  if (isB2B) {
+      if (product.regular_price) {
+          sale = parseFloat(product.regular_price);
+      } else if (product.price) {
+          sale = parseFloat(product.price);
+      }
+  } else {
+      // B2C Logic
+      sale = product.price ? parseFloat(product.price) : 0;
+      const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
+      const acfPriceRaw = getMeta(b2cKey);
+      if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
+          sale = parseFloat(acfPriceRaw);
+      }
   }
 
   const advisedRaw = getMeta("crucial_data_unit_price");

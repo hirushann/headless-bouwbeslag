@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { ChevronRight, CreditCard, Package, ShieldCheck, Truck, Check, Loader2, Tag, X } from "lucide-react";
-import { getShippingRatesAction, placeOrderAction, validateCouponAction } from "./actions";
+import { getShippingRatesAction, placeOrderAction, validateCouponAction, checkPostcodeAction } from "./actions";
 import { useCartStore } from "@/lib/cartStore";
 import { useRouter } from "next/navigation";
 import { useUserContext } from "@/context/UserContext";
@@ -33,14 +33,59 @@ export default function NewCheckoutPage() {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
-    country: "",
+    country: "Netherlands",
     street: "",
+    houseNumber: "", // New field
     apartment: "",
     postcode: "",
     city: "",
     phone: "",
     email: ""
   });
+  
+  const [isCheckingPostcode, setIsCheckingPostcode] = useState(false);
+  const [postcodeError, setPostcodeError] = useState<string | null>(null);
+
+  // Address lookup effect
+  useEffect(() => {
+    const checkAddress = async () => {
+        const { postcode, houseNumber, country } = formData;
+        
+        if (country === 'Netherlands' && postcode.length >= 6 && houseNumber) {
+            setIsCheckingPostcode(true);
+            setPostcodeError(null);
+            
+            // Clean postcode
+            const cleanPostcode = postcode.replace(/\s/g, '');
+            
+            const result = await checkPostcodeAction(cleanPostcode, houseNumber);
+            
+            if (result.success && result.data) {
+                setFormData(prev => ({
+                    ...prev,
+                    street: result.data.street || prev.street, // Fallback if API doesn't return street (unlikely)
+                    city: result.data.city || prev.city
+                }));
+            } else {
+                setPostcodeError(result.message || "Adres niet gevonden");
+                // Optional: clear street/city or let user edit?
+                // For now, let's clear them to avoid confusion, or keep them if user typed something?
+                // Let's clear to force correct data, but enable editing if needed.
+                setFormData(prev => ({ ...prev, street: "", city: "" })); 
+            }
+            setIsCheckingPostcode(false);
+        }
+    };
+    
+    // Debounce or just check when both are present?
+    // Let's use a timeout debounce to avoid too many calls while typing
+    const timeoutId = setTimeout(() => {
+        checkAddress();
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+
+  }, [formData.postcode, formData.houseNumber, formData.country]);
 
   // Coupon State
   const [couponCode, setCouponCode] = useState("");
@@ -242,7 +287,8 @@ export default function NewCheckoutPage() {
     const billingData = {
         first_name: formData.firstName,
         last_name: formData.lastName,
-        address_1: formData.street,
+
+        address_1: `${formData.street} ${formData.houseNumber}`,
         address_2: formData.apartment,
         city: formData.city,
         state: "", // Add state if needed
@@ -367,20 +413,62 @@ export default function NewCheckoutPage() {
                      </div>
 
                     {/* Street Address */}
-                    <div className="form-control">
-                        <label className={labelParams}>Straat en huisnummer <span className="text-red-500">*</span></label>
-                        <input type="text" placeholder="Huisnummer en straatnaam" className={`${inputParams} mb-3`} value={formData.street} onChange={(e) => handleInputChange("street", e.target.value)} />
-                        <input type="text" placeholder="Appartement, suite, unit, enz. (optioneel)" className={inputParams} value={formData.apartment} onChange={(e) => handleInputChange("apartment", e.target.value)} />
+                    {/* Postcode & House Number */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                         <div className="form-control">
+                            <label className={labelParams}>Postcode <span className="text-red-500">*</span></label>
+                            <input 
+                                type="text" 
+                                className={inputParams} 
+                                value={formData.postcode} 
+                                onChange={(e) => handleInputChange("postcode", e.target.value)} 
+                                placeholder="1234AB"
+                                maxLength={6}
+                            />
+                        </div>
+                         <div className="form-control">
+                            <label className={labelParams}>Huisnummer <span className="text-red-500">*</span></label>
+                            <input 
+                                type="text" 
+                                className={inputParams} 
+                                value={formData.houseNumber} 
+                                onChange={(e) => handleInputChange("houseNumber", e.target.value)} 
+                                placeholder="10"
+                            />
+                        </div>
+                    </div>
+                    
+                    {/* PC Check Feedback */}
+                     {isCheckingPostcode && <p className="text-sm text-blue-500">Adres controleren...</p>}
+                     {postcodeError && <p className="text-sm text-red-500">{postcodeError} - Vul adres handmatig in indien nodig.</p>}
+
+                     {/* Street & City (Auto-filled but editable if needed) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                       <div className="form-control">
+                            <label className={labelParams}>Straat <span className="text-red-500">*</span></label>
+                            <input 
+                                type="text" 
+                                className={`${inputParams} ${formData.country === 'Netherlands' ? 'bg-gray-50' : ''}`} // Visual cue
+                                value={formData.street} 
+                                onChange={(e) => handleInputChange("street", e.target.value)} 
+                                // readOnly={formData.country === 'Netherlands' && !postcodeError}
+                            />
+                        </div>
+                         <div className="form-control">
+                            <label className={labelParams}>Plaats <span className="text-red-500">*</span></label>
+                            <input 
+                                type="text" 
+                                className={`${inputParams} ${formData.country === 'Netherlands' ? 'bg-gray-50' : ''}`}
+                                value={formData.city} 
+                                onChange={(e) => handleInputChange("city", e.target.value)} 
+                                // readOnly={formData.country === 'Netherlands' && !postcodeError}
+                            />
+                        </div>
                     </div>
 
-                    {/* Postcode & City */}
                     <div className="form-control">
-                        <label className={labelParams}>Postcode <span className="text-red-500">*</span></label>
-                        <input type="text" className={inputParams} value={formData.postcode} onChange={(e) => handleInputChange("postcode", e.target.value)} />
-                    </div>
-                     <div className="form-control">
-                        <label className={labelParams}>Plaats <span className="text-red-500">*</span></label>
-                        <input type="text" className={inputParams} value={formData.city} onChange={(e) => handleInputChange("city", e.target.value)} />
+                        <label className={labelParams}>Appartement, suite, unit, enz. (optioneel)</label>
+                         <input type="text" className={inputParams} value={formData.apartment} onChange={(e) => handleInputChange("apartment", e.target.value)} />
                     </div>
 
                     {/* Phone & Email */}

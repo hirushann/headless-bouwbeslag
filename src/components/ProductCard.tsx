@@ -34,23 +34,29 @@ export default function ProductCard({ product, userRole: propUserRole }: { produ
     price?.replace(/&#[0-9]+;|&[a-z]+;/gi, "").trim();
 
   // Dynamic Price Logic
+  // Dynamic Price Logic
   const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
   const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
-  const b2bKey = "crucial_data_b2b_and_b2c_sales_price_b2b";
   const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
-  
+
   // Default to standard product.price
-  let sale = product.price ? parseFloat(product.price) : null;
-  const startKey = isB2B ? b2bKey : b2cKey;
-  const acfPriceRaw = getMeta(startKey);
-  
-  if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
-      sale = parseFloat(acfPriceRaw);
-  } else if (isB2B) {
-     const b2cFallback = getMeta(b2cKey);
-     if (b2cFallback && !isNaN(parseFloat(b2cFallback))) {
-         sale = parseFloat(b2cFallback);
-     }
+  let sale = null;
+
+  if (isB2B) {
+       // B2B: Use regular_price (Ex-VAT) directly
+       if (product.regular_price) {
+           sale = parseFloat(product.regular_price);
+       } else if (product.price) {
+           sale = parseFloat(product.price);
+       }
+  } else {
+       // B2C logic
+       sale = product.price ? parseFloat(product.price) : null;
+       const acfPriceRaw = getMeta(b2cKey);
+       
+       if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
+          sale = parseFloat(acfPriceRaw);
+       }
   }
 
   // Use this calculated 'sale' price for everything

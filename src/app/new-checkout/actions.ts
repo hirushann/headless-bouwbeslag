@@ -152,3 +152,34 @@ export async function placeOrderAction(data: any) {
         return { success: false, message: error.message || "An unexpected error occurred" };
     }
 }
+
+import axios from "axios";
+
+export async function checkPostcodeAction(postcode: string, number: string) {
+    try {
+        console.log(`Checking postcode with Axios: ${postcode}, number: ${number}`);
+
+        const config = {
+            method: 'get',
+            maxBodyLength: Infinity,
+            url: `https://postcode.tech/api/v1/postcode/full?postcode=${postcode}&number=${number}`,
+            headers: {
+                'Authorization': 'Bearer 835ceb49-49af-4ed2-82a9-409ff9f7248d'
+            }
+        };
+
+        const response = await axios.request(config);
+
+        return { success: true, data: response.data };
+    } catch (error: any) {
+        console.error("Failed to check postcode (Axios):", error.message);
+        if (error.response) {
+            console.error("Error response status:", error.response.status);
+            console.error("Error response data:", JSON.stringify(error.response.data));
+            if (error.response.status === 404) {
+                return { success: false, message: "Address not found" };
+            }
+        }
+        return { success: false, message: error.message };
+    }
+}
