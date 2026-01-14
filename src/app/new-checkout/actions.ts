@@ -114,6 +114,23 @@ export async function validateCouponAction(
     }
 }
 
+export async function getPaymentMethodsAction() {
+    try {
+        const methods = await mollieClient.methods.list();
+        // Map to serializable object
+        const serializableMethods = methods.map((m: any) => ({
+            id: m.id,
+            description: m.description,
+            image: m.image
+        }));
+        return { success: true, methods: serializableMethods };
+    } catch (error) {
+        console.error("Failed to fetch payment methods:", error);
+        // Fallback to empty list, UI handles it
+        return { success: false, methods: [] };
+    }
+}
+
 export async function placeOrderAction(data: any) {
     try {
         const order = await createOrder(data.cart, data.billing, data.shipping_line, "mollie", "Mollie Payment", data.coupon_lines);
@@ -137,6 +154,7 @@ export async function placeOrderAction(data: any) {
                 metadata: {
                     order_id: order.id,
                 },
+                method: data.mollie_method_id, // Pass selected method to Mollie
             });
 
             if (payment && payment._links.checkout) {

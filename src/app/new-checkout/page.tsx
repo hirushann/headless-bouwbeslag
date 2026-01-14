@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { ChevronRight, CreditCard, Package, ShieldCheck, Truck, Check, Loader2, Tag, X } from "lucide-react";
-import { getShippingRatesAction, placeOrderAction, validateCouponAction, checkPostcodeAction } from "./actions";
+import { getShippingRatesAction, placeOrderAction, validateCouponAction, checkPostcodeAction, getPaymentMethodsAction } from "./actions";
 import { useCartStore } from "@/lib/cartStore";
 import { useRouter } from "next/navigation";
 import { useUserContext } from "@/context/UserContext";
@@ -17,6 +17,9 @@ export default function NewCheckoutPage() {
   const [availableMethods, setAvailableMethods] = useState<any[]>([]); // Should use ShippingMethod interface
   const [selectedMethodId, setSelectedMethodId] = useState<number | null>(null);
   const [shippingCost, setShippingCost] = useState<number | null>(null);
+  
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
 
   const { userRole } = useUserContext();
   const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
@@ -45,6 +48,8 @@ export default function NewCheckoutPage() {
     phone: "",
     email: ""
   });
+
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   
   const [isCheckingPostcode, setIsCheckingPostcode] = useState(false);
   const [postcodeError, setPostcodeError] = useState<string | null>(null);
@@ -70,6 +75,13 @@ export default function NewCheckoutPage() {
                     street: result.data.street || prev.street, // Fallback if API doesn't return street (unlikely)
                     city: result.data.city || prev.city
                 }));
+                // Clear errors for street and city if populated
+                setFormErrors(prev => {
+                    const newErrors = { ...prev };
+                    if (result.data.street) delete newErrors.street;
+                    if (result.data.city) delete newErrors.city;
+                    return newErrors;
+                });
             } else {
                 setPostcodeError(result.message || "Adres niet gevonden");
                 // Optional: clear street/city or let user edit?
@@ -111,6 +123,14 @@ export default function NewCheckoutPage() {
       }
     };
     fetchRates();
+
+    const fetchPaymentMethods = async () => {
+        const result = await getPaymentMethodsAction();
+        if (result.success && result.methods) {
+            setPaymentMethods(result.methods);
+        }
+    };
+    fetchPaymentMethods();
   }, []);
 
   useEffect(() => {
@@ -275,7 +295,31 @@ export default function NewCheckoutPage() {
   const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
 
   const nextStep = () => {
+    if (currentStep === 1) {
+        if (!validateStep1()) return;
+    }
     setCurrentStep((prev) => Math.min(prev + 1, 3));
+  };
+
+  const validateStep1 = () => {
+    const errors: Record<string, string> = {};
+    const { firstName, lastName, country, street, houseNumber, postcode, city, email } = formData;
+
+    if (!firstName.trim()) errors.firstName = "Voornaam is verplicht";
+    if (!lastName.trim()) errors.lastName = "Achternaam is verplicht";
+    if (!country) errors.country = "Land is verplicht";
+    if (!postcode.trim()) errors.postcode = "Postcode is verplicht";
+    if (!houseNumber.trim()) errors.houseNumber = "Huisnummer is verplicht";
+    if (!street.trim()) errors.street = "Straat is verplicht";
+    if (!city.trim()) errors.city = "Plaats is verplicht";
+    if (!email.trim()) {
+        errors.email = "E-mail adres is verplicht";
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+        errors.email = "Ongeldig e-mail adres";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const goToStep = (step: number) => {
@@ -322,7 +366,8 @@ export default function NewCheckoutPage() {
         }] : [],
         coupon_lines: appliedCoupon ? [{
             code: appliedCoupon.code
-        }] : []
+        }] : [],
+        mollie_method_id: selectedPaymentMethod // Pass selected method
     };
 
     const result = await placeOrderAction(orderData);
@@ -350,6 +395,14 @@ export default function NewCheckoutPage() {
   // Helper to handle input changes
   const handleInputChange = (field: string, value: string) => {
       setFormData(prev => ({ ...prev, [field]: value }));
+      // Clear error when user types
+      if (formErrors[field]) {
+          setFormErrors(prev => {
+              const newErrors = { ...prev };
+              delete newErrors[field];
+              return newErrors;
+          });
+      }
   };
 
   if (!isHydrated) {
@@ -403,11 +456,13 @@ export default function NewCheckoutPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div className="form-control">
                         <label className={labelParams}>Voornaam <span className="text-red-500">*</span></label>
-                        <input type="text" className={inputParams} value={formData.firstName} onChange={(e) => handleInputChange("firstName", e.target.value)} />
+                        <input type="text" className={`${inputParams} ${formErrors.firstName ? 'border-red-500 ring-1 ring-red-500' : ''}`} value={formData.firstName} onChange={(e) => handleInputChange("firstName", e.target.value)} />
+                        {formErrors.firstName && <p className="text-red-500 text-sm mt-1">{formErrors.firstName}</p>}
                       </div>
                       <div className="form-control">
                         <label className={labelParams}>Achternaam <span className="text-red-500">*</span></label>
-                        <input type="text" className={inputParams} value={formData.lastName} onChange={(e) => handleInputChange("lastName", e.target.value)} />
+                        <input type="text" className={`${inputParams} ${formErrors.lastName ? 'border-red-500 ring-1 ring-red-500' : ''}`} value={formData.lastName} onChange={(e) => handleInputChange("lastName", e.target.value)} />
+                        {formErrors.lastName && <p className="text-red-500 text-sm mt-1">{formErrors.lastName}</p>}
                       </div>
                     </div>
 
@@ -420,12 +475,13 @@ export default function NewCheckoutPage() {
                      {/* Country */}
                      <div className="form-control">
                         <label className={labelParams}>Land <span className="text-red-500">*</span></label>
-                        <select className={`select w-full bg-gray-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all rounded-lg h-12 font-normal text-base`} value={formData.country} onChange={(e) => handleInputChange("country", e.target.value)}>
+                        <select className={`select w-full bg-gray-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all rounded-lg h-12 font-normal text-base ${formErrors.country ? 'border-red-500 ring-1 ring-red-500' : ''}`} value={formData.country} onChange={(e) => handleInputChange("country", e.target.value)}>
                             <option disabled>Selecteer een land...</option>
                             <option>Netherlands</option>
                             <option>Belgium</option>
                             <option>Germany</option>
                         </select>
+                        {formErrors.country && <p className="text-red-500 text-sm mt-1">{formErrors.country}</p>}
                      </div>
 
                     {/* Street Address */}
@@ -435,22 +491,24 @@ export default function NewCheckoutPage() {
                             <label className={labelParams}>Postcode <span className="text-red-500">*</span></label>
                             <input 
                                 type="text" 
-                                className={inputParams} 
+                                className={`${inputParams} ${formErrors.postcode ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                                 value={formData.postcode} 
                                 onChange={(e) => handleInputChange("postcode", e.target.value)} 
                                 placeholder="1234AB"
                                 maxLength={6}
                             />
+                            {formErrors.postcode && <p className="text-red-500 text-sm mt-1">{formErrors.postcode}</p>}
                         </div>
                          <div className="form-control">
                             <label className={labelParams}>Huisnummer <span className="text-red-500">*</span></label>
                             <input 
                                 type="text" 
-                                className={inputParams} 
+                                className={`${inputParams} ${formErrors.houseNumber ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                                 value={formData.houseNumber} 
                                 onChange={(e) => handleInputChange("houseNumber", e.target.value)} 
                                 placeholder="10"
                             />
+                            {formErrors.houseNumber && <p className="text-red-500 text-sm mt-1">{formErrors.houseNumber}</p>}
                         </div>
                     </div>
                     
@@ -464,21 +522,23 @@ export default function NewCheckoutPage() {
                             <label className={labelParams}>Straat <span className="text-red-500">*</span></label>
                             <input 
                                 type="text" 
-                                className={`${inputParams} ${formData.country === 'Netherlands' ? 'bg-gray-50' : ''}`} // Visual cue
+                                className={`${inputParams} ${formData.country === 'Netherlands' ? 'bg-gray-50' : ''} ${formErrors.street ? 'border-red-500 ring-1 ring-red-500' : ''}`} // Visual cue
                                 value={formData.street} 
                                 onChange={(e) => handleInputChange("street", e.target.value)} 
                                 // readOnly={formData.country === 'Netherlands' && !postcodeError}
                             />
+                            {formErrors.street && <p className="text-red-500 text-sm mt-1">{formErrors.street}</p>}
                         </div>
                          <div className="form-control">
                             <label className={labelParams}>Plaats <span className="text-red-500">*</span></label>
                             <input 
                                 type="text" 
-                                className={`${inputParams} ${formData.country === 'Netherlands' ? 'bg-gray-50' : ''}`}
+                                className={`${inputParams} ${formData.country === 'Netherlands' ? 'bg-gray-50' : ''} ${formErrors.city ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                                 value={formData.city} 
                                 onChange={(e) => handleInputChange("city", e.target.value)} 
                                 // readOnly={formData.country === 'Netherlands' && !postcodeError}
                             />
+                            {formErrors.city && <p className="text-red-500 text-sm mt-1">{formErrors.city}</p>}
                         </div>
                     </div>
 
@@ -494,7 +554,8 @@ export default function NewCheckoutPage() {
                     </div>
                     <div className="form-control">
                       <label className={labelParams}>E-mail adres <span className="text-red-500">*</span></label>
-                      <input type="email" className={inputParams} value={formData.email} onChange={(e) => handleInputChange("email", e.target.value)} />
+                      <input type="email" className={`${inputParams} ${formErrors.email ? 'border-red-500 ring-1 ring-red-500' : ''}`} value={formData.email} onChange={(e) => handleInputChange("email", e.target.value)} />
+                      {formErrors.email && <p className="text-red-500 text-sm mt-1">{formErrors.email}</p>}
                     </div>
                   </div>
 
@@ -588,10 +649,40 @@ export default function NewCheckoutPage() {
               
                {currentStep === 3 && (
                  <div className="p-6 pt-0 animate-in slide-in-from-top-4 fade-in duration-300">
-                    <div className="p-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 text-center text-gray-500 mb-6">
+                    {/* <div className="p-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 text-center text-gray-500 mb-6">
                         <CreditCard className="w-8 h-8 mx-auto mb-2 text-blue-600" />
                         <p className="font-semibold">Betaling</p>
-                        <p className="text-sm">Betalen met iDEAL, Credit Card, Bancontact, en meer via Mollie.</p>
+                        <p className="text-sm">Kies een betaalmethode om je bestelling af te ronden.</p>
+                    </div> */}
+
+                    <div className="space-y-3 mb-6">
+                        {paymentMethods.length === 0 ? (
+                             <p className="text-gray-500 text-center py-4">Betaalmethoden laden...</p>
+                        ) : (
+                            paymentMethods.map((method) => (
+                                <div 
+                                    key={method.id}
+                                    onClick={() => setSelectedPaymentMethod(method.id)} 
+                                    className={`cursor-pointer p-4 rounded-xl border flex items-center justify-between transition-all duration-200 ${selectedPaymentMethod === method.id ? "border-blue-600 bg-blue-50/50 ring-1 ring-blue-600 shadow-sm" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"}`}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-1 bg-white rounded-md border border-gray-100 w-12 h-8 flex items-center justify-center">
+                                            {method.image?.svg ? (
+                                                <img src={method.image.svg} alt={method.description} className="max-w-full max-h-full" />
+                                            ) : method.image?.size1x ? (
+                                                <img src={method.image.size1x} alt={method.description} className="max-w-full max-h-full" />
+                                            ) : (
+                                                <CreditCard className="w-5 h-5 text-gray-400"/>
+                                            )}
+                                        </div>
+                                        <div className="font-medium text-gray-900">{method.description}</div>
+                                    </div>
+                                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${selectedPaymentMethod === method.id ? "border-blue-600 bg-blue-600" : "border-gray-300"}`}>
+                                        {selectedPaymentMethod === method.id && <Check className="w-3 h-3 text-white" />}
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
 
                      <div className="flex items-center mb-6 px-1">
@@ -607,13 +698,37 @@ export default function NewCheckoutPage() {
                         </label>
                      </div>
 
-                     <button 
-                        onClick={handlePlaceOrder}
-                        disabled={isLoading}
-                        className="w-full btn btn-primary bg-green-600 hover:bg-green-700 text-white border-none h-14 rounded-xl text-lg font-bold shadow-lg shadow-green-600/20 flex items-center justify-center gap-2"
-                    >
-                         {isLoading ? <Loader2 className="w-5 h-5 animate-spin"/> : `Bevestig & Betalen €${total.toFixed(2)}`}
-                    </button>
+                    <div className="relative group w-full">
+                        <button 
+                            onClick={handlePlaceOrder}
+                            disabled={isLoading || !selectedPaymentMethod || !termsAccepted}
+                            className={`w-full btn btn-primary border-none h-14 rounded-xl text-lg font-bold shadow-lg flex items-center justify-center gap-2 
+                                ${(!selectedPaymentMethod || !termsAccepted) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white shadow-green-600/20'}
+                            `}
+                        >
+                            {isLoading ? <Loader2 className="w-5 h-5 animate-spin"/> : `Bevestig & Betalen €${total.toFixed(2)}`}
+                        </button>
+                        
+                        {/* Tooltip for Terms Check */}
+                        {selectedPaymentMethod && !termsAccepted && (
+                           <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 hidden group-hover:block w-full z-10">
+                               <div className="bg-black text-white text-xs rounded py-1 px-2 text-center shadow-lg relative max-w-xs mx-auto">
+                                   Accepteer de algemene voorwaarden om door te gaan
+                                   <div className="absolute top-100 left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-black"></div>
+                               </div>
+                           </div>
+                        )}
+                        
+                        {/* Tooltip for Payment Method (Optional) */}
+                        {!selectedPaymentMethod && (
+                           <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 hidden group-hover:block w-full z-10">
+                               <div className="bg-black text-white text-xs rounded py-1 px-2 text-center shadow-lg relative max-w-xs mx-auto">
+                                   Selecteer een betaalmethode
+                                   <div className="absolute top-100 left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-black"></div>
+                               </div>
+                           </div>
+                        )}
+                    </div>
                     <div className="flex justify-center mt-4">
                         <button 
                             onClick={() => goToStep(2)}
