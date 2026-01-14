@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@mollie/api-client": "^4.3.3",
+    "@salespark/validate-vat-eu": "^1.0.5",
     "@woocommerce/woocommerce-rest-api": "^1.0.2",
     "axios": "^1.13.2",
     "date-fns": "^4.1.0",

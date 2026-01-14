@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { ChevronRight, CreditCard, Package, ShieldCheck, Truck, Check, Loader2, Tag, X } from "lucide-react";
-import { getShippingRatesAction, placeOrderAction, validateCouponAction, checkPostcodeAction, getPaymentMethodsAction } from "./actions";
+import { getShippingRatesAction, placeOrderAction, validateCouponAction, checkPostcodeAction, getPaymentMethodsAction, validateVatAction } from "./actions";
 import { useCartStore } from "@/lib/cartStore";
 import { useRouter } from "next/navigation";
 import { useUserContext } from "@/context/UserContext";
@@ -46,10 +46,12 @@ export default function NewCheckoutPage() {
     postcode: "",
     city: "",
     phone: "",
-    email: ""
+    email: "",
+    vatNumber: "" // New VAT field
   });
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [vatValidationState, setVatValidationState] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
   
   const [isCheckingPostcode, setIsCheckingPostcode] = useState(false);
   const [postcodeError, setPostcodeError] = useState<string | null>(null);
@@ -294,9 +296,38 @@ export default function NewCheckoutPage() {
   
   const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
 
+  // VAT Validation Handler
+  const handleVatBlur = async () => {
+      if (!formData.vatNumber) {
+          setVatValidationState('idle');
+          return;
+      }
+      
+      setVatValidationState('validating');
+      // Clear previous VAT error if any from formErrors (though we manage state separately too)
+      setFormErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors.vatNumber;
+          return newErrors;
+      });
+
+      const result = await validateVatAction(formData.vatNumber);
+      
+      if (result.success && result.valid) {
+          setVatValidationState('valid');
+      } else {
+          setVatValidationState('invalid');
+          setFormErrors(prev => ({ ...prev, vatNumber: result.message || "Invalid VAT number" }));
+      }
+  };
+
   const nextStep = () => {
     if (currentStep === 1) {
         if (!validateStep1()) return;
+        // Also block if VAT is invalid (though validateStep1 could check state)
+        if (formData.vatNumber && vatValidationState === 'invalid') {
+             return;
+        }
     }
     setCurrentStep((prev) => Math.min(prev + 1, 3));
   };
@@ -316,6 +347,11 @@ export default function NewCheckoutPage() {
         errors.email = "E-mail adres is verplicht";
     } else if (!/\S+@\S+\.\S+/.test(email)) {
         errors.email = "Ongeldig e-mail adres";
+    }
+    
+    // Optional VAT check: if filled, must be valid
+    if (formData.vatNumber && vatValidationState === 'invalid') {
+        errors.vatNumber = formErrors.vatNumber || "Ongeldig BTW-nummer";
     }
 
     setFormErrors(errors);
@@ -556,6 +592,34 @@ export default function NewCheckoutPage() {
                       <label className={labelParams}>E-mail adres <span className="text-red-500">*</span></label>
                       <input type="email" className={`${inputParams} ${formErrors.email ? 'border-red-500 ring-1 ring-red-500' : ''}`} value={formData.email} onChange={(e) => handleInputChange("email", e.target.value)} />
                       {formErrors.email && <p className="text-red-500 text-sm mt-1">{formErrors.email}</p>}
+                    </div>
+
+                    <div className="form-control">
+                        <label className={labelParams}>BTW nummer (optioneel)</label>
+                        <div className="relative">
+                            <input 
+                                type="text" 
+                                className={`${inputParams} ${vatValidationState === 'invalid' ? 'border-red-500 ring-1 ring-red-500' : ''} ${vatValidationState === 'valid' ? 'border-green-500 ring-1 ring-green-500' : ''}`} 
+                                value={formData.vatNumber} 
+                                onChange={(e) => {
+                                    handleInputChange("vatNumber", e.target.value);
+                                    if (vatValidationState !== 'idle') setVatValidationState('idle'); // Reset state on type
+                                }} 
+                                onBlur={handleVatBlur}
+                                placeholder="NL123456789B01"
+                            />
+                            {vatValidationState === 'validating' && (
+                                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                                </div>
+                            )}
+                             {vatValidationState === 'valid' && (
+                                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                    <Check className="w-5 h-5 text-green-500" />
+                                </div>
+                            )}
+                        </div>
+                        {formErrors.vatNumber && <p className="text-red-500 text-sm mt-1">{formErrors.vatNumber}</p>}
                     </div>
                   </div>
 

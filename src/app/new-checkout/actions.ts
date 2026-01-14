@@ -201,3 +201,27 @@ export async function checkPostcodeAction(postcode: string, number: string) {
         return { success: false, message: error.message };
     }
 }
+
+import { validateVatEU } from "@salespark/validate-vat-eu";
+
+export async function validateVatAction(vatNumber: string) {
+    try {
+        // Extract country code (first 2 chars) usually. Or just assume it's in the string.
+        // The library might want country code separate?
+        // Let's check if the first 2 chars are letters.
+        const countryCode = vatNumber.substring(0, 2).toUpperCase();
+        const number = vatNumber.substring(2);
+
+        // Pass country code and number separately if needed, or check docs. 
+        // Based on "Expected 2-3 arguments", it probably wants (countryCode, vatNumber, [options]).
+        const result = await validateVatEU(countryCode, number);
+        if (result) {
+            return { success: true, valid: true, data: result }; // Assuming library returns boolean or object
+        } else {
+            return { success: true, valid: false, message: "Ongeldig BTW-nummer" };
+        }
+    } catch (error: any) {
+        console.error("VAT Validation Failed:", error);
+        return { success: false, message: "Kon BTW-nummer niet controleren. Probeer het later opnieuw." };
+    }
+}

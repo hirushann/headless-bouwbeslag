@@ -77,6 +77,41 @@ export const fetchPosts = async (perPage: number = 5) => {
   return res.data;
 };
 
+export const fetchProducts = async (params: any = {}) => {
+  try {
+    const res = await api.get("products", {
+      params: { ...params, status: 'publish' }
+    });
+    return res.data;
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    return [];
+  }
+};
+
+// Keeping original fetchProducts if it was imported differently, 
+// but wait, there was no fetchProducts exported before! Only fetchPosts. 
+// Ah, lines 80-90 in previous view_file showed fetchProducts.
+// I need to be careful. In the viewed file lines 80-90 IS fetchProducts.
+// Using ReplaceChunk to UPDATE it if needed, or if it is already good?
+// The viewed file has:
+// export const fetchProducts = async (params: any = {}) => {
+//   try {
+//     const res = await api.get("products", {
+//       params: { ...params, status: 'publish' }
+//     });
+//     return res.data;
+//   } catch (error) {
+//     console.error("Error fetching products:", error);
+//     return [];
+//   }
+// };
+// Raising a replacement to make sure it is exactly as I want it (exposed and correct). 
+// Actually, it looks correct already in the file I just read.
+// So I will SKIP replacing fetchProducts as it is already there. I'll just replace getBrands.
+
+// function removed as it is already defined above
+
 export const fetchCategories = async () => {
   const res = await api.get("products/categories", {
     params: { per_page: 100, _fields: "id,name,slug,parent" },
@@ -188,5 +223,45 @@ export const getCouponByCode = async (code: string) => {
     return null;
   }
 };
+
+// Brands
+// Brands
+export interface Brand {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  count: number;
+  acf?: {
+    brand_image?: string | number | { url: string }; // Could be ID or URL or object
+    faq?: { question: string; answer: string }[];
+  };
+  _embedded?: any;
+}
+
+export const getBrands = async (): Promise<Brand[]> => {
+  try {
+    // Fetch from product_brand taxonomy
+    const { data: brands } = await api.get("product_brand", {
+      params: { per_page: 100, hide_empty: true, _embed: true }
+    });
+
+    return brands;
+  } catch (error) {
+    console.error("Error fetching brands:", error);
+    return [];
+  }
+};
+
+export const getBrand = async (slug: string): Promise<Brand | null> => {
+  try {
+    const { data: brands } = await api.get("product_brand", {
+      params: { slug: slug, _embed: true }
+    });
+    return brands.length > 0 ? brands[0] : null;
+  } catch (error) {
+    return null;
+  }
+}
 
 export default api;
