@@ -164,6 +164,17 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
 
   const [brandImageUrl, setBrandImageUrl] = useState<string | null>(null);
 
+  useEffect(() => {
+    const brandImageId = product?.meta_data?.find((m: any) => m.key === "crucial_data_brand_image")?.value;
+    if (brandImageId) {
+      fetchMedia(brandImageId).then((media) => {
+        if (media?.source_url) {
+          setBrandImageUrl(media.source_url);
+        }
+      });
+    }
+  }, [product]);
+
 
 
   // Find highest applicable tier for a given quantity
