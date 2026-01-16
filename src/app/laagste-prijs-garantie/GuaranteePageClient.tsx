@@ -1,13 +1,55 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 
 export default function GuaranteePageClient({ 
   initialProductLink 
 }: { 
   initialProductLink: string 
 }) {
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Form handling
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    const formData = new FormData(e.currentTarget);
+    const data = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        productLink: formData.get('productLink'),
+        competitorLink: formData.get('competitorLink'),
+        comments: formData.get('comments'),
+    };
+
+    try {
+        const response = await fetch('/api/contact/lowest-price', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            router.push('/laagste-prijs-garantie/bedankt');
+        } else {
+            toast.error(result.error || 'Er ging iets mis. Probeer het opnieuw.');
+        }
+    } catch (error) {
+        console.error('Submission error:', error);
+        toast.error('Er ging iets mis bij het versturen.');
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { 
@@ -100,13 +142,14 @@ export default function GuaranteePageClient({
           >
             <div className="bg-white p-8 rounded-lg shadow-sm sticky top-10">
               <h2 className="text-2xl font-semibold text-[#1C2630] mb-6">Laagste prijs claimen</h2>
-              <form className="flex flex-col gap-6">
+              <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
                 
                 <div className="flex flex-col gap-2">
                   <label htmlFor="name" className="text-[#1C2630] font-medium">Naam</label>
                   <input 
                     type="text" 
                     id="name" 
+                    name="name"
                     required
                     className="border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF] transition-colors"
                     placeholder="Uw naam"
@@ -118,6 +161,7 @@ export default function GuaranteePageClient({
                   <input 
                     type="email" 
                     id="email" 
+                    name="email"
                     required
                     className="border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF] transition-colors"
                     placeholder="uw@email.nl"
@@ -129,6 +173,7 @@ export default function GuaranteePageClient({
                   <input 
                     type="url" 
                     id="productLink" 
+                    name="productLink"
                     required
                     defaultValue={initialProductLink}
                     className="border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF] transition-colors"
@@ -141,6 +186,7 @@ export default function GuaranteePageClient({
                   <input 
                     type="url" 
                     id="competitorLink" 
+                    name="competitorLink"
                     required
                     className="border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF] transition-colors"
                     placeholder="https://concurrent.nl/..."
@@ -151,6 +197,7 @@ export default function GuaranteePageClient({
                   <label htmlFor="comments" className="text-[#1C2630] font-medium">Opmerking (optioneel)</label>
                   <textarea 
                     id="comments" 
+                    name="comments"
                     rows={4}
                     className="border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF] transition-colors resize-none"
                     placeholder="Extra informatie..."
@@ -159,9 +206,17 @@ export default function GuaranteePageClient({
 
                 <button 
                   type="submit" 
-                  className="bg-[#0066FF] text-white font-bold py-4 px-8 rounded-sm hover:bg-[#0052CC] transition-colors w-full mt-2"
+                  disabled={isSubmitting}
+                  className={`bg-[#0066FF] text-white font-bold py-4 px-8 rounded-sm hover:bg-[#0052CC] transition-colors w-full mt-2 flex justify-center items-center ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  Controleer prijs
+                  {isSubmitting ? (
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                  ) : (
+                    "Controleer prijs"
+                  )}
                 </button>
 
               </form>
