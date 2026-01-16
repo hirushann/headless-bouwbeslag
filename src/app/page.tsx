@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import api from "@/lib/woocommerce";
 import { fetchPosts } from "@/lib/wordpress";
+import dynamic from "next/dynamic";
 
 // Client Components
 import BestSellersCarousel from "@/components/carousels/BestSellers";
@@ -10,7 +11,7 @@ import CategoriesSidebar from "@/components/carousels/CategoriesSidebar";
 import HeroSection from "@/components/HeroSection";
 import FadeIn from "@/components/animations/FadeIn";
 
-export const revalidate = 0;
+export const revalidate = 14400; //4 hours
 
 export default async function Home() {
   const bestSellers = await api
@@ -94,35 +95,15 @@ export default async function Home() {
               {(Array.isArray(categories) ? categories : [])
                 .filter((cat: { parent: number }) => cat.parent === 0)
                 .map((cat: { id: number; name: string; slug: string; image?: { src?: string }; parent: number; count?: number }) => (
-                <div key={cat.id} className="border border-[#DBE3EA] rounded-sm p-4 shadow-[0px_20px_24px_0px_#0000000A] relative flex flex-col h-full">
-                  <Image
-                    className="mb-3 rounded-sm hidden lg:block"
-                    src={cat.image?.src || "/default-fallback-image.png"}
-                    alt={cat.name}
-                    width={300}
-                    height={100}
-                  />
-                  <div className="mb-3 relative hidden lg:block">
-                    <p className="font-semibold text-[#1C2530] text-xl">{cat.name}</p>
-                    <div>
-                      {categories
-                        .filter((sub: any) => sub.parent === cat.id)
-                        .slice(0, 3)
-                        .map((sub: any) => (
-                          <div
-                            key={sub.id}
-                            className="flex items-center justify-between mt-2 font-normal text-[#1C2530] text-base hover:underline cursor-pointer hover:text-[#0066FF]"
-                          >
-                            <span>{sub.name}</span>
-                            <span>{sub.count}</span>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-5  lg:hidden">
-                    <Image className="mb-3 rounded-sm" src={cat.image?.src || "/default-fallback-image.png"} alt={cat.name} width={120} height={250} />
-                    <div className="mb-3 relative">
+                  <div key={cat.id} className="border border-[#DBE3EA] rounded-sm p-4 shadow-[0px_20px_24px_0px_#0000000A] relative flex flex-col h-full">
+                    <Image
+                      className="mb-3 rounded-sm hidden lg:block"
+                      src={cat.image?.src || "/default-fallback-image.png"}
+                      alt={cat.name}
+                      width={300}
+                      height={100}
+                    />
+                    <div className="mb-3 relative hidden lg:block">
                       <p className="font-semibold text-[#1C2530] text-xl">{cat.name}</p>
                       <div>
                         {categories
@@ -139,16 +120,36 @@ export default async function Home() {
                           ))}
                       </div>
                     </div>
+
+                    <div className="flex gap-5  lg:hidden">
+                      <Image className="mb-3 rounded-sm" src={cat.image?.src || "/default-fallback-image.png"} alt={cat.name} width={120} height={250} />
+                      <div className="mb-3 relative">
+                        <p className="font-semibold text-[#1C2530] text-xl">{cat.name}</p>
+                        <div>
+                          {categories
+                            .filter((sub: any) => sub.parent === cat.id)
+                            .slice(0, 3)
+                            .map((sub: any) => (
+                              <div
+                                key={sub.id}
+                                className="flex items-center justify-between mt-2 font-normal text-[#1C2530] text-base hover:underline cursor-pointer hover:text-[#0066FF]"
+                              >
+                                <span>{sub.name}</span>
+                                <span>{sub.count}</span>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="w-full mt-auto">
+                      <Link href={`/${cat.slug}`}>
+                        <button className="!w-full border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">
+                          Bekijk alle {cat.name}
+                        </button>
+                      </Link>
+                    </div>
                   </div>
-                  <div className="w-full mt-auto">
-                    <Link href={`/${cat.slug}`}>
-                      <button className="!w-full border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">
-                        Bekijk alle {cat.name}
-                      </button>
-                    </Link>
-                  </div>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
         </div>
@@ -222,23 +223,23 @@ export default async function Home() {
             <p className="text-[#3D4752] font-normal text-base">Bij Bouwbeslag.com vindt u deurklinken met rozetten, schilden, sleutelgaten (PC), toiletsloten, blinden en speciaal veiligheidsbeslag voor buitendeuren. De materialen variëren van roestvrij staal en messing tot aluminium en brons. Voor wie weinig onderhoud wil, zijn krasbestendige materialen zoals roestvrij staal of titanium de beste keuze. Ook kleur speelt een rol: kies voor klassiek zilver, strak zwart of een opvallende afwerking die past bij uw interieurstijl.</p>
             <ul className="pl-0 space-y-2 text-[#3D4752] font-medium text-base">
               <li className="flex items-start gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z" /></svg>
                 Schroef de bestaande deurklinken en rozetten of schilden los.
               </li>
               <li className="flex items-start gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z" /></svg>
                 Trek de deurklinkstift uit de slotkast en verwijder het oude beslag.
               </li>
               <li className="flex items-start gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z" /></svg>
                 Steek de nieuwe stift door het slot en monteer het nieuwe beslag.
               </li>
               <li className="flex items-start gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z" /></svg>
                 Schroef de rozetten of schilden vast en plaats de deurklinken stevig op de stift.
               </li>
               <li className="flex items-start gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#03B955"><path d="M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320C528 205.1 434.9 112 320 112zM390.7 233.9C398.5 223.2 413.5 220.8 424.2 228.6C434.9 236.4 437.3 251.4 429.5 262.1L307.4 430.1C303.3 435.8 296.9 439.4 289.9 439.9C282.9 440.4 276 437.9 271.1 433L215.2 377.1C205.8 367.7 205.8 352.5 215.2 343.2C224.6 333.9 239.8 333.8 249.1 343.2L285.1 379.2L390.7 234z" /></svg>
                 Test de werking: controleer of de deurklink soepel beweegt en de deur goed sluit.
               </li>
             </ul>
@@ -256,7 +257,7 @@ export default async function Home() {
             <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
               <input type="radio" name="my-accordion-1" defaultChecked />
               <div className="collapse-title font-semibold flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z" /></svg>
                 <span className="w-[90%] lg:w-full">Welke soorten deurklinken zijn er?</span>
               </div>
               <div className="collapse-content text-sm">Met moderne deurklinken combineert u veiligheid en gebruiksgemak. Voor buitendeuren is veiligheidsbeslag met kerntrekbeveiliging essentieel om inbrekers buiten te houden. Ons assortiment omvat ook slimme deurklinken die geopend kunnen worden met Bluetooth, wifi, vingerafdrukscanner, kaart of pincode. Deze innovatieve oplossingen bieden extra gemak en een veilig gevoel in uw woning.</div>
@@ -264,7 +265,7 @@ export default async function Home() {
             <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
               <input type="radio" name="my-accordion-1" />
               <div className="collapse-title font-semibold flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z" /></svg>
                 <span className="w-[90%] lg:w-full">Hoe kies ik de juiste deurklink voor mijn deur?</span>
               </div>
               <div className="collapse-content text-sm">Met moderne deurklinken combineert u veiligheid en gebruiksgemak. Voor buitendeuren is veiligheidsbeslag met kerntrekbeveiliging essentieel om inbrekers buiten te houden. Ons assortiment omvat ook slimme deurklinken die geopend kunnen worden met Bluetooth, wifi, vingerafdrukscanner, kaart of pincode. Deze innovatieve oplossingen bieden extra gemak en een veilig gevoel in uw woning.</div>
@@ -272,7 +273,7 @@ export default async function Home() {
             <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
               <input type="radio" name="my-accordion-1" />
               <div className="collapse-title font-semibold flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z" /></svg>
                 <span className="w-[90%] lg:w-full">Wat is het verschil tussen een deurklink, deurkruk en deurknop?</span>
               </div>
               <div className="collapse-content text-sm">Met moderne deurklinken combineert u veiligheid en gebruiksgemak. Voor buitendeuren is veiligheidsbeslag met kerntrekbeveiliging essentieel om inbrekers buiten te houden. Ons assortiment omvat ook slimme deurklinken die geopend kunnen worden met Bluetooth, wifi, vingerafdrukscanner, kaart of pincode. Deze innovatieve oplossingen bieden extra gemak en een veilig gevoel in uw woning.</div>
@@ -280,7 +281,7 @@ export default async function Home() {
             <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
               <input type="radio" name="my-accordion-1" />
               <div className="collapse-title font-semibold flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z" /></svg>
                 <span className="w-[90%] lg:w-full">Hoe verwijder ik een oude deurklink?</span>
               </div>
               <div className="collapse-content text-sm">Met moderne deurklinken combineert u veiligheid en gebruiksgemak. Voor buitendeuren is veiligheidsbeslag met kerntrekbeveiliging essentieel om inbrekers buiten te houden. Ons assortiment omvat ook slimme deurklinken die geopend kunnen worden met Bluetooth, wifi, vingerafdrukscanner, kaart of pincode. Deze innovatieve oplossingen bieden extra gemak en een veilig gevoel in uw woning.</div>
@@ -288,7 +289,7 @@ export default async function Home() {
             <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
               <input type="radio" name="my-accordion-1" />
               <div className="collapse-title font-semibold flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z" /></svg>
                 <span className="w-[90%] lg:w-full">Kan elk deurbeslag op elke deur geplaatst worden?</span>
               </div>
               <div className="collapse-content text-sm">Met moderne deurklinken combineert u veiligheid en gebruiksgemak. Voor buitendeuren is veiligheidsbeslag met kerntrekbeveiliging essentieel om inbrekers buiten te houden. Ons assortiment omvat ook slimme deurklinken die geopend kunnen worden met Bluetooth, wifi, vingerafdrukscanner, kaart of pincode. Deze innovatieve oplossingen bieden extra gemak en een veilig gevoel in uw woning.</div>
@@ -296,7 +297,7 @@ export default async function Home() {
             <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
               <input type="radio" name="my-accordion-1" />
               <div className="collapse-title font-semibold flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z" /></svg>
                 <span className="w-[90%] lg:w-full">Wat is blind deurbeslag of een blinde deurklink?</span>
               </div>
               <div className="collapse-content text-sm">Met moderne deurklinken combineert u veiligheid en gebruiksgemak. Voor buitendeuren is veiligheidsbeslag met kerntrekbeveiliging essentieel om inbrekers buiten te houden. Ons assortiment omvat ook slimme deurklinken die geopend kunnen worden met Bluetooth, wifi, vingerafdrukscanner, kaart of pincode. Deze innovatieve oplossingen bieden extra gemak en een veilig gevoel in uw woning.</div>

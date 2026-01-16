@@ -20,6 +20,26 @@ export default function LoginPage() {
     
     try {
       const res = await login(username, password);
+      
+      // Check B2B Status
+      const statusRes = await fetch("/api/auth/check-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: res.user_email })
+      });
+      const statusData = await statusRes.json();
+
+      if (statusData.status === "denied") {
+          // If pending
+          if (statusData.reason === "pending") {
+             setError("Uw account is nog in behandeling. U ontvangt een bericht zodra het is goedgekeurd.");
+          } else {
+             setError("Uw account is afgekeurd of geblokkeerd. Neem contact op met de klantenservice.");
+          }
+          setLoading(false);
+          return;
+      }
+
       localStorage.setItem("token", res.token);
       localStorage.setItem("user", JSON.stringify(res));
       router.push("/account");
@@ -31,7 +51,7 @@ export default function LoginPage() {
       const cleanMessage = apiMessage ? apiMessage.replace(/<[^>]*>/g, '') : "Ongeldige gebruikersnaam of wachtwoord";
       setError(cleanMessage);
     } finally {
-      setLoading(false);
+      if (!error) setLoading(false); // Only unset loading if we didn't set it manually above
     }
   };
 

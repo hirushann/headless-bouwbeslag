@@ -1627,7 +1627,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                         )}
 
                         {/* third row left accordion */}
-                        {isCheapestPriceEnabled && (
+                        {isCheapestPriceEnabled && !isB2B && (
                         <div className="bg-white rounded-lg border border-white">
                             <details className="group" ref={vergelijkRef}>
                                 <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">

@@ -133,7 +133,16 @@ export async function getPaymentMethodsAction() {
 
 export async function placeOrderAction(data: any) {
     try {
-        const order = await createOrder(data.cart, data.billing, data.shipping_line, "mollie", "Mollie Payment", data.coupon_lines);
+        const order = await createOrder(
+            data.cart,
+            data.billing,
+            data.shipping, // Pass separate shipping object
+            data.shipping_line,
+            "mollie",
+            "Mollie Payment",
+            data.coupon_lines,
+            data.customer_note // Pass customer note
+        );
         if (order && order.id) {
             const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
             const isLocal = siteUrl.includes('localhost');

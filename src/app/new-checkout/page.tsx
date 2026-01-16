@@ -59,6 +59,21 @@ export default function NewCheckoutPage() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [maatwerkAccepted, setMaatwerkAccepted] = useState(false);
 
+  // New Shipping & Notes State
+  const [shipToDifferentAddress, setShipToDifferentAddress] = useState(false);
+  const [shippingData, setShippingData] = useState({
+    firstName: "",
+    lastName: "",
+    companyName: "",
+    country: "Netherlands",
+    street: "",
+    houseNumber: "",
+    apartment: "",
+    postcode: "",
+    city: ""
+  });
+  const [orderNotes, setOrderNotes] = useState("");
+
   // Address lookup effect
   useEffect(() => {
     const checkAddress = async () => {
@@ -356,6 +371,17 @@ export default function NewCheckoutPage() {
         errors.vatNumber = formErrors.vatNumber || "Ongeldig BTW-nummer";
     }
 
+    // Shipping Address Validation
+    if (shipToDifferentAddress) {
+        if (!shippingData.firstName.trim()) errors.shipping_firstName = "Voornaam (verzending) is verplicht";
+        if (!shippingData.lastName.trim()) errors.shipping_lastName = "Achternaam (verzending) is verplicht";
+        if (!shippingData.country) errors.shipping_country = "Land (verzending) is verplicht";
+        if (!shippingData.postcode.trim()) errors.shipping_postcode = "Postcode (verzending) is verplicht";
+        if (!shippingData.houseNumber.trim()) errors.shipping_houseNumber = "Huisnummer (verzending) is verplicht";
+        if (!shippingData.street.trim()) errors.shipping_street = "Straat (verzending) is verplicht";
+        if (!shippingData.city.trim()) errors.shipping_city = "Plaats (verzending) is verplicht";
+    }
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -392,9 +418,22 @@ export default function NewCheckoutPage() {
 
     const method = availableMethods.find(m => m.id === selectedMethodId);
 
+    const shippingObject = shipToDifferentAddress ? {
+        first_name: shippingData.firstName,
+        last_name: shippingData.lastName,
+        company: shippingData.companyName,
+        address_1: `${shippingData.street} ${shippingData.houseNumber}`,
+        address_2: shippingData.apartment,
+        city: shippingData.city,
+        state: "",
+        postcode: shippingData.postcode,
+        country: shippingData.country === "Netherlands" ? "NL" : (shippingData.country === "Belgium" ? "BE" : "DE"),
+    } : billingData;
+
     const orderData = {
         billing: billingData,
-        shipping: billingData, // Assuming shipping same as billing for this simplified flow
+        shipping: shippingObject,
+        customer_note: orderNotes,
         cart: cartItems,
         payment_method: "mollie",
         shipping_line: method ? [{
@@ -438,6 +477,18 @@ export default function NewCheckoutPage() {
           setFormErrors(prev => {
               const newErrors = { ...prev };
               delete newErrors[field];
+              return newErrors;
+          });
+      }
+  };
+
+  const handleShippingChange = (field: string, value: string) => {
+      setShippingData(prev => ({ ...prev, [field]: value }));
+      const errorKey = `shipping_${field}`;
+      if (formErrors[errorKey]) {
+          setFormErrors(prev => {
+              const newErrors = { ...prev };
+              delete newErrors[errorKey];
               return newErrors;
           });
       }
@@ -624,6 +675,124 @@ export default function NewCheckoutPage() {
                         {formErrors.vatNumber && <p className="text-red-500 text-sm mt-1">{formErrors.vatNumber}</p>}
                     </div>
                   </div>
+                  
+                  {/* Shipping Address Toggle */}
+                  <div className="mt-6 border-t border-gray-100 pt-6">
+                     <div className="flex items-center mb-4">
+                        <input 
+                            type="checkbox" 
+                            id="shipToDifferentAddress" 
+                            checked={shipToDifferentAddress} 
+                            onChange={(e) => setShipToDifferentAddress(e.target.checked)} 
+                            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                        />
+                        <label htmlFor="shipToDifferentAddress" className="ml-3 text-sm font-semibold text-gray-900 cursor-pointer select-none">
+                            Verzenden naar een ander adres?
+                        </label>
+                     </div>
+
+                     {shipToDifferentAddress && (
+                         <div className="space-y-5 animate-in slide-in-from-top-2 fade-in duration-200 pl-1">
+                            <h3 className="text-base font-semibold text-gray-900 mb-2">Verzendgegevens</h3>
+                            
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div className="form-control">
+                                    <label className={labelParams}>Voornaam <span className="text-red-500">*</span></label>
+                                    <input type="text" className={`${inputParams} ${formErrors.shipping_firstName ? 'border-red-500 ring-1 ring-red-500' : ''}`} value={shippingData.firstName} onChange={(e) => handleShippingChange("firstName", e.target.value)} />
+                                    {formErrors.shipping_firstName && <p className="text-red-500 text-sm mt-1">{formErrors.shipping_firstName}</p>}
+                                </div>
+                                <div className="form-control">
+                                    <label className={labelParams}>Achternaam <span className="text-red-500">*</span></label>
+                                    <input type="text" className={`${inputParams} ${formErrors.shipping_lastName ? 'border-red-500 ring-1 ring-red-500' : ''}`} value={shippingData.lastName} onChange={(e) => handleShippingChange("lastName", e.target.value)} />
+                                    {formErrors.shipping_lastName && <p className="text-red-500 text-sm mt-1">{formErrors.shipping_lastName}</p>}
+                                </div>
+                            </div>
+
+                             <div className="form-control">
+                                <label className={labelParams}>Bedrijfsnaam (optioneel)</label>
+                                <input type="text" className={inputParams} value={shippingData.companyName} onChange={(e) => handleShippingChange("companyName", e.target.value)} />
+                            </div>
+
+                             <div className="form-control">
+                                <label className={labelParams}>Land <span className="text-red-500">*</span></label>
+                                <select className={`select w-full bg-gray-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all rounded-lg h-12 font-normal text-base ${formErrors.shipping_country ? 'border-red-500 ring-1 ring-red-500' : ''}`} value={shippingData.country} onChange={(e) => handleShippingChange("country", e.target.value)}>
+                                    <option disabled>Selecteer een land...</option>
+                                    <option>Netherlands</option>
+                                    <option>Belgium</option>
+                                    <option>Germany</option>
+                                </select>
+                                {formErrors.shipping_country && <p className="text-red-500 text-sm mt-1">{formErrors.shipping_country}</p>}
+                             </div>
+
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                 <div className="form-control">
+                                    <label className={labelParams}>Postcode <span className="text-red-500">*</span></label>
+                                    <input 
+                                        type="text" 
+                                        className={`${inputParams} ${formErrors.shipping_postcode ? 'border-red-500 ring-1 ring-red-500' : ''}`}
+                                        value={shippingData.postcode} 
+                                        onChange={(e) => handleShippingChange("postcode", e.target.value)} 
+                                        placeholder="1234AB"
+                                        maxLength={6}
+                                    />
+                                    {formErrors.shipping_postcode && <p className="text-red-500 text-sm mt-1">{formErrors.shipping_postcode}</p>}
+                                </div>
+                                 <div className="form-control">
+                                    <label className={labelParams}>Huisnummer <span className="text-red-500">*</span></label>
+                                    <input 
+                                        type="text" 
+                                        className={`${inputParams} ${formErrors.shipping_houseNumber ? 'border-red-500 ring-1 ring-red-500' : ''}`}
+                                        value={shippingData.houseNumber} 
+                                        onChange={(e) => handleShippingChange("houseNumber", e.target.value)} 
+                                        placeholder="10"
+                                    />
+                                    {formErrors.shipping_houseNumber && <p className="text-red-500 text-sm mt-1">{formErrors.shipping_houseNumber}</p>}
+                                </div>
+                            </div>
+
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                               <div className="form-control">
+                                    <label className={labelParams}>Straat <span className="text-red-500">*</span></label>
+                                    <input 
+                                        type="text" 
+                                        className={`${inputParams} ${formErrors.shipping_street ? 'border-red-500 ring-1 ring-red-500' : ''}`}
+                                        value={shippingData.street} 
+                                        onChange={(e) => handleShippingChange("street", e.target.value)} 
+                                    />
+                                    {formErrors.shipping_street && <p className="text-red-500 text-sm mt-1">{formErrors.shipping_street}</p>}
+                                </div>
+                                 <div className="form-control">
+                                    <label className={labelParams}>Plaats <span className="text-red-500">*</span></label>
+                                    <input 
+                                        type="text" 
+                                        className={`${inputParams} ${formErrors.shipping_city ? 'border-red-500 ring-1 ring-red-500' : ''}`}
+                                        value={shippingData.city} 
+                                        onChange={(e) => handleShippingChange("city", e.target.value)} 
+                                    />
+                                    {formErrors.shipping_city && <p className="text-red-500 text-sm mt-1">{formErrors.shipping_city}</p>}
+                                </div>
+                            </div>
+
+                            <div className="form-control">
+                                <label className={labelParams}>Appartement, suite, unit, enz. (optioneel)</label>
+                                 <input type="text" className={inputParams} value={shippingData.apartment} onChange={(e) => handleShippingChange("apartment", e.target.value)} />
+                            </div>
+                         </div>
+                     )}
+                  </div>
+                  
+                  {/* Order Notes */}
+                  <div className="my-4 border-t border-gray-100 pt-4">
+                      <div className="form-control">
+                        <label className={labelParams}>Bestelnotities (optioneel)</label>
+                        <textarea 
+                            className={`${inputParams} h-24 py-3`} 
+                            placeholder="Notities over uw bestelling, bijvoorbeeld speciale instructies voor levering."
+                            value={orderNotes}
+                            onChange={(e) => setOrderNotes(e.target.value)}
+                        />
+                      </div>
+                  </div>
 
                   <button 
                     onClick={nextStep}
@@ -675,11 +844,13 @@ export default function NewCheckoutPage() {
                                         </div>
                                         <div>
                                             <div className="font-semibold text-gray-900">{method.title}</div>
-                                            <div className="text-sm text-gray-500">{method.methodId === 'flat_rate' ? 'Standard delivery' : 'Delivery option'}</div>
+                                            <div className="text-sm text-gray-500">
+                                                De order wordt verzonden via DHL of GLS, waarbij indien mogelijk wordt gebruikt van brievenbuspost.
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="font-semibold text-gray-900">
-                                        {method.cost === 0 ? "Free" : `€${(isB2B ? method.cost : method.cost * 1.21).toFixed(2)}`}
+                                        {method.cost === 0 ? "Kosteloos" : `€${(isB2B ? method.cost : method.cost * 1.21).toFixed(2)}`}
                                     </div>
                                 </div>
                                 );
@@ -961,7 +1132,7 @@ export default function NewCheckoutPage() {
                     <div className="flex justify-between text-base text-gray-600">
                         <span>Verzending</span>
                         <span className="font-medium text-gray-900">
-                            {shippingCost === null ? "Calculated at next step" : (shippingCost === 0 ? "Free" : `€ ${displayShipping.toFixed(2).replace('.', ',')}`)}
+                            {shippingCost === null ? "Wordt berekend" : (shippingCost === 0 ? "Kosteloos" : `€ ${displayShipping.toFixed(2).replace('.', ',')}`)}
                         </span>
                     </div>
                      {/* Show Tax breakdown if needed, or total tax amount? Header handles it by showing total + label */}
