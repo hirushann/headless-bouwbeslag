@@ -490,33 +490,38 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
   }, [product]);
 
   // --- Helper to fetch and set related products by meta key prefix ---
-  const fetchRelatedGroup = React.useCallback(async (prefix: string, setter: React.Dispatch<React.SetStateAction<any[]>>, limit: number = 8) => {
+  const fetchRelatedGroup = React.useCallback(async (prefix: string, setter: React.Dispatch<React.SetStateAction<any[]>>, limit: number = 8, fetchType: 'sku' | 'id' = 'sku') => {
     if (!product || !Array.isArray(product.meta_data)) return;
 
-    const skus: string[] = [];
+    const identifiers: string[] = [];
     for (let i = 1; i <= limit; i++) {
         // Try exact match first
         const val = product.meta_data.find((m: any) => m.key === `${prefix}${i}`)?.value;
-        if (val && typeof val === 'string' && val.trim() !== '') {
-            skus.push(val.trim());
+        if (val && (typeof val === 'string' || typeof val === 'number') && String(val).trim() !== '') {
+            identifiers.push(String(val).trim());
         }
     }
 
-    if (skus.length === 0) {
+    if (identifiers.length === 0) {
         setter([]);
         return;
     }
 
-    // console.log(`🔍 Fetching related group for prefix "${prefix}": found SKUs`, skus);
+    // console.log(`🔍 Fetching related group for prefix "${prefix}": found items`, identifiers);
 
     try {
         const results = await Promise.all(
-            skus.map(async (sku) => {
+            identifiers.map(async (identifier) => {
                 try {
-                    const res = await api.get("products", { sku });
-                    return Array.isArray(res.data) && res.data[0] ? res.data[0] : null;
+                    if (fetchType === 'id') {
+                         const res = await api.get(`products/${identifier}`);
+                         return res.data;
+                    } else {
+                         const res = await api.get("products", { sku: identifier });
+                         return Array.isArray(res.data) && res.data[0] ? res.data[0] : null;
+                    }
                 } catch (e) {
-                    // console.error(`Failed to fetch related product for ${prefix} (sku: ${sku})`, e);
+                    // console.error(`Failed to fetch related product for ${prefix} (val: ${identifier})`, e);
                     return null;
                 }
             })
@@ -551,7 +556,8 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
 
      // 6. Must Have Products -> musthaveprodKeys
      // Key found: related_must_have_product_1
-     fetchRelatedGroup('related_must_have_product_', setMusthaveprodKeys);
+     // User confirmed these are SKUs
+     fetchRelatedGroup('related_must_have_product_', setMusthaveprodKeys, 8, 'sku');
 
   }, [fetchRelatedGroup]);
 
