@@ -771,7 +771,8 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         stockStatus: product.stock_status,
         stockQuantity: product.stock_quantity ?? null,
         leadTimeInStock: 1, // Default from page code
-        leadTimeNoStock: 30 // Default from page code
+        leadTimeNoStock: 30, // Default from page code
+        isMaatwerk: getMetaValue("crucial_data_maatwerk") === "1"
       });
       toast.success("Product toegevoegd aan winkelwagen!", {
         duration: 3000,
@@ -932,11 +933,62 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                             <button onClick={() => scrollToSection("blindtoiletroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende blinde rozetten</button>
                           )}
                           {musthaveprodKeys.length > 0 && (
-                            <button onClick={() => scrollToSection("musthaveprod-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Aanbevolen</button>
+                            // Removed Aanbevolen button
+                            null
                           )}   
                         </div>
                     </div>
                     )}
+                
+                {/* New Must Have Section (Below Images) */}
+                {musthaveprodKeys && musthaveprodKeys.length > 0 && (
+                    <motion.div variants={fadeInUp} className="mt-8">
+                         <div className="mb-4">
+                            <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Aanbevolen producten</h3>
+                            <p className="text-[#3D4752] text-sm mt-1">Handig om erbij te bestellen</p>
+                         </div>
+                         <div className="space-y-3">
+                            {musthaveprodKeys.map((item, index) => {
+                                // Price logic extraction for loop
+                                const mPrice = item.price ? parseFloat(item.price) : 0;
+                                const mRegPrice = item.regular_price ? parseFloat(item.regular_price) : 0;
+                                // Simple display price
+                                const displayPrice = mPrice || mRegPrice;
+                                const mImg = item.images?.[0]?.src || item.images?.[0] || "";
+
+                                return (
+                                    <div key={item.id || index} className="flex gap-4 p-4 border border-gray-100 rounded-lg bg-gray-50/50 hover:bg-white hover:border-blue-200 transition-colors">
+                                        <div className="w-16 h-16 bg-white rounded-md border border-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+                                            {item.slug ? (
+                                                <Link href={`/${item.slug}`} className="block w-full h-full">
+                                                    {mImg ? <img src={mImg} alt={item.name} className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">No Img</div>}
+                                                </Link>
+                                            ) : (
+                                                 mImg ? <img src={mImg} alt={item.name} className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">No Img</div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 flex justify-between items-center">
+                                            <div>
+                                                {item.slug ? (
+                                                    <Link href={`/${item.slug}`} className="hover:text-blue-600 transition-colors">
+                                                        <h4 className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</h4>
+                                                    </Link>
+                                                ) : (
+                                                    <h4 className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</h4>
+                                                )}
+                                                {/* Optional: Add stock status or short desc here if needed */}
+                                            </div>
+                                            <div className="text-right ml-4">
+                                                <span className="text-sm font-bold text-gray-900 whitespace-nowrap">€ {displayPrice.toFixed(2).replace('.', ',')}</span>
+                                                <div className="text-xs text-gray-500 font-normal">incl. BTW</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                         </div>
+                    </motion.div>
+                )}
                 </motion.div>
 
                 {/* Right side: Product details */}
@@ -1212,6 +1264,20 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                     <div className='bg-[#E4EFFF] py-3 px-5 rounded-md'> 
                         <p className='text-[#3D4752] font-normal text-base'>Heb jij beroepsmatig op regelmatige basis bouwbeslag nodig? <a href="/zakelijk-aanmelden" className='text-[#0066FF] font-bold'>Klik hier </a> en meld je aan voor een zakelijk account met de scherpste inkoopprijzen.</p>
                     </div>
+
+                    {/* Maatwerk Warning */}
+                    {(() => {
+                        const isMaatwerk = getMetaValue("crucial_data_maatwerk") === "1";
+                        if (!isMaatwerk) return null;
+                        return (
+                             <div className="bg-amber-50 border border-amber-200 text-amber-900 px-5 py-3 rounded-md mt-4 text-base font-medium flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6 text-amber-600">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+                                </svg>
+                                <span>Let op:  dit is een maatwerk product dat speciaal voor u wordt besteld en dit kan zodoende niet geretourneerd worden.</span>
+                             </div>
+                        );
+                    })()}
 
                     {/* Quantity Selector and Add to Cart */}
                     <div className="flex flex-wrap lg:flex-nowrap items-center gap-3 lg:gap-4 mt-4 justify-between">
@@ -2180,69 +2246,8 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                 </div>
               )}
 
-              {musthaveprodKeys && musthaveprodKeys.length > 0 && (
-                <div id="musthaveprod-section" className='lg:bg-[#F7F7F7] rounded-md p-5'>
-                  <div className='flex justify-between items-center mb-5'>
-                    <div className='flex flex-col gap-2'>
-                      <p className='text-[#1C2530] font-bold text-3xl'>Must need</p>
-                      <p className='text-[#3D4752] font-normal text-sm lg:text-base'>Check out Must need from bouwbeslag.nl</p>
-                    </div>
-                    {musthaveprodKeys.length > 2 && (
-                      <div className='hidden lg:flex gap-5 items-center justify-between'>
-                        <button
-                          className='bg-[#e6e6e6] cursor-pointer hover:bg-[#c4c0c0] rounded-full p-2 flex text-black'
-                          onClick={() => scrollCarousel(mustneedRef, "left")}
-                          aria-label="Scroll matching products left"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
-                        </button>
-                        <button
-                          className='bg-[#0066FF] cursor-pointer rounded-full p-2 flex text-white'
-                          onClick={() => scrollCarousel(mustneedRef, "right")}
-                          aria-label="Scroll matching products right"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <div className="relative">
-                      <div
-                        ref={mustneedRef}
-                        className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 scroll-smooth"
-                        style={{ scrollSnapType: "x mandatory" }}
-                      >
-                        {musthaveprodKeys.map((mhk) => (
-                          <div
-                            key={mhk.id}
-                            className="flex-shrink-0 w-[320px] snap-start"
-                            style={{ scrollSnapAlign: "start" }}
-                          >
-                            <ProductCard product={mhk} />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  <div className='flex lg:hidden gap-5 items-center justify-center mt-5'>
-                    <button
-                      className='bg-[#e6e6e6] cursor-pointer hover:bg-[#c4c0c0] rounded-full p-2 flex text-black'
-                      onClick={() => scrollCarousel(mustneedRef, "left")}
-                      aria-label="Scroll matching products left"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
-                    </button>
-                    <button
-                      className='bg-[#0066FF] rounded-full p-2 flex text-white cursor-pointer'
-                      onClick={() => scrollCarousel(mustneedRef, "right")}
-                      aria-label="Scroll matching products right"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
-                    </button>
-                  </div>
-                </div>
-              )}
+              {/* Old Must Have Section Removed */}
+
             </div>
           </div>
         </motion.div>

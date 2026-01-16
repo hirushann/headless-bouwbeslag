@@ -6,9 +6,11 @@ export const dynamic = 'force-dynamic';
 
 export default async function BrandsPage() {
     const brands = await getBrands();
+    
+    console.log("Brands Index Page Data:", JSON.stringify(brands.map(b => ({ name: b.name, logo: b.acf?.brand_logo })), null, 2));
 
     return (
-        <div className="container mx-auto px-4 py-8">
+        <div className="max-w-[1440px] container mx-auto px-1 py-8">
              <div className="text-sm breadcrumbs mb-4 text-gray-500">
                 <ul>
                     <li><Link href="/">Home</Link></li>
@@ -23,7 +25,7 @@ export default async function BrandsPage() {
                     brands.map((brand) => (
                         <Link 
                             key={brand.id} 
-                            href={`/brands/${brand.slug}`}
+                            href={`/merken/${brand.slug}`}
                             className="group block bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100 overflow-hidden"
                         >
                             <div className="aspect-square p-6 flex items-center justify-center bg-gray-50 group-hover:bg-white transition-colors">
@@ -31,9 +33,9 @@ export default async function BrandsPage() {
                                 {/* Logic to extract image from ACF or embedded if possible. 
                                     Since we saw no obvious image data, we use a placeholder or name for now.
                                 */}
-                                {brand.acf?.brand_image ? (
+                                {brand.acf?.brand_logo ? (
                                      <img 
-                                        src={typeof brand.acf.brand_image === 'string' ? brand.acf.brand_image : (brand.acf.brand_image as any).url} 
+                                        src={typeof brand.acf.brand_logo === 'string' ? brand.acf.brand_logo : (brand.acf.brand_logo as any).url} 
                                         alt={brand.name} 
                                         className="max-w-full max-h-full object-contain" // grayscale group-hover:grayscale-0 transition-all
                                     />

@@ -18,6 +18,7 @@ interface CartItem {
   stockQuantity?: number | null;
   leadTimeInStock?: number;
   leadTimeNoStock?: number;
+  isMaatwerk?: boolean;
 }
 
 interface CartState {

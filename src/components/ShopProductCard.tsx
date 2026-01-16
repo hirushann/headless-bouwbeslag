@@ -101,11 +101,11 @@ export default function ShopProductCard({ product }: { product: any }) {
              
              return (
                <div className="flex flex-col items-start">
-                 {showStrikeThrough && advisedDisplay !== null && (
+                 {/* {showStrikeThrough && advisedDisplay !== null && (
                    <span className="text-gray-400 line-through text-xs font-normal">
                       {new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(advisedDisplay)}
                    </span>
-                 )}
+                 )} */}
                  <div className="flex items-end gap-1 flex-wrap">
                     <span className="text-xl font-bold text-[#1C2530]">
                         {new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(finalPrice)}

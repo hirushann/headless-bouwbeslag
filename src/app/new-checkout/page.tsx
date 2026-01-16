@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useUserContext } from "@/context/UserContext";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import { getDeliveryInfo } from "@/lib/deliveryUtils";
 
 export default function NewCheckoutPage() {
   const router = useRouter();
@@ -56,6 +57,7 @@ export default function NewCheckoutPage() {
   const [isCheckingPostcode, setIsCheckingPostcode] = useState(false);
   const [postcodeError, setPostcodeError] = useState<string | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [maatwerkAccepted, setMaatwerkAccepted] = useState(false);
 
   // Address lookup effect
   useEffect(() => {
@@ -762,22 +764,41 @@ export default function NewCheckoutPage() {
                         </label>
                      </div>
 
+                     {/* Maatwerk Checkbox logic */}
+                     {(() => {
+                        const hasMaatwerkItems = cartItems.some(i => i.isMaatwerk);
+                        return hasMaatwerkItems ? (
+                             <div className="flex items-start mb-6 px-1">
+                                <input 
+                                    type="checkbox" 
+                                    id="maatwerk-terms" 
+                                    checked={maatwerkAccepted} 
+                                    onChange={(e) => setMaatwerkAccepted(e.target.checked)} 
+                                    className="w-5 h-5 text-amber-600 border-gray-300 rounded focus:ring-amber-500 cursor-pointer mt-0.5"
+                                />
+                                <label htmlFor="maatwerk-terms" className="ml-3 text-sm text-gray-700 cursor-pointer select-none">
+                                    Ik begrijp dat mijn winkelwagen maatwerk producten bevat dit zijn uitgesloten van retourrecht.
+                                </label>
+                             </div>
+                        ) : null;
+                     })()}
+
                     <div className="relative group w-full">
                         <button 
                             onClick={handlePlaceOrder}
-                            disabled={isLoading || !selectedPaymentMethod || !termsAccepted}
+                            disabled={isLoading || !selectedPaymentMethod || !termsAccepted || (cartItems.some(i => i.isMaatwerk) && !maatwerkAccepted)}
                             className={`w-full btn btn-primary border-none h-14 rounded-xl text-lg font-bold shadow-lg flex items-center justify-center gap-2 
-                                ${(!selectedPaymentMethod || !termsAccepted) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white shadow-green-600/20'}
+                                ${(!selectedPaymentMethod || !termsAccepted || (cartItems.some(i => i.isMaatwerk) && !maatwerkAccepted)) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white shadow-green-600/20'}
                             `}
                         >
                             {isLoading ? <Loader2 className="w-5 h-5 animate-spin"/> : `Bevestig & Betalen €${total.toFixed(2)}`}
                         </button>
                         
                         {/* Tooltip for Terms Check */}
-                        {selectedPaymentMethod && !termsAccepted && (
+                        {selectedPaymentMethod && (!termsAccepted || (cartItems.some(i => i.isMaatwerk) && !maatwerkAccepted)) && (
                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 hidden group-hover:block w-full z-10">
                                <div className="bg-black text-white text-xs rounded py-1 px-2 text-center shadow-lg relative max-w-xs mx-auto">
-                                   Accepteer de algemene voorwaarden om door te gaan
+                                   {!termsAccepted ? "Accepteer de algemene voorwaarden om door te gaan" : "Accepteer de maatwerk voorwaarden om door te gaan"}
                                    <div className="absolute top-100 left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-black"></div>
                                </div>
                            </div>
@@ -836,6 +857,30 @@ export default function NewCheckoutPage() {
                                     <h4 className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</h4>
                                 )}
                                 <p className="text-sm text-gray-500 mt-1">× {item.quantity}</p>
+                                
+                                {(() => {
+                                    // Calculate delivery info for Checkout
+                                    const info = getDeliveryInfo(
+                                        item.stockStatus || 'instock',
+                                        item.quantity,
+                                        item.stockQuantity !== undefined ? item.stockQuantity : null,
+                                        item.leadTimeInStock || 1,
+                                        item.leadTimeNoStock || 30
+                                    );
+                                    
+                                    // Determine color based on type
+                                    let colorClass = "text-green-600";
+                                    if (info.type === "BACKORDER" || info.type === "OUT_OF_STOCK") colorClass = "text-orange-600";
+
+                                    return (
+                                        <p className={`text-xs ${colorClass} mt-1 font-medium`}>
+                                            {info.short}
+                                        </p>
+                                    );
+                                })()}
+                                {item.isMaatwerk && (
+                                    <p className="text-xs text-amber-600 mt-1 font-medium">Let op: maatwerk product.</p>
+                                )}
                             </div>
                             <span className="text-sm font-medium text-gray-900 whitespace-nowrap ml-2">€ {(isB2B ? item.price : item.price * 1.21).toFixed(2).replace('.', ',')}</span>
                         </div>
