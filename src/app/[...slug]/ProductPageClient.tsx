@@ -913,6 +913,57 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                       </button>
                     </div>
+
+                    {/* New Must Have Section (Below Images) */}
+                    {musthaveprodKeys && musthaveprodKeys.length > 0 && (
+                        <motion.div variants={fadeInUp} className="mt-8">
+                            <div className="mb-4">
+                                <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Aanbevolen producten</h3>
+                                <p className="text-[#3D4752] text-sm mt-1">Handig om erbij te bestellen</p>
+                            </div>
+                            <div className="space-y-3">
+                                {musthaveprodKeys.map((item, index) => {
+                                    // Price logic extraction for loop
+                                    const mPrice = item.price ? parseFloat(item.price) : 0;
+                                    const mRegPrice = item.regular_price ? parseFloat(item.regular_price) : 0;
+                                    // Simple display price
+                                    const displayPrice = mPrice || mRegPrice;
+                                    const mImg = item.images?.[0]?.src || item.images?.[0] || "";
+
+                                    return (
+                                        <div key={item.id || index} className="flex gap-4 p-4 border border-gray-100 rounded-lg bg-gray-50/50 hover:bg-white hover:border-blue-200 transition-colors">
+                                            <div className="w-16 h-16 bg-white rounded-md border border-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+                                                {item.slug ? (
+                                                    <Link href={`/${item.slug}`} className="block w-full h-full">
+                                                        {mImg ? <img src={mImg} alt={item.name} className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">No Img</div>}
+                                                    </Link>
+                                                ) : (
+                                                    mImg ? <img src={mImg} alt={item.name} className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">No Img</div>
+                                                )}
+                                            </div>
+                                            <div className="flex-1 flex justify-between items-center">
+                                                <div>
+                                                    {item.slug ? (
+                                                        <Link href={`/${item.slug}`} className="hover:text-blue-600 transition-colors">
+                                                            <h4 className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</h4>
+                                                        </Link>
+                                                    ) : (
+                                                        <h4 className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</h4>
+                                                    )}
+                                                    {/* Optional: Add stock status or short desc here if needed */}
+                                                </div>
+                                                <div className="text-right ml-4">
+                                                    <span className="text-sm font-bold text-gray-900 whitespace-nowrap">€ {displayPrice.toFixed(2).replace('.', ',')}</span>
+                                                    <div className="text-xs text-gray-500 font-normal">incl. BTW</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </motion.div>
+                    )}
+
                     {(matchingProducts.length > 0 ||
                       matchingKnobroseKeys.length > 0 ||
                       matchingRoseKeys.length > 0 ||
@@ -946,55 +997,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                     </div>
                     )}
                 
-                {/* New Must Have Section (Below Images) */}
-                {musthaveprodKeys && musthaveprodKeys.length > 0 && (
-                    <motion.div variants={fadeInUp} className="mt-8">
-                         <div className="mb-4">
-                            <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Aanbevolen producten</h3>
-                            <p className="text-[#3D4752] text-sm mt-1">Handig om erbij te bestellen</p>
-                         </div>
-                         <div className="space-y-3">
-                            {musthaveprodKeys.map((item, index) => {
-                                // Price logic extraction for loop
-                                const mPrice = item.price ? parseFloat(item.price) : 0;
-                                const mRegPrice = item.regular_price ? parseFloat(item.regular_price) : 0;
-                                // Simple display price
-                                const displayPrice = mPrice || mRegPrice;
-                                const mImg = item.images?.[0]?.src || item.images?.[0] || "";
-
-                                return (
-                                    <div key={item.id || index} className="flex gap-4 p-4 border border-gray-100 rounded-lg bg-gray-50/50 hover:bg-white hover:border-blue-200 transition-colors">
-                                        <div className="w-16 h-16 bg-white rounded-md border border-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
-                                            {item.slug ? (
-                                                <Link href={`/${item.slug}`} className="block w-full h-full">
-                                                    {mImg ? <img src={mImg} alt={item.name} className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">No Img</div>}
-                                                </Link>
-                                            ) : (
-                                                 mImg ? <img src={mImg} alt={item.name} className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">No Img</div>
-                                            )}
-                                        </div>
-                                        <div className="flex-1 flex justify-between items-center">
-                                            <div>
-                                                {item.slug ? (
-                                                    <Link href={`/${item.slug}`} className="hover:text-blue-600 transition-colors">
-                                                        <h4 className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</h4>
-                                                    </Link>
-                                                ) : (
-                                                    <h4 className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</h4>
-                                                )}
-                                                {/* Optional: Add stock status or short desc here if needed */}
-                                            </div>
-                                            <div className="text-right ml-4">
-                                                <span className="text-sm font-bold text-gray-900 whitespace-nowrap">€ {displayPrice.toFixed(2).replace('.', ',')}</span>
-                                                <div className="text-xs text-gray-500 font-normal">incl. BTW</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                         </div>
-                    </motion.div>
-                )}
+                
                 </motion.div>
 
                 {/* Right side: Product details */}
