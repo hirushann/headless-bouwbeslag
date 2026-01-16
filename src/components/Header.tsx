@@ -9,6 +9,7 @@ import { syncRemoveItem } from "@/lib/cartApi";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
 
 import { ShippingMethod } from "@/lib/woocommerce";
+import SearchAutosuggest from "./SearchAutosuggest";
 
 export default function Header({
   shippingMethods,
@@ -19,15 +20,15 @@ export default function Header({
   const isCartOpen = useCartStore((state) => state.isCartOpen);
   const setCartOpen = useCartStore((state) => state.setCartOpen);
   const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
-  
+
   const { userRole } = useUserContext();
   const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
   const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
 
   const subtotal = items.reduce(
     (sum, item) => {
-       const displayedItemPrice = isB2B ? item.price : item.price * 1.21;
-       return sum + displayedItemPrice * item.quantity;
+      const displayedItemPrice = isB2B ? item.price : item.price * 1.21;
+      return sum + displayedItemPrice * item.quantity;
     },
     0
   );
@@ -35,24 +36,24 @@ export default function Header({
   // Derive simple settings for sidecart display (defaulting to Flat Rate)
   let flatRate = 0;
   let freeShippingThreshold: number | null = null;
-  
-  if (shippingMethods && Array.isArray(shippingMethods)) {
-      const flatMethod = shippingMethods.find(m => m.methodId === 'flat_rate' && m.enabled);
-      if (flatMethod) flatRate = flatMethod.cost;
 
-      const freeMethod = shippingMethods.find(m => m.methodId === 'free_shipping' && m.enabled);
-      // Logic for free shipping threshold if we saved it in the method object (we did in getShippingMethods as 'minAmount')
-      // TypeScript might complain if ShippingMethod interface doesn't have minAmount optional.
-      // Let's check woocommerce.ts interface. I pushed it with `...(method.method_id === "free_shipping" && { ... })` casting as any.
-      // So accessing it as any or explicitly.
-      if (freeMethod) {
-          const m = freeMethod as any;
-          if (m.requires === 'min_amount' || m.requires === 'either') {
-               freeShippingThreshold = parseFloat(m.minAmount || '0');
-          } else if (m.requires === '') {
-              freeShippingThreshold = 0;
-          }
+  if (shippingMethods && Array.isArray(shippingMethods)) {
+    const flatMethod = shippingMethods.find(m => m.methodId === 'flat_rate' && m.enabled);
+    if (flatMethod) flatRate = flatMethod.cost;
+
+    const freeMethod = shippingMethods.find(m => m.methodId === 'free_shipping' && m.enabled);
+    // Logic for free shipping threshold if we saved it in the method object (we did in getShippingMethods as 'minAmount')
+    // TypeScript might complain if ShippingMethod interface doesn't have minAmount optional.
+    // Let's check woocommerce.ts interface. I pushed it with `...(method.method_id === "free_shipping" && { ... })` casting as any.
+    // So accessing it as any or explicitly.
+    if (freeMethod) {
+      const m = freeMethod as any;
+      if (m.requires === 'min_amount' || m.requires === 'either') {
+        freeShippingThreshold = parseFloat(m.minAmount || '0');
+      } else if (m.requires === '') {
+        freeShippingThreshold = 0;
       }
+    }
   }
 
   const isFreeShipping =
@@ -89,7 +90,6 @@ export default function Header({
   }, [isCartOpen]);
 
   const router = useRouter();
-  const [query, setQuery] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
@@ -148,24 +148,7 @@ export default function Header({
             <img className="w-56 lg:w-64" src="/logo.png" alt="" />
           </a>
           <div className="hidden lg:flex justify-center items-center w-[30%]">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (query.trim()) {
-                  router.push(`/search?q=${encodeURIComponent(query)}`);
-                }
-              }}
-              className="join w-full border border-[#E2E2E2] rounded-[4px]"
-            >
-              <div className="w-full rounded-[5px]">
-                <label className="input validator w-full border-0 rounded-[5px] bg-white">
-                  <input className="bg-white" type="text" placeholder="Zoek iets..." value={query} onChange={(e) => setQuery(e.target.value)} />
-                </label>
-              </div>
-              <button type="submit" className="btn bg-[#2332C51A] rounded-[4px] border-0 shadow-none">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#0066FF"><path d="M480 272C480 317.9 465.1 360.3 440 394.7L566.6 521.4C579.1 533.9 579.1 554.2 566.6 566.7C554.1 579.2 533.8 579.2 521.3 566.7L394.7 440C360.3 465.1 317.9 480 272 480C157.1 480 64 386.9 64 272C64 157.1 157.1 64 272 64C386.9 64 480 157.1 480 272zM272 416C351.5 416 416 351.5 416 272C416 192.5 351.5 128 272 128C192.5 128 128 192.5 128 272C128 351.5 192.5 416 272 416z" /></svg>
-              </button>
-            </form>
+            <SearchAutosuggest />
           </div>
           <div className="flex items-center gap-5">
             <div className="flex">
@@ -173,7 +156,7 @@ export default function Header({
                 <span className="indicator-item badge badge-secondary text-xs font-bold bg-blue-800 rounded-full border-0 text-white">{totalQty}</span>
                 <button onClick={() => setCartOpen(true)} className="cursor-pointer btn btn-ghost p-0 bg-transparent m-0 relative hover:bg-transparent focus:bg-transparent active:bg-transparent hover:border-0" aria-label="Open cart">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-7 lg:size-8">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"/>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
                   </svg>
                 </button>
               </div>
@@ -187,7 +170,7 @@ export default function Header({
                 </Link>
               </div>
               <Link href="/hulp" className="flex items-center">
-                 <span className="hidden lg:block font-medium text-base cursor-pointer">Hulp</span>
+                <span className="hidden lg:block font-medium text-base cursor-pointer">Hulp</span>
               </Link>
             </div>
             <div className="flex lg:hidden">
@@ -197,7 +180,7 @@ export default function Header({
             </div>
             {/* My Account Dropdown */}
             {!isLoggedIn ? (
-              <Link 
+              <Link
                 href="/account/login"
                 className="font-medium text-base hidden lg:block cursor-pointer"
               >
@@ -251,42 +234,25 @@ export default function Header({
                   tabIndex={0}
                   className="menu menu-lg dropdown-content bg-[#1C2530] z-1 mt-4.5 w-75 p-2 shadow text-white">
                   <li>
-                    <a href="/categories">Categorieën</a>  
+                    <a href="/categories">Categorieën</a>
                   </li>
                   <li>
-                    <a href="/deurbeslag/deurklink">Deurklink</a>  
+                    <a href="/deurbeslag/deurklink">Deurklink</a>
                   </li>
                   <li>
-                    <a href="/deurbeslag/cilinders">Cilinder</a>  
+                    <a href="/deurbeslag/cilinders">Cilinder</a>
                   </li>
                   <li>
-                    <a href="/deurbeslag/tochtstrip">Tochtstrip</a>  
+                    <a href="/deurbeslag/tochtstrip">Tochtstrip</a>
                   </li>
                   <li>
-                    <a href="/deurbeslag/deurstoppers">Deurstopper</a>  
+                    <a href="/deurbeslag/deurstoppers">Deurstopper</a>
                   </li>
                 </ul>
               </div>
             </div>
             <div className="w-full">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (query.trim()) {
-                    router.push(`/search?q=${encodeURIComponent(query)}`);
-                  }
-                }}
-                className="join w-full border border-[#E2E2E2] rounded-[4px] bg-white"
-              >
-                <div className="w-full rounded-[4px] bg-white">
-                  <label className="input validator w-full border-0 rounded-[5px] bg-white">
-                    <input className="bg-white" type="text" placeholder="Start met zoeken..." value={query} onChange={(e) => setQuery(e.target.value)} />
-                  </label>
-                </div>
-                <button type="submit" className="btn bg-[#d4d7f6] rounded-[4px] border-0 shadow-none">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="#0066FF"><path d="M480 272C480 317.9 465.1 360.3 440 394.7L566.6 521.4C579.1 533.9 579.1 554.2 566.6 566.7C554.1 579.2 533.8 579.2 521.3 566.7L394.7 440C360.3 465.1 317.9 480 272 480C157.1 480 64 386.9 64 272C64 157.1 157.1 64 272 64C386.9 64 480 157.1 480 272zM272 416C351.5 416 416 351.5 416 272C416 192.5 351.5 128 272 128C192.5 128 128 192.5 128 272C128 351.5 192.5 416 272 416z" /></svg>
-                </button>
-              </form>
+              <SearchAutosuggest placeholder="Start met zoeken..." />
             </div>
           </div>
           <div className="max-w-[1440px] relative mx-auto hidden lg:flex justify-between items-center">
@@ -345,128 +311,127 @@ export default function Header({
       <div>
         {/* Backdrop */}
         <div
-          className={`fixed top-0 left-0 right-0 bottom-0 bg-black/20 z-[60] transition-opacity duration-300 ${
-            isCartOpen
-              ? "opacity-100 pointer-events-auto"
-              : "opacity-0 pointer-events-none"
-          }`}
+          className={`fixed top-0 left-0 right-0 bottom-0 bg-black/20 z-[60] transition-opacity duration-300 ${isCartOpen
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none"
+            }`}
           onClick={() => setCartOpen(false)}
           aria-label="Close cart backdrop"
         />
         {/* Drawer */}
-        <div className={`fixed top-0 right-0 h-full w-full lg:w-150 bg-white shadow-lg z-[70] transform transition-transform duration-300 ${ isCartOpen ? "translate-x-0" : "translate-x-full" }`} aria-hidden={!isCartOpen}>
+        <div className={`fixed top-0 right-0 h-full w-full lg:w-150 bg-white shadow-lg z-[70] transform transition-transform duration-300 ${isCartOpen ? "translate-x-0" : "translate-x-full"}`} aria-hidden={!isCartOpen}>
           <div className="flex flex-col h-full">
             <div className="flex justify-between items-center border-b border-[#E9E9E9] p-4 bg-[#F7F7F7]">
               <p className="text-lg font-medium text-[#1C2530]">Winkelmand</p>
               <button onClick={() => setCartOpen(false)} aria-label="Close cart" className="text-2xl font-bold leading-none hover:text-gray-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-6 cursor-pointer"><path fillRule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" /></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-6 cursor-pointer"><path fillRule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" /></svg>
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 mb-8">
               {items.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center p-8">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-16 text-gray-300 mb-4"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>
-                    <p className="text-gray-500 font-medium">Je winkelwagen is leeg</p>
-                    <button onClick={() => setCartOpen(false)} className="mt-4 text-[#0066FF] font-semibold hover:underline">Verder winkelen</button>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-16 text-gray-300 mb-4"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>
+                  <p className="text-gray-500 font-medium">Je winkelwagen is leeg</p>
+                  <button onClick={() => setCartOpen(false)} className="mt-4 text-[#0066FF] font-semibold hover:underline">Verder winkelen</button>
                 </div>
               ) : (
                 <>
                   {items.map((item) => (
                     <div key={item.id} className="flex gap-2 items-center justify-between p-3 mb-3 border border-[#DEDEDE] rounded-sm relative flex-col lg:flex-row">
-                        <div className="flex items-center gap-4 justify-start w-full">
-                            {item.slug ? (
-                              <Link className="w-1/3 flex items-center justify-start" href={`/${item.slug}`}>
-                                {item.image ? (
-                                    <img src={item.image} alt={item.name} className="w-28 h-28 object-cover rounded bg-gray-100 cursor-pointer hover:opacity-80 transition" />
-                                ) : (
-                                    <div className="w-28 h-28 bg-gray-100 rounded flex items-center justify-center text-gray-400 cursor-pointer hover:opacity-80 transition">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-8"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
-                                    </div>
-                                )}
-                              </Link>
+                      <div className="flex items-center gap-4 justify-start w-full">
+                        {item.slug ? (
+                          <Link className="w-1/3 flex items-center justify-start" href={`/${item.slug}`}>
+                            {item.image ? (
+                              <img src={item.image} alt={item.name} className="w-28 h-28 object-cover rounded bg-gray-100 cursor-pointer hover:opacity-80 transition" />
                             ) : (
-                                item.image ? (
-                                    <img src={item.image} alt={item.name} className="w-28 h-28 object-cover rounded bg-gray-100" />
-                                ) : (
-                                    <div className="w-28 h-28 bg-gray-100 rounded flex items-center justify-center text-gray-400">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-8"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
-                                    </div>
-                                )
+                              <div className="w-28 h-28 bg-gray-100 rounded flex items-center justify-center text-gray-400 cursor-pointer hover:opacity-80 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-8"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
+                              </div>
                             )}
-                            <div className="w-2/3">
-                                {item.slug ? (
-                                  <Link href={`/${item.slug}`} className="hover:text-blue-600 transition">
-                                    <h3 className="font-semibold">{item.name}</h3>
-                                  </Link>
-                                ) : (
-                                  <h3 className="font-semibold">{item.name}</h3>
-                                )}
-                                {(item.color || item.brand || item.model) && (
-                                  <div className="flex gap-2 flex-wrap mt-1 mb-2">
-                                      {item.color && <p className="text-sm text-gray-600 border-r border-[#E6E6E6] pr-2 last:border-0 last:pr-0">Color: {item.color}</p>}
-                                      {item.brand && <p className="text-sm text-gray-600 border-r border-[#E6E6E6] pr-2 last:border-0 last:pr-0">Brand: {item.brand}</p>}
-                                      {item.model && <p className="text-sm text-gray-600 border-r border-[#E6E6E6] pr-2 last:border-0 last:pr-0">Model: {item.model}</p>}
-                                  </div>
-                                )}
-                                
-                                {(() => {
-                                  // text: item.deliveryText OR fallback
-                                  // type: item.deliveryType OR fallback
-                                  
-                                  let message = item.deliveryText;
-                                  let type = item.deliveryType;
-
-                                  if (!message) {
-                                      const info = getDeliveryInfo(
-                                        item.stockStatus || 'instock',
-                                        item.quantity,
-                                        item.stockQuantity !== undefined ? item.stockQuantity : null,
-                                        item.leadTimeInStock || 1,
-                                        item.leadTimeNoStock || 30
-                                      );
-                                      message = info.short;
-                                      type = info.type;
-                                  }
-
-                                  // Determine color based on type
-                                  let colorClass = "text-[#03B955]"; // Green (In stock)
-                                  if (type === "PARTIAL_STOCK") colorClass = "text-[#03B955]"; // Green
-                                  else if (type === "BACKORDER" || type === "OUT_OF_STOCK") colorClass = "text-[#FF5E00]"; // Orange/Red
-
-                                  return (
-                                    <p className={`${colorClass} text-xs font-semibold mt-1`}>
-                                      {message}
-                                    </p>
-                                  );
-                                })()}
+                          </Link>
+                        ) : (
+                          item.image ? (
+                            <img src={item.image} alt={item.name} className="w-28 h-28 object-cover rounded bg-gray-100" />
+                          ) : (
+                            <div className="w-28 h-28 bg-gray-100 rounded flex items-center justify-center text-gray-400">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-8"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
                             </div>
-                        </div>
-                        <div className="flex w-full lg:w-auto flex-row-reverse lg:flex-col items-center lg:items-end gap-2">
-                            <div className="flex items-center border border-[#EDEDED] shadow-xs rounded-sm w-auto">
-                                <button onClick={() => decreaseQuantity(item.id)} className="border-r border-[#EDEDED] cursor-pointer px-3 py-1 text-lg font-bold text-gray-700 hover:bg-gray-200" aria-label={`Decrease quantity of ${item.name}`}>−</button>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  className="w-14 text-center px-2 py-1 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                  value={item.quantity}
-                                  onChange={(e) => {
-                                    const newQuantity = Math.max(
-                                      1,
-                                      parseInt(e.target.value) || 1
-                                    );
-                                    useCartStore.getState().updateQty(item.id, newQuantity);
-                                  }}
-                                  aria-label={`Set quantity of ${item.name}`}
-                                />
-                                <button onClick={() => increaseQuantity(item.id)} className="border-l border-[#EDEDED] cursor-pointer px-3 py-1 text-lg font-bold text-gray-700 hover:bg-gray-200" aria-label={`Increase quantity of ${item.name}`}>+</button>
+                          )
+                        )}
+                        <div className="w-2/3">
+                          {item.slug ? (
+                            <Link href={`/${item.slug}`} className="hover:text-blue-600 transition">
+                              <h3 className="font-semibold">{item.name}</h3>
+                            </Link>
+                          ) : (
+                            <h3 className="font-semibold">{item.name}</h3>
+                          )}
+                          {(item.color || item.brand || item.model) && (
+                            <div className="flex gap-2 flex-wrap mt-1 mb-2">
+                              {item.color && <p className="text-sm text-gray-600 border-r border-[#E6E6E6] pr-2 last:border-0 last:pr-0">Color: {item.color}</p>}
+                              {item.brand && <p className="text-sm text-gray-600 border-r border-[#E6E6E6] pr-2 last:border-0 last:pr-0">Brand: {item.brand}</p>}
+                              {item.model && <p className="text-sm text-gray-600 border-r border-[#E6E6E6] pr-2 last:border-0 last:pr-0">Model: {item.model}</p>}
                             </div>
-                            <span className="font-bold text-lg flex flex-col">
-                            €{((isB2B ? item.price : item.price * 1.21) * item.quantity).toFixed(2)} <span className="text-xs font-normal text-gray-500">{taxLabel}</span>
-                            </span>
-                            <button onClick={() => removeItem(item.id)} aria-label={`Remove ${item.name} from cart`} className="text-red-600 hover:text-red-800 cursor-pointer bg-[#FFEAEB] rounded-full p-1 absolute -top-2 -right-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-4"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
-                            </button>
+                          )}
+
+                          {(() => {
+                            // text: item.deliveryText OR fallback
+                            // type: item.deliveryType OR fallback
+
+                            let message = item.deliveryText;
+                            let type = item.deliveryType;
+
+                            if (!message) {
+                              const info = getDeliveryInfo(
+                                item.stockStatus || 'instock',
+                                item.quantity,
+                                item.stockQuantity !== undefined ? item.stockQuantity : null,
+                                item.leadTimeInStock || 1,
+                                item.leadTimeNoStock || 30
+                              );
+                              message = info.short;
+                              type = info.type;
+                            }
+
+                            // Determine color based on type
+                            let colorClass = "text-[#03B955]"; // Green (In stock)
+                            if (type === "PARTIAL_STOCK") colorClass = "text-[#03B955]"; // Green
+                            else if (type === "BACKORDER" || type === "OUT_OF_STOCK") colorClass = "text-[#FF5E00]"; // Orange/Red
+
+                            return (
+                              <p className={`${colorClass} text-xs font-semibold mt-1`}>
+                                {message}
+                              </p>
+                            );
+                          })()}
                         </div>
+                      </div>
+                      <div className="flex w-full lg:w-auto flex-row-reverse lg:flex-col items-center lg:items-end gap-2">
+                        <div className="flex items-center border border-[#EDEDED] shadow-xs rounded-sm w-auto">
+                          <button onClick={() => decreaseQuantity(item.id)} className="border-r border-[#EDEDED] cursor-pointer px-3 py-1 text-lg font-bold text-gray-700 hover:bg-gray-200" aria-label={`Decrease quantity of ${item.name}`}>−</button>
+                          <input
+                            type="number"
+                            min={1}
+                            className="w-14 text-center px-2 py-1 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            value={item.quantity}
+                            onChange={(e) => {
+                              const newQuantity = Math.max(
+                                1,
+                                parseInt(e.target.value) || 1
+                              );
+                              useCartStore.getState().updateQty(item.id, newQuantity);
+                            }}
+                            aria-label={`Set quantity of ${item.name}`}
+                          />
+                          <button onClick={() => increaseQuantity(item.id)} className="border-l border-[#EDEDED] cursor-pointer px-3 py-1 text-lg font-bold text-gray-700 hover:bg-gray-200" aria-label={`Increase quantity of ${item.name}`}>+</button>
+                        </div>
+                        <span className="font-bold text-lg flex flex-col">
+                          €{((isB2B ? item.price : item.price * 1.21) * item.quantity).toFixed(2)} <span className="text-xs font-normal text-gray-500">{taxLabel}</span>
+                        </span>
+                        <button onClick={() => removeItem(item.id)} aria-label={`Remove ${item.name} from cart`} className="text-red-600 hover:text-red-800 cursor-pointer bg-[#FFEAEB] rounded-full p-1 absolute -top-2 -right-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-4"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </>
@@ -481,26 +446,26 @@ export default function Header({
                 <div className="flex justify-between mb-3 text-base font-medium text-[#3D4752]">
                   <span>Verzendkosten</span>
                   <span>
-                    {isFreeShipping 
-                      ? "Gratis" 
-                      : displayShipping === 0 
-                        ? "N.t.b." 
+                    {isFreeShipping
+                      ? "Gratis"
+                      : displayShipping === 0
+                        ? "N.t.b."
                         : `€${displayShipping.toFixed(2)}`
                     }
                   </span>
                 </div>
                 <div className="flex justify-between mb-4 text-base">
-                  <p className="font-bold">Totaalbedrag 
+                  <p className="font-bold">Totaalbedrag
                     <span className="font-normal text-xs ml-1.5">{taxLabel}</span>
                   </p>
                   <span className="font-bold">€{(subtotal + displayShipping).toFixed(2)}</span>
                 </div>
                 {items.length > 0 && isB2B && (
-                     <div className="flex justify-between mb-4 text-sm text-gray-500">
-                        <span>Totaal (incl. BTW)</span>
-                        {/* Subtotal is Ex-VAT here. Shipping is assumed Ex-VAT (flatRate). Add 21% to total. */}
-                        <span>€{((subtotal + shipping) * 1.21).toFixed(2)}</span>
-                     </div>
+                  <div className="flex justify-between mb-4 text-sm text-gray-500">
+                    <span>Totaal (incl. BTW)</span>
+                    {/* Subtotal is Ex-VAT here. Shipping is assumed Ex-VAT (flatRate). Add 21% to total. */}
+                    <span>€{((subtotal + shipping) * 1.21).toFixed(2)}</span>
+                  </div>
                 )}
                 <button onClick={handleCheckoutRedirect} className="w-full bg-[#0066FF] text-white font-bold px-4 py-3.5 rounded-sm text-base">
                   Afrekenen
@@ -509,7 +474,7 @@ export default function Header({
             )}
           </div>
         </div>
-      </div>
+      </div >
     </>
   );
 }

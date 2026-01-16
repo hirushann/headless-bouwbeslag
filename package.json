@@ -8,6 +8,7 @@
     "start": "next start -p 3001"
   },
   "dependencies": {
+    "@elastic/elasticsearch": "^9.2.0",
     "@mollie/api-client": "^4.3.3",
     "@salespark/validate-vat-eu": "^1.0.5",
     "@woocommerce/woocommerce-rest-api": "^1.0.2",
