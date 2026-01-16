@@ -17,6 +17,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/retourbeleid`, lastModified: new Date() },
     { url: `${baseUrl}/algemene-voorwaarden`, lastModified: new Date() },
     { url: `${baseUrl}/zakelijk-aanmelden`, lastModified: new Date() },
+    { url: `${baseUrl}/merken`, lastModified: new Date() },
   ];
 
   // Helper to fetch ALL items with pagination
@@ -41,7 +42,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
         // Safety break to prevent infinite loops (e.g. 50 pages = 5000 products)
         if (page > 50) break;
-      } catch (e) {
+      } catch (e: any) {
+        // WordPress returns 400 error when page is out of bounds. 
+        // We suppress this specific error to avoid console noise.
+        const msg = e.message?.toLowerCase() || "";
+        if (msg.includes("paginanummer is groter") || msg.includes("page number is larger")) {
+          break;
+        }
         console.error(`Error fetching page ${page} of ${endpoint}:`, e);
         break;
       }
@@ -104,5 +111,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: post.modified ? new Date(post.modified) : new Date(),
   }));
 
-  return [...staticPages, ...categories, ...products, ...posts];
+  // 4. Fetch All Brands
+  const allBrands = await fetchAll("wp/v2/product_brand", { hide_empty: true });
+
+  const brands = allBrands.map((brand: any) => ({
+    url: `${baseUrl}/merken/${brand.slug}`,
+    lastModified: new Date(),
+  }));
+
+  return [...staticPages, ...categories, ...products, ...posts, ...brands];
 }

@@ -17,7 +17,8 @@ export class WooCommerceClient {
 
   private async request(method: string, endpoint: string, data: any = {}) {
     const isGet = method === "GET";
-    const requestUrl = new URL(`${this.url}/wp-json/${this.version}/${endpoint}`);
+    const namespace = endpoint.startsWith("wp/") || endpoint.startsWith("wc/") ? "" : `${this.version}/`;
+    const requestUrl = new URL(`${this.url}/wp-json/${namespace}${endpoint}`);
 
     // Add Basic Auth
     const auth = btoa(`${this.consumerKey}:${this.consumerSecret}`);
@@ -120,9 +121,61 @@ export const fetchCategories = async () => {
 };
 
 export const fetchMedia = async (id: number | string) => {
-  const res = await api.get(`media/${id}`);
+  const res = await api.get(`wp/v2/media/${id}`);
   return res.data;
 };
+
+// ... (skipping ShippingMethod interfaces/functions) ...
+
+// Helper to resolve brand logo if it's an ID
+const resolveBrandLogin = async (brand: Brand): Promise<Brand> => {
+  if (brand.acf?.brand_logo) {
+    const logoId = Number(brand.acf.brand_logo);
+    if (!isNaN(logoId) && logoId > 0) {
+      try {
+        const media = await fetchMedia(logoId);
+        if (media?.source_url) {
+          brand.acf.brand_logo = media.source_url;
+        }
+      } catch (e) {
+        console.error(`Failed to resolve media for brand ${brand.name}`, e);
+      }
+    }
+  }
+  return brand;
+}
+
+export const getBrands = async (): Promise<Brand[]> => {
+  try {
+    // Fetch from product_brand taxonomy (wp/v2 namespace)
+    const { data: brands } = await api.get("wp/v2/product_brand", {
+      params: { per_page: 100, hide_empty: true, _embed: true }
+    });
+
+    // Resolve images in parallel (careful with concurrency if many brands)
+    const resolvedBrands = await Promise.all(brands.map((b: Brand) => resolveBrandLogin(b)));
+
+    return resolvedBrands;
+  } catch (error) {
+    console.error("Error fetching brands:", error);
+    return [];
+  }
+};
+
+export const getBrand = async (slug: string): Promise<Brand | null> => {
+  try {
+    const { data: brands } = await api.get("wp/v2/product_brand", {
+      params: { slug: slug, _embed: true }
+    });
+
+    if (brands.length > 0) {
+      return await resolveBrandLogin(brands[0]);
+    }
+    return null;
+  } catch (error) {
+    return null;
+  }
+}
 
 export interface ShippingMethod {
   id: number;
@@ -233,35 +286,47 @@ export interface Brand {
   description: string;
   count: number;
   acf?: {
-    brand_image?: string | number | { url: string }; // Could be ID or URL or object
+    brand_logo?: string | number | { url: string }; // Changed from brand_image
+    brand_description?: string;
     faq?: { question: string; answer: string }[];
   };
   _embedded?: any;
 }
 
-export const getBrands = async (): Promise<Brand[]> => {
+
+
+export const getProductsByBrand = async (brandId: number, perPage: number = 20): Promise<any[]> => {
   try {
-    // Fetch from product_brand taxonomy
-    const { data: brands } = await api.get("product_brand", {
-      params: { per_page: 100, hide_empty: true, _embed: true }
+    // 1. Fetch IDs from WP Core endpoint (which supports filtering by custom taxonomy)
+    const { data: wpProducts } = await api.get("wp/v2/product", {
+      params: {
+        product_brand: brandId,
+        per_page: perPage,
+        _fields: 'id'
+      }
     });
 
-    return brands;
+    if (!wpProducts || wpProducts.length === 0) {
+      return [];
+    }
+
+    const ids = wpProducts.map((p: any) => p.id);
+
+    // 2. Fetch full product details from WC API using IDs
+    const { data: wcProducts } = await api.get("products", {
+      params: {
+        include: ids.join(','),
+        per_page: perPage,
+        status: 'publish'
+      }
+    });
+
+    return wcProducts;
+
   } catch (error) {
-    console.error("Error fetching brands:", error);
+    console.error("Error fetching brand products:", error);
     return [];
   }
 };
-
-export const getBrand = async (slug: string): Promise<Brand | null> => {
-  try {
-    const { data: brands } = await api.get("product_brand", {
-      params: { slug: slug, _embed: true }
-    });
-    return brands.length > 0 ? brands[0] : null;
-  } catch (error) {
-    return null;
-  }
-}
 
 export default api;
