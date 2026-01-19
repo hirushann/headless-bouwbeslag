@@ -1,5 +1,7 @@
 "use client";
 
+import Script from "next/script";
+
 import Link from "next/link";
 import { useCartStore } from "@/lib/cartStore";
 import { useUserContext } from "@/context/UserContext";
@@ -10,6 +12,7 @@ import { getDeliveryInfo } from "@/lib/deliveryUtils";
 
 import { ShippingMethod } from "@/lib/woocommerce";
 import SearchAutosuggest from "./SearchAutosuggest";
+import WebwinkelKeurWidget from "./WebwinkelKeurWidget";
 
 export default function Header({
   shippingMethods,
@@ -116,6 +119,10 @@ export default function Header({
   return (
     <>
       <div className="shadow-[0px_4px_40px_0px_#00000012] bg-white w-full p-2">
+        <Script
+          src={`https://www.webwinkelkeur.nl/js/sidebar.js?id=11199&_t=${Date.now()}`}
+          strategy="lazyOnload"
+        />
         <div className="max-w-[1440px] mx-auto relative flex justify-between items-center w-full">
           <div className="flex justify-start items-center gap-3 w-3/4 font-sans text-sm">
             <div className="flex gap-1 items-center">
@@ -135,9 +142,14 @@ export default function Header({
               <span>De beste service</span>
             </div>
           </div>
-          <div className="w-1/4 flex justify-end items-center">
-            {/* <img className="w-full hidden lg:block" src="/header-top-pay.png" alt="" />
-            <img className="w-full lg:hidden" src="/mobile-rating.png" alt="" /> */}
+          <div className="w-1/4 flex justify-end items-center gap-2">
+            {/* Payment Icons */}
+            {/* <img className="hidden lg:block h-6 object-contain" src="/header-top-pay.png" alt="Betaalmethoden" /> */}
+            
+            {/* WebwinkelKeur Widget */}
+            <div className="hidden lg:flex items-center">
+                <WebwinkelKeurWidget />
+            </div>
           </div>
         </div>
       </div>
