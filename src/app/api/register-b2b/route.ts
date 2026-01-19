@@ -35,6 +35,16 @@ export async function POST(req: Request) {
             vat_number
         } = body;
 
+        // Check for SMTP credentials first to verify we can send emails
+        // This prevents creating "zombie" users if email config is missing
+        if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+            console.error("Registration blocked: Missing SMTP_USER or SMTP_PASS");
+            return NextResponse.json(
+                { message: "Server configuration error: Email service not configured." },
+                { status: 500 }
+            );
+        }
+
         // Validation
         if (!email || !password || !first_name || !last_name || !company_name) {
             return NextResponse.json(
