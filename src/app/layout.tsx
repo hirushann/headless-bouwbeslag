@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import { Toaster } from "react-hot-toast";
 import { getShippingSettings } from "@/lib/woocommerce";
 import { UserProvider } from "@/context/UserContext"; // Import UserProvider
+import WebwinkelKeurWidget from "@/components/WebwinkelKeurWidget";
 
 const dmsans = DM_Sans({
   variable: "--font-dm-sans",
@@ -79,9 +80,9 @@ export default async function RootLayout({
                   <p className="text-[#C4C4C4] font-normal text-base mt-1">Bouwbeslag.nl is onderdeel van DayZ Solutions</p>
                 </div>
 
-                {/* <div className="rounded-lg bg-[#FFFFFF0D] w-max px-3.5 py-2 flex items-center justify-center mt-2 lg:mt-5">
-                  <Image src="/footer-review.png" alt="Footer Logo" width={200} height={200} />
-                </div> */}
+                <div className="rounded-lg bg-[#FFFFFF0D] w-max px-3.5 py-2 flex items-center justify-center mt-2 lg:mt-5">
+                  <WebwinkelKeurWidget variant="footer" />
+                </div>
 
                 <div className="flex flex-col gap-3 my-5">
                   <p className="font-bold text-xl text-white">Blijf op de hoogte via de socials:</p>
