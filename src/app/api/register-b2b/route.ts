@@ -17,7 +17,7 @@ const transporter = nodemailer.createTransport({
     port: Number(process.env.SMTP_PORT) || 587,
     secure: false, // true for 465, false for other ports
     auth: {
-        user: process.env.SMTP_USER, // e.g. "info@bouwbeslag.nl"
+        user: process.env.SMTP_USER, // e.g. ""
         pass: process.env.SMTP_PASS,
     },
 });
@@ -87,7 +87,7 @@ export async function POST(req: Request) {
 
         if (response.status === 201) {
             const customerId = response.data.id;
-            const adminEmail = process.env.ADMIN_EMAIL || "info@bouwbeslag.nl"; // Configure this in .env!
+            const adminEmail = process.env.ADMIN_EMAIL || "contact@bouwbeslag.nl"; // Configure this in .env!
 
             // Generate Approval/Reject Links (using API routes we will create)
             const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"; // Ensure this is set
@@ -96,7 +96,7 @@ export async function POST(req: Request) {
 
             // 1. Send Email to ADMIN
             await transporter.sendMail({
-                from: '"Bouwbeslag.nl Website" <info@bouwbeslag.nl>',
+                from: '"Bouwbeslag.nl Website" <contact@bouwbeslag.nl>',
                 to: adminEmail,
                 subject: `Nieuwe zakelijke aanmelding: ${company_name}`,
                 html: `
@@ -119,7 +119,7 @@ export async function POST(req: Request) {
 
             // 2. Send Email to CUSTOMER
             await transporter.sendMail({
-                from: '"Bouwbeslag.nl" <info@bouwbeslag.nl>',
+                from: '"Bouwbeslag.nl" <contact@bouwbeslag.nl>',
                 to: email,
                 subject: "Uw zakelijke aanvraag is ontvangen",
                 html: `

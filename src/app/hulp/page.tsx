@@ -41,7 +41,7 @@ export default function HelpPage() {
             <div>
               <h3 className="text-xl font-bold mb-2">E-mail ons</h3>
               <p className="text-[#3D4752] mb-4">Stuur ons een bericht en we reageren zo snel mogelijk, meestal binnen 24 uur op werkdagen.</p>
-              <a href="mailto:info@bouwbeslag.nl" className="text-[#0066FF] font-semibold hover:underline">info@bouwbeslag.nl</a>
+              <a href="mailto:contact@bouwbeslag.nl" className="text-[#0066FF] font-semibold hover:underline">contact@bouwbeslag.nl</a>
             </div>
           </FadeIn>
 

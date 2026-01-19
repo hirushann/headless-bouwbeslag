@@ -36,7 +36,8 @@ export default function WebwinkelKeurWidget({ variant = "header" }: WebwinkelKeu
 
   const formattedScore = score.toFixed(1).replace(".", ",");
 
-  const webwinkelUrl = "https://www.webwinkelkeur.nl/leden/Bouwbeslag-nl_11199";
+  // const webwinkelUrl = "https://www.webwinkelkeur.nl/leden/Bouwbeslag-nl_11199";
+  const webwinkelUrl = "https://www.webwinkelkeur.nl/webshop/Bouwbeslag-nl_11199";
 
   if (variant === "footer") {
     // Footer Design: Stacked / Dark Theme compatible

@@ -81,7 +81,7 @@ export async function GET(req: Request) {
 
         // 3. Send Notification Email to User
         await transporter.sendMail({
-            from: '"Bouwbeslag.nl" <info@bouwbeslag.nl>',
+            from: '"Bouwbeslag.nl" <contact@bouwbeslag.nl>',
             to: customerEmail,
             subject: subject,
             html: `
