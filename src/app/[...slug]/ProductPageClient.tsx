@@ -14,6 +14,7 @@ import { COLOR_MAP } from "@/config/colorMap";
 // import { syncAddToCart, syncRemoveItem, syncUpdateItemQty } from "@/lib/cartApi";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
 import { checkStockAction } from "@/app/actions";
+import ReviewsSection from "@/components/ReviewsSection";
 
 // Helper to format values: remove trailing zeros from decimals (e.g. "200.00" -> "200")
 const formatSpecValue = (value: string | number | null | undefined): string => {
@@ -1002,7 +1003,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
 
                 {/* Right side: Product details */}
                 <motion.div variants={fadeInUp} className="lg:w-1/2 flex flex-col gap-5">
-                    <div>
+                    <div className="flex items-center gap-4">
                         {/* <Image src="/productcatlogo.png" className="w-auto h-auto" alt="Product Category Logo" width={50} height={50} /> */}
                         {brandImageUrl && (
                           <img
@@ -1010,6 +1011,28 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                             alt="Brand Logo"
                             className="h-10 w-auto object-contain"
                           />
+                        )}
+
+                        {/* Review Summary */}
+                        {product.rating_count > 0 && (
+                            <div className="flex items-center gap-2 cursor-pointer" onClick={() => {
+                                const el = document.getElementById('reviews-accordion') as HTMLDetailsElement | null;
+                                if (el) {
+                                  el.open = true;
+                                  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }
+                            }}>
+                                <div className="flex text-[#FF9E0D]">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <svg key={star} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={star <= Math.round(parseFloat(product.average_rating || "0")) ? "currentColor" : "none"} stroke="currentColor" strokeWidth={star <= Math.round(parseFloat(product.average_rating || "0")) ? 0 : 1} className="size-5">
+                                            <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+                                        </svg>
+                                    ))}
+                                </div>
+                                <span className="text-sm font-medium text-gray-500 underline decoration-gray-300 underline-offset-2">
+                                   {product.rating_count} reviews
+                                </span>
+                            </div>
                         )}
                     </div>
                     {/* Title and Brand */}
@@ -1924,6 +1947,20 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                             </div>
                           );
                         })()}
+
+                        {/* Reviews Accordion */}
+                        <div className="bg-white rounded-lg border border-white">
+                            <details className="group" id="reviews-accordion">
+                                <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
+                                    Reviews
+                                    <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
+                                    <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
+                                </summary>
+                                <div className="px-6 pb-6 w-full">
+                                    <ReviewsSection productId={product.id} productName={product.name} />
+                                </div>
+                            </details>
+                        </div>
                     </div>
                 </div>
             </div>
