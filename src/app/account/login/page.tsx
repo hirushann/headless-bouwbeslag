@@ -4,6 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "@/lib/auth";
 import Link from "next/link";
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Inloggen | Bouwbeslag',
+  description: 'Log in op je Bouwbeslag account om je bestellingen te volgen en sneller af te rekenen.',
+};
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");

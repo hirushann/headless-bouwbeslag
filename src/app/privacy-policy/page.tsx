@@ -1,4 +1,10 @@
 import React from 'react';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Privacybeleid | Bouwbeslag',
+  description: 'Lees hoe wij omgaan met uw privacy en persoonsgegevens bij Bouwbeslag.',
+};
 
 export default function PrivacyPolicyPage() {
   return (

@@ -1,8 +1,14 @@
 import { getBrands, getBrand } from "@/lib/woocommerce";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'Onze Merken | Bouwbeslag',
+  description: 'Ontdek alle topmerken bouwbeslag en deurbeslag in ons uitgebreide assortiment.',
+};
 
 export default async function BrandsPage() {
     const brands = await getBrands();

@@ -288,6 +288,8 @@ export interface Brand {
   acf?: {
     brand_logo?: string | number | { url: string }; // Changed from brand_image
     brand_description?: string;
+    brand_meta_title?: string;
+    brand_meta_description?: string;
     faq?: { question: string; answer: string }[];
   };
   _embedded?: any;

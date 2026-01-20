@@ -15,6 +15,10 @@ interface Category {
   name: string;
   slug: string;
   description: string;
+  acf?: {
+    category_meta_title?: string;
+    category_meta_description?: string;
+  };
 }
 
 interface AttributeTerm {
@@ -178,13 +182,25 @@ export async function generateMetadata(
     const canonicalUrl = `${siteUrl}/${slug.join('/')}`;
 
     // Dynamic Category Title
-    const title = `${category.name} kopen? | Bouwbeslag`;
+    // Priority: ACF Meta Title -> "Category Name | Bouwbeslag"
+    const acfTitle = category.acf?.category_meta_title;
+    const title = acfTitle && acfTitle.trim() !== "" 
+        ? acfTitle 
+        : `${category.name} | Bouwbeslag`;
 
     // Dynamic Category Description
-    const rawDesc = category.description?.replace(/<[^>]+>/g, "") || "";
-    const description = rawDesc.length > 50 
-        ? rawDesc.slice(0, 160) 
-        : `Op zoek naar ${category.name}? Bekijk ons ruime assortiment. ✅ Vóór 16:00 besteld, morgen in huis! Bestel direct online.`;
+    // Priority: ACF Meta Desc -> Description -> Fallback Template
+    const acfDesc = category.acf?.category_meta_description;
+    let description = "";
+
+    if (acfDesc && acfDesc.trim() !== "") {
+        description = acfDesc;
+    } else {
+        const rawDesc = category.description?.replace(/<[^>]+>/g, "") || "";
+        description = rawDesc.length > 50 
+            ? rawDesc.slice(0, 160) 
+            : `Op zoek naar ${category.name}? Bekijk ons ruime assortiment. ✅ Vóór 16:00 besteld, morgen in huis! Bestel direct online.`;
+    }
 
     return {
       title,

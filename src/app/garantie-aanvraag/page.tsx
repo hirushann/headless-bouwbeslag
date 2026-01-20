@@ -3,6 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Garantie Aanvraag | Bouwbeslag',
+  description: 'Dien eenvoudig een garantieaanvraag in voor uw producten bij Bouwbeslag.',
+};
 
 export default function WarrantyRequestPage() {
   const [formData, setFormData] = useState({

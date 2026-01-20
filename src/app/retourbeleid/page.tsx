@@ -1,4 +1,10 @@
 import React from 'react';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Retourbeleid | Bouwbeslag',
+  description: 'Alles over retourneren, terugbetalingen en ruilen bij Bouwbeslag.nl.',
+};
 
 export default function ReturnPolicyPage() {
   return (

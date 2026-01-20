@@ -1,5 +1,11 @@
 import React from 'react';
 import Image from 'next/image';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Contact | Bouwbeslag',
+  description: 'Neem contact op met Bouwbeslag voor vragen over producten, bestellingen of advies.',
+};
 
 export default function ContactPage() {
   return (

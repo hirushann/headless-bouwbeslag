@@ -2,8 +2,45 @@ import { getBrand, fetchProducts, getProductsByBrand } from "@/lib/woocommerce";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ShopProductCard from "@/components/ShopProductCard";
+import { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+    const { slug } = await params;
+    const brand = await getBrand(slug);
+
+    if (!brand) {
+        return {};
+    }
+
+    // Dynamic Title
+    // Priority: ACF Title -> "Brand Name | Bouwbeslag"
+    const acfTitle = brand.acf?.brand_meta_title;
+    const title = acfTitle && acfTitle.trim() !== "" ? acfTitle : `${brand.name} | Bouwbeslag`;
+
+    // Dynamic Description
+    // Priority: ACF Desc -> Brand Desc -> Fallback Template
+    const acfDesc = brand.acf?.brand_meta_description;
+    let description = "";
+
+    if (acfDesc && acfDesc.trim() !== "") {
+        description = acfDesc;
+    } else if (brand.description && brand.description.trim() !== "") {
+        description = brand.description.replace(/<[^>]+>/g, "").slice(0, 160);
+    } else {
+        description = `Bekijk het complete assortiment van ${brand.name} bij Bouwbeslag. ✅ Scherpe prijzen ✅ Snelle levering ✅ Deskundig advies.`;
+    }
+
+    return {
+        title: title,
+        description: description,
+        openGraph: {
+            title: title,
+            description: description,
+        }
+    };
+}
 
 export default async function BrandPage({ params, searchParams }: { params: Promise<{ slug: string }>, searchParams: Promise<{ category?: string }> }) {
     const { slug } = await params;

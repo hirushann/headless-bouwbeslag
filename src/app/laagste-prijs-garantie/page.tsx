@@ -1,5 +1,11 @@
 import React from 'react';
 import GuaranteePageClient from './GuaranteePageClient';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Laagste Prijs Garantie | Bouwbeslag',
+  description: 'Profiteer van onze laagste prijsgarantie. Ziet u het ergens anders goedkoper? Wij passen de prijs aan.',
+};
 
 export default async function GuaranteePage({
   searchParams,

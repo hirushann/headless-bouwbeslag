@@ -4,6 +4,12 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import Link from "next/link";
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Mijn Account | Bouwbeslag',
+  description: 'Beheer je account, bekijk bestellingen en update je gegevens bij Bouwbeslag.nl.',
+};
 
 function AccountContent() {
   const [user, setUser] = useState<any>(null);

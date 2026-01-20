@@ -1,4 +1,10 @@
 import React from 'react';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Algemene Voorwaarden | Bouwbeslag',
+  description: 'Lees onze algemene voorwaarden voor gebruik van onze diensten en producten.',
+};
 
 export default function TermsAndConditionsPage() {
   return (
