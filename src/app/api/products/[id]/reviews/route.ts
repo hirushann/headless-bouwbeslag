@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import api from "@/lib/woocommerce";
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const productId = params.id;
+        const { id: productId } = await params;
+
         if (!productId) {
             return NextResponse.json({ message: "Product ID is required" }, { status: 400 });
         }
@@ -27,9 +28,9 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     }
 }
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const productId = params.id;
+        const { id: productId } = await params;
         const body = await req.json();
         const { review, reviewer, reviewer_email, rating } = body;
 
@@ -46,10 +47,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
             reviewer,
             reviewer_email,
             rating: parseInt(rating),
-            verified: true // Optional: could depend on logic, but typically users submitting via site are treated as verified if we had auth. Without auth, maybe false? 
-            // WooCommerce REST API 'verified' field might be read-only or require admin auth. 
-            // User requested "Verified Customer" display, usually implies checking against orders.
-            // For now, we just pass the data.
+            verified: true
         };
 
         const response = await api.post("products/reviews", data);
