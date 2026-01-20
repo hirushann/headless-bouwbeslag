@@ -121,13 +121,13 @@ export async function POST(req: Request) {
             await transporter.sendMail({
                 from: '"Bouwbeslag.nl" <contact@bouwbeslag.nl>',
                 to: email,
-                subject: "Uw zakelijke aanvraag is ontvangen",
+                subject: "De aanvraag voor een bouwbeslag.nl B2B account is ontvangen!",
                 html: `
                     <div style="font-family: Arial, sans-serif; color: #333;">
                         <img src="${baseUrl}/logo.png" alt="Bouwbeslag.nl Logo" style="width: 200px; margin-bottom: 20px;" />
-                        <h2>Bedankt voor uw aanvraag, ${first_name}!</h2>
-                        <p>We hebben uw registratie voor een zakelijk account ontvangen.</p>
-                        <p>Uw aanvraag wordt momenteel beoordeeld. U ontvangt een e-mail zodra uw account is goedgekeurd. Tot die tijd kunt u nog niet inloggen.</p>
+                        <h2>Bedankt voor je aanvraag, ${first_name}!</h2>
+                        <p>We hebben de registratie voor een zakelijk account ontvangen.</p>
+                        <p>De aanvraag wordt momenteel beoordeeld. Jeontvangt een e-mail zodra het account is goedgekeurd. of geweigerd. Tot die tijd kan je nog niet inloggen.</p>
                         <br>
                         <p>Met vriendelijke groet,</p>
                         <p><strong>Team Bouwbeslag.nl</strong></p>

@@ -163,25 +163,44 @@ export default async function BrandPage({ params, searchParams }: { params: Prom
             </div>
 
             {/* FAQ Section */}
-            {brand.acf?.faq && brand.acf.faq.length > 0 && (
-                <div className="mt-16 max-w-3xl mx-auto border-t border-gray-100 pt-16">
-                    <h2 className="text-2xl font-bold mb-6 text-center">Veelgestelde vragen over {brand.name}</h2>
-                    <div className="space-y-4">
-                        {brand.acf.faq.map((item, index) => (
-                            <details key={index} className="group bg-white border border-gray-200 rounded-xl overflow-hidden">
-                                <summary className="flex cursor-pointer items-center justify-between p-4 font-medium text-gray-900 hover:bg-gray-50 transition-colors">
-                                    {item.question}
-                                    <span className="transition group-open:rotate-180">
-                                        <svg fill="none" height="24" shapeRendering="geometricPrecision" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
-                                    </span>
-                                </summary>
-                                <div className="border-t border-gray-100 p-4 text-gray-600 bg-gray-50/50">
-                                    {item.answer}
-                                </div>
-                            </details>
-                        ))}
+            {brand.acf?.faq_section && brand.acf.faq_section.length > 0 && (
+                <>
+                    <script
+                        type="application/ld+json"
+                        dangerouslySetInnerHTML={{
+                            __html: JSON.stringify({
+                                "@context": "https://schema.org",
+                                "@type": "FAQPage",
+                                "mainEntity": brand.acf.faq_section.map(item => ({
+                                    "@type": "Question",
+                                    "name": item.brand_faq_question,
+                                    "acceptedAnswer": {
+                                        "@type": "Answer",
+                                        "text": item.brand_faq_answer
+                                    }
+                                }))
+                            })
+                        }}
+                    />
+                    <div className="mt-16 max-w-3xl mx-auto border-t border-gray-100 pt-16">
+                        <h2 className="text-2xl font-bold mb-6 text-center">Veelgestelde vragen over {brand.name}</h2>
+                        <div className="space-y-4">
+                            {brand.acf.faq_section.map((item, index) => (
+                                <details key={index} className="group bg-white border border-gray-200 rounded-xl overflow-hidden">
+                                    <summary className="flex cursor-pointer items-center justify-between p-4 font-medium text-gray-900 hover:bg-gray-50 transition-colors">
+                                        {item.brand_faq_question}
+                                        <span className="transition group-open:rotate-180">
+                                            <svg fill="none" height="24" shapeRendering="geometricPrecision" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                                        </span>
+                                    </summary>
+                                    <div className="border-t border-gray-100 p-4 text-gray-600 bg-gray-50/50">
+                                        <div dangerouslySetInnerHTML={{ __html: item.brand_faq_answer }} />
+                                    </div>
+                                </details>
+                            ))}
+                        </div>
                     </div>
-                </div>
+                </>
             )}
 
         </div>

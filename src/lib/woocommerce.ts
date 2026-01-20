@@ -290,7 +290,7 @@ export interface Brand {
     brand_description?: string;
     brand_meta_title?: string;
     brand_meta_description?: string;
-    faq?: { question: string; answer: string }[];
+    faq_section?: { brand_faq_question: string; brand_faq_answer: string }[];
   };
   _embedded?: any;
 }

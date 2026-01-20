@@ -50,20 +50,20 @@ export async function GET(req: Request) {
 
         if (action === "approve") {
             newStatus = "approved";
-            subject = "Uw zakelijke account is goedgekeurd!";
+            subject = "Bouwbeslag.nl account is goedgekeurd!";
             message = `
-                <h2>Gefeliciteerd, ${customerName}!</h2>
-                <p>Uw zakelijke account bij Bouwbeslag.nl is goedgekeurd.</p>
-                <p>U kunt nu inloggen en profiteren van uw zakelijke voordelen.</p>
+                <h2>Geslaagd, ${customerName}!</h2>
+                <p>Het zakelijke account bij Bouwbeslag.nl is goedgekeurd.</p>
+                <p>Je kunt nu inloggen en profiteren van de zakelijke tarieven.</p>
                 <a href="${process.env.NEXT_PUBLIC_SITE_URL}/account/login" style="background: #0066FF; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 20px;">Direct Inloggen</a>
             `;
         } else if (action === "reject") {
             newStatus = "rejected";
-            subject = "Status van uw zakelijke aanvraag";
+            subject = "Bouwbeslag.nl account afgekeurd";
             message = `
-                <h2>Beste ${customerName},</h2>
-                <p>Helaas kunnen wij uw aanvraag voor een zakelijk account momenteel niet goedkeuren.</p>
-                <p>Neem contact met ons op als u hierover vragen heeft.</p>
+                <h2>Helaas, ${customerName},</h2>
+                <p>Wij hebben besloten je aanvraag voor een zakelijk account niet goed de keuren omdat we denken dat de</p>
+                <p>bedrijfsactiviteiten niet passen bij onze B2B klanten. Mocht je hier anders over denken, geef ons dan even een belletje.</p>
             `;
         } else {
             return NextResponse.json({ message: "Invalid action" }, { status: 400 });
