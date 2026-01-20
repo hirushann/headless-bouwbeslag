@@ -125,14 +125,28 @@ export async function generateMetadata(
   // 1. Try Product first
   if (product) {
     const meta = product.meta_data || [];
-    const metaTitle =
-      meta.find((m: any) => m.key === "description_meta_title")?.value ||
-      product.name;
+    
+    // Dynamic Product Title
+    // Priority: Custom Meta Title -> "Product Name | Bouwbeslag"
+    const customTitle = meta.find((m: any) => m.key === "description_meta_title")?.value;
+    const metaTitle = customTitle && customTitle.trim() !== "" 
+      ? customTitle 
+      : `${product.name} | Bouwbeslag`;
 
-    const metaDescription =
-      meta.find((m: any) => m.key === "description_meta_description")?.value ||
-      product.short_description ||
-      "";
+    // Dynamic Product Description
+    // Priority: Custom Meta Desc -> Short Desc -> Default Template
+    const customDesc = meta.find((m: any) => m.key === "description_meta_description")?.value;
+    
+    let metaDescription = "";
+    if (customDesc && customDesc.trim() !== "") {
+        metaDescription = customDesc;
+    } else if (product.short_description && product.short_description.trim() !== "") {
+        metaDescription = product.short_description.replace(/<[^>]+>/g, "").slice(0, 160);
+    } else {
+        // Ultimate Fallback Template
+        const skuText = product.sku ? `(SKU: ${product.sku})` : "";
+        metaDescription = `Koop ${product.name} ${skuText} bij Bouwbeslag.nl. ✅ Scherpe prijzen ✅ Snelle levering ✅ 30 dagen bedenktijd.`;
+    }
 
     return {
       title: metaTitle,
@@ -150,6 +164,10 @@ export async function generateMetadata(
         title: metaTitle,
         description: metaDescription,
       },
+      robots: {
+        index: true,
+        follow: true,
+      }
     };
   }
 
@@ -159,11 +177,14 @@ export async function generateMetadata(
     // Reconstruct canonical URL from the slug array
     const canonicalUrl = `${siteUrl}/${slug.join('/')}`;
 
-    const title = `${category.name} | Bouwbeslag`;
-    const description =
-      category.description
-        ?.replace(/<[^>]+>/g, "")
-        .slice(0, 160) || "";
+    // Dynamic Category Title
+    const title = `${category.name} kopen? | Bouwbeslag`;
+
+    // Dynamic Category Description
+    const rawDesc = category.description?.replace(/<[^>]+>/g, "") || "";
+    const description = rawDesc.length > 50 
+        ? rawDesc.slice(0, 160) 
+        : `Op zoek naar ${category.name}? Bekijk ons ruime assortiment. ✅ Vóór 16:00 besteld, morgen in huis! Bestel direct online.`;
 
     return {
       title,
