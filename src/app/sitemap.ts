@@ -2,103 +2,158 @@ import api from "@/lib/woocommerce";
 import { wpApi } from "@/lib/wordpress";
 import { MetadataRoute } from "next";
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl";
+function normalizeBaseUrl(input: string) {
+  // remove trailing slash
+  return input.replace(/\/+$/, "");
+}
 
-  const staticPages = [
-    { url: `${baseUrl}/`, lastModified: new Date() },
-    // { url: `${baseUrl}/products`, lastModified: new Date() },
-    { url: `${baseUrl}/contact`, lastModified: new Date() },
-    { url: `${baseUrl}/garantie-aanvraag`, lastModified: new Date() },
-    { url: `${baseUrl}/hulp`, lastModified: new Date() },
-    { url: `${baseUrl}/kennisbank`, lastModified: new Date() },
-    { url: `${baseUrl}/laagste-prijs-garantie`, lastModified: new Date() },
-    { url: `${baseUrl}/privacy-policy`, lastModified: new Date() },
-    { url: `${baseUrl}/retourbeleid`, lastModified: new Date() },
-    { url: `${baseUrl}/algemene-voorwaarden`, lastModified: new Date() },
-    { url: `${baseUrl}/zakelijk-aanmelden`, lastModified: new Date() },
-    { url: `${baseUrl}/merken`, lastModified: new Date() },
-  ];
+function normalizeUrl(url: string) {
+  // remove trailing slash except for the homepage
+  if (url.endsWith("/") && !url.match(/^https?:\/\/[^/]+\/$/)) {
+    return url.replace(/\/+$/, "");
+  }
+  return url;
+}
 
-  // Helper to fetch ALL items with pagination
-  // Updated to accept optional client, defaults to WC api
-  const fetchAll = async (endpoint: string, extraParams = {}, client: any = api) => {
-    let page = 1;
-    let allItems: any[] = [];
+// Woo client: params are passed directly (common for Woo REST wrappers)
+async function fetchAllWoo(endpoint: string, extraParams: any = {}, client: any = api) {
+  let page = 1;
+  const allItems: any[] = [];
 
-    while (true) {
-      try {
-        const res = await client.get(endpoint, {
-          per_page: 100,
-          page: page,
-          ...extraParams
-        });
+  while (true) {
+    try {
+      const res = await client.get(endpoint, {
+        per_page: 100,
+        page,
+        ...extraParams,
+      });
 
-        const data = Array.isArray(res?.data) ? res.data : [];
-        if (data.length === 0) break;
+      const data = Array.isArray(res?.data) ? res.data : [];
+      if (!data.length) break;
 
-        allItems = [...allItems, ...data];
-        page++;
+      allItems.push(...data);
+      page++;
 
-        // Safety break to prevent infinite loops (e.g. 50 pages = 5000 products)
-        if (page > 50) break;
-      } catch (e: any) {
-        // WordPress returns 400 error when page is out of bounds. 
-        // We suppress this specific error to avoid console noise.
-        const msg = e.message?.toLowerCase() || "";
-        if (msg.includes("paginanummer is groter") || msg.includes("page number is larger")) {
-          break;
-        }
-        console.error(`Error fetching page ${page} of ${endpoint}:`, e);
-        break;
-      }
+      // safety break
+      if (page > 50) break;
+    } catch (e: any) {
+      const msg = (e?.message || "").toLowerCase();
+      if (msg.includes("page number is larger") || msg.includes("paginanummer is groter")) break;
+      console.error(`Error fetching page ${page} of ${endpoint}:`, e);
+      break;
     }
-    return allItems;
-  };
+  }
 
-  // 1. Fetch All Categories First (needed for products lookup)
-  const allCategories = await fetchAll("products/categories", { hide_empty: false });
+  return allItems;
+}
 
-  const categories = allCategories.map((cat: any) => ({
-    url: `${baseUrl}/${cat.slug}`,
-    lastModified: new Date(),
-  }));
+// WP client (axios-style): params should be under `params`
+async function fetchAllWp(endpoint: string, extraParams: any = {}, client: any = wpApi) {
+  let page = 1;
+  const allItems: any[] = [];
 
-  // 2. Fetch All Products
-  const allProducts = await fetchAll("products", { status: "publish" });
+  while (true) {
+    try {
+      const res = await client.get(endpoint, {
+        params: {
+          per_page: 100,
+          page,
+          ...extraParams,
+        },
+      });
 
-  const products = allProducts.map((product: any) => {
-    const meta = product.meta_data || [];
-    const acfSlug =
-      meta.find((m: any) => m.key === "description_slug")?.value ||
-      product.slug;
+      const data = Array.isArray(res?.data) ? res.data : [];
+      if (!data.length) break;
 
-    // const finalSlug = nestedPath ? `${nestedPath}/${acfSlug}` : acfSlug;
-    const finalSlug = acfSlug;
+      allItems.push(...data);
+      page++;
 
-    return {
-      url: `${baseUrl}/${finalSlug}`,
-      lastModified: product.date_modified
-        ? new Date(product.date_modified)
-        : new Date(),
-    };
+      if (page > 50) break;
+    } catch (e: any) {
+      // WP returns 400 when page is out of bounds
+      const status = e?.response?.status;
+      if (status === 400) break;
+
+      console.error(`Error fetching WP page ${page} of ${endpoint}:`, e);
+      break;
+    }
+  }
+
+  return allItems;
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const baseUrl = normalizeBaseUrl(process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl");
+  const now = new Date();
+
+  const staticPages: MetadataRoute.Sitemap = [
+    { url: `${baseUrl}`, lastModified: now },
+    { url: `${baseUrl}/contact`, lastModified: now },
+    { url: `${baseUrl}/garantie-aanvraag`, lastModified: now },
+    { url: `${baseUrl}/hulp`, lastModified: now },
+    { url: `${baseUrl}/kennisbank`, lastModified: now },
+    { url: `${baseUrl}/laagste-prijs-garantie`, lastModified: now },
+    { url: `${baseUrl}/privacy-policy`, lastModified: now },
+    { url: `${baseUrl}/retourbeleid`, lastModified: now },
+    { url: `${baseUrl}/algemene-voorwaarden`, lastModified: now },
+    { url: `${baseUrl}/zakelijk-aanmelden`, lastModified: now },
+    { url: `${baseUrl}/merken`, lastModified: now },
+    { url: `${baseUrl}/categories`, lastModified: now }, // matches your live structure
+  ].map((x) => ({ ...x, url: normalizeUrl(x.url) }));
+
+  // 1) Categories (Woo)
+  const allCategories = await fetchAllWoo("products/categories", { hide_empty: false });
+
+  const categories: MetadataRoute.Sitemap = allCategories
+    .filter((c: any) => c?.slug)
+    .map((cat: any) => ({
+      url: normalizeUrl(`${baseUrl}/categories/${cat.slug}`),
+      lastModified: cat?.date_modified ? new Date(cat.date_modified) : now,
+    }));
+
+  // 2) Products (Woo)
+  const allProducts = await fetchAllWoo("products", { status: "publish" });
+
+  const products: MetadataRoute.Sitemap = allProducts
+    .filter((p: any) => p?.slug && p?.status === "publish")
+    // optional: avoid hidden/catalog-only products if you use that
+    .filter((p: any) => p?.catalog_visibility !== "hidden")
+    .map((product: any) => ({
+      url: normalizeUrl(`${baseUrl}/products/${product.slug}`),
+      lastModified: product?.date_modified ? new Date(product.date_modified) : now,
+    }));
+
+  // 3) Blog posts (WordPress)
+  // If your WP client already has /wp/v2 baked in, change this to "posts".
+  const allPosts = await fetchAllWp("wp/v2/posts", { status: "publish" });
+
+  const posts: MetadataRoute.Sitemap = allPosts
+    .filter((p: any) => p?.slug && p?.status === "publish")
+    .map((post: any) => ({
+      url: normalizeUrl(`${baseUrl}/kennisbank/${post.slug}`),
+      lastModified: post?.modified ? new Date(post.modified) : now,
+    }));
+
+  // 4) Brands (WordPress) — IMPORTANT: use wpApi, not Woo api
+  // Some sites expose it as wp/v2/product_brand; if yours differs, adjust here.
+  const allBrands = await fetchAllWp("wp/v2/product_brand", { hide_empty: true });
+
+  const brands: MetadataRoute.Sitemap = allBrands
+    .filter((b: any) => b?.slug)
+    .map((brand: any) => ({
+      url: normalizeUrl(`${baseUrl}/merken/${brand.slug}`),
+      lastModified: brand?.modified ? new Date(brand.modified) : now,
+    }));
+
+  // Deduplicate (prevents collisions from bad data)
+  const combined = [...staticPages, ...categories, ...products, ...posts, ...brands];
+  const seen = new Set<string>();
+  const unique = combined.filter((item) => {
+    const key = item.url;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 
-  // 3. Fetch All Blog Posts
-  const allPosts = await fetchAll("posts", { status: "publish" }, wpApi);
-
-  const posts = allPosts.map((post: any) => ({
-    url: `${baseUrl}/kennisbank/${post.slug}`,
-    lastModified: post.modified ? new Date(post.modified) : new Date(),
-  }));
-
-  // 4. Fetch All Brands
-  const allBrands = await fetchAll("wp/v2/product_brand", { hide_empty: true });
-
-  const brands = allBrands.map((brand: any) => ({
-    url: `${baseUrl}/merken/${brand.slug}`,
-    lastModified: new Date(),
-  }));
-
-  return [...staticPages, ...categories, ...products, ...posts, ...brands];
+  return unique;
 }
