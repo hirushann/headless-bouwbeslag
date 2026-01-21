@@ -111,7 +111,7 @@ export default function RecommendedProductItem({ item }: { item: any }) {
     };
 
     return (
-        <div className="flex gap-4 p-4 border border-gray-100 rounded-lg bg-gray-50/50 hover:bg-white hover:border-blue-200 transition-colors">
+        <div className="flex flex-row gap-4 p-4 border border-gray-100 rounded-lg bg-gray-50/50 hover:bg-white hover:border-blue-200 transition-colors">
             {/* Image */}
             <div className="w-16 h-16 bg-white rounded-md border border-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                 {item.slug ? (
@@ -124,8 +124,8 @@ export default function RecommendedProductItem({ item }: { item: any }) {
             </div>
 
             {/* Content */}
-            <div className="flex-1 flex flex-row justify-between">
-                <div className="flex justify-between items-start flex-col">
+            <div className="flex-1 flex flex-col lg:flex-row justify-between">
+                <div className="flex justify-between items-start flex-col w-full">
                     <div className='max-w-[70%]'>
                         {item.slug ? (
                             <Link href={`/${item.slug}`} className="hover:text-blue-600 transition-colors">
@@ -135,7 +135,7 @@ export default function RecommendedProductItem({ item }: { item: any }) {
                             <h4 className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</h4>
                         )}
                     </div>
-                    <div className="text-right ml-2 flex-shrink-0">
+                    <div className="flex gap-2.5 items-center">
                         {isLoading ? (
                             <div className="h-4 w-16 bg-gray-200 animate-pulse rounded"></div>
                         ) : (
@@ -164,7 +164,7 @@ export default function RecommendedProductItem({ item }: { item: any }) {
                 <div className="flex justify-between items-end mt-2 flex-wrap gap-2">
                     
 
-                    <div className="flex items-center gap-2 ml-auto">
+                    <div className="flex items-center gap-2 lg:ml-auto flex-col items-start lg:items-end">
                         {/* Quantity Selector */}
                         <div className="flex border border-gray-300 rounded-sm overflow-hidden bg-white h-8">
                             <button
