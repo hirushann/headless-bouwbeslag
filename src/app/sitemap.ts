@@ -57,7 +57,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   };
 
   // 1. Fetch All Categories First (needed for products lookup)
-  const allCategories = await fetchAll("products/categories", { hide_empty: true });
+  const allCategories = await fetchAll("products/categories", { hide_empty: false });
 
   const categories = allCategories.map((cat: any) => ({
     url: `${baseUrl}/${cat.slug}`,
