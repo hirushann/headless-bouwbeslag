@@ -113,7 +113,7 @@ export default function RecommendedProductItem({ item }: { item: any }) {
     return (
         <div className="flex flex-row gap-4 p-4 border border-gray-100 rounded-lg bg-gray-50/50 hover:bg-white hover:border-blue-200 transition-colors">
             {/* Image */}
-            <div className="w-16 h-16 bg-white rounded-md border border-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+            <div className="w-28 h-28 lg:w-16 lg:h-16 bg-white rounded-md border border-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                 {item.slug ? (
                     <Link href={`/${item.slug}`} className="block w-full h-full">
                         {mImg ? <img src={mImg} alt={item.name} className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">No Img</div>}
@@ -125,7 +125,7 @@ export default function RecommendedProductItem({ item }: { item: any }) {
 
             {/* Content */}
             <div className="flex-1 flex flex-col lg:flex-row justify-between">
-                <div className="flex justify-between items-start flex-col w-full">
+                <div className="flex justify-center lg:justify-between items-start flex-col w-full">
                     <div className='max-w-[70%]'>
                         {item.slug ? (
                             <Link href={`/${item.slug}`} className="hover:text-blue-600 transition-colors">
@@ -161,7 +161,7 @@ export default function RecommendedProductItem({ item }: { item: any }) {
                     </div>
                 </div>
 
-                <div className="flex justify-between items-end mt-2 flex-wrap gap-2">
+                <div className="flex justify-between items-center lg:items-end mt-2 flex-wrap gap-2">
                     
 
                     <div className="flex items-center gap-2 lg:ml-auto flex-col items-start lg:items-end">
