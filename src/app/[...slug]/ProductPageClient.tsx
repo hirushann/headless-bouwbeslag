@@ -8,6 +8,7 @@ import api from "@/lib/woocommerce";
 import Link from "next/link";
 import Image from "next/image";
 import ProductCard from "@/components/ProductCard";
+import RecommendedProductItem from "@/components/RecommendedProductItem";
 import { useCartStore } from "@/lib/cartStore";
 import { fetchMedia } from "@/lib/wordpress";
 import { COLOR_MAP } from "@/config/colorMap";
@@ -923,44 +924,9 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                                 <p className="text-[#3D4752] text-sm mt-1">Handig om erbij te bestellen</p>
                             </div>
                             <div className="space-y-3">
-                                {musthaveprodKeys.map((item, index) => {
-                                    // Price logic extraction for loop
-                                    const mPrice = item.price ? parseFloat(item.price) : 0;
-                                    const mRegPrice = item.regular_price ? parseFloat(item.regular_price) : 0;
-                                    // Simple display price
-                                    const displayPrice = mPrice || mRegPrice;
-                                    const mImg = item.images?.[0]?.src || item.images?.[0] || "";
-
-                                    return (
-                                        <div key={item.id || index} className="flex gap-4 p-4 border border-gray-100 rounded-lg bg-gray-50/50 hover:bg-white hover:border-blue-200 transition-colors">
-                                            <div className="w-16 h-16 bg-white rounded-md border border-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
-                                                {item.slug ? (
-                                                    <Link href={`/${item.slug}`} className="block w-full h-full">
-                                                        {mImg ? <img src={mImg} alt={item.name} className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">No Img</div>}
-                                                    </Link>
-                                                ) : (
-                                                    mImg ? <img src={mImg} alt={item.name} className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">No Img</div>
-                                                )}
-                                            </div>
-                                            <div className="flex-1 flex justify-between items-center">
-                                                <div>
-                                                    {item.slug ? (
-                                                        <Link href={`/${item.slug}`} className="hover:text-blue-600 transition-colors">
-                                                            <h4 className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</h4>
-                                                        </Link>
-                                                    ) : (
-                                                        <h4 className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</h4>
-                                                    )}
-                                                    {/* Optional: Add stock status or short desc here if needed */}
-                                                </div>
-                                                <div className="text-right ml-4">
-                                                    <span className="text-sm font-bold text-gray-900 whitespace-nowrap">€ {displayPrice.toFixed(2).replace('.', ',')}</span>
-                                                    <div className="text-xs text-gray-500 font-normal">incl. BTW</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                {musthaveprodKeys.map((item, index) => (
+                                    <RecommendedProductItem key={item.id || index} item={item} />
+                                ))}
                             </div>
                         </motion.div>
                     )}
