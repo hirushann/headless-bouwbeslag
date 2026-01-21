@@ -111,7 +111,7 @@ export default function RecommendedProductItem({ item }: { item: any }) {
     };
 
     return (
-        <div className="flex flex-row gap-4 p-4 border border-gray-100 rounded-lg bg-gray-50/50 hover:bg-white hover:border-blue-200 transition-colors">
+        <div className="flex items-center flex-row gap-4 p-4 border border-gray-100 rounded-lg bg-gray-50/50 hover:bg-white hover:border-blue-200 transition-colors">
             {/* Image */}
             <div className="w-28 h-28 lg:w-16 lg:h-16 bg-white rounded-md border border-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                 {item.slug ? (

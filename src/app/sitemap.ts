@@ -59,27 +59,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // 1. Fetch All Categories First (needed for products lookup)
   const allCategories = await fetchAll("products/categories", { hide_empty: true });
 
-  // Build category map for parent lookup
-  const catMap = new Map();
-  allCategories.forEach((cat: any) => catMap.set(cat.id, cat));
-
-  // Helper to resolve full path
-  const getCategoryPath = (catId: number): string => {
-    let path = "";
-    let currentId = catId;
-    const visited = new Set(); // Prevent infinite loops
-
-    while (currentId !== 0 && catMap.has(currentId) && !visited.has(currentId)) {
-      visited.add(currentId);
-      const cat = catMap.get(currentId);
-      path = path ? `${cat.slug}/${path}` : cat.slug;
-      currentId = cat.parent;
-    }
-    return path;
-  };
-
   const categories = allCategories.map((cat: any) => ({
-    url: `${baseUrl}/${getCategoryPath(cat.id)}`,
+    url: `${baseUrl}/${cat.slug}`,
     lastModified: new Date(),
   }));
 

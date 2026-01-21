@@ -121,7 +121,7 @@ export async function generateMetadata(
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
-  const canonicalUrl = `${siteUrl}/${slug}`;
+  const canonicalUrl = `${siteUrl}/categories/${slug}`;
 
   const title = `${category.name} | Bouwbeslag`;
   const description =
