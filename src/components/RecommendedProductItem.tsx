@@ -124,8 +124,8 @@ export default function RecommendedProductItem({ item }: { item: any }) {
             </div>
 
             {/* Content */}
-            <div className="flex-1 flex flex-col justify-between">
-                <div className="flex justify-between items-start">
+            <div className="flex-1 flex flex-row justify-between">
+                <div className="flex justify-between items-start flex-col">
                     <div className='max-w-[70%]'>
                         {item.slug ? (
                             <Link href={`/${item.slug}`} className="hover:text-blue-600 transition-colors">
@@ -145,9 +145,6 @@ export default function RecommendedProductItem({ item }: { item: any }) {
                             </>
                         )}
                     </div>
-                </div>
-
-                <div className="flex justify-between items-end mt-2 flex-wrap gap-2">
                     {/* Delivery Notice */}
                     <div className="text-xs w-full lg:w-auto mb-2 lg:mb-0">
                         {deliveryInfo.type === 'IN_STOCK' || deliveryInfo.type === 'PARTIAL_STOCK' ? (
@@ -162,6 +159,10 @@ export default function RecommendedProductItem({ item }: { item: any }) {
                             </span>
                         )}
                     </div>
+                </div>
+
+                <div className="flex justify-between items-end mt-2 flex-wrap gap-2">
+                    
 
                     <div className="flex items-center gap-2 ml-auto">
                         {/* Quantity Selector */}
