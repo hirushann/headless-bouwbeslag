@@ -12,6 +12,8 @@ export default function RecommendedProductItem({ item }: { item: any }) {
     const { userRole, isLoading } = useUserContext();
     const [isAdding, setIsAdding] = useState(false);
 
+    const [quantity, setQuantity] = useState(1);
+
     // Price Logic
     const getMeta = (key: string) => item.meta_data?.find((m: any) => m.key === key)?.value;
     const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
@@ -34,33 +36,14 @@ export default function RecommendedProductItem({ item }: { item: any }) {
     }
 
     const mImg = item.images?.[0]?.src || item.images?.[0] || "";
-    const displayPrice = sale;
-    const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
-    // If not B2B, we add tax for display if needed, but usually item.price is VAT inclusive for B2C if configured in Woo?
-    // Checking ProductPageClient logic:
-    // const taxRate = 21; // passed prop
-    // const taxMultiplier = 1 + (taxRate / 100);
-    // const finalPrice = isB2B ? sale : (sale ? sale * taxMultiplier : 0);
-    // Wait, ProductPageClient receives taxRate prop. I don't have it here casually.
-    // However, usually WooCommerce REST API returns prices based on settings.
-    // In ProductPageClient, it calculates manually:
-    // const finalPrice = isB2B ? sale : (sale ? sale * taxMultiplier : null);
-    // I should attempt to replicate this. I'll default taxRate to 21 if not passed, or passed as prop.
-    // For now I'll assume 21% or just show the price similarly to ProductCard.
-    
-    // ProductCard.tsx logic:
-    // const TAX_RATE = 21;
-    // const taxMultiplier = 1 + (TAX_RATE / 100);
-    // const finalPrice = sale !== null ? (isB2B ? sale : sale * taxMultiplier) : ...
-    
+    // Calculate total price based on quantity
     const TAX_RATE = 21;
     const taxMultiplier = 1 + (TAX_RATE / 100);
-    const finalPrice = sale ? (isB2B ? sale : sale * taxMultiplier) : 0;
-
+    const unitPrice = sale ? (isB2B ? sale : sale * taxMultiplier) : 0;
+    const finalPrice = unitPrice * quantity;
+    const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
 
     // Delivery Info Logic
-    // Defaults: 1 day if stock, 30 days if no stock (from user request default)
-    // We try to find these metadatas if they exist on the item
     const stockLeadRaw = getMeta("crucial_data_delivery_if_stock");
     const noStockLeadRaw = getMeta("crucial_data_delivery_if_no_stock");
     const leadTimeInStock = stockLeadRaw && !isNaN(parseInt(stockLeadRaw)) ? parseInt(stockLeadRaw) : 1;
@@ -68,7 +51,7 @@ export default function RecommendedProductItem({ item }: { item: any }) {
 
     const deliveryInfo = getDeliveryInfo(
         item.stock_status || 'instock',
-        1,
+        quantity,
         item.stock_quantity ?? null,
         leadTimeInStock,
         leadTimeNoStock
@@ -94,8 +77,8 @@ export default function RecommendedProductItem({ item }: { item: any }) {
                 return;
             }
 
-            // 3. Validate Quantity (we are adding 1)
-            if (manage_stock && typeof stock_quantity === "number" && !isBackorderAllowed && 1 > stock_quantity) {
+            // 3. Validate Quantity
+            if (manage_stock && typeof stock_quantity === "number" && !isBackorderAllowed && quantity > stock_quantity) {
                toast.error(`Niet op voorraad. Maximaal beschikbaar: ${stock_quantity}`);
                return;
             }
@@ -104,9 +87,8 @@ export default function RecommendedProductItem({ item }: { item: any }) {
             useCartStore.getState().addItem({
                 id: item.id,
                 name: item.name,
-                price: sale, // Use the Ex-VAT 'sale' price base if B2B/B2C logic implies it, checking ProductPageClient:
-                // ProductPageClient uses: price: cartBasePrice (which is 'sale')
-                quantity: 1,
+                price: sale, // Use the Ex-VAT 'sale' price base
+                quantity: quantity,
                 image: mImg,
                 deliveryText: deliveryInfo.short,
                 deliveryType: deliveryInfo.type,
@@ -165,9 +147,9 @@ export default function RecommendedProductItem({ item }: { item: any }) {
                     </div>
                 </div>
 
-                <div className="flex justify-between items-end mt-2">
+                <div className="flex justify-between items-end mt-2 flex-wrap gap-2">
                     {/* Delivery Notice */}
-                    <div className="text-xs">
+                    <div className="text-xs w-full lg:w-auto mb-2 lg:mb-0">
                         {deliveryInfo.type === 'IN_STOCK' || deliveryInfo.type === 'PARTIAL_STOCK' ? (
                             <span className="text-[#03B955] font-medium flex items-center gap-1">
                                 <span className="w-2 h-2 rounded-full bg-[#03B955]"></span>
@@ -181,21 +163,40 @@ export default function RecommendedProductItem({ item }: { item: any }) {
                         )}
                     </div>
 
-                    {/* Add to Cart Button */}
-                    <button 
-                        onClick={handleAddToCart}
-                        disabled={isAdding}
-                        className={`px-3 py-1.5 rounded-sm text-xs font-bold transition-colors flex items-center gap-1 ${isAdding ? 'bg-gray-300 text-white cursor-not-allowed' : 'bg-[#0066FF] text-white hover:bg-blue-700'}`}
-                    >
-                         {isAdding ? "Laden..." : (
-                            <>
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                                </svg>
-                                In winkelwagen
-                            </>
-                         )}
-                    </button>
+                    <div className="flex items-center gap-2 ml-auto">
+                        {/* Quantity Selector */}
+                        <div className="flex border border-gray-300 rounded-sm overflow-hidden bg-white h-8">
+                            <button
+                                type="button"
+                                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                                className="px-2 text-lg leading-none cursor-pointer border-r border-gray-300 hover:bg-gray-50 text-gray-600"
+                            >-</button>
+                            <div className="w-8 flex items-center justify-center text-sm font-medium text-gray-900">
+                                {quantity}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setQuantity((q) => q + 1)}
+                                className="px-2 text-lg leading-none cursor-pointer border-l border-gray-300 hover:bg-gray-50 text-gray-600"
+                            >+</button>
+                        </div>
+
+                        {/* Add to Cart Button */}
+                        <button 
+                            onClick={handleAddToCart}
+                            disabled={isAdding}
+                            className={`h-8 px-3 rounded-sm text-xs font-bold transition-colors flex items-center gap-1 whitespace-nowrap ${isAdding ? 'bg-gray-300 text-white cursor-not-allowed' : 'bg-[#0066FF] text-white hover:bg-blue-700'}`}
+                        >
+                            {isAdding ? "Laden..." : (
+                                <>
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                    </svg>
+                                    In winkelwagen
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
