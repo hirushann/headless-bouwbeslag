@@ -125,7 +125,7 @@ export default function RecommendedProductItem({ item }: { item: any }) {
 
             {/* Content */}
             <div className="flex-1 flex flex-col lg:flex-row justify-between">
-                <div className="flex justify-center lg:justify-between items-start flex-col w-full">
+                <div className="flex justify-center items-start flex-col w-full">
                     <div className='max-w-[70%]'>
                         {item.slug ? (
                             <Link href={`/${item.slug}`} className="hover:text-blue-600 transition-colors">
@@ -161,7 +161,7 @@ export default function RecommendedProductItem({ item }: { item: any }) {
                     </div>
                 </div>
 
-                <div className="flex justify-between items-center lg:items-end mt-2 flex-wrap gap-2">
+                <div className="flex justify-between items-center mt-2 flex-wrap gap-2">
                     
 
                     <div className="flex items-center gap-2 lg:ml-auto flex-col items-start lg:items-end">
