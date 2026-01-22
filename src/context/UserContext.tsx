@@ -6,12 +6,14 @@ import axios from "axios";
 type UserRole = string[];
 
 interface UserContextType {
+  user: any | null;
   userRole: UserRole | null;
   isLoading: boolean;
   refreshRole: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType>({
+  user: null,
   userRole: null,
   isLoading: true,
   refreshRole: async () => {},
@@ -20,6 +22,7 @@ const UserContext = createContext<UserContextType>({
 export const useUserContext = () => useContext(UserContext);
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<any | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -54,12 +57,15 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       if (token) {
         // 1. Try to get from localStorage user first (optimization)
         let role = null;
+        let userData = null;
+
         if (userStr) {
           const user = JSON.parse(userStr);
           role = user.role || user.roles || user.user_role;
+          userData = user;
         }
 
-        // 2. If not found, decoding token might help
+        // 2. If not found, decoding token might help (for role only)
         if (!role) {
           const decoded = parseJwt(token);
           if (decoded) {
@@ -68,38 +74,50 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
           }
         }
 
-        // 3. If still no role, fetch from API
-        if (!role) {
-          try {
+        // 3. If still no role OR for full data refresh, fetch from API
+        // Fetching from API is better for "context=edit" data like addresses
+        if (token) {
+           // We always fetch ME to get latest addresses if possible, or lazy load?
+           // Strategy: If we have userData from local, usage is fast. But we might want fresh data.
+           // Let's fetch if we don't have userData OR if we want to ensure fresh role.
+           // For now, let's prioritize API fetch to get billing/shipping
+           try {
             const res = await axios.get(
               `/api/user/me`,
               {
                 headers: { Authorization: `Bearer ${token}` },
               }
             );
-            if (res.data && res.data.roles) {
-              role = res.data.roles;
-              // console.log("👤 User Role (fetched from API):", role);
+            if (res.data) {
+                userData = res.data;
+                if (res.data.roles) {
+                  role = res.data.roles;
+                }
+                // Update local storage to keep it fresh
+                localStorage.setItem("user", JSON.stringify(res.data));
             }
-          } catch (apiErr) {
-            console.error("Failed to fetch user role from API:", apiErr);
-          }
-        } else {
-        //   console.log("👤 Customer User Role (from cache/token):", role);
+           } catch (apiErr) {
+             console.error("Failed to fetch user data from API:", apiErr);
+           }
         }
 
-        // Normalize to array
+        // Normalize role to array
         if (role && !Array.isArray(role)) {
           role = [role];
         }
         setUserRole(role);
+        // Expose user data (we need to add 'user' state)
+        // I will add setUser(userData) below
+        setUser(userData);
+
       } else {
-        // console.log("👤 Customer User Role: Guest (No token)");
         setUserRole(null);
+        setUser(null);
       }
     } catch (e) {
       console.error("Error checking user role:", e);
       setUserRole(null);
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -110,7 +128,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <UserContext.Provider value={{ userRole, isLoading, refreshRole: fetchUserRole }}>
+    <UserContext.Provider value={{ user, userRole, isLoading, refreshRole: fetchUserRole }}>
       {children}
     </UserContext.Provider>
   );

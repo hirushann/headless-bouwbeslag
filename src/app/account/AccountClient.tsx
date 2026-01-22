@@ -4,9 +4,16 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import Link from "next/link";
+import { useUserContext } from "@/context/UserContext";
 
 function AccountContent() {
+  const { user: contextUser, isLoading: contextLoading } = useUserContext();
+  // const [user, setUser] = useState<any>(null); // Removed redundant local state. We use 'user' derived from context or just contextUser. 
+  
+  // Actually, we can just use contextUser directly, but the component uses 'user' state everywhere.
+  // To minimize refactor risk, let's keep 'user' state synced with contextUser.
   const [user, setUser] = useState<any>(null);
+
   const [activeTab, setActiveTab] = useState("dashboard");
   const [orders, setOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
@@ -18,6 +25,7 @@ function AccountContent() {
   const [shippingError, setShippingError] = useState<string | null>(null);
   const [billingSuccess, setBillingSuccess] = useState<string | null>(null);
   const [shippingSuccess, setShippingSuccess] = useState<string | null>(null);
+  // ... other states ...
   // Password reset state
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -30,90 +38,56 @@ function AccountContent() {
   const searchParams = useSearchParams();
   const WP_API_URL = process.env.NEXT_PUBLIC_WORDPRESS_API_URL;
   
+  // Sync local user state with Context User
+  useEffect(() => {
+    if (contextUser) {
+        // console.log("👤 AccountClient: Context User Loaded:", contextUser);
+        setUser(contextUser);
+        setBillingForm(prev => prev || contextUser.billing || {});
+        setShippingForm(prev => prev || contextUser.shipping || {});
+    }
+  }, [contextUser]);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
-
-    if (!token || !userData) {
+    if (!token && !contextLoading && !contextUser) {
       router.push("/account/login");
-    } else {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-
-      // 1) Use stored ID if available to avoid 403 on /users/me for subscribers
-      const wpUserId = parsedUser?.id;
-
-      if (wpUserId) {
-        axios
-          .get(`${WP_API_URL}/wp-json/wc/v3/customers/${wpUserId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          .then((custRes) => {
-            setUser(custRes.data);
-            setBillingForm(custRes.data.billing || {});
-            setShippingForm(custRes.data.shipping || {});
-            // Fetch orders for this customer
-            return axios
-              .get(`${WP_API_URL}/wp-json/wc/v3/orders`, {
-                headers: { Authorization: `Bearer ${token}` },
-                params: { customer: wpUserId },
-              })
-              .then((ordersRes) => {
-                setOrders(ordersRes.data || []);
-              })
-              .finally(() => setLoadingOrders(false));
-          })
-          .catch((err) => {
-            console.error("Error fetching customer data", err);
-            if (err.response && (err.response.status === 401 || err.response.status === 403)) {
-              localStorage.removeItem("token");
-              localStorage.removeItem("user");
-              router.push("/account/login");
-            }
-            setLoadingOrders(false);
-          });
-      } else {
-        // Fallback: Get the WP user via JWT if ID not in local storage
-        console.log("Fetching WP current user via JWT /wp/v2/users/me ...");
-        axios
-          .get(`${WP_API_URL}/wp-json/wp/v2/users/me`, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          .then((meRes) => {
-            const fetchedId = meRes.data?.id;
-            if (!fetchedId) return;
-
-            return axios
-              .get(`${WP_API_URL}/wp-json/wc/v3/customers/${fetchedId}`, {
-                headers: { Authorization: `Bearer ${token}` },
-              })
-              .then((custRes) => {
-                setUser(custRes.data);
-                setBillingForm(custRes.data.billing || {});
-                setShippingForm(custRes.data.shipping || {});
-                return axios
-                  .get(`${WP_API_URL}/wp-json/wc/v3/orders`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                    params: { customer: fetchedId },
-                  })
-                  .then((ordersRes) => {
-                    setOrders(ordersRes.data || []);
-                  })
-                  .finally(() => setLoadingOrders(false));
-              });
-          })
-          .catch((err) => {
-            console.error("Error fetching user", err);
-            if (err.response && err.response.status === 401) {
-              localStorage.removeItem("token");
-              localStorage.removeItem("user");
-              router.push("/account/login");
-            }
-          });
-      }
+      return;
     }
-    
-  }, []);
+
+    if (contextUser && contextUser.id) {
+        // We have user! Just fetch orders.
+        fetchOrders(contextUser.id, token);
+    } else if (!contextLoading && !contextUser) {
+        if (!token) router.push("/account/login");
+    }
+  }, [contextUser, contextLoading]);
+
+  const fetchOrders = (userId: number, token: string | null) => {
+      if (!token) {
+          console.warn("⚠️ AccountClient: No token available to fetch orders.");
+          return;
+      }
+      setLoadingOrders(true);
+      
+      console.log(`📦 AccountClient: Fetching orders for Customer ID ${userId}...`);
+
+      axios
+        .get(`${WP_API_URL}/wp-json/wc/v3/orders`, {
+            headers: { Authorization: `Bearer ${token}` },
+            params: { customer: userId },
+        })
+        .then((ordersRes) => {
+            console.log("✅ AccountClient: Orders fetched:", ordersRes.data);
+            setOrders(ordersRes.data || []);
+        })
+        .catch(err => {
+            console.error("❌ AccountClient: Error fetching orders:", err);
+            // If 403, might be because user is not allowed to list orders?
+            // Or if id is wrong.
+        })
+        .finally(() => setLoadingOrders(false));
+  };
 
   // Sync tab state with URL ?tab=... param
   useEffect(() => {

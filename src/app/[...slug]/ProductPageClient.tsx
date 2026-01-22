@@ -116,10 +116,19 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
   let sale = 0;
   
   if (isB2B) {
-      if (product.regular_price) {
-          sale = parseFloat(product.regular_price);
-      } else if (product.price) {
-          sale = parseFloat(product.price);
+      // B2B Logic: Check ACF field first
+      const b2bKey = "crucial_data_b2b_and_b2c_sales_price_b2b";
+      const acfB2BPriceRaw = getMeta(b2bKey);
+
+      if (acfB2BPriceRaw && !isNaN(parseFloat(acfB2BPriceRaw))) {
+          sale = parseFloat(acfB2BPriceRaw);
+      } else {
+          // Fallback to standard price
+          if (product.regular_price) {
+              sale = parseFloat(product.regular_price);
+          } else if (product.price) {
+              sale = parseFloat(product.price);
+          }
       }
   } else {
       // B2C Logic
