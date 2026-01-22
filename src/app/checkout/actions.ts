@@ -4,6 +4,8 @@ import { getShippingSettings, getCouponByCode } from "@/lib/woocommerce";
 import { createOrder, getOrder } from "@/lib/woocommerce-order";
 import mollieClient from "@/lib/mollie";
 import { redirect } from "next/navigation";
+import axios from "axios";
+import { validateVatEU } from "@salespark/validate-vat-eu";
 
 
 export async function checkOrderStatusAction(orderId: number) {
@@ -204,7 +206,7 @@ export async function placeOrderAction(data: any) {
     }
 }
 
-import axios from "axios";
+
 
 export async function checkPostcodeAction(postcode: string, number: string) {
     try {
@@ -235,7 +237,7 @@ export async function checkPostcodeAction(postcode: string, number: string) {
     }
 }
 
-import { validateVatEU } from "@salespark/validate-vat-eu";
+
 
 export async function validateVatAction(vatNumber: string) {
     try {

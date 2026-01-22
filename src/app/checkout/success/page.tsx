@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCartStore } from "@/lib/cartStore";
@@ -6,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
-import { checkOrderStatusAction } from "@/app/new-checkout/actions";
+import { checkOrderStatusAction } from "@/app/checkout/actions";
 import { useRouter } from "next/navigation";
 
 function SuccessContent() {
@@ -76,7 +75,7 @@ function SuccessContent() {
             <p className="text-gray-600 mb-6">De betaling voor order #{orderId} is geannuleerd.</p>
             
             <div className="flex gap-4">
-                <Link href="/new-checkout" className="bg-[#0066FF] text-white font-bold px-6 py-3 rounded-md hover:bg-blue-700 transition">
+                <Link href="/checkout" className="bg-[#0066FF] text-white font-bold px-6 py-3 rounded-md hover:bg-blue-700 transition">
                     Probeer opnieuw
                 </Link>
                 <Link href="/" className="border border-gray-300 text-gray-700 font-bold px-6 py-3 rounded-md hover:bg-gray-50 transition">
@@ -100,7 +99,7 @@ function SuccessContent() {
             {orderId && <p className="text-sm text-gray-500 mb-6">Order: #{orderId}</p>}
 
              <div className="flex gap-4">
-                <Link href="/new-checkout" className="bg-[#0066FF] text-white font-bold px-6 py-3 rounded-md hover:bg-blue-700 transition">
+                <Link href="/checkout" className="bg-[#0066FF] text-white font-bold px-6 py-3 rounded-md hover:bg-blue-700 transition">
                     Probeer opnieuw
                 </Link>
             </div>
