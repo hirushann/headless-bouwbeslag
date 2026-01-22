@@ -73,9 +73,8 @@ function AccountContent() {
       console.log(`📦 AccountClient: Fetching orders for Customer ID ${userId}...`);
 
       axios
-        .get(`${WP_API_URL}/wp-json/wc/v3/orders`, {
+        .get(`/api/user/orders`, {
             headers: { Authorization: `Bearer ${token}` },
-            params: { customer: userId },
         })
         .then((ordersRes) => {
             console.log("✅ AccountClient: Orders fetched:", ordersRes.data);
@@ -83,8 +82,6 @@ function AccountContent() {
         })
         .catch(err => {
             console.error("❌ AccountClient: Error fetching orders:", err);
-            // If 403, might be because user is not allowed to list orders?
-            // Or if id is wrong.
         })
         .finally(() => setLoadingOrders(false));
   };
