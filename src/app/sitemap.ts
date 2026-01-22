@@ -83,77 +83,98 @@ async function fetchAllWp(endpoint: string, extraParams: any = {}, client: any =
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = normalizeBaseUrl(process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl");
-  const now = new Date();
+  // const baseUrl = normalizeBaseUrl(process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl");
+  const WP_API_URL = process.env.NEXT_PUBLIC_WORDPRESS_API_URL || '';
+  // const now = new Date();
 
-  const staticPages: MetadataRoute.Sitemap = [
-    { url: `${baseUrl}`, lastModified: now },
-    { url: `${baseUrl}/contact`, lastModified: now },
-    { url: `${baseUrl}/garantie-aanvraag`, lastModified: now },
-    { url: `${baseUrl}/hulp`, lastModified: now },
-    { url: `${baseUrl}/kennisbank`, lastModified: now },
-    { url: `${baseUrl}/laagste-prijs-garantie`, lastModified: now },
-    { url: `${baseUrl}/privacy-policy`, lastModified: now },
-    { url: `${baseUrl}/retourbeleid`, lastModified: now },
-    { url: `${baseUrl}/algemene-voorwaarden`, lastModified: now },
-    { url: `${baseUrl}/zakelijk-aanmelden`, lastModified: now },
-    { url: `${baseUrl}/merken`, lastModified: now },
-    { url: `${baseUrl}/categories`, lastModified: now }, // matches your live structure
-  ].map((x) => ({ ...x, url: normalizeUrl(x.url) }));
+  const catRes = await fetch(`${WP_API_URL}/wp-json/wp/v2/product_cat?per_page=100`);
+  const categories = await catRes.json();
 
-  // 1) Categories (Woo)
-  const allCategories = await fetchAllWoo("products/categories", { hide_empty: false });
+  const categoryUrls = categories.map((cat: any) => ({
+    url: `${process.env.NEXT_PUBLIC_SITE_URL}/${cat.slug}`,
+    lastModified: new Date(cat.date_modified || Date.now()), // Example field
+    changeFrequency: 'weekly',
+    priority: 0.8,
+  }));
 
-  const categories: MetadataRoute.Sitemap = allCategories
-    .filter((c: any) => c?.slug)
-    .map((cat: any) => ({
-      url: normalizeUrl(`${baseUrl}/categories/${cat.slug}`),
-      lastModified: cat?.date_modified ? new Date(cat.date_modified) : now,
-    }));
+  return [
+    {
+      url: `${process.env.NEXT_PUBLIC_SITE_URL}/`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 1,
+    },
+    ...categoryUrls,
+  ];
 
-  // 2) Products (Woo)
-  const allProducts = await fetchAllWoo("products", { status: "publish" });
+  // const staticPages: MetadataRoute.Sitemap = [
+  //   { url: `${baseUrl}`, lastModified: now },
+  //   { url: `${baseUrl}/contact`, lastModified: now },
+  //   { url: `${baseUrl}/garantie-aanvraag`, lastModified: now },
+  //   { url: `${baseUrl}/hulp`, lastModified: now },
+  //   { url: `${baseUrl}/kennisbank`, lastModified: now },
+  //   { url: `${baseUrl}/laagste-prijs-garantie`, lastModified: now },
+  //   { url: `${baseUrl}/privacy-policy`, lastModified: now },
+  //   { url: `${baseUrl}/retourbeleid`, lastModified: now },
+  //   { url: `${baseUrl}/algemene-voorwaarden`, lastModified: now },
+  //   { url: `${baseUrl}/zakelijk-aanmelden`, lastModified: now },
+  //   { url: `${baseUrl}/merken`, lastModified: now },
+  //   { url: `${baseUrl}/categories`, lastModified: now }, // matches your live structure
+  // ].map((x) => ({ ...x, url: normalizeUrl(x.url) }));
 
-  const products: MetadataRoute.Sitemap = allProducts
-    .filter((p: any) => p?.slug && p?.status === "publish")
-    // optional: avoid hidden/catalog-only products if you use that
-    .filter((p: any) => p?.catalog_visibility !== "hidden")
-    .map((product: any) => ({
-      url: normalizeUrl(`${baseUrl}/products/${product.slug}`),
-      lastModified: product?.date_modified ? new Date(product.date_modified) : now,
-    }));
+  // // 1) Categories (Woo)
+  // const allCategories = await fetchAllWoo("products/categories", { hide_empty: false });
 
-  // 3) Blog posts (WordPress)
-  // If your WP client already has /wp/v2 baked in, change this to "posts".
-  const allPosts = await fetchAllWp("wp/v2/posts", { status: "publish" });
+  // const categories: MetadataRoute.Sitemap = allCategories
+  //   .filter((c: any) => c?.slug)
+  //   .map((cat: any) => ({
+  //     url: normalizeUrl(`${baseUrl}/categories/${cat.slug}`),
+  //     lastModified: cat?.date_modified ? new Date(cat.date_modified) : now,
+  //   }));
 
-  const posts: MetadataRoute.Sitemap = allPosts
-    .filter((p: any) => p?.slug && p?.status === "publish")
-    .map((post: any) => ({
-      url: normalizeUrl(`${baseUrl}/kennisbank/${post.slug}`),
-      lastModified: post?.modified ? new Date(post.modified) : now,
-    }));
+  // // 2) Products (Woo)
+  // const allProducts = await fetchAllWoo("products", { status: "publish" });
 
-  // 4) Brands (WordPress) — IMPORTANT: use wpApi, not Woo api
-  // Some sites expose it as wp/v2/product_brand; if yours differs, adjust here.
-  const allBrands = await fetchAllWp("wp/v2/product_brand", { hide_empty: true });
+  // const products: MetadataRoute.Sitemap = allProducts
+  //   .filter((p: any) => p?.slug && p?.status === "publish")
+  //   // optional: avoid hidden/catalog-only products if you use that
+  //   .filter((p: any) => p?.catalog_visibility !== "hidden")
+  //   .map((product: any) => ({
+  //     url: normalizeUrl(`${baseUrl}/products/${product.slug}`),
+  //     lastModified: product?.date_modified ? new Date(product.date_modified) : now,
+  //   }));
 
-  const brands: MetadataRoute.Sitemap = allBrands
-    .filter((b: any) => b?.slug)
-    .map((brand: any) => ({
-      url: normalizeUrl(`${baseUrl}/merken/${brand.slug}`),
-      lastModified: brand?.modified ? new Date(brand.modified) : now,
-    }));
+  // // 3) Blog posts (WordPress)
+  // // If your WP client already has /wp/v2 baked in, change this to "posts".
+  // const allPosts = await fetchAllWp("wp/v2/posts", { status: "publish" });
 
-  // Deduplicate (prevents collisions from bad data)
-  const combined = [...staticPages, ...categories, ...products, ...posts, ...brands];
-  const seen = new Set<string>();
-  const unique = combined.filter((item) => {
-    const key = item.url;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  // const posts: MetadataRoute.Sitemap = allPosts
+  //   .filter((p: any) => p?.slug && p?.status === "publish")
+  //   .map((post: any) => ({
+  //     url: normalizeUrl(`${baseUrl}/kennisbank/${post.slug}`),
+  //     lastModified: post?.modified ? new Date(post.modified) : now,
+  //   }));
 
-  return unique;
+  // // 4) Brands (WordPress) — IMPORTANT: use wpApi, not Woo api
+  // // Some sites expose it as wp/v2/product_brand; if yours differs, adjust here.
+  // const allBrands = await fetchAllWp("wp/v2/product_brand", { hide_empty: true });
+
+  // const brands: MetadataRoute.Sitemap = allBrands
+  //   .filter((b: any) => b?.slug)
+  //   .map((brand: any) => ({
+  //     url: normalizeUrl(`${baseUrl}/merken/${brand.slug}`),
+  //     lastModified: brand?.modified ? new Date(brand.modified) : now,
+  //   }));
+
+  // // Deduplicate (prevents collisions from bad data)
+  // const combined = [...staticPages, ...categories, ...products, ...posts, ...brands];
+  // const seen = new Set<string>();
+  // const unique = combined.filter((item) => {
+  //   const key = item.url;
+  //   if (seen.has(key)) return false;
+  //   seen.add(key);
+  //   return true;
+  // });
+
+  // return unique;
 }
