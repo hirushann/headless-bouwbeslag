@@ -113,7 +113,7 @@ export default function Header({
     // The checkout page will handle adding items via URL params itself
     if (items.length === 0) return;
     setCartOpen(false);
-    router.push("/new-checkout");
+    router.push("/checkout");
   };
 
   return (

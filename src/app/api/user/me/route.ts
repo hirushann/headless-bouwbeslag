@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import api from "@/lib/woocommerce";
 
 export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('Authorization');
@@ -29,21 +30,14 @@ export async function GET(request: NextRequest) {
         // 2. Fetch WooCommerce Customer Details (for billing/shipping)
         if (userData && userData.id) {
             try {
-                const customerRes = await fetch(`${WP_API_URL}/wp-json/wc/v3/customers/${userData.id}`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': authHeader,
-                        'Content-Type': 'application/json'
-                    }
-                });
+                // Use server-side API client which has Consumer Key/Secret
+                // This ensures we get the data even if the user token has limited scope for this endpoint
+                // but we trust the user because we validated the token against wp/v2/users/me above.
+                const { data: customerData } = await api.get(`customers/${userData.id}`);
 
-                if (customerRes.ok) {
-                    const customerData = await customerRes.json();
+                if (customerData) {
                     // Merge user data, preferring customerData for billing/shipping
-                    // customerData usually contains everything needed.
                     return NextResponse.json({ ...userData, ...customerData });
-                } else {
-                    console.warn(`Failed to fetch WC customer data for user ${userData.id}`);
                 }
             } catch (custErr) {
                 console.error("Error fetching WC customer data:", custErr);
