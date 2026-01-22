@@ -54,7 +54,7 @@ export default function WebwinkelKeurWidget({ variant = "header" }: WebwinkelKeu
         <div className="w-12 h-12 flex-shrink-0">
           <img 
             className="w-full h-full object-contain" 
-            src="/Webwinkelicon.png" 
+            src="/Webwinkelicon.webp" 
             alt="WebwinkelKeur Logo" 
           />
         </div>
@@ -91,7 +91,7 @@ export default function WebwinkelKeurWidget({ variant = "header" }: WebwinkelKeu
       title="Bekijk onze beoordelingen op WebwinkelKeur"
     >
       <div className="text-[#FF0082]">
-        <img className="hidden lg:block h-6 object-contain" src="/Webwinkelicon.png" alt="WebwinkelKeur" />
+        <img className="hidden lg:block h-6 object-contain" src="/Webwinkelicon.webp" alt="WebwinkelKeur" />
       </div>
 
       <div className="flex items-center gap-2 text-[#3D4752] font-sans text-sm">

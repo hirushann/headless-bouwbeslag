@@ -25,7 +25,7 @@ export default function ContactPage() {
               <div className="flex flex-col gap-6">
                 <div className="flex items-start gap-4">
                   <div className="bg-[#E6F0FF] p-3 rounded-full">
-                    <Image src="/emailicon.png" alt="Email" width={24} height={24} className="w-6 h-6" />
+                    <Image src="/emailicon.webp" alt="Email" width={24} height={24} className="w-6 h-6" />
                   </div>
                   <div>
                     <p className="text-[#1C2630] font-semibold text-lg">E-mail</p>
@@ -35,7 +35,7 @@ export default function ContactPage() {
 
                 <div className="flex items-start gap-4">
                   <div className="bg-[#E6F0FF] p-3 rounded-full">
-                    <Image src="/kvkicon.png" alt="KVK" width={24} height={24} className="w-6 h-6" />
+                    <Image src="/kvkicon.webp" alt="KVK" width={24} height={24} className="w-6 h-6" />
                   </div>
                   <div>
                     <p className="text-[#1C2630] font-semibold text-lg">Bedrijfsgegevens</p>

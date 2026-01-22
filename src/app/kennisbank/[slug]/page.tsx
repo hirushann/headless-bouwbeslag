@@ -137,7 +137,7 @@ export default async function SingleBlogPage({
             post._embedded?.["wp:featuredmedia"]?.[0]?.source_url ||
             post._embedded?.["wp:featuredmedia"]?.[0]?.media_details?.sizes
               ?.full?.source_url ||
-            "/default-fallback-image.png"
+            "/default-fallback-image.webp"
           }
           alt={post.title.rendered}
           width={1200}

@@ -54,7 +54,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
   };
   const addItem = useCartStore((state) => state.addItem);
   const items = useCartStore((state) => state.items);
-  const [selectedImage, setSelectedImage] = useState('/afbeelding.png');
+  const [selectedImage, setSelectedImage] = useState('/afbeelding.webp');
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [currentUrl, setCurrentUrl] = useState("");
 
@@ -81,7 +81,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
     if (imgs.length > 0) {
       setGalleryImages(imgs);
       setSelectedImage((prev) =>
-        prev && prev !== "/afbeelding.png" ? prev : imgs[0]
+        prev && prev !== "/afbeelding.webp" ? prev : imgs[0]
       );
     }
   }, [product]);
@@ -769,7 +769,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         name: productTitle,
         price: cartBasePrice, // Use the shared Ex-VAT price
         quantity,
-        image: product?.images?.[0]?.src || "/afbeelding.png",
+        image: product?.images?.[0]?.src || "/afbeelding.webp",
         deliveryText: getDeliveryInfo(
           product.stock_status,
           quantity,
@@ -1223,7 +1223,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                             >
                               <div className="h-32 w-full border border-[#E8E1DC] rounded-sm bg-white flex items-center justify-center">
                                 <img
-                                  src={model?.images?.[0]?.src || "/afbeelding.png"}
+                                  src={model?.images?.[0]?.src || "/afbeelding.webp"}
                                   alt={model?.name || "Model"}
                                   className="max-h-full max-w-full object-contain"
                                 />

@@ -124,7 +124,7 @@ export async function POST(req: Request) {
                 subject: "De aanvraag voor een bouwbeslag.nl B2B account is ontvangen!",
                 html: `
                     <div style="font-family: Arial, sans-serif; color: #333;">
-                        <img src="${baseUrl}/logo.png" alt="Bouwbeslag.nl Logo" style="width: 200px; margin-bottom: 20px;" />
+                        <img src="${baseUrl}/logo.webp" alt="Bouwbeslag.nl Logo" style="width: 200px; margin-bottom: 20px;" />
                         <h2>Bedankt voor je aanvraag, ${first_name}!</h2>
                         <p>We hebben de registratie voor een zakelijk account ontvangen.</p>
                         <p>De aanvraag wordt momenteel beoordeeld. Jeontvangt een e-mail zodra het account is goedgekeurd. of geweigerd. Tot die tijd kan je nog niet inloggen.</p>

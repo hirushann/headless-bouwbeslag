@@ -47,22 +47,22 @@ export default async function Home() {
 
         <FadeIn className="hidden lg:flex gap-6 items-center font-sans mb-4" delay={0.2}>
           <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
-            <Image className="" src="/card1icon.png" alt="" width={48} height={48} />
+            <Image className="" src="/card1icon.webp" alt="" width={48} height={48} />
             <p className="text-[#1C2530] font-semibold text-lg">Gegarandeerd de beste prijs</p>
             <p className="text-[#3D4752] font-normal text-sm">Wij betalen zelf ook niet graag te veel. Op 95% van ons assortiment zit een beste prijs garantie. </p>
           </div>
           <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
-            <Image className="" src="/card2icon.png" alt="" width={48} height={48} />
+            <Image className="" src="/card2icon.webp" alt="" width={48} height={48} />
             <p className="text-[#1C2530] font-semibold text-lg">30 dagen retour</p>
             <p className="text-[#3D4752] font-normal text-sm">Tja, is dit nog een USP? Ook bij ons kun je spullen terugsturen als het niet is zoals je verwachtte.</p>
           </div>
           <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
-            <Image className="" src="/card3icon.png" alt="" width={48} height={48} />
+            <Image className="" src="/card3icon.webp" alt="" width={48} height={48} />
             <p className="text-[#1C2530] font-semibold text-lg">De beste service</p>
             <p className="text-[#3D4752] font-normal text-sm">Het begint bij de productinformatie: bij ons is die zo compleet mogelijk. Daarna nog vragen? Wij staan voor je klaar!</p>
           </div>
           <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
-            <Image className="" src="/card4icon.png" alt="" width={48} height={48} />
+            <Image className="" src="/card4icon.webp" alt="" width={48} height={48} />
             <p className="text-[#1C2530] font-semibold text-lg">Uitsluitend  A-merken</p>
             <p className="text-[#3D4752] font-normal text-sm">Er zijn genoeg sites waar je voor een tientje deurklinken koopt. Wij houden het liever bij merken die zich bewezen hebben.</p>
           </div>
@@ -98,7 +98,7 @@ export default async function Home() {
                   <div key={cat.id} className="border border-[#DBE3EA] rounded-sm p-4 shadow-[0px_20px_24px_0px_#0000000A] relative flex flex-col h-full">
                     <Image
                       className="mb-3 rounded-sm hidden lg:block"
-                      src={cat.image?.src || "/default-fallback-image.png"}
+                      src={cat.image?.src || "/default-fallback-image.webp"}
                       alt={cat.name}
                       width={300}
                       height={100}
@@ -122,7 +122,7 @@ export default async function Home() {
                     </div>
 
                     <div className="flex gap-5  lg:hidden">
-                      <Image className="mb-3 rounded-sm" src={cat.image?.src || "/default-fallback-image.png"} alt={cat.name} width={120} height={250} />
+                      <Image className="mb-3 rounded-sm" src={cat.image?.src || "/default-fallback-image.webp"} alt={cat.name} width={120} height={250} />
                       <div className="mb-3 relative">
                         <p className="font-semibold text-[#1C2530] text-xl">{cat.name}</p>
                         <div>
@@ -174,7 +174,7 @@ export default async function Home() {
                         src={
                           post._embedded?.["wp:featuredmedia"]?.[0]?.source_url ||
                           post._embedded?.["wp:featuredmedia"]?.[0]?.media_details?.sizes?.full?.source_url ||
-                          "/default-fallback-image.png"
+                          "/default-fallback-image.webp"
                         }
                         alt={post.title.rendered}
                         width={500}

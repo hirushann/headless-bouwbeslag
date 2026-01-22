@@ -2,36 +2,36 @@ import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 
 export async function POST(req: Request) {
-    try {
-        const body = await req.json();
-        const { name, email, productLink, competitorLink, comments } = body;
+  try {
+    const body = await req.json();
+    const { name, email, productLink, competitorLink, comments } = body;
 
-        if (!name || !email || !productLink || !competitorLink) {
-            return NextResponse.json(
-                { error: 'Vul alle verplichte velden in.' },
-                { status: 400 }
-            );
-        }
+    if (!name || !email || !productLink || !competitorLink) {
+      return NextResponse.json(
+        { error: 'Vul alle verplichte velden in.' },
+        { status: 400 }
+      );
+    }
 
-        const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: Number(process.env.SMTP_PORT) || 587,
-            secure: false, // true for 465, false for other ports
-            auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
-            },
-            tls: {
-                rejectUnauthorized: false
-            }
-        });
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT) || 587,
+      secure: false, // true for 465, false for other ports
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    });
 
-        const mailOptions = {
-            from: `"Bouwbeslag Laagste Prijs" <${process.env.SMTP_USER}>`,
-            to: process.env.PAGINA_EMAIL_TO || process.env.SMTP_USER, // Fallback to sender
-            subject: `Nieuwe Laagste Prijs Garantie Aanvraag`,
+    const mailOptions = {
+      from: `"Bouwbeslag Laagste Prijs" <${process.env.SMTP_USER}>`,
+      to: process.env.PAGINA_EMAIL_TO || process.env.SMTP_USER, // Fallback to sender
+      subject: `Nieuwe Laagste Prijs Garantie Aanvraag`,
 
-            html: `
+      html: `
             <!DOCTYPE html>
             <html>
             <head>
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
                 <!-- Header -->
                 <div class="header">
                   <a href="https://bouwbeslag.nl">
-                    <img src="https://bouwbeslag.nl/logo.png" alt="Bouwbeslag.nl" class="logo" style="max-height: 35px; width: auto;">
+                    <img src="https://bouwbeslag.nl/logo.webp" alt="Bouwbeslag.nl" class="logo" style="max-height: 35px; width: auto;">
                   </a>
                 </div>
 
@@ -119,16 +119,16 @@ export async function POST(req: Request) {
             </body>
             </html>
             `,
-        };
+    };
 
-        await transporter.sendMail(mailOptions);
+    await transporter.sendMail(mailOptions);
 
-        return NextResponse.json({ success: true });
-    } catch (error) {
-        console.error('Email send error:', error);
-        return NextResponse.json(
-            { error: 'Er is iets misgegaan bij het versturen van de email.' },
-            { status: 500 }
-        );
-    }
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Email send error:', error);
+    return NextResponse.json(
+      { error: 'Er is iets misgegaan bij het versturen van de email.' },
+      { status: 500 }
+    );
+  }
 }

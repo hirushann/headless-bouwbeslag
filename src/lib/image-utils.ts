@@ -1,5 +1,5 @@
 export function fixImageSrc(src: string | undefined | null): string {
-    if (!src) return "/default-fallback-image.png";
+    if (!src) return "/default-fallback-image.webp";
 
     // If it's the staging domain, leave it as is (user says it works on /categories)
     if (src.includes("staging-plugin-test.test")) {

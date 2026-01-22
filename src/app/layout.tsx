@@ -76,7 +76,7 @@ export default async function RootLayout({
             <div className="max-w-[1440px] mx-auto relative lg:py-3 flex flex-col lg:flex-row w-full justify-between px-5 lg:px-0">
               <div className="flex flex-col gap-3">
                 <div>
-                  <Image className="-ml-2" src="/footerlogo.png" alt="Footer Logo" width={300} height={300} />
+                  <Image className="-ml-2" src="/footerlogo.webp" alt="Footer Logo" width={300} height={300} />
                   <p className="text-[#C4C4C4] font-normal text-base mt-1">Bouwbeslag.nl is onderdeel van DayZ Solutions</p>
                 </div>
 
@@ -136,21 +136,21 @@ export default async function RootLayout({
                 <p className="text-white font-bold text-xl mb-5">Contactgegevens</p>
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-2">
-                    <Image src="/emailicon.png" alt="Footer Logo" width={50} height={50} />
+                    <Image src="/emailicon.webp" alt="Footer Logo" width={50} height={50} />
                     <div>
                       <p className="text-[#C4C4C4] font-semibold text-[13px] uppercase">E-mail</p>
                       <a href="mailto:contact@bouwbeslag.nl" target="_blank" className="text-white font-medium text-base">contact@bouwbeslag.nl</a>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Image src="/kvkicon.png" alt="Footer Logo" width={50} height={50} />
+                    <Image src="/kvkicon.webp" alt="Footer Logo" width={50} height={50} />
                     <div>
                       <p className="text-[#C4C4C4] font-semibold text-[13px] uppercase">KVK</p>
                       <p className="text-white font-medium text-base">77245350</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Image src="/btwicon.png" alt="Footer Logo" width={50} height={50} />
+                    <Image src="/btwicon.webp" alt="Footer Logo" width={50} height={50} />
                     <div>
                       <p className="text-[#C4C4C4] font-semibold text-[13px] uppercase">btw</p>
                       <p className="text-white font-medium text-base">NL003174000B88</p>
@@ -168,7 +168,7 @@ export default async function RootLayout({
               </div>
               <div className="flex gap-2 justify-center items-center">
                 <p className="text-white font-semibold text-sm uppercase">WIJ ACCEPTEREN:</p>
-                <Image src="/footerpayment.png" alt="footer payment" width={200} height={200} />
+                <Image src="/footerpayment.webp" alt="footer payment" width={200} height={200} />
               </div>
             </div>
           </div>

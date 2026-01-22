@@ -103,7 +103,7 @@ export default async function BlogPage() {
                     <Image
                       src={
                         post._embedded?.["wp:featuredmedia"]?.[0]?.source_url ||
-                        "/default-fallback-image.png"
+                        "/default-fallback-image.webp"
                       }
                       alt={post.title.rendered}
                       width={600}

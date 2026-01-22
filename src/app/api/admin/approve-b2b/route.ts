@@ -86,7 +86,7 @@ export async function GET(req: Request) {
             subject: subject,
             html: `
                 <div style="font-family: Arial, sans-serif; color: #333;">
-                     <img src="${process.env.NEXT_PUBLIC_SITE_URL}/logo.png" alt="Bouwbeslag.nl Logo" style="width: 200px; margin-bottom: 20px;" />
+                     <img src="${process.env.NEXT_PUBLIC_SITE_URL}/logo.webp" alt="Bouwbeslag.nl Logo" style="width: 200px; margin-bottom: 20px;" />
                     ${message}
                     <br><br>
                     <p>Met vriendelijke groet,</p>
