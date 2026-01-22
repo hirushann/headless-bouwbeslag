@@ -85,7 +85,7 @@ export default async function Categories() {
             </div>
 
             {/* Heading */}
-            <p className="text-3xl font-bold text-[#1C2530] mb-2">Winkel op categorie</p>
+            <h1 className="text-3xl font-bold text-[#1C2530] mb-2">Winkel op categorie</h1>
             <p className="text-gray-600 mb-8 text-sm font-normal">
                 Bekijk al onze categorieën om te vinden wat je nodig hebt
             </p>
