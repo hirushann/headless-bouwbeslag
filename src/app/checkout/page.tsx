@@ -514,7 +514,8 @@ export default function NewCheckoutPage() {
         coupon_lines: appliedCoupon ? [{
             code: appliedCoupon.code
         }] : [],
-        mollie_method_id: selectedPaymentMethod // Pass selected method
+        mollie_method_id: selectedPaymentMethod, // Pass selected method
+        customer_id: user?.id || 0
     };
 
     const result = await placeOrderAction(orderData);
