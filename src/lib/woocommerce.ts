@@ -30,6 +30,7 @@ export class WooCommerceClient {
     const config: RequestInit = {
       method,
       headers,
+      cache: 'no-store',
     };
 
     if (isGet) {
