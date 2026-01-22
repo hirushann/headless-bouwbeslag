@@ -43,8 +43,8 @@ function AccountContent() {
     if (contextUser) {
         // console.log("👤 AccountClient: Context User Loaded:", contextUser);
         setUser(contextUser);
-        setBillingForm(prev => prev || contextUser.billing || {});
-        setShippingForm(prev => prev || contextUser.shipping || {});
+        setBillingForm((prev: any) => prev || contextUser.billing || {});
+        setShippingForm((prev: any) => prev || contextUser.shipping || {});
     }
   }, [contextUser]);
 
