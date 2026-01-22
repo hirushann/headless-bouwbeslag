@@ -1,9 +1,33 @@
 "use server";
 
 import { getShippingSettings, getCouponByCode } from "@/lib/woocommerce";
-import { createOrder } from "@/lib/woocommerce-order";
+import { createOrder, getOrder } from "@/lib/woocommerce-order";
 import mollieClient from "@/lib/mollie";
 import { redirect } from "next/navigation";
+
+
+export async function checkOrderStatusAction(orderId: number) {
+    try {
+        const order = await getOrder(orderId);
+        if (!order) {
+            return { success: false, message: "Order not found" };
+        }
+
+        // Status check
+        // cancelled, failed, pending-payment (if long time?)
+        // processing, completed, on-hold = OK
+
+        return {
+            success: true,
+            status: order.status,
+            orderKey: order.order_key,
+            total: order.total
+        };
+    } catch (error) {
+        console.error("Failed to check order status:", error);
+        return { success: false, message: "Error checking status" };
+    }
+}
 
 
 export async function getShippingRatesAction() {

@@ -23,3 +23,13 @@ export async function createOrder(cart: any[], billing: any, shipping: any, ship
     return {};
   }
 }
+
+export async function getOrder(id: number | string) {
+  try {
+    const response = await api.get(`orders/${id}`);
+    return response.data;
+  } catch (error: any) {
+    console.error(`Failed to fetch order ${id}:`, error.response?.data || error.message);
+    return null;
+  }
+}
