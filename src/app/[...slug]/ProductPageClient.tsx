@@ -176,13 +176,13 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
   const [brandImageUrl, setBrandImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const brandImageId = product?.meta_data?.find((m: any) => m.key === "crucial_data_brand_image")?.value;
-    if (brandImageId) {
-      fetchMedia(brandImageId).then((media) => {
-        if (media?.source_url) {
-          setBrandImageUrl(media.source_url);
-        }
-      });
+    // Use WooCommerce brand thumbnail instead of ACF
+    const brandData = product?.brands?.[0]; // Get first brand
+    if (brandData?.image) {
+      // WooCommerce brand taxonomy includes image data
+      setBrandImageUrl(brandData.image.src || brandData.image);
+    } else {
+      setBrandImageUrl(null);
     }
   }, [product]);
 

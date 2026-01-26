@@ -361,16 +361,27 @@ export default function NewCheckoutPage() {
 
   const tax = (subtotal - discountAmount) * 0.21; // Tax on discounted items
   
+  // Calculate card payment fee (2.5% of order total excluding VAT)
+  // Fee applies only when card payment method (creditcard) is selected
+  const cardPaymentFee = React.useMemo(() => {
+    if (selectedPaymentMethod === 'creditcard') {
+      // Calculate fee on subtotal + shipping - discount (Ex VAT)
+      const orderTotal = (subtotal - discountAmount) + (shippingCost || 0);
+      return orderTotal * 0.025; // 2.5% fee
+    }
+    return 0;
+  }, [selectedPaymentMethod, subtotal, discountAmount, shippingCost]);
+  
   // Header logic: Total = (subtotal + shipping) * 1.21 for B2C (Inc VAT).
   // Subtotal here (from cartStore) is Ex-VAT.
   // Shipping cost (flatRate) is Ex-VAT.
   
-  // If B2B: Show Ex-VAT prices. Total = Subtotal + Shipping.
-  // If B2C: Show Inc-VAT prices. Total = (Subtotal + Shipping) * 1.21.
+  // If B2B: Show Ex-VAT prices. Total = Subtotal + Shipping + Card Fee.
+  // If B2C: Show Inc-VAT prices. Total = (Subtotal + Shipping + Card Fee) * 1.21.
   
   const total = isB2B 
-    ? (subtotal - discountAmount) + (shippingCost || 0)
-    : ((subtotal - discountAmount) + (shippingCost || 0)) * 1.21;
+    ? (subtotal - discountAmount) + (shippingCost || 0) + cardPaymentFee
+    : ((subtotal - discountAmount) + (shippingCost || 0) + cardPaymentFee) * 1.21;
     
   // Display Helpers -- Adjusted for discount
   // Note: Discount is usually applied to item prices (subtotal).
@@ -378,6 +389,7 @@ export default function NewCheckoutPage() {
   const displaySubtotal = isB2B ? subtotal : subtotal * 1.21;
   const displayDiscount = isB2B ? discountAmount : discountAmount * 1.21;
   const displayShipping = isB2B ? (shippingCost || 0) : (shippingCost || 0) * 1.21;
+  const displayCardFee = isB2B ? cardPaymentFee : cardPaymentFee * 1.21;
   const displayTax = isB2B ? 0 : tax; // Tax line is redundant in Inc-VAT view usually, or we show full tax breakdown?
   // Header shows: Totaal + (incl. BTW) label.
   
@@ -513,6 +525,12 @@ export default function NewCheckoutPage() {
         }] : [],
         coupon_lines: appliedCoupon ? [{
             code: appliedCoupon.code
+        }] : [],
+        fee_lines: cardPaymentFee > 0 ? [{
+            name: "Betaalkosten (Kaart)",
+            total: cardPaymentFee.toFixed(2),
+            tax_status: "taxable",
+            tax_class: ""
         }] : [],
         mollie_method_id: selectedPaymentMethod, // Pass selected method
         customer_id: user?.id || 0
@@ -983,7 +1001,12 @@ export default function NewCheckoutPage() {
                                                 <CreditCard className="w-5 h-5 text-gray-400"/>
                                             )}
                                         </div>
-                                        <div className="font-medium text-gray-900">{method.description}</div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-medium text-gray-900">{method.description}</span>
+                                            {method.id === 'creditcard' && (
+                                                <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded">+2.5%</span>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${selectedPaymentMethod === method.id ? "border-blue-600 bg-blue-600" : "border-gray-300"}`}>
                                         {selectedPaymentMethod === method.id && <Check className="w-3 h-3 text-white" />}
@@ -1206,11 +1229,17 @@ export default function NewCheckoutPage() {
                             {shippingCost === null ? "Wordt berekend" : (shippingCost === 0 ? "Kosteloos" : `€ ${displayShipping.toFixed(2).replace('.', ',')}`)}
                         </span>
                     </div>
+                    {cardPaymentFee > 0 && (
+                        <div className="flex justify-between text-base text-orange-600">
+                            <span>Betaalkosten (Kaart)</span>
+                            <span className="font-medium">€ {displayCardFee.toFixed(2).replace('.', ',')}</span>
+                        </div>
+                    )}
                      {/* Show Tax breakdown if needed, or total tax amount? Header handles it by showing total + label */}
                     <div className="flex justify-between text-base text-gray-600">
                         <span>BTW (21%)</span>
-                         {/* Calculate actual tax amount for the whole order */}
-                        <span className="font-medium text-gray-900">€ {(((subtotal - discountAmount) + (shippingCost || 0)) * 0.21).toFixed(2).replace('.', ',')}</span>
+                         {/* Calculate actual tax amount for the whole order including card fee */}
+                        <span className="font-medium text-gray-900">€ {(((subtotal - discountAmount) + (shippingCost || 0) + cardPaymentFee) * 0.21).toFixed(2).replace('.', ',')}</span>
                     </div>
                     <div className="pt-3 mt-3 border-t border-gray-100 flex justify-between items-center text-lg font-bold text-gray-900">
                         <span>Totaal <span className="text-xs font-normal text-gray-500">{taxLabel}</span></span>

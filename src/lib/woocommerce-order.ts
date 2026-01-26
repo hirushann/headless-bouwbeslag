@@ -9,7 +9,8 @@ export async function createOrder(
   payment_method_title = "Mollie Payment",
   coupon_lines: any[] = [],
   customer_note = "",
-  customer_id = 0
+  customer_id = 0,
+  fee_lines: any[] = []
 ) {
   try {
     const response = await api.post("orders", {
@@ -26,6 +27,7 @@ export async function createOrder(
       })),
       shipping_lines,
       coupon_lines,
+      fee_lines,
     });
 
     return response.data;

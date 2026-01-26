@@ -168,7 +168,8 @@ export async function placeOrderAction(data: any) {
             "Mollie Payment",
             data.coupon_lines,
             data.customer_note, // Pass customer note
-            data.customer_id || 0 // Pass customer ID
+            data.customer_id || 0, // Pass customer ID
+            data.fee_lines || [] // Pass fee lines (e.g., card payment fee)
         );
         if (order && order.id) {
             const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
