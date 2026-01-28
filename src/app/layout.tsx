@@ -136,21 +136,21 @@ export default async function RootLayout({
                 <p className="text-white font-bold text-xl mb-5">Contactgegevens</p>
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-2">
-                    <Image src="/emailicon.webp" alt="Footer Logo" width={50} height={50} />
+                    <Image src="/emailicon.webp" alt="Email" width={40} height={40} />
                     <div>
                       <p className="text-[#C4C4C4] font-semibold text-[13px] uppercase">E-mail</p>
                       <a href="mailto:contact@bouwbeslag.nl" target="_blank" className="text-white font-medium text-base">contact@bouwbeslag.nl</a>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Image src="/kvkicon.webp" alt="Footer Logo" width={50} height={50} />
+                    <Image src="/kvkicon.webp" alt="KVK" width={40} height={40} />
                     <div>
                       <p className="text-[#C4C4C4] font-semibold text-[13px] uppercase">KVK</p>
                       <p className="text-white font-medium text-base">77245350</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Image src="/btwicon.webp" alt="Footer Logo" width={50} height={50} />
+                    <Image src="/btwicon.webp" alt="BTW" width={40} height={40} />
                     <div>
                       <p className="text-[#C4C4C4] font-semibold text-[13px] uppercase">btw</p>
                       <p className="text-white font-medium text-base">NL003174000B88</p>
@@ -168,7 +168,7 @@ export default async function RootLayout({
               </div>
               <div className="flex gap-2 justify-center items-center">
                 <p className="text-white font-semibold text-sm uppercase">WIJ ACCEPTEREN:</p>
-                <Image src="/footerpayment.webp" alt="footer payment" width={200} height={200} />
+                <Image src="/footerpayment.webp" alt="Betaalmethoden" width={180} height={30} className="object-contain" />
               </div>
             </div>
           </div>

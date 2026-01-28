@@ -125,9 +125,14 @@ export default function Header({
   return (
     <>
       <div className="shadow-[0px_4px_40px_0px_#00000012] bg-white w-full p-2">
+        {/* Defer sidebar load to avoid forced reflows and cache warnings during initial load */}
         <Script
+          id="webwinkelkeur-sidebar"
           src="https://www.webwinkelkeur.nl/js/sidebar.js?id=11199"
           strategy="lazyOnload"
+          onReady={() => {
+            console.log("✅ WebwinkelKeur Sidebar script ready");
+          }}
         />
         <div className="max-w-[1440px] mx-auto relative flex justify-between items-center w-full">
           <div className="flex justify-start items-center gap-3 w-auto lg:w-3/4 font-sans text-sm">
