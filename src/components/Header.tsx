@@ -1,6 +1,7 @@
 "use client";
 
 import Script from "next/script";
+import Image from "next/image";
 
 import Link from "next/link";
 import { useCartStore } from "@/lib/cartStore";
@@ -125,7 +126,7 @@ export default function Header({
     <>
       <div className="shadow-[0px_4px_40px_0px_#00000012] bg-white w-full p-2">
         <Script
-          src={`https://www.webwinkelkeur.nl/js/sidebar.js?id=11199&_t=${Date.now()}`}
+          src="https://www.webwinkelkeur.nl/js/sidebar.js?id=11199"
           strategy="lazyOnload"
         />
         <div className="max-w-[1440px] mx-auto relative flex justify-between items-center w-full">
@@ -161,9 +162,16 @@ export default function Header({
 
       <div className="transition-all duration-300 bg-[#F7F7F7] w-full sticky top-0 z-50">
         <div className="max-w-[1440px] mx-auto flex justify-between items-center py-4 font-sans px-2 lg:px-0">
-          <a href="/">
-            <img className="w-56 lg:w-64" src="/logo.webp" alt="" />
-          </a>
+          <Link href="/">
+            <Image 
+              src="/logo.webp" 
+              alt="Bouwbeslag Logo" 
+              width={256} 
+              height={41} 
+              className="w-56 lg:w-64"
+              priority
+            />
+          </Link>
           <div className="hidden lg:flex justify-center items-center w-[30%]">
             <SearchAutosuggest />
           </div>

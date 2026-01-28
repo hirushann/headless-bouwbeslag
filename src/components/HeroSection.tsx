@@ -49,8 +49,12 @@ export default function HeroSection() {
           className="lg:w-full lg:h-full lg:object-contain lg:object-right rotate-340"
           src="/herobg.webp"
           alt="Hero"
-          width={300}
-          height={200}
+          width={600}
+          height={400}
+          priority
+          loading="eager"
+          decoding="async" 
+          data-nimg="1"
         />
       </div>
     </motion.div>
