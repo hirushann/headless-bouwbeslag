@@ -193,7 +193,7 @@ export default function Header({
             </div>
             <div className="flex lg:gap-1.5 items-center">
               <div className="tooltip tooltip-bottom flex" data-tip="Antwoord op al je vragen">
-                <Link className="flex items-center" href="/hulp">
+                <Link className="flex items-center" href="/hulp" aria-label="Help page">
                   <div className="m-0 cursor-pointer">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" className="size-7 lg:size-5" fill="#000000"><path d="M528 320C528 205.1 434.9 112 320 112C205.1 112 112 205.1 112 320C112 434.9 205.1 528 320 528C434.9 528 528 434.9 528 320zM64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576C178.6 576 64 461.4 64 320zM320 240C302.3 240 288 254.3 288 272C288 285.3 277.3 296 264 296C250.7 296 240 285.3 240 272C240 227.8 275.8 192 320 192C364.2 192 400 227.8 400 272C400 319.2 364 339.2 344 346.5L344 350.3C344 363.6 333.3 374.3 320 374.3C306.7 374.3 296 363.6 296 350.3L296 342.2C296 321.7 310.8 307 326.1 302C332.5 299.9 339.3 296.5 344.3 291.7C348.6 287.5 352 281.7 352 272.1C352 254.4 337.7 240.1 320 240.1zM288 432C288 414.3 302.3 400 320 400C337.7 400 352 414.3 352 432C352 449.7 337.7 464 320 464C302.3 464 288 449.7 288 432z" /></svg>
                   </div>
@@ -203,7 +203,7 @@ export default function Header({
                 <span className="hidden lg:block font-medium text-base cursor-pointer">Hulp</span>
               </Link>
             </div>
-            <div className="flex lg:hidden">
+            <div className="flex lg:hidden" aria-label="My Account Page">
               <Link href="/account">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-7"><path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
               </Link>
@@ -257,7 +257,7 @@ export default function Header({
           <div className="p-4 flex lg:hidden w-full gap-5">
             <div>
               <div className="dropdown w-full">
-                <div tabIndex={0} role="button" className="btn btn-ghost btn-circle text-white">
+                <div tabIndex={0} role="button" aria-labelledby="hamburgermenu" className="btn btn-ghost btn-circle text-white">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-8"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
                 </div>
                 <ul

@@ -89,6 +89,8 @@ export default function SearchAutosuggest({
                 <button
                     type="submit"
                     className="btn bg-[#2332C51A] rounded-[4px] border-0 shadow-none px-4"
+                    id="headersearchbutton" 
+                    aria-label="Search"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"

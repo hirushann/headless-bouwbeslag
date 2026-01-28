@@ -269,7 +269,7 @@ export default async function Home() {
               <h3 className="text-[#1C2530] font-semibold text-2xl">Veelgestelde vragen over bouwbeslag en deurbeslag</h3>
             </div>
             <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
-              <input type="radio" name="my-accordion-1" defaultChecked />
+              <input type="radio" name="faq-1" defaultChecked />
               <div className="collapse-title font-semibold flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z" /></svg>
                 <span className="w-[90%] lg:w-full">Wat is bouwbeslag?</span>
@@ -277,7 +277,7 @@ export default async function Home() {
               <div className="collapse-content text-sm">Bouwbeslag is de verzamelnaam voor alle zichtbare en functionele onderdelen aan deuren en ramen, zoals deurklinken, scharnieren, sloten, cilinders, tochtstrips, raamgrepen en veiligheidsbeslag. Bouwbeslag bepaalt niet alleen de uitstraling van je interieur, maar ook de veiligheid, het comfort en de levensduur van je deuren en ramen.</div>
             </div>
             <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
-              <input type="radio" name="my-accordion-1" />
+              <input type="radio" name="faq-2" />
               <div className="collapse-title font-semibold flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z" /></svg>
                 <span className="w-[90%] lg:w-full">Wat is het verschil tussen deurbeslag en bouwbeslag?</span>
@@ -285,7 +285,7 @@ export default async function Home() {
               <div className="collapse-content text-sm">In de praktijk is er geen verschil. Deurbeslag is simpelweg een term die specifiek verwijst naar beslag op deuren (zoals klinken, rozetten en schilden), terwijl bouwbeslag ook beslag voor ramen en andere toepassingen omvat. De termen worden vaak door elkaar gebruikt en worden gezien als synoniemen.</div>
             </div>
             <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
-              <input type="radio" name="my-accordion-1" />
+              <input type="radio" name="faq-3" />
               <div className="collapse-title font-semibold flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z" /></svg>
                 <span className="w-[90%] lg:w-full">Kan ik ook zakelijk bij jullie kopen?</span>
@@ -293,7 +293,7 @@ export default async function Home() {
               <div className="collapse-content text-sm">Ja, zeker. Als je actief bent in de bouw-, klus- of interieurbranche kun je bij ons een B2B-account aanmaken. Met zo’n zakelijk account profiteer je van spectaculaire inkoopprijzen eb ondersteuning bij grotere projecten. Ideaal voor aannemers, timmerbedrijven, (binnenhuis)architecten en vastgoedbeheerders.</div>
             </div>
             <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
-              <input type="radio" name="my-accordion-1" />
+              <input type="radio" name="faq-4" />
               <div className="collapse-title font-semibold flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z" /></svg>
                 <span className="w-[90%] lg:w-full">Leveren jullie ook in België?</span>
@@ -301,7 +301,7 @@ export default async function Home() {
               <div className="collapse-content text-sm">Ja, wij leveren naast Nederland ook in België. Tijdens het afrekenen kun je eenvoudig je afleveradres in België invullen. De verzendkosten en levertijd worden automatisch berekend. Zo kunnen ook Belgische particulieren en bedrijven profiteren van ons grote assortiment bouwbeslag en onze laagsteprijsgarantie op A-merken.</div>
             </div>
             <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
-              <input type="radio" name="my-accordion-1" />
+              <input type="radio" name="faq-5" />
               <div className="collapse-title font-semibold flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z" /></svg>
                 <span className="w-[90%] lg:w-full">Hoe snel wordt mijn bestelling geleverd?</span>
@@ -309,7 +309,7 @@ export default async function Home() {
               <div className="collapse-content text-sm">Producten die wij op voorraad hebben, worden in de regel binnen één werkdag verzonden. In de productdetails zie je altijd direct of een artikel op voorraad is en wat de verwachte levertijd is. Bestel je meerdere items met verschillende levertijden, dan tonen we duidelijk wat je wanneer kunt verwachten. Zo kom je nooit voor verrassingen te staan.</div>
             </div>
             <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
-              <input type="radio" name="my-accordion-1" />
+              <input type="radio" name="faq-6" />
               <div className="collapse-title font-semibold flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" height="30" fill="#0066FF"><path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM296 408L296 344L232 344C218.7 344 208 333.3 208 320C208 306.7 218.7 296 232 296L296 296L296 232C296 218.7 306.7 208 320 208C333.3 208 344 218.7 344 232L344 296L408 296C421.3 296 432 306.7 432 320C432 333.3 421.3 344 408 344L344 344L344 408C344 421.3 333.3 432 320 432C306.7 432 296 421.3 296 408z" /></svg>
                 <span className="w-[90%] lg:w-full">Kunnen jullie me helpen bij het kiezen van het juiste deurbeslag?</span>
