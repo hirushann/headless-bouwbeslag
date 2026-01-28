@@ -43,9 +43,55 @@ async function getProductBySlug(slug: string) {
       return null;
     }
 
-    // Fetch full product (you already do this client-side)
+    // Fetch full product
     const full = await api.get(`products/${res.data[0].id}`);
-    return full?.data ?? null;
+    const product = full?.data ?? null;
+    
+    if (!product) return null;
+
+    // Fetch brand logo if product has a brand
+    if (product.brands && product.brands.length > 0) {
+      const brandId = product.brands[0].id;
+      
+      try {
+        // Fetch brand details from wp/v2/product_brand to get ACF data
+        const brandRes = await api.get(`wp/v2/product_brand/${brandId}`);
+        const brandData = brandRes.data;
+        
+        // Check if brand has a logo in ACF
+        if (brandData?.acf?.brand_logo) {
+          let logoUrl = null;
+          const logoData = brandData.acf.brand_logo;
+          
+          // Handle different logo data formats
+          if (typeof logoData === 'number') {
+            // Logo is a media ID, fetch the media URL
+            try {
+              const mediaRes = await api.get(`wp/v2/media/${logoData}`);
+              logoUrl = mediaRes.data?.source_url || null;
+            } catch (e) {
+              console.error("Failed to fetch brand logo media:", e);
+            }
+          } else if (typeof logoData === 'string') {
+            // Logo is already a URL
+            logoUrl = logoData;
+          } else if (logoData?.url) {
+            // Logo is an object with URL
+            logoUrl = logoData.url;
+          }
+          
+          // Attach logo URL to the brand data
+          if (logoUrl) {
+            product.brands[0].logoUrl = logoUrl;
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch brand data:", e);
+        // Continue without brand logo rather than failing the whole request
+      }
+    }
+    
+    return product;
   } catch (error) {
     console.error("SSR product fetch failed:", error);
     return null;

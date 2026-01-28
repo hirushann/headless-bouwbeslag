@@ -31,7 +31,7 @@ const formatSpecValue = (value: string | number | null | undefined): string => {
 export default function ProductPageClient({ product, taxRate = 21, slug }: { product: any; taxRate?: number; slug?: string[] }) {
   // 🔍 DEBUG: log full product data coming into this page
   useEffect(() => {
-    console.log("🟦 ProductPageClient → product data:", product);
+    // console.log("🟦 ProductPageClient → product data:", product);
   }, [product]);
 
   const fadeInUp = {
@@ -176,14 +176,8 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
   const [brandImageUrl, setBrandImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    // Use WooCommerce brand thumbnail instead of ACF
-    const brandData = product?.brands?.[0]; // Get first brand
-    if (brandData?.image) {
-      // WooCommerce brand taxonomy includes image data
-      setBrandImageUrl(brandData.image.src || brandData.image);
-    } else {
-      setBrandImageUrl(null);
-    }
+    // Use the logoUrl that was fetched server-side in page.tsx
+    setBrandImageUrl(product?.brands?.[0]?.logoUrl || null);
   }, [product]);
 
 
@@ -699,6 +693,16 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
   const productLength = getMetaValue("dimensions_product_length");
   const productLengthUnit = getMetaValue("dimensions_product_length_unit");
 
+  // --- Length Freight Logic
+  const packageLengthRaw = getMetaValue("dimensions_package_length");
+  const packageLengthUnit = getMetaValue("dimensions_package_length_unit");
+  
+  const packageLength = packageLengthRaw && !isNaN(parseFloat(packageLengthRaw)) ? parseFloat(packageLengthRaw) : 0;
+  // Rule: > 100cm OR > 1600mm
+  const hasLengthFreight = 
+    (packageLengthUnit === 'cm' && packageLength > 100) || 
+    (packageLengthUnit === 'mm' && packageLength > 1600);
+
     // --- WooCommerce stock check helper ---
   // Checks real-time stock before allowing add-to-cart
   const checkStockBeforeAdd = async (productId: number, qty: number) => {
@@ -789,7 +793,8 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         stockQuantity: product.stock_quantity ?? null,
         leadTimeInStock: 1, // Default from page code
         leadTimeNoStock: 30, // Default from page code
-        isMaatwerk: getMetaValue("crucial_data_maatwerk") === "1"
+        isMaatwerk: getMetaValue("crucial_data_maatwerk") === "1",
+        hasLengthFreight
       });
       toast.success("Product toegevoegd aan winkelwagen!", {
         duration: 3000,

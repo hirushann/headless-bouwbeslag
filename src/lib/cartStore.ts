@@ -19,6 +19,7 @@ interface CartItem {
   leadTimeInStock?: number;
   leadTimeNoStock?: number;
   isMaatwerk?: boolean;
+  hasLengthFreight?: boolean;
 }
 
 interface CartState {
@@ -30,6 +31,7 @@ interface CartState {
   clearCart: () => void;
   syncWithServer: () => Promise<void>;
   total: () => number;
+  lengthFreightCost: () => number;
   isCartOpen: boolean;
   setCartOpen: (isOpen: boolean) => void;
 }
@@ -127,6 +129,11 @@ export const useCartStore = create<CartState>()(
       },
       total: () =>
         get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
+      lengthFreightCost: () => {
+        // Fee is 29.95 if ANY item has length freight
+        const hasFreight = get().items.some(i => i.hasLengthFreight);
+        return hasFreight ? 29.95 : 0;
+      },
       isCartOpen: false,
       setCartOpen: (isOpen) => set({ isCartOpen: isOpen }),
     }),

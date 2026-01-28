@@ -28,6 +28,7 @@ export default function NewCheckoutPage() {
   // Cart State from Store
   const cartItems = useCartStore((state) => state.items);
   const clearCart = useCartStore((state) => state.clearCart);
+  const lengthFreightCost = useCartStore((state) => state.lengthFreightCost());
   
   // Hydration check for persisted store
   const [isHydrated, setIsHydrated] = useState(false);
@@ -128,6 +129,7 @@ export default function NewCheckoutPage() {
   const [postcodeError, setPostcodeError] = useState<string | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [maatwerkAccepted, setMaatwerkAccepted] = useState(false);
+  const [lengthFreightAccepted, setLengthFreightAccepted] = useState(false);
 
   // New Shipping & Notes State
   const [shipToDifferentAddress, setShipToDifferentAddress] = useState(false);
@@ -242,7 +244,23 @@ export default function NewCheckoutPage() {
   
   // Update shipping cost whenever rates or selected method changes
   // Derive valid methods
+  const hasLengthFreight = cartItems.some(i => i.hasLengthFreight);
+
   const validMethods = React.useMemo(() => {
+    if (hasLengthFreight) {
+        // Prioritize backend method if available
+        const realMethod = availableMethods.find(m => m.title.toLowerCase().includes('lengtevracht'));
+        if (realMethod) return [realMethod];
+
+        return [{
+            id: 9999, // distinct ID
+            methodId: 'length_freight',
+            title: 'Lengtevracht toeslag',
+            cost: lengthFreightCost / 1.21,
+            enabled: true
+        }];
+    }
+
     return availableMethods.filter(method => {
        if (method.methodId === 'free_shipping') {
          // Check requires
@@ -253,7 +271,7 @@ export default function NewCheckoutPage() {
        }
        return true;
     });
-  }, [availableMethods, subtotal]);
+  }, [availableMethods, subtotal, hasLengthFreight]);
 
   // Update shipping cost whenever rates or selected method changes
   // AND Auto-select if needed
@@ -379,6 +397,8 @@ export default function NewCheckoutPage() {
   // If B2B: Show Ex-VAT prices. Total = Subtotal + Shipping + Card Fee.
   // If B2C: Show Inc-VAT prices. Total = (Subtotal + Shipping + Card Fee) * 1.21.
   
+  // Header shows: Totaal + (incl. BTW) label.
+  
   const total = isB2B 
     ? (subtotal - discountAmount) + (shippingCost || 0) + cardPaymentFee
     : ((subtotal - discountAmount) + (shippingCost || 0) + cardPaymentFee) * 1.21;
@@ -480,6 +500,16 @@ export default function NewCheckoutPage() {
         toast.error("Je moet akkoord gaan met de algemene voorwaarden om door te gaan.");
         return;
     }
+    const hasMaatwerk = cartItems.some(i => i.isMaatwerk);
+    if (hasMaatwerk && !maatwerkAccepted) {
+        toast.error("Je moet akkoord gaan met de maatwerk voorwaarden om door te gaan.");
+        return;
+    }
+    // hasLengthFreight is defined in component scope but let's re-check or use it
+    if (cartItems.some(i => i.hasLengthFreight) && !lengthFreightAccepted) {
+        toast.error("Je moet akkoord gaan met de lengtevracht voorwaarden om door te gaan.");
+        return;
+    }
 
     setIsLoading(true);
     
@@ -498,7 +528,7 @@ export default function NewCheckoutPage() {
         phone: formData.phone
     };
 
-    const method = availableMethods.find(m => m.id === selectedMethodId);
+    const method = validMethods.find(m => m.id === selectedMethodId);
 
     const shippingObject = shipToDifferentAddress ? {
         first_name: shippingData.firstName,
@@ -521,17 +551,22 @@ export default function NewCheckoutPage() {
         shipping_line: method ? [{
              method_id: method.methodId,
              method_title: method.title,
-             total: method.cost.toString()
+             total: method.cost.toString(),
+             total_tax: (Number(method.cost) * 0.21).toFixed(2),
+             tax_status: "taxable",
+             tax_class: ""
         }] : [],
         coupon_lines: appliedCoupon ? [{
             code: appliedCoupon.code
         }] : [],
-        fee_lines: cardPaymentFee > 0 ? [{
-            name: "Betaalkosten (Kaart)",
-            total: cardPaymentFee.toFixed(2),
-            tax_status: "taxable",
-            tax_class: ""
-        }] : [],
+        fee_lines: [
+            ...(cardPaymentFee > 0 ? [{
+                name: "Betaalkosten (Kaart)",
+                total: cardPaymentFee.toFixed(2),
+                tax_status: "taxable",
+                tax_class: ""
+            }] : [])
+        ],
         mollie_method_id: selectedPaymentMethod, // Pass selected method
         customer_id: user?.id || 0
     };
@@ -934,7 +969,9 @@ export default function NewCheckoutPage() {
                                         <div>
                                             <div className="font-semibold text-gray-900">{method.title}</div>
                                             <div className="text-sm text-gray-500">
-                                                De order wordt verzonden via DHL of GLS, waarbij indien mogelijk wordt gebruikt van brievenbuspost.
+                                                {(method.methodId === 'length_freight' || method.title.toLowerCase().includes('lengtevracht'))
+                                                    ? 'Dit product wordt verstuurd via lengtevracht. Deze plannen wij na overleg met u in op een werkdag naar keuze. Het tijdsvak is tussen 09:00 en 17:00. U dient thuis te zijn (of lever het af bij werk waar altijd iemand aanwezig is). Indien u de levering niet aan kunt nemen wordt er €59,90 extra in rekening gebracht (retour naar ons, en weer naar u).' 
+                                                    : 'De order wordt verzonden via DHL of GLS, waarbij indien mogelijk wordt gebruikt van brievenbuspost.'}
                                             </div>
                                         </div>
                                     </div>
@@ -1048,22 +1085,40 @@ export default function NewCheckoutPage() {
                         ) : null;
                      })()}
 
+                     {/* Length Freight Checkbox logic */}
+                     {(() => {
+                        return hasLengthFreight ? (
+                             <div className="flex items-start mb-6 px-1">
+                                <input 
+                                    type="checkbox" 
+                                    id="length-freight-terms" 
+                                    checked={lengthFreightAccepted} 
+                                    onChange={(e) => setLengthFreightAccepted(e.target.checked)} 
+                                    className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer mt-0.5"
+                                />
+                                <label htmlFor="length-freight-terms" className="ml-3 text-sm text-gray-700 cursor-pointer select-none">
+                                    Ik begrijp dat er extra kosten aan zijn verbonden als ik tijdens de bezorgpoging niet thuis ben.
+                                </label>
+                             </div>
+                        ) : null;
+                     })()}
+
                     <div className="relative group w-full">
                         <button 
                             onClick={handlePlaceOrder}
-                            disabled={isLoading || !selectedPaymentMethod || !termsAccepted || (cartItems.some(i => i.isMaatwerk) && !maatwerkAccepted)}
+                            disabled={isLoading || !selectedPaymentMethod || !termsAccepted || (cartItems.some(i => i.isMaatwerk) && !maatwerkAccepted) || (hasLengthFreight && !lengthFreightAccepted)}
                             className={`w-full btn btn-primary border-none h-14 rounded-xl text-lg font-bold shadow-lg flex items-center justify-center gap-2 
-                                ${(!selectedPaymentMethod || !termsAccepted || (cartItems.some(i => i.isMaatwerk) && !maatwerkAccepted)) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white shadow-green-600/20'}
+                                ${(!selectedPaymentMethod || !termsAccepted || (cartItems.some(i => i.isMaatwerk) && !maatwerkAccepted) || (hasLengthFreight && !lengthFreightAccepted)) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white shadow-green-600/20'}
                             `}
                         >
                             {isLoading ? <Loader2 className="w-5 h-5 animate-spin"/> : `Bevestig & Betalen €${total.toFixed(2)}`}
                         </button>
                         
                         {/* Tooltip for Terms Check */}
-                        {selectedPaymentMethod && (!termsAccepted || (cartItems.some(i => i.isMaatwerk) && !maatwerkAccepted)) && (
+                        {selectedPaymentMethod && (!termsAccepted || (cartItems.some(i => i.isMaatwerk) && !maatwerkAccepted) || (hasLengthFreight && !lengthFreightAccepted)) && (
                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 hidden group-hover:block w-full z-10">
                                <div className="bg-black text-white text-xs rounded py-1 px-2 text-center shadow-lg relative max-w-xs mx-auto">
-                                   {!termsAccepted ? "Accepteer de algemene voorwaarden om door te gaan" : "Accepteer de maatwerk voorwaarden om door te gaan"}
+                                   {!termsAccepted ? "Accepteer de algemene voorwaarden om door te gaan" : ((cartItems.some(i => i.isMaatwerk) && !maatwerkAccepted) ? "Accepteer de maatwerk voorwaarden om door te gaan" : "Accepteer de lengtevracht voorwaarden om door te gaan")}
                                    <div className="absolute top-100 left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-black"></div>
                                </div>
                            </div>
@@ -1146,6 +1201,12 @@ export default function NewCheckoutPage() {
                                 {item.isMaatwerk && (
                                     <p className="text-xs text-amber-600 mt-1 font-medium">Let op: maatwerk product.</p>
                                 )}
+                                {item.hasLengthFreight && (
+                                     <div className="flex items-start gap-1 mt-1">
+                                        <Truck className="w-3 h-3 text-blue-600 mt-0.5" />
+                                        <p className="text-xs text-blue-600 font-medium">Lengtevracht toeslag</p>
+                                    </div>
+                                )}
                             </div>
                             <span className="text-sm font-medium text-gray-900 whitespace-nowrap ml-2">€ {(isB2B ? item.price : item.price * 1.21).toFixed(2).replace('.', ',')}</span>
                         </div>
@@ -1159,6 +1220,8 @@ export default function NewCheckoutPage() {
                         <span>Subtotaal</span>
                         <span className="font-medium text-gray-900">€ {displaySubtotal.toFixed(2).replace('.', ',')}</span>
                     </div>
+
+
 
                     {/* Coupon Section */}
                      <div className="border-b border-gray-100 pb-4 mb-2">
@@ -1238,7 +1301,8 @@ export default function NewCheckoutPage() {
                      {/* Show Tax breakdown if needed, or total tax amount? Header handles it by showing total + label */}
                     <div className="flex justify-between text-base text-gray-600">
                         <span>BTW (21%)</span>
-                         {/* Calculate actual tax amount for the whole order including card fee */}
+                         {/* Calculate actual tax amount for the whole order including card fee and freight */}
+                         {/* Freight Ex VAT = lengthFreightCost / 1.21 */}
                         <span className="font-medium text-gray-900">€ {(((subtotal - discountAmount) + (shippingCost || 0) + cardPaymentFee) * 0.21).toFixed(2).replace('.', ',')}</span>
                     </div>
                     <div className="pt-3 mt-3 border-t border-gray-100 flex justify-between items-center text-lg font-bold text-gray-900">
