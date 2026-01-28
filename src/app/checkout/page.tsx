@@ -256,12 +256,18 @@ export default function NewCheckoutPage() {
             id: 9999, // distinct ID
             methodId: 'length_freight',
             title: 'Lengtevracht toeslag',
-            cost: lengthFreightCost / 1.21,
+            // cost: lengthFreightCost / 1.21,
+            cost: lengthFreightCost,
             enabled: true
         }];
     }
 
     return availableMethods.filter(method => {
+       // Filter out Lengtevracht if not applicable (since hasLengthFreight is false here)
+       if (method.title && method.title.toLowerCase().includes('lengtevracht')) {
+           return false;
+       }
+
        if (method.methodId === 'free_shipping') {
          // Check requires
          if (method.requires === 'min_amount' || method.requires === 'either') {
@@ -551,8 +557,7 @@ export default function NewCheckoutPage() {
         shipping_line: method ? [{
              method_id: method.methodId,
              method_title: method.title,
-             total: method.cost.toString(),
-             total_tax: (Number(method.cost) * 0.21).toFixed(2),
+             total: Number(method.cost).toFixed(2),
              tax_status: "taxable",
              tax_class: ""
         }] : [],
@@ -571,7 +576,12 @@ export default function NewCheckoutPage() {
         customer_id: user?.id || 0
     };
 
+    console.log("🛒 Frontend: Submitting orderData:", orderData);
+
     const result = await placeOrderAction(orderData);
+    
+    console.log("🏁 Frontend: placeOrderAction result:", result);
+    
     setIsLoading(false);
 
     if (result.success) {

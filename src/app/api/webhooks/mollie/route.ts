@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
         }
 
         if (newStatus) {
-            await api.post(`orders/${orderId}`, {
+            await api.put(`orders/${orderId}`, {
                 status: newStatus,
                 transaction_id: payment.id,
             });

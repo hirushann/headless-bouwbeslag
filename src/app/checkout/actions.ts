@@ -1,7 +1,7 @@
 "use server";
 
 import { getShippingSettings, getCouponByCode } from "@/lib/woocommerce";
-import { createOrder, getOrder } from "@/lib/woocommerce-order";
+import { createOrder, getOrder, updateOrder } from "@/lib/woocommerce-order";
 import mollieClient from "@/lib/mollie";
 import { redirect } from "next/navigation";
 import axios from "axios";
@@ -15,9 +15,19 @@ export async function checkOrderStatusAction(orderId: number) {
             return { success: false, message: "Order not found" };
         }
 
-        // Status check
-        // cancelled, failed, pending-payment (if long time?)
-        // processing, completed, on-hold = OK
+        // Check if it's still pending but should be processing
+        if ((order.status === 'pending' || order.status === 'pending-payment') && order.transaction_id) {
+            console.log(`🔎 Order ${orderId} is still pending but has transaction_id. Checking Mollie...`);
+            const payment = await mollieClient.payments.get(order.transaction_id);
+            if (payment.status === 'paid') {
+                console.log(`✅ Mollie says paid! Updating order ${orderId} to processing...`);
+                await updateOrder(orderId, {
+                    status: 'processing',
+                    set_paid: true
+                });
+                order.status = 'processing'; // Update local object for return
+            }
+        }
 
         return {
             success: true,
@@ -29,6 +39,10 @@ export async function checkOrderStatusAction(orderId: number) {
         console.error("Failed to check order status:", error);
         return { success: false, message: "Error checking status" };
     }
+}
+
+export async function verifyPaymentStatusAction(orderId: number) {
+    return checkOrderStatusAction(orderId);
 }
 
 
@@ -159,6 +173,8 @@ export async function getPaymentMethodsAction() {
 
 export async function placeOrderAction(data: any) {
     try {
+        console.log("🚀 Starting placeOrderAction. Input data:", JSON.stringify(data, null, 2));
+
         const order = await createOrder(
             data.cart,
             data.billing,
@@ -171,6 +187,16 @@ export async function placeOrderAction(data: any) {
             data.customer_id || 0, // Pass customer ID
             data.fee_lines || [] // Pass fee lines (e.g., card payment fee)
         );
+
+        console.log("📦 WooCommerce Order Created:", JSON.stringify({
+            id: order?.id,
+            total: order?.total,
+            total_tax: order?.total_tax,
+            shipping_total: order?.shipping_total,
+            shipping_tax: order?.shipping_tax,
+            status: order?.status
+        }, null, 2));
+
         if (order && order.id) {
             const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
             const isLocal = siteUrl.includes('localhost');
@@ -179,11 +205,14 @@ export async function placeOrderAction(data: any) {
             // For now, if local, we omit it so payment creation succeeds (but status won't update automatically).
             const webhookUrl = isLocal ? undefined : `${siteUrl}/api/webhooks/mollie`;
 
+            const paymentValue = parseFloat(order.total).toFixed(2);
+            console.log(`💳 Creating Mollie Payment. Value: ${paymentValue}, Webhook: ${webhookUrl}`);
+
             // Create Mollie Payment
             const payment = await mollieClient.payments.create({
                 amount: {
                     currency: "EUR",
-                    value: parseFloat(order.total).toFixed(2),
+                    value: paymentValue,
                 },
                 description: `Order #${order.id}`,
                 redirectUrl: `${siteUrl}/checkout/success?orderId=${order.id}`,
@@ -194,15 +223,27 @@ export async function placeOrderAction(data: any) {
                 method: data.mollie_method_id, // Pass selected method to Mollie
             });
 
+            console.log("💸 Mollie Payment Response:", JSON.stringify({
+                id: payment?.id,
+                status: payment?.status,
+                checkoutUrl: payment?._links?.checkout?.href
+            }, null, 2));
+
+            // CRITICAL: Save the payment ID to the order
+            if (payment && payment.id) {
+                console.log(`📝 Saving transaction_id ${payment.id} to order ${order.id}...`);
+                await updateOrder(order.id, {
+                    transaction_id: payment.id
+                });
+            }
+
             if (payment && payment._links.checkout) {
                 return { success: true, redirectUrl: payment._links.checkout.href };
             }
-
-            return { success: true, data: order };
         }
         return { success: false, message: "Failed to create order" };
     } catch (error: any) {
-        console.error("Failed to place order:", error);
+        console.error("❌ Failed to place order:", error);
         // Return the actual error message for debugging
         return { success: false, message: error.message || "An unexpected error occurred" };
     }

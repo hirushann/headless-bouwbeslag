@@ -63,6 +63,10 @@ export class WooCommerceClient {
   post(endpoint: string, data: any = {}) {
     return this.request("POST", endpoint, data);
   }
+
+  put(endpoint: string, data: any = {}) {
+    return this.request("PUT", endpoint, data);
+  }
 }
 
 const api = new WooCommerceClient({

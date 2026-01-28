@@ -67,7 +67,7 @@ export default function HelpPage() {
             <div>
               <h3 className="text-xl font-bold mb-2">Veelgestelde vragen</h3>
               <p className="text-[#3D4752] mb-4">Vind snel antwoord op de meest gestelde vragen over verzending, retourneren en garantie.</p>
-              <Link href="/faq" className="text-[#0066FF] font-semibold hover:underline">Bekijk FAQ</Link>
+              {/* <Link href="/faq" className="text-[#0066FF] font-semibold hover:underline">Bekijk FAQ</Link> */}
             </div>
           </FadeIn>
         </div>

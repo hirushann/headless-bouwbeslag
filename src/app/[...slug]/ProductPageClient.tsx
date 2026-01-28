@@ -1037,8 +1037,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                           return <div className="h-8 w-32 bg-gray-200 animate-pulse rounded"></div>;
                       }
 
-                      // 2. Get Sales Price (B2B or B2C)
-                      // 2. Get Sales Price (B2B or B2C)
                       let sale = 0;
                       
                       if (isB2B) {
