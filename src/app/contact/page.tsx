@@ -35,6 +35,18 @@ export default function ContactPage() {
 
                 <div className="flex items-start gap-4">
                   <div className="bg-[#E6F0FF] p-3 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#0066FF" className="w-6 h-6">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-[#1C2630] font-semibold text-lg">Telefoon</p>
+                    <a href="tel:0031578760508" className="text-[#0066FF] hover:underline">0578-760508</a>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="bg-[#E6F0FF] p-3 rounded-full">
                     <Image src="/kvkicon.webp" alt="KVK" width={24} height={24} className="w-6 h-6" />
                   </div>
                   <div>

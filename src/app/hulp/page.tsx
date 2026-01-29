@@ -54,7 +54,7 @@ export default function HelpPage() {
             <div>
               <h3 className="text-xl font-bold mb-2">Bel ons</h3>
               <p className="text-[#3D4752] mb-4">Spreek direct met een van onze experts. Bereikbaar op werkdagen van 09:00 tot 17:00.</p>
-              <a href="tel:+31123456789" className="text-[#0066FF] font-semibold hover:underline">+31 (0)12 345 67 89</a>
+              <a href="tel:0031578760508" className="text-[#0066FF] font-semibold hover:underline">0578-760508</a>
             </div>
           </FadeIn>
 
