@@ -29,7 +29,15 @@ export default function Footer() {
         <div className="max-w-[1440px] mx-auto relative lg:py-3 flex flex-col lg:flex-row w-full justify-between px-5 lg:px-0">
           <div className="flex flex-col gap-3">
             <div>
-              <Image className="-ml-2" src="/footerlogo.webp" alt="Footer Logo" width={300} height={300} />
+            <div className="w-[180px] h-[40px] relative -ml-2 mb-2">
+              <Image 
+                src="/footerlogo.webp" 
+                alt="Footer Logo" 
+                fill 
+                className="object-contain" 
+                sizes="180px"
+              />
+            </div>
               <p className="text-[#C4C4C4] font-normal text-base mt-1">Bouwbeslag.nl is onderdeel van DayZ Solutions</p>
             </div>
             <div className="rounded-lg bg-[#FFFFFF0D] w-max px-3.5 py-2 flex items-center justify-center mt-2 lg:mt-5">
