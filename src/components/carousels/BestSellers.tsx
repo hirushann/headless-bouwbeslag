@@ -11,20 +11,28 @@ export default function BestSellersCarousel({ products }: BestSellersCarouselPro
   const trackRef = useRef<HTMLDivElement>(null);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
+  const startRef = useRef<HTMLDivElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const el = trackRef.current;
-    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.target === startRef.current) {
+            setAtStart(entry.isIntersecting);
+          }
+          if (entry.target === endRef.current) {
+            setAtEnd(entry.isIntersecting);
+          }
+        });
+      },
+      { root: trackRef.current, threshold: 0.1 }
+    );
 
-    const onScroll = () => {
-      const { scrollLeft, scrollWidth, clientWidth } = el;
-      setAtStart(scrollLeft <= 1);
-      setAtEnd(scrollLeft + clientWidth >= scrollWidth - 1);
-    };
+    if (startRef.current) observer.observe(startRef.current);
+    if (endRef.current) observer.observe(endRef.current);
 
-    onScroll();
-    el.addEventListener("scroll", onScroll);
-    return () => el.removeEventListener("scroll", onScroll);
+    return () => observer.disconnect();
   }, [products]);
 
   const scroll = (dir: 1 | -1) => {
@@ -45,7 +53,7 @@ export default function BestSellersCarousel({ products }: BestSellersCarouselPro
             <button onClick={() => scroll(-1)} disabled={atStart} className="btn btn-circle disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0066FF] hover:text-white" aria-label="Previous">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="currentColor" className="transition-colors"><path d="M201.4 297.4C188.9 309.9 188.9 330.2 201.4 342.7L361.4 502.7C373.9 515.2 394.2 515.2 406.7 502.7C419.2 490.2 419.2 469.9 406.7 457.4L269.3 320L406.6 182.6C419.1 170.1 419.1 149.8 406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3L201.3 297.3z"/></svg>
             </button>
-            <button onClick={() => scroll(1)} disabled={atEnd} className="btn btn-circle disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0066FF] hover:text-white" aria-label="Previous">
+            <button onClick={() => scroll(1)} disabled={atEnd} className="btn btn-circle disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0066FF] hover:text-white" aria-label="Next">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="currentColor" className="transition-colors"><path d="M439.1 297.4C451.6 309.9 451.6 330.2 439.1 342.7L279.1 502.7C266.6 515.2 246.3 515.2 233.8 502.7C221.3 490.2 221.3 469.9 233.8 457.4L371.2 320L233.9 182.6C221.4 170.1 221.4 149.8 233.9 137.3C246.4 124.8 266.7 124.8 279.2 137.3L439.2 297.3z"/></svg>
             </button>
             </div>
@@ -53,11 +61,13 @@ export default function BestSellersCarousel({ products }: BestSellersCarouselPro
         <p className="text-[#3D4752] mb-8">Check our best seller products on bouwbeslag.nl website right now</p>
         <div className="relative">
             <div ref={trackRef} className="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 no-scrollbar">
+                <div ref={startRef} className="w-1 absolute left-0 h-1 pointer-events-none" />
                 {(Array.isArray(products) ? products : []).map((p) => (
                     <div key={p.id} className="snap-start shrink-0 w-[24%]">
                     <ProductCard product={p} />
                     </div>
                 ))}
+                <div ref={endRef} className="w-1 absolute right-0 h-1 pointer-events-none" />
             </div>
         </div>
     </div>

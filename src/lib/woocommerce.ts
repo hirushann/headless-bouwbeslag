@@ -27,10 +27,10 @@ export class WooCommerceClient {
       "Content-Type": "application/json",
     };
 
-    const config: RequestInit = {
+    const config: any = {
       method,
       headers,
-      cache: 'no-store',
+      next: { revalidate: 3600 } // Default cache 1 hour
     };
 
     if (isGet) {
@@ -62,6 +62,10 @@ export class WooCommerceClient {
 
   post(endpoint: string, data: any = {}) {
     return this.request("POST", endpoint, data);
+  }
+
+  put(endpoint: string, data: any = {}) {
+    return this.request("PUT", endpoint, data);
   }
 }
 

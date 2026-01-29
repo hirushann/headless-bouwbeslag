@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface RatingData {
   status: string;
@@ -51,11 +52,13 @@ export default function WebwinkelKeurWidget({ variant = "header" }: WebwinkelKeu
         title="Bekijk onze beoordelingen op WebwinkelKeur"
       >
         {/* Large Logo */}
-        <div className="w-12 h-12 flex-shrink-0">
-          <img 
-            className="w-full h-full object-contain" 
+        <div className="w-12 h-12 flex-shrink-0 relative">
+          <Image 
+            className="object-contain" 
             src="/Webwinkelicon.webp" 
             alt="WebwinkelKeur Logo" 
+            width={48}
+            height={48}
           />
         </div>
 
@@ -90,8 +93,14 @@ export default function WebwinkelKeurWidget({ variant = "header" }: WebwinkelKeu
       className="flex items-center gap-2 group hover:opacity-80 transition-opacity"
       title="Bekijk onze beoordelingen op WebwinkelKeur"
     >
-      <div className="text-[#FF0082]">
-        <img className="hidden lg:block h-6 object-contain" src="/Webwinkelicon.webp" alt="WebwinkelKeur" />
+      <div className="text-[#FF0082] relative">
+        <Image 
+          className="hidden lg:block object-contain" 
+          src="/Webwinkelicon.webp" 
+          alt="WebwinkelKeur" 
+          width={24}
+          height={24}
+        />
       </div>
 
       <div className="flex items-center gap-2 text-[#3D4752] font-sans text-sm">
