@@ -34,7 +34,7 @@ const formatSpecValue = (value: string | number | null | undefined): string => {
 export default function ProductPageClient({ product, taxRate = 21, slug }: { product: any; taxRate?: number; slug?: string[] }) {
   // 🔍 DEBUG: log full product data coming into this page
   useEffect(() => {
-    // console.log("🟦 ProductPageClient → product data:", product);
+    console.log("🟦 ProductPageClient → product data:", product);
   }, [product]);
 
   const fadeInUp = {
@@ -724,6 +724,8 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
     (packageLengthUnit === 'cm' && packageLength > 100) ||
     (packageLengthUnit === 'mm' && packageLength > 1600);
 
+  const packingType = product?.attributes?.find((attr: any) => attr.slug === "pa_packing_type")?.options?.[0];
+
   // --- WooCommerce stock check helper ---
   // Checks real-time stock before allowing add-to-cart
   const checkStockBeforeAdd = async (productId: number, qty: number) => {
@@ -1106,8 +1108,8 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                 }
               }
 
+
               const currency = product.currency_symbol || "€";
-              const packingType = product?.attributes?.find((attr: any) => attr.slug === "pa_packing_type")?.options?.[0];
 
               // Tax Logic
               const taxMultiplier = 1 + (taxRate / 100);
@@ -1360,6 +1362,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                     {currency}{displayBasePrice.toFixed(2)} per stuk
                   </span>
                 )}
+                {packingType && `per ${packingType}`}
               </div>
 
               <div className="flex border border-[#EDEDED] shadow-xs rounded-sm overflow-hidden bg-white w-auto">
@@ -1375,7 +1378,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                   type="button"
                   onClick={() =>
                     setQuantity((prev) => {
-                      // If limit exists AND backorders disabled, clamp. Else just increment.
+                      // If limit exists AND backorders disabled, clamp. Else just increment.j
                       if (availableStock !== null && !backordersAllowed) {
                         return Math.min(prev + 1, availableStock);
                       }
@@ -1551,8 +1554,8 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                     </summary>
                     <div className="px-6 pb-4 text-[#3D4752] space-y-4 font-normal text-sm lg:text-base">
                       {(() => {
-                        const desc =
-                          product?.meta_data?.find((m: any) => m.key === "description_description")?.value;
+                        // const desc = product?.meta_data?.find((m: any) => m.key === "description_description")?.value;
+                        const desc = product?.description;
                         if (!desc) return null;
                         return (
                           <div
