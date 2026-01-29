@@ -113,27 +113,43 @@ export default function Header({
     return () => window.removeEventListener("storage", checkLogin);
   }, []);
 
-  // STEP 2: Update click handler to use helper
   const handleCheckoutRedirect = () => {
-    // Instead of building external URL, we just go to our local checkout page
-    // The checkout page will handle adding items via URL params itself
     if (items.length === 0) return;
     setCartOpen(false);
     router.push("/checkout");
   };
+  // Load external scripts (WebwinkelKeur) only on user interaction to avoid forced reflows and performance penalties
+  const [loadExternalScripts, setLoadExternalScripts] = useState(false);
+  useEffect(() => {
+    const handleInteraction = () => {
+      setLoadExternalScripts(true);
+      // Clean up listeners once script starts loading
+      window.removeEventListener('scroll', handleInteraction);
+      window.removeEventListener('mousemove', handleInteraction);
+      window.removeEventListener('touchstart', handleInteraction);
+    };
+
+    window.addEventListener('scroll', handleInteraction, { passive: true });
+    window.addEventListener('mousemove', handleInteraction, { passive: true });
+    window.addEventListener('touchstart', handleInteraction, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleInteraction);
+      window.removeEventListener('mousemove', handleInteraction);
+      window.removeEventListener('touchstart', handleInteraction);
+    };
+  }, []);
 
   return (
     <>
       <div className="shadow-[0px_4px_40px_0px_#00000012] bg-white w-full p-2">
-        {/* Defer sidebar load to avoid forced reflows and cache warnings during initial load */}
-        <Script
-          id="webwinkelkeur-sidebar"
-          src="https://www.webwinkelkeur.nl/js/sidebar.js?id=11199"
-          strategy="lazyOnload"
-          onReady={() => {
-            console.log("✅ WebwinkelKeur Sidebar script ready");
-          }}
-        />
+        {loadExternalScripts && (
+          <Script
+            id="webwinkelkeur-sidebar"
+            src="https://www.webwinkelkeur.nl/js/sidebar.js?id=11199"
+            strategy="lazyOnload"
+          />
+        )}
         <div className="max-w-[1440px] mx-auto relative flex justify-between items-center w-full">
           <div className="flex justify-start items-center gap-3 w-auto lg:w-3/4 font-sans text-sm">
             <div className="hidden lg:flex gap-1 items-center">

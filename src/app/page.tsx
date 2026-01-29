@@ -13,39 +13,138 @@ import FadeIn from "@/components/animations/FadeIn";
 
 export const revalidate = 14400; //4 hours
 
-export default async function Home() {
-  const bestSellers = await api
-    .get("products", { per_page: 10 })
-    .then((res: any) => res.data)
-    .catch(() => []);
+import { Suspense } from "react";
 
-  const recommended = await api
-    .get("products", { featured: true, per_page: 10 })
-    .then((res: any) => res.data)
-    .catch(() => []);
+// Async data components
+async function BestSellersSection() {
+  const products = await api.get("products", { per_page: 10 }).then((res: any) => res.data).catch(() => []);
+  return <BestSellersCarousel products={products} />;
+}
 
-  const categories = await api
-    .get("products/categories", { per_page: 100 })
-    .then((res: any) => res.data)
-    .catch(() => []);
+async function RecommendedSection() {
+  const products = await api.get("products", { featured: true, per_page: 10 }).then((res: any) => res.data).catch(() => []);
+  if (products.length === 0) return null;
+  return <RecommendedCarousel products={products} />;
+}
 
+async function CategoriesSection() {
+  const categories = await api.get("products/categories", { per_page: 100 }).then((res: any) => res.data).catch(() => []);
+  return <CategoriesDisplay categories={categories} />;
+}
+
+async function BlogSection() {
   const posts = await fetchPosts(3).catch(() => []);
+  if (!posts || posts.length === 0) return null;
+  return (
+    <FadeIn className="w-full py-10 px-5 lg:px-0" delay={0.1}>
+      <div className="flex justify-between items-center mb-2">
+        <h2 className="text-xl lg:text-3xl font-bold text-[#1C2530]">Lees onze blog</h2>
+        <div className="flex gap-2 items-center">
+          <a href="/kennisbank" className="border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">Bekijk alles</a>
+        </div>
+      </div>
+      <p className="text-[#3D4752] mb-8">Bekijk ons laatste artikel voor zinvolle inhoud of winkeltips</p>
+      <div className="relative">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          {(Array.isArray(posts) ? posts : []).map((post: any) => (
+            <div key={post.id}>
+              <Link href={`/kennisbank/${post.slug}`}>
+                <Image
+                  className="mb-3 rounded-sm h-[250px] w-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                  src={post._embedded?.["wp:featuredmedia"]?.[0]?.source_url || "/default-fallback-image.webp"}
+                  alt={post.title.rendered}
+                  width={500}
+                  height={200}
+                />
+              </Link>
+              <div className="flex flex-col gap-2">
+                <p className="text-[#0066FF] font-normal text-sm">{new Date(post.date).toISOString().split("T")[0]}</p>
+                <Link href={`/kennisbank/${post.slug}`}>
+                  <div className="text-[#1C2530] font-semibold text-xl cursor-pointer hover:text-[#0066FF] transition-colors" dangerouslySetInnerHTML={{ __html: post.title.rendered }} />
+                </Link>
+                {post.excerpt?.rendered && <div className="text-[#3D4752] font-normal text-sm" dangerouslySetInnerHTML={{ __html: post.excerpt.rendered }} />}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </FadeIn>
+  );
+}
 
+// Extraction for Categories Sidebar to handle its own fetching
+async function SidebarSection() {
+    const categories = await api.get("products/categories", { per_page: 100 }).then((res: any) => res.data).catch(() => []);
+    return <CategoriesSidebar categories={categories} />;
+}
+
+// Component to handle Category Grid logic
+function CategoriesDisplay({ categories }: { categories: any[] }) {
+  return (
+    <div className="w-full py-10 px-5 lg:px-0">
+      <div className="flex justify-between items-center mb-2">
+        <h2 className="text-lg lg:text-3xl font-bold text-[#1C2530]">Winkelen op categorie</h2>
+        <div className="flex gap-2 items-center">
+          <a href="/categories" className="border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">Bekijk alles</a>
+        </div>
+      </div>
+      <p className="text-[#3D4752] mb-8">Bekijk al onze categorieën om te vinden wat u nodig heeft</p>
+      <div className="relative">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+          {(Array.isArray(categories) ? categories : [])
+            .filter((cat: any) => cat.parent === 0)
+            .map((cat: any) => (
+              <div key={cat.id} className="border border-[#DBE3EA] rounded-sm p-4 shadow-[0px_20px_24px_0px_#00000012] relative flex flex-col h-full">
+                <Image className="mb-3 rounded-sm hidden lg:block" src={cat.image?.src || "/default-fallback-image.webp"} alt={cat.name} width={300} height={100} />
+                <div className="mb-3 relative hidden lg:block">
+                  <p className="font-semibold text-[#1C2530] text-xl">{cat.name}</p>
+                  <div>
+                    {categories.filter((sub: any) => sub.parent === cat.id).slice(0, 3).map((sub: any) => (
+                      <div key={sub.id} className="flex items-center justify-between mt-2 font-normal text-[#1C2530] text-base hover:underline cursor-pointer hover:text-[#0066FF]">
+                        <span>{sub.name}</span>
+                        <span>{sub.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex gap-5 lg:hidden">
+                  <Image className="mb-3 rounded-sm" src={cat.image?.src || "/default-fallback-image.webp"} alt={cat.name} width={120} height={120} />
+                  <div className="mb-3 relative">
+                    <p className="font-semibold text-[#1C2530] text-xl">{cat.name}</p>
+                  </div>
+                </div>
+                <div className="w-full mt-auto">
+                  <Link href={`/${cat.slug}`}>
+                    <button className="!w-full border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">
+                      Bekijk alle {cat.name}
+                    </button>
+                  </Link>
+                </div>
+              </div>
+            ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default async function Home() {
   return (
     <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start font-sans bg-[#F5F5F5] min-h-screen">
       <div className="max-w-[1440px] mx-auto">
 
         {/* Categories Sidebar + Hero Section */}
-        <div className="lg:my-4 flex gap-6 w-full">
+        <div className="lg:my-4 flex gap-6 w-full items-start">
+          {/* Sidebar (ASYNCHRONOUS) */}
+          <Suspense fallback={<div className="hidden lg:block w-[27%] h-[80vh] bg-gray-100 animate-pulse rounded-sm" />}>
+            <SidebarSection />
+          </Suspense>
 
-          {/* Sidebar (CLIENT) */}
-          <CategoriesSidebar categories={categories} />
-
-          {/* Hero Section */}
+          {/* Hero Section (SYNCHRONOUS / IMMEDIATE) */}
           <HeroSection />
         </div>
 
-        <FadeIn className="hidden lg:flex gap-6 items-center font-sans mb-4" delay={0.2}>
+        <FadeIn className="hidden lg:flex gap-6 items-center font-sans mb-4" delay={0.1}>
           <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
             <Image className="" src="/card1icon.webp" alt="" width={48} height={48} />
             <p className="text-[#1C2530] font-semibold text-lg">Gegarandeerd de beste prijs</p>
@@ -69,141 +168,24 @@ export default async function Home() {
         </FadeIn>
 
         {/* Best Sellers */}
-        {/* Best Sellers */}
-        <FadeIn delay={0.3}>
-          <BestSellersCarousel products={bestSellers} />
-        </FadeIn>
+        <Suspense fallback={<div className="w-full h-[400px] bg-gray-100 animate-pulse" />}>
+          <BestSellersSection />
+        </Suspense>
 
         {/* Recommended Products */}
-        {recommended?.length > 0 && (
-          <FadeIn delay={0.4}>
-            <RecommendedCarousel products={recommended} />
-          </FadeIn>
-        )}
+        <Suspense fallback={<div className="w-full h-[400px] bg-gray-100 animate-pulse" />}>
+          <RecommendedSection />
+        </Suspense>
 
         {/* Shop by Categories */}
-        <div className="w-full py-10 px-5 lg:px-0">
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="text-lg lg:text-3xl font-bold text-[#1C2530]">Winkelen op categorie</h2>
-            <div className="flex gap-2 items-center">
-              <a href="/categories" className="border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">Bekijk alles</a>
-            </div>
-          </div>
-          <p className="text-[#3D4752] mb-8">Bekijk al onze categorieën om te vinden wat u nodig heeft</p>
-          <div className="relative">
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-              {(Array.isArray(categories) ? categories : [])
-                .filter((cat: { parent: number }) => cat.parent === 0)
-                .map((cat: { id: number; name: string; slug: string; image?: { src?: string }; parent: number; count?: number }) => (
-                  <div key={cat.id} className="border border-[#DBE3EA] rounded-sm p-4 shadow-[0px_20px_24px_0px_#0000000A] relative flex flex-col h-full">
-                    <Image
-                      className="mb-3 rounded-sm hidden lg:block"
-                      src={cat.image?.src || "/default-fallback-image.webp"}
-                      alt={cat.name}
-                      width={300}
-                      height={100}
-                    />
-                    <div className="mb-3 relative hidden lg:block">
-                      <p className="font-semibold text-[#1C2530] text-xl">{cat.name}</p>
-                      <div>
-                        {categories
-                          .filter((sub: any) => sub.parent === cat.id)
-                          .slice(0, 3)
-                          .map((sub: any) => (
-                            <div
-                              key={sub.id}
-                              className="flex items-center justify-between mt-2 font-normal text-[#1C2530] text-base hover:underline cursor-pointer hover:text-[#0066FF]"
-                            >
-                              <span>{sub.name}</span>
-                              <span>{sub.count}</span>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-
-                    <div className="flex gap-5  lg:hidden">
-                      <Image className="mb-3 rounded-sm" src={cat.image?.src || "/default-fallback-image.webp"} alt={cat.name} width={120} height={250} />
-                      <div className="mb-3 relative">
-                        <p className="font-semibold text-[#1C2530] text-xl">{cat.name}</p>
-                        <div>
-                          {categories
-                            .filter((sub: any) => sub.parent === cat.id)
-                            .slice(0, 3)
-                            .map((sub: any) => (
-                              <div
-                                key={sub.id}
-                                className="flex items-center justify-between mt-2 font-normal text-[#1C2530] text-base hover:underline cursor-pointer hover:text-[#0066FF]"
-                              >
-                                <span>{sub.name}</span>
-                                <span>{sub.count}</span>
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="w-full mt-auto">
-                      <Link href={`/${cat.slug}`}>
-                        <button className="!w-full border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">
-                          Bekijk alle {cat.name}
-                        </button>
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </div>
-        </div>
+        <Suspense fallback={<div className="w-full h-[600px] bg-gray-100 animate-pulse" />}>
+          <CategoriesSection />
+        </Suspense>
 
         {/* Read our blog */}
-        {posts && posts.length > 0 && (
-          <FadeIn className="w-full py-10 px-5 lg:px-0" delay={0.5}>
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-xl lg:text-3xl font-bold text-[#1C2530]">Lees onze blog</h2>
-              <div className="flex gap-2 items-center">
-                <a href="/kennisbank" className="border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">Bekijk alles</a>
-              </div>
-            </div>
-            <p className="text-[#3D4752] mb-8">Bekijk ons laatste artikel voor zinvolle inhoud of winkeltips</p>
-            <div className="relative">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                {(Array.isArray(posts) ? posts : []).map((post: { id: number; title: { rendered: string }; excerpt: { rendered: string }; date: string; slug: string; _embedded?: any }) => (
-                  <div key={post.id}>
-                    <Link href={`/kennisbank/${post.slug}`}>
-                      <Image
-                        className="mb-3 rounded-sm h-[250px] w-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                        src={
-                          post._embedded?.["wp:featuredmedia"]?.[0]?.source_url ||
-                          post._embedded?.["wp:featuredmedia"]?.[0]?.media_details?.sizes?.full?.source_url ||
-                          "/default-fallback-image.webp"
-                        }
-                        alt={post.title.rendered}
-                        width={500}
-                        height={200}
-                      />
-                    </Link>
-                    <div className="flex flex-col gap-2">
-                      <p className="text-[#0066FF] font-normal text-sm">
-                        {new Date(post.date).toISOString().split("T")[0]}
-                      </p>
-                      <Link href={`/kennisbank/${post.slug}`}>
-                        <div
-                          className="text-[#1C2530] font-semibold text-xl cursor-pointer hover:text-[#0066FF] transition-colors"
-                          dangerouslySetInnerHTML={{ __html: post.title.rendered }}
-                        />
-                      </Link>
-                      {post.excerpt?.rendered ? (
-                        <div
-                          className="text-[#3D4752] font-normal text-sm"
-                          dangerouslySetInnerHTML={{ __html: post.excerpt.rendered }}
-                        />
-                      ) : null}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </FadeIn>
-        )}
+        <Suspense fallback={null}>
+          <BlogSection />
+        </Suspense>
 
         {/* Bottom Content */}
         <FadeIn className="w-full py-10 px-5 lg:px-0" delay={0.6}>
