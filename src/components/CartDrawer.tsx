@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useCartStore } from "@/lib/cartStore";
 import { syncRemoveItem } from "@/lib/cartApi";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
+import { useEffect, useState } from "react";
+import { refreshCartStockAction } from "@/app/actions";
 
 interface CartDrawerProps {
   isB2B: boolean;
@@ -15,7 +17,39 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods }: CartDra
   const items = useCartStore((state) => state.items);
   const isCartOpen = useCartStore((state) => state.isCartOpen);
   const setCartOpen = useCartStore((state) => state.setCartOpen);
+  const updateStockForItems = useCartStore((state) => state.updateStockForItems);
   const lengthFreightCost = useCartStore((state) => state.lengthFreightCost());
+
+  const [isFetchingStock, setIsFetchingStock] = useState(false);
+
+  // Dynamic Stock Update on Open
+  useEffect(() => {
+    let active = true;
+
+    const fetchStock = async () => {
+      if (items.length === 0) return;
+
+      setIsFetchingStock(true);
+      try {
+        const ids = items.map(i => i.id);
+        const res = await refreshCartStockAction(ids);
+
+        if (active && res.success && res.data) {
+          updateStockForItems(res.data);
+        }
+      } catch (error) {
+        console.error("Failed to refresh cart stock:", error);
+      } finally {
+        if (active) setIsFetchingStock(false);
+      }
+    };
+
+    if (isCartOpen) {
+      fetchStock();
+    }
+
+    return () => { active = false; };
+  }, [isCartOpen, items.length]); // Re-run if cart opens or items change count (basic check)
 
   const subtotal = items.reduce((sum, item) => {
     const displayedItemPrice = isB2B ? item.price : item.price * 1.21;
@@ -63,16 +97,14 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods }: CartDra
   return (
     <div className={`fixed inset-0 z-[60] transition-all duration-300 ${isCartOpen ? "visible" : "invisible"}`}>
       <button
-        className={`absolute inset-0 bg-black/20 transition-opacity duration-300 ${
-          isCartOpen ? "opacity-100" : "opacity-0"
-        }`}
+        className={`absolute inset-0 bg-black/20 transition-opacity duration-300 ${isCartOpen ? "opacity-100" : "opacity-0"
+          }`}
         onClick={() => setCartOpen(false)}
         aria-label="Sluit winkelmand"
       />
       <div
-        className={`absolute top-0 right-0 h-full w-full lg:w-150 bg-white shadow-lg transition-transform duration-300 ${
-          isCartOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`absolute top-0 right-0 h-full w-full lg:w-150 bg-white shadow-lg transition-transform duration-300 ${isCartOpen ? "translate-x-0" : "translate-x-full"
+          }`}
       >
         <div className="flex flex-col h-full font-sans">
           <div className="flex justify-between items-center border-b border-[#E9E9E9] p-4 bg-[#F7F7F7]">
@@ -112,7 +144,7 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods }: CartDra
                           <img src={item.image} alt={item.name} className="w-28 h-28 object-cover rounded bg-gray-100 cursor-pointer hover:opacity-80 transition" />
                         ) : (
                           <div className="w-28 h-28 bg-gray-100 rounded flex items-center justify-center text-gray-400 cursor-pointer">
-                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-8"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-8"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
                           </div>
                         )}
                       </div>
@@ -132,19 +164,37 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods }: CartDra
                           {item.model && <p className="text-sm text-gray-600 border-r border-[#E6E6E6] pr-2 last:border-0 last:pr-0">Model: {item.model}</p>}
                         </div>
                       )}
-                      {(() => {
-                        let message = item.deliveryText;
-                        let type = item.deliveryType;
-                        if (!message) {
-                          const info = getDeliveryInfo(item.stockStatus || 'instock', item.quantity, item.stockQuantity !== undefined ? item.stockQuantity : null, item.leadTimeInStock || 1, item.leadTimeNoStock || 30);
-                          message = info.short;
-                          type = info.type;
-                        }
-                        let colorClass = "text-[#03B955]";
-                        if (type === "PARTIAL_STOCK") colorClass = "text-[#03B955]";
-                        else if (type === "BACKORDER" || type === "OUT_OF_STOCK") colorClass = "text-[#FF5E00]";
-                        return <p className={`${colorClass} text-xs font-semibold mt-1`}>{message}</p>;
-                      })()}
+                      {isFetchingStock ? (
+                        <div className="h-4 w-3/4 bg-gray-200 animate-pulse rounded mt-1" />
+                      ) : (
+                        (() => {
+                          // If we have baked-in text AND calculated text, which one to use?
+                          // We prefer to re-calculate if we have stock info.
+                          // If deliveryText is undefined (cleared by sync), we calculate.
+
+                          // Check if calculations needed
+                          let message = item.deliveryText;
+                          let type = item.deliveryType;
+
+                          if (!message || isCartOpen) { // Force recalc on open if we have data?
+                            // Actually better to always recalc if possible using latest stock data
+                            const info = getDeliveryInfo(
+                              item.stockStatus || 'instock',
+                              item.quantity,
+                              item.stockQuantity !== undefined ? item.stockQuantity : null,
+                              item.leadTimeInStock || 1,
+                              item.leadTimeNoStock || 30
+                            );
+                            message = info.short;
+                            type = info.type;
+                          }
+
+                          let colorClass = "text-[#03B955]";
+                          if (type === "PARTIAL_STOCK") colorClass = "text-[#03B955]";
+                          else if (type === "BACKORDER" || type === "OUT_OF_STOCK") colorClass = "text-[#FF5E00]";
+                          return <p className={`${colorClass} text-xs font-semibold mt-1`}>{message}</p>;
+                        })()
+                      )}
                       {item.isMaatwerk && (
                         <div className="flex items-start gap-1 mt-1">
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4 text-amber-600 flex-shrink-0 mt-0.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>

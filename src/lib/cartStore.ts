@@ -34,12 +34,14 @@ interface CartState {
   lengthFreightCost: () => number;
   isCartOpen: boolean;
   setCartOpen: (isOpen: boolean) => void;
+  updateStockForItems: (updates: { id: number; stockStatus: string; stockQuantity: number | null }[]) => void;
 }
 
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
+      // ... existing addItem ...
       addItem: (item) => {
         // Sync with backend in background
         syncAddItem(item.id, item.quantity).catch(err => console.error("Error syncing cart add:", err));
@@ -92,7 +94,27 @@ export const useCartStore = create<CartState>()(
           ),
         }));
       },
+      updateStockForItems: (updates) => {
+          set((state) => ({
+            items: state.items.map((i) => {
+                const update = updates.find(u => u.id === i.id);
+                if (update) {
+                    return { 
+                        ...i, 
+                        stockStatus: update.stockStatus, 
+                        stockQuantity: update.stockQuantity,
+                        // Clear the baked-in text so it re-generates on render or we re-generate here?
+                        // Better to clear it so the component calculates it fresh.
+                        deliveryText: undefined,
+                        deliveryType: undefined
+                    };
+                }
+                return i;
+            })
+          }));
+      },
       clearCart: () => set({ items: [] }),
+      // ... existing syncWithServer ...
       syncWithServer: async () => {
         try {
           const remote = await fetchRemoteCart();
@@ -107,19 +129,9 @@ export const useCartStore = create<CartState>()(
               return;
             }
 
-            // 2. Optional: If remote has items, update local to match remote (Conflict resolution)
-            // For now, let's trust the server if it has data.
+            // 2. Optional: If remote has items... (same as before)
             if (remoteItems.length > 0) {
-              // Map WP items to local format if needed, or just warn if mismatch
-              // A simple check: if counts match, good enough?
-              // Let's do a strict sync for now: If remote has items, use remote items.
-              // But we need to map WP item shape to our CartItem interface.
-              // WP Item has: id, quantity, name, prices, etc.
-              // Our CartItem has: id, name, price, quantity, image...
-
-              // Implementing full sync might be complex due to data shape. 
-              // The primary goal is "Clear if empty".
-              // So we stick to condition #1 for now.
+              // ...
               console.log("Smart Sync: Remote has items", remoteItems.length);
             }
           }

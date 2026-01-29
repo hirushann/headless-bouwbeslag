@@ -34,3 +34,23 @@ export async function fetchProductBySkuAction(sku: string) {
         return { success: false, error: error?.message || "Failed to fetch product" };
     }
 }
+
+export async function refreshCartStockAction(productIds: number[]) {
+    try {
+        if (!productIds || productIds.length === 0) return { success: true, data: [] };
+
+        const res = await api.get("products", { include: productIds, per_page: 50 }); // Assume max 50 items in cart for now
+        
+        // Map response to just what we need
+        const updates = Array.isArray(res.data) ? res.data.map((p: any) => ({
+             id: p.id,
+             stockStatus: p.stock_status,
+             stockQuantity: p.stock_quantity,
+        })) : [];
+
+        return { success: true, data: updates };
+    } catch (error: any) {
+        console.error("Refresh cart stock error:", error?.message);
+        return { success: false, error: error?.message || "Failed to refresh stock" };
+    }
+}
