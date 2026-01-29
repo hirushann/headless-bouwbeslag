@@ -4,7 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-import { searchProducts, SearchResult } from "@/actions/search";
+import { searchProducts, SearchResult, Facet, FilterState } from "@/actions/search";
+import { useUserContext } from "@/context/UserContext";
+import ProductCard from "./ProductCard";
 
 export default function SearchAutosuggest({
     placeholder = "Zoek iets...",
@@ -14,83 +16,114 @@ export default function SearchAutosuggest({
     className?: string;
 }) {
     const [query, setQuery] = useState("");
+    const { userRole } = useUserContext();
     const [results, setResults] = useState<SearchResult[]>([]);
-    const [showDropdown, setShowDropdown] = useState(false);
+    const [facets, setFacets] = useState<Facet[]>([]);
+    const [filters, setFilters] = useState<FilterState>({});
+
+    // UI States
+    const [isExpanded, setIsExpanded] = useState(false);
     const [loading, setLoading] = useState(false);
+
     const router = useRouter();
     const containerRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
 
-    // Close dropdown when clicking outside
+    // Prevent scrolling when expanded
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (
-                containerRef.current &&
-                !containerRef.current.contains(event.target as Node)
-            ) {
-                setShowDropdown(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
+        if (isExpanded) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "";
+        }
         return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
+            document.body.style.overflow = "";
         };
-    }, []);
+    }, [isExpanded]);
 
+    // Search Logic
     useEffect(() => {
         const delayDebounceFn = setTimeout(async () => {
-            if (query.trim().length >= 2) {
+            // Search if empty (show all) or at least 2 chars
+            if (query.trim().length === 0 || query.trim().length >= 2) {
                 setLoading(true);
                 try {
-                    const hits = await searchProducts(query);
-                    setResults(hits);
-                    setShowDropdown(true);
+                    const response = await searchProducts(query, filters);
+                    setResults(response.products);
+                    setFacets(response.facets);
                 } catch (error) {
                     console.error("Search error:", error);
                 } finally {
                     setLoading(false);
                 }
             } else {
+                // Clear if 1 char? Or simpler: just let it search if > 0 too? 
+                // Let's stick to '0 or >=2' to avoid 1-char noise, 
+                // but ensure we clear results if it falls into the '1 char' hole?
+                // Actually if query is 1 char, we might WANT to clear.
                 setResults([]);
-                setShowDropdown(false);
+                setFacets([]);
             }
         }, 300);
 
         return () => clearTimeout(delayDebounceFn);
-    }, [query]);
+    }, [query, filters]);
+
+    const handleFilterChange = (facetName: string, value: string) => {
+        setFilters(prev => {
+            const current = prev[facetName] || [];
+            const exists = current.includes(value);
+            let updated;
+            if (exists) {
+                updated = current.filter(v => v !== value);
+            } else {
+                updated = [...current, value];
+            }
+
+            // Cleanup empty
+            if (updated.length === 0) {
+                const { [facetName]: _, ...rest } = prev;
+                return rest;
+            }
+
+            return { ...prev, [facetName]: updated };
+        });
+    };
+
+    const handleClose = () => {
+        setIsExpanded(false);
+        // Optional: clear query or keep it? Keeping it is better for UX if they re-open.
+    };
 
     const handleCreateSearch = (e: React.FormEvent) => {
         e.preventDefault();
         if (query.trim()) {
-            setShowDropdown(false);
+            handleClose();
             router.push(`/search?q=${encodeURIComponent(query)}`);
         }
     };
 
     return (
         <div ref={containerRef} className={`relative w-full ${className}`}>
-            <form
-                onSubmit={handleCreateSearch}
-                className="join w-full border border-[#E2E2E2] rounded-[4px] bg-white"
+            {/* Initial Input (Visible when collapsed) */}
+            <div
+                className="join w-full border border-[#E2E2E2] rounded-[4px] bg-white cursor-text"
+                onClick={() => {
+                    setIsExpanded(true);
+                    // Focus logic after render?
+                    setTimeout(() => inputRef.current?.focus(), 50);
+                }}
             >
                 <div className="w-full rounded-[4px]">
-                    <label className="input validator w-full border-0 rounded-[5px] bg-white flex items-center gap-2 p-0 px-3">
-                        <input
-                            className="bg-white w-full h-full py-2 outline-none text-base"
-                            type="text"
-                            placeholder={placeholder}
-                            value={query}
-                            onChange={(e) => setQuery(e.target.value)}
-                            onFocus={() => {
-                                if (results.length > 0) setShowDropdown(true);
-                            }}
-                        />
-                    </label>
+                    <div className="input validator w-full border-0 rounded-[5px] bg-white flex items-center gap-2 p-0 px-3 cursor-text">
+                        <span className="text-gray-400 w-full py-2 text-base truncate select-none">
+                            {query || placeholder}
+                        </span>
+                    </div>
                 </div>
                 <button
-                    type="submit"
-                    className="btn bg-[#2332C51A] rounded-[4px] border-0 shadow-none px-4"
-                    id="headersearchbutton" 
-                    aria-label="Search"
+                    type="button"
+                    className="btn bg-[#2332C51A] rounded-[4px] border-0 shadow-none px-4 pointer-events-none"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -102,23 +135,163 @@ export default function SearchAutosuggest({
                         <path d="M480 272C480 317.9 465.1 360.3 440 394.7L566.6 521.4C579.1 533.9 579.1 554.2 566.6 566.7C554.1 579.2 533.8 579.2 521.3 566.7L394.7 440C360.3 465.1 317.9 480 272 480C157.1 480 64 386.9 64 272C64 157.1 157.1 64 272 64C386.9 64 480 157.1 480 272zM272 416C351.5 416 416 351.5 416 272C416 192.5 351.5 128 272 128C192.5 128 128 192.5 128 272C128 351.5 192.5 416 272 416z" />
                     </svg>
                 </button>
-            </form>
+            </div>
 
-            {showDropdown && results.length > 0 && (
-                <div className="absolute top-full left-0 w-full bg-white shadow-lg rounded-b-md border border-t-0 border-[#E2E2E2] z-50 overflow-hidden">
-                    <ul>
-                        {results.map((result) => (
-                            <li key={result.ID} className="border-b border-gray-100 last:border-0">
-                                <Link
-                                    href={`/${result.post_name}`}
-                                    className="block px-4 py-3 hover:bg-gray-50 text-sm text-gray-700"
-                                    onClick={() => setShowDropdown(false)}
+            {/* Expanded Overlay */}
+            {isExpanded && (
+                <div
+                    className="fixed inset-0 z-[9999] bg-slate-300 bg-opacity-5 flex items-center justify-center animate-fade-in"
+                    onClick={handleClose}
+                >
+                    <div
+                        className="bg-[#F7F7F7] w-full h-full md:m-12 md:h-auto md:max-h-[90vh] md:rounded-lg shadow-lg flex flex-col overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="bg-white border-b border-[#E2E2E2] px-4 py-4 shadow-sm shrink-0">
+                            <div className="max-w-[1440px] mx-auto flex items-center gap-4">
+                                <form
+                                    onSubmit={handleCreateSearch}
+                                    className="flex-1 join border border-[#E2E2E2] rounded-[4px] bg-white h-[50px]"
                                 >
-                                    <span dangerouslySetInnerHTML={{ __html: result.post_title }} />
-                                </Link>
-                            </li>
-                        ))}
-                    </ul>
+                                    <div className="w-full h-full">
+                                        <input
+                                            ref={inputRef}
+                                            className="input border-0 focus:outline-none w-full h-full px-4 text-lg bg-transparent"
+                                            type="text"
+                                            placeholder={placeholder}
+                                            value={query}
+                                            onChange={(e) => setQuery(e.target.value)}
+                                            autoComplete="off"
+                                        />
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        className="btn bg-[#2332C51A] border-0 shadow-none px-6 h-full rounded-r-[4px]"
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 640 640"
+                                            width="20"
+                                            height="20"
+                                            fill="#0066FF"
+                                        >
+                                            <path d="M480 272C480 317.9 465.1 360.3 440 394.7L566.6 521.4C579.1 533.9 579.1 554.2 566.6 566.7C554.1 579.2 533.8 579.2 521.3 566.7L394.7 440C360.3 465.1 317.9 480 272 480C157.1 480 64 386.9 64 272C64 157.1 157.1 64 272 64C386.9 64 480 157.1 480 272zM272 416C351.5 416 416 351.5 416 272C416 192.5 351.5 128 272 128C192.5 128 128 192.5 128 272C128 351.5 192.5 416 272 416z" />
+                                        </svg>
+                                    </button>
+                                </form>
+
+                                <button
+                                    onClick={handleClose}
+                                    className="btn btn-ghost btn-circle"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Main Content */}
+                        <div className="flex-1 overflow-y-auto px-4 py-6">
+                            <div className="max-w-[1440px] mx-auto flex flex-col lg:flex-row gap-8 pb-10">
+
+                                {/* Filters Sidebar */}
+                                {results.length > 0 && ( /* Only show filters if we have results or active query? */
+                                    <aside className="w-full lg:w-1/4 space-y-6 shrink-0">
+                                        <div className="flex items-center justify-between lg:hidden mb-4">
+                                            <span className="font-bold text-lg">Filters</span>
+                                            {Object.keys(filters).length > 0 && (
+                                                <button onClick={() => setFilters({})} className="text-sm text-red-500">
+                                                    Clear All
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {facets.map((facet) => (
+                                            <div key={facet.name} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                                                <h3 className="font-semibold mb-3 capitalize text-gray-800">
+                                                    {facet.name === 'product_cat' ? 'Categories' : facet.name}
+                                                </h3>
+                                                <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
+                                                    {facet.buckets.map((bucket) => {
+                                                        const isChecked = filters[facet.name]?.includes(bucket.key) || false;
+                                                        return (
+                                                            <label key={bucket.key} className="flex items-center gap-2 cursor-pointer group">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="checkbox checkbox-sm checkbox-primary rounded-sm"
+                                                                    checked={isChecked}
+                                                                    onChange={() => handleFilterChange(facet.name, bucket.key)}
+                                                                />
+                                                                <span className={`text-sm group-hover:text-blue-600 transition capitalize ${isChecked ? 'font-medium text-gray-900' : 'text-gray-600'}`}>
+                                                                    {bucket.label}
+                                                                </span>
+                                                                <span className="text-xs text-gray-400 ml-auto tabular-nums">({bucket.doc_count})</span>
+                                                            </label>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        {/* Clear Filters Button (Desktop) */}
+                                        {Object.keys(filters).length > 0 && (
+                                            <button
+                                                onClick={() => setFilters({})}
+                                                className="hidden lg:block w-full py-2 text-sm text-red-600 border border-red-200 rounded-md hover:bg-red-50 transition"
+                                            >
+                                                Clear Filters
+                                            </button>
+                                        )}
+                                    </aside>
+                                )}
+
+                                {/* Product Grid */}
+                                <main className="flex-1">
+                                    {loading ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                            {[...Array(8)].map((_, i) => (
+                                                <div key={i} className="h-80 bg-gray-200 rounded animate-pulse" />
+                                            ))}
+                                        </div>
+                                    ) : results.length > 0 ? (
+                                        <>
+                                            <p className="text-sm text-gray-500 mb-4">{results.length} results found</p>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                                {results.map((result) => (
+                                                    <div
+                                                        key={result.ID}
+                                                        onClick={(e) => {
+                                                            // Close on click, but NOT if clicking value inputs or buttons (like Add To Cart)
+                                                            const target = e.target as HTMLElement;
+                                                            if (target.closest('button') || target.closest('input')) {
+                                                                return;
+                                                            }
+                                                            handleClose();
+                                                        }}
+                                                    >
+                                                        <ProductCard product={result} userRole={userRole} />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="text-center py-20">
+                                            <div className="bg-gray-100 rounded-full h-20 w-20 flex items-center justify-center mx-auto mb-4">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                                </svg>
+                                            </div>
+                                            <h3 className="text-lg font-medium text-gray-900">No results found</h3>
+                                            <p className="text-gray-500">Try adjusting your search or filters.</p>
+                                        </div>
+                                    )}
+                                </main>
+
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
