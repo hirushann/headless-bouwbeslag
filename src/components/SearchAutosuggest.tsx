@@ -151,7 +151,7 @@ export default function SearchAutosuggest({
                         <div className="bg-white border-b border-[#E2E2E2] px-4 py-4 shadow-sm shrink-0">
                             <div className="max-w-[1440px] mx-auto flex items-center gap-4">
                                 <form
-                                    onSubmit={handleCreateSearch}
+                                    onSubmit={(e) => e.preventDefault()}
                                     className="flex-1 join border border-[#E2E2E2] rounded-[4px] bg-white h-[50px]"
                                 >
                                     <div className="w-full h-full">
