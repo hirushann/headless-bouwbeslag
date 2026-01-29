@@ -237,7 +237,7 @@ export default function PrivacyPolicyPage() {
         <h2 className="text-2xl font-semibold mt-8 mb-4">Contactgegevens</h2>
         <h3 className="text-xl font-semibold mt-6 mb-2">Dayz Solutions</h3>
         <p className="mb-4">
-          Oenerweg 30 Oenerweg 30 8181RJ Heerde Nederland T <a href="tel:+31578760508">(057) 876-0508</a> E <a href="mailto:contact@bouwbeslag.nl">contact@bouwbeslag.nl</a>
+          Oenerweg 30 8181RJ Heerde Nederland T <a href="tel:0031578760508">0578-760508</a> E <a href="mailto:contact@bouwbeslag.nl">contact@bouwbeslag.nl</a>
         </p>
         <h3 className="text-xl font-semibold mt-6 mb-2">Contactpersoon voor privacyzaken</h3>
         <p className="mb-4">

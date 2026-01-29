@@ -49,7 +49,7 @@ export default async function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className={`${dmsans.variable} ${geistMono.variable} font-sans antialiased`} >
+      <body className={`${dmsans.variable} ${geistMono.variable} font-sans antialiased overflow-visible`} >
         <Toaster position="top-right" />
         <UserProvider>
           <Suspense fallback={<div className="h-[180px] lg:h-[182px] w-full bg-white border-b border-gray-100" />}>

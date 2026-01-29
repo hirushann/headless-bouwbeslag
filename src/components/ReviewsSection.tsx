@@ -104,25 +104,23 @@ export default function ReviewsSection({ productId, productName }: ReviewsSectio
     <div className="bg-[#F8F9FA] rounded-[20px] p-4 lg:p-6 font-sans">
       {/* <h2 className="text-[#1C2530] text-[28px] font-bold mb-8">Reviews</h2> */}
 
-      <div className="flex flex-col lg:flex-row gap-3 mb-10">
+      <div className="flex flex-col lg:flex-row gap-4 mb-8">
         {/* Detail Card */}
-        <div className="bg-[#E4EFFF] rounded-[20px] py-4 px-6 flex-1 flex flex-col justify-center">
-            <h3 className="text-[#1C2530] font-bold text-xl mb-6 truncate">{productName}</h3>
-            <div className="border-b border-[#0066FF26] mb-4 w-full h-[1px]"></div>
-            <div>
-                 <div className="flex items-center gap-2 mb-1">
-                     <span className="text-[#1C2530] font-bold text-lg">{average}</span>
-                     <span className="text-[#3D4752] text-lg">sterren op basis van</span>
-                     <span className="text-[#1C2530] font-bold text-lg">{totalReviews}</span>
-                 </div>
-                 <span className="text-[#3D4752] text-lg">beoordelingen</span>
-            </div>
+        <div className="bg-[#E4EFFF] rounded-[20px] py-8 px-6 lg:px-10 flex-[2] flex flex-col justify-center">
+            <h3 className="text-[#1C2530] font-bold text-xl lg:text-2xl mb-4 leading-tight break-words">{productName}</h3>
+            <div className="border-b border-[#0066FF1A] mb-6 w-full"></div>
+            <p className="text-[#3D4752] text-lg lg:text-xl leading-relaxed">
+                <span className="text-[#1C2530] font-bold">{average}</span> sterren op basis van <span className="text-[#1C2530] font-bold">{totalReviews}</span> beoordelingen
+            </p>
         </div>
 
         {/* Rating Card */}
-        <div className="bg-[#E4EFFF] rounded-[20px] py-4 px-6 w-full lg:w-[320px] flex flex-col items-center justify-center gap-3">
-             <span className="text-[#1C2530] font-bold text-[26px] leading-tight">{average}/5</span>
-             <StarRating rating={Number(average)} size={5} />
+        <div className="bg-[#E4EFFF] rounded-[20px] py-8 px-6 w-full lg:w-[280px] flex flex-col items-center justify-center gap-4 text-center">
+             <div className="flex flex-col items-center">
+                <span className="text-[#1C2530] font-bold text-5xl lg:text-6xl leading-none">{average}</span>
+                <span className="text-[#3D4752] font-semibold text-lg mt-1 whitespace-nowrap">van de 5</span>
+             </div>
+             <StarRating rating={Number(average)} size={6} />
         </div>
       </div>
 
