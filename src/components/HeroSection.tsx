@@ -33,7 +33,7 @@ export default function HeroSection() {
 
       <div className="lg:w-1/2 flex items-center justify-center">
         <Image
-          className="lg:w-full lg:h-full lg:object-contain lg:object-right rotate-340"
+          className="w-full h-auto max-h-[300px] lg:w-full lg:h-full lg:object-contain lg:object-right rotate-340"
           src="/herobg.webp"
           alt="Hero"
           width={600}

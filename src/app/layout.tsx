@@ -50,7 +50,7 @@ export default async function RootLayout({
       <body className={`${dmsans.variable} ${geistMono.variable} font-sans antialiased`} >
         <Toaster position="top-right" />
         <UserProvider>
-          <Suspense fallback={<div className="h-20 w-full bg-white border-b border-gray-100" />}>
+          <Suspense fallback={<div className="h-[180px] lg:h-[182px] w-full bg-white border-b border-gray-100" />}>
             <HeaderWrapper />
           </Suspense>
           {children}

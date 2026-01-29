@@ -108,7 +108,15 @@ function CategoriesDisplay({ categories }: { categories: any[] }) {
                   </div>
                 </div>
                 <div className="flex gap-5 lg:hidden">
-                  <Image className="mb-3 rounded-sm" src={cat.image?.src || "/default-fallback-image.webp"} alt={cat.name} width={120} height={120} />
+                  <div className="w-[120px] h-[120px] flex-shrink-0 relative">
+                    <Image 
+                      className="mb-3 rounded-sm object-cover" 
+                      src={cat.image?.src || "/default-fallback-image.webp"} 
+                      alt={cat.name} 
+                      fill
+                      sizes="120px"
+                    />
+                  </div>
                   <div className="mb-3 relative">
                     <p className="font-semibold text-[#1C2530] text-xl">{cat.name}</p>
                   </div>
@@ -168,22 +176,22 @@ export default async function Home() {
         </FadeIn>
 
         {/* Best Sellers */}
-        <Suspense fallback={<div className="w-full h-[400px] bg-gray-100 animate-pulse" />}>
+        <Suspense fallback={<div className="w-full h-[450px] bg-white rounded-sm animate-pulse flex flex-col p-5 gap-4"><div className="w-1/4 h-8 bg-gray-200 rounded" /><div className="w-full flex-1 bg-gray-100 rounded" /></div>}>
           <BestSellersSection />
         </Suspense>
 
         {/* Recommended Products */}
-        <Suspense fallback={<div className="w-full h-[400px] bg-gray-100 animate-pulse" />}>
+        <Suspense fallback={<div className="w-full h-[450px] bg-white rounded-sm animate-pulse flex flex-col p-5 gap-4"><div className="w-1/4 h-8 bg-gray-200 rounded" /><div className="w-full flex-1 bg-gray-100 rounded" /></div>}>
           <RecommendedSection />
         </Suspense>
 
         {/* Shop by Categories */}
-        <Suspense fallback={<div className="w-full h-[600px] bg-gray-100 animate-pulse" />}>
+        <Suspense fallback={<div className="w-full h-[500px] lg:h-[400px] bg-white rounded-sm animate-pulse flex flex-col p-5 gap-4"><div className="w-1/4 h-8 bg-gray-200 rounded" /><div className="w-full flex-1 bg-gray-100 rounded" /></div>}>
           <CategoriesSection />
         </Suspense>
 
         {/* Read our blog */}
-        <Suspense fallback={null}>
+        <Suspense fallback={<div className="w-full h-[300px] bg-white rounded-sm animate-pulse flex flex-col p-5 gap-4"><div className="w-1/4 h-8 bg-gray-200 rounded" /><div className="w-full h-40 bg-gray-100 rounded" /></div>}>
           <BlogSection />
         </Suspense>
 
