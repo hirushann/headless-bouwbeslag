@@ -1,3 +1,4 @@
+import React from "react";
 import { Metadata } from "next";
 import api from "@/lib/woocommerce";
 import ProductPageClient from "./ProductPageClient";
@@ -374,12 +375,14 @@ export default async function Page({ params }: PageProps) {
     const subCategories = subCategoriesRes.data || [];
 
     return (
-      <CategoryClient
-        category={category}
-        attributes={attributes}
-        subCategories={subCategories}
-        currentSlug={slug}
-      />
+      <React.Suspense fallback={<div className="flex items-center justify-center min-h-screen">Laden...</div>}>
+        <CategoryClient
+          category={category}
+          attributes={attributes}
+          subCategories={subCategories}
+          currentSlug={slug}
+        />
+      </React.Suspense>
     );
   }
 

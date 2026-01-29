@@ -53,7 +53,11 @@ export class WooCommerceClient {
       throw new Error(errorData.message || response.statusText);
     }
     const responseData = await response.json();
-    return { data: responseData }; // Match the response structure of the original library
+    return {
+      data: responseData,
+      total: response.headers.get('x-wp-total'),
+      totalPages: response.headers.get('x-wp-totalpages')
+    };
   }
 
   get(endpoint: string, params: any = {}) {

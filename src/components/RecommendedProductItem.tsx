@@ -8,7 +8,7 @@ import { checkStockAction } from "@/app/actions";
 import toast from "react-hot-toast";
 import { useUserContext } from "@/context/UserContext";
 
-export default function RecommendedProductItem({ item }: { item: any }) {
+export default function RecommendedProductItem({ item, onAddToCart }: { item: any, onAddToCart?: () => void }) {
     const { userRole, isLoading } = useUserContext();
     const [isAdding, setIsAdding] = useState(false);
 
@@ -100,7 +100,11 @@ export default function RecommendedProductItem({ item }: { item: any }) {
                 isMaatwerk: getMeta("crucial_data_maatwerk") === "1"
             });
             toast.success("Product toegevoegd aan winkelwagen!");
-            useCartStore.getState().setCartOpen(true);
+            if (onAddToCart) {
+                onAddToCart();
+            } else {
+                useCartStore.getState().setCartOpen(true);
+            }
 
         } catch (err) {
             console.error(err);

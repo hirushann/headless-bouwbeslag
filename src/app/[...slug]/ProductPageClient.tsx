@@ -2,7 +2,7 @@
 import axios from 'axios';
 import React, { useState, useRef, useEffect, use } from 'react';
 import { useUserContext } from "@/context/UserContext";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 // import api from "@/lib/woocommerce"; // Removed
 import { checkStockAction, fetchProductByIdAction, fetchProductBySkuAction } from "@/app/actions";
@@ -303,6 +303,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
   const [backordersAllowed, setBackordersAllowed] = useState(false);
   const [addCartSuccess, setAddCartSuccess] = useState(false);
   const [addCartError, setAddCartError] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   // Derived state: is quantity input exceeding available stock
   const isQuantityInvalid =
     availableStock !== null &&
@@ -819,14 +820,8 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         isMaatwerk: getMetaValue("crucial_data_maatwerk") === "1",
         hasLengthFreight
       });
-      toast.success("Product toegevoegd aan winkelwagen!", {
-        duration: 3000,
-        position: "top-right",
-      });
       setAddCartSuccess(true);
-
-      // Auto-open sidecart
-      useCartStore.getState().setCartOpen(true);
+      setShowAddModal(true);
 
       setTimeout(() => {
         setAddCartSuccess(false);
@@ -984,7 +979,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
 
             {/* New Must Have Section (Below Images) */}
             {musthaveprodKeys && musthaveprodKeys.length > 0 && (
-              <motion.div variants={fadeInUp} className="mt-8">
+              <motion.div initial="visible" animate="visible" variants={fadeInUp} className="mt-8" id="musthaveprod-section">
                 <div className="mb-4">
                   <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Aanbevolen producten</h3>
                   <p className="text-[#3D4752] text-sm mt-1">Handig om erbij te bestellen</p>
@@ -1001,8 +996,8 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
               matchingKnobroseKeys.length > 0 ||
               matchingRoseKeys.length > 0 ||
               pcroseKeys.length > 0 ||
-              blindtoiletroseKeys.length > 0 ||
-              musthaveprodKeys.length > 0
+              blindtoiletroseKeys.length > 0
+              // musthaveprodKeys.length < 0
             ) && (
                 <div className='text-[#1C2530] font-bold text-3xl mt-8 hidden lg:block'>
                   <h3>Handig om erbij te bestellen</h3>
@@ -1022,10 +1017,10 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                     {blindtoiletroseKeys.length > 0 && (
                       <button onClick={() => scrollToSection("blindtoiletroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende blinde rozetten</button>
                     )}
-                    {musthaveprodKeys.length > 0 && (
+                    {/* {musthaveprodKeys.length < 0 && (
                       // Removed Aanbevolen button
                       null
-                    )}
+                    )} */}
                   </div>
                 </div>
               )}
@@ -1359,7 +1354,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                 </div>
                 {selectedDiscount !== null && (
                   <span className="text-xs text-gray-500 font-normal mt-1">
-                    {currency}{displayBasePrice.toFixed(2)} per stuk
+                    {currency}{displayBasePrice.toFixed(2)}
                   </span>
                 )}
                 {packingType && `per ${packingType}`}
@@ -2484,6 +2479,122 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showAddModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-white/20"
+            >
+              {/* Header */}
+              <div className="p-5 lg:p-6 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
+                <div className="flex items-center gap-3 lg:gap-4">
+                  <div className="bg-[#EDFCF2] p-2 rounded-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="3" stroke="#03B955" className="size-5 lg:size-6">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                  </div>
+                  <h2 className="text-lg lg:text-2xl font-bold text-[#1C2530]">Product toegevoegd aan winkelwagen</h2>
+                </div>
+                <button 
+                  onClick={() => setShowAddModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors group"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="size-5 lg:size-6 text-gray-400 group-hover:text-gray-600">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-5 lg:p-8 custom-scrollbar">
+                {/* Just Added Product */}
+                <div className="flex flex-col md:flex-row gap-4 lg:gap-6 items-center p-4 lg:p-3 bg-white lg:bg-[#F8FAFC] rounded-xl border border-[#E2E8F0] mb-8 lg:mb-10">
+                  <div className="w-20 h-20 lg:w-24 lg:h-24 bg-white rounded-lg border border-[#E2E8F0] overflow-hidden flex-shrink-0 flex items-center justify-center p-2 shadow-sm">
+                    <img 
+                      src={product?.images?.[0]?.src || "/afbeelding.webp"} 
+                      alt={productTitle} 
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  </div>
+                  <div className="flex-1 text-center md:text-left">
+                    <h3 className="font-bold text-base lg:text-base text-[#1C2530] leading-tight">{productTitle}</h3>
+                    <div className="flex flex-col md:flex-row items-center gap-2 justify-center md:justify-start mt-2">
+                       <span className="bg-blue-100 text-[#0066FF] px-2 py-0.5 rounded text-[10px] lg:text-xs font-bold uppercase tracking-wider">Aantal: {quantity}</span>
+                       <div className="text-[10px] lg:text-xs">
+                          {(() => {
+                            const info = getDeliveryInfo(
+                              product?.stock_status || 'instock',
+                              quantity,
+                              availableStock,
+                              getMetaValue("crucial_data_delivery_if_stock") ? parseInt(getMetaValue("crucial_data_delivery_if_stock")) : 1,
+                              getMetaValue("crucial_data_delivery_if_no_stock") ? parseInt(getMetaValue("crucial_data_delivery_if_no_stock")) : 30
+                            );
+                            return (
+                              <span className={`font-bold ${info.type === 'IN_STOCK' || info.type === 'PARTIAL_STOCK' ? 'text-[#03B955]' : 'text-[#FF5E00]'}`}>
+                                {info.short}
+                              </span>
+                            );
+                          })()}
+                       </div>
+                    </div>
+                  </div>
+                  <div className="text-center md:text-right flex flex-col items-center md:items-end">
+                    <p className="text-xl lg:text-2xl font-bold text-[#0066FF] tracking-tight">
+                      {currency}{totalPrice.toFixed(2).replace('.', ',')}
+                    </p>
+                    <p className="text-[10px] lg:text-xs text-[#64748B] font-medium mt-1">
+                      {userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator")) ? "Excl. BTW" : "Incl. BTW"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Recommendations Section */}
+                {musthaveprodKeys.length > 0 && (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex flex-col gap-1">
+                        <h3 className="text-lg lg:text-xl font-bold text-[#1C2530]">Vaak samen gekocht</h3>
+                        <p className="text-sm text-gray-500 font-medium tracking-tight">Handige accessoires voor een nog beter resultaat</p>
+                      </div>
+                      <div className="hidden lg:flex items-center gap-1 text-[#0066FF] font-bold text-sm bg-blue-50 px-3 py-1 rounded-full">
+                         <span className="w-2 h-2 rounded-full bg-[#0066FF] animate-pulse"></span>
+                         Bespaar verzendkosten
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
+                      {musthaveprodKeys.slice(0, 4).map((item, index) => (
+                        <RecommendedProductItem key={item.id || index} item={item} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer Actions */}
+              <div className="p-5 lg:p-8 bg-white border-t border-gray-100 flex flex-col-reverse md:flex-row gap-4 items-center justify-between shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
+                <button 
+                  onClick={() => setShowAddModal(false)}
+                  className="w-full md:w-auto px-10 py-4 text-[#475569] font-bold hover:text-[#1C2530] transition-all bg-gray-50 hover:bg-gray-100 rounded-lg text-base lg:text-lg"
+                >
+                  Verder winkelen
+                </button>
+                <button 
+                  onClick={() => {
+                    setShowAddModal(false);
+                    useCartStore.getState().setCartOpen(true);
+                  }}
+                  className="w-full md:w-auto px-10 py-4 bg-[#0066FF] text-white font-black rounded-lg hover:bg-blue-700 transition-all text-center text-base lg:text-lg shadow-lg shadow-blue-200 uppercase tracking-wide cursor-pointer"
+                >
+                  Nu bestellen
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
