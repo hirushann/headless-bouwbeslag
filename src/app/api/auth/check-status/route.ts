@@ -44,7 +44,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ status: "allowed" });
 
     } catch (error: any) {
-        console.error("Check Status Error:", error);
+        // console.error("Check Status Error:", error);
         return NextResponse.json({ message: "Error checking status" }, { status: 500 });
     }
 }

@@ -124,7 +124,7 @@ export const useCartStore = create<CartState>()(
 
             // 1. If remote is empty but local is not, CLEAR local (Order success case)
             if (remoteItems.length === 0 && localItems.length > 0) {
-              console.log("Smart Sync: Remote cart is empty (Order placed?), clearing local cart.");
+              // console.log("Smart Sync: Remote cart is empty (Order placed?), clearing local cart.");
               set({ items: [] });
               return;
             }
@@ -132,7 +132,7 @@ export const useCartStore = create<CartState>()(
             // 2. Optional: If remote has items... (same as before)
             if (remoteItems.length > 0) {
               // ...
-              console.log("Smart Sync: Remote has items", remoteItems.length);
+              // console.log("Smart Sync: Remote has items", remoteItems.length);
             }
           }
         } catch (err) {

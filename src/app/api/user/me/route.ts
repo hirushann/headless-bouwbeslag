@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
         if (!res.ok) {
             const errorBody = await res.text();
-            console.error(`WP API Error (${res.status}): ${errorBody}`);
+            // console.error(`WP API Error (${res.status}): ${errorBody}`);
             return NextResponse.json({ error: res.statusText, details: errorBody }, { status: res.status });
         }
 
@@ -40,13 +40,13 @@ export async function GET(request: NextRequest) {
                     return NextResponse.json({ ...userData, ...customerData });
                 }
             } catch (custErr) {
-                console.error("Error fetching WC customer data:", custErr);
+                // console.error("Error fetching WC customer data:", custErr);
             }
         }
 
         return NextResponse.json(userData);
     } catch (error) {
-        console.error("Proxy Error fetching user:", error);
+        // console.error("Proxy Error fetching user:", error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

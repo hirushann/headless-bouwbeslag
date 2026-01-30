@@ -70,18 +70,18 @@ function AccountContent() {
       }
       setLoadingOrders(true);
       
-      console.log(`📦 AccountClient: Fetching orders for Customer ID ${userId}...`);
+      // console.log(`📦 AccountClient: Fetching orders for Customer ID ${userId}...`);
 
       axios
         .get(`/api/user/orders`, {
             headers: { Authorization: `Bearer ${token}` },
         })
         .then((ordersRes) => {
-            console.log("✅ AccountClient: Orders fetched:", ordersRes.data);
+            // console.log("✅ AccountClient: Orders fetched:", ordersRes.data);
             setOrders(ordersRes.data || []);
         })
         .catch(err => {
-            console.error("❌ AccountClient: Error fetching orders:", err);
+            // console.error("❌ AccountClient: Error fetching orders:", err);
         })
         .finally(() => setLoadingOrders(false));
   };

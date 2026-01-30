@@ -94,7 +94,7 @@ export const fetchProducts = async (params: any = {}) => {
     });
     return res.data;
   } catch (error) {
-    console.error("Error fetching products:", error);
+    // console.error("Error fetching products:", error);
     return [];
   }
 };
@@ -147,7 +147,7 @@ const resolveBrandLogin = async (brand: Brand): Promise<Brand> => {
           brand.acf.brand_logo = media.source_url;
         }
       } catch (e) {
-        console.error(`Failed to resolve media for brand ${brand.name}`, e);
+        // console.error(`Failed to resolve media for brand ${brand.name}`, e);
       }
     }
   }
@@ -166,7 +166,7 @@ export const getBrands = async (): Promise<Brand[]> => {
 
     return resolvedBrands;
   } catch (error) {
-    console.error("Error fetching brands:", error);
+    // console.error("Error fetching brands:", error);
     return [];
   }
 };
@@ -248,7 +248,7 @@ export const getShippingMethods = async () => {
     return availableMethods;
 
   } catch (error) {
-    console.error("Error fetching shipping methods:", error);
+    // console.error("Error fetching shipping methods:", error);
     return [];
   }
 };
@@ -269,7 +269,7 @@ export const fetchProductStock = async (id: number) => {
     });
     return res.data;
   } catch (error) {
-    console.error("Error fetching product stock:", error);
+    // console.error("Error fetching product stock:", error);
     return null;
   }
 };
@@ -281,7 +281,7 @@ export const getCouponByCode = async (code: string) => {
     });
     return data && data.length > 0 ? data[0] : null;
   } catch (error) {
-    console.error("Error fetching coupon:", error);
+    // console.error("Error fetching coupon:", error);
     return null;
   }
 };
@@ -335,7 +335,7 @@ export const getProductsByBrand = async (brandId: number, perPage: number = 20):
     return wcProducts;
 
   } catch (error) {
-    console.error("Error fetching brand products:", error);
+    // console.error("Error fetching brand products:", error);
     return [];
   }
 };

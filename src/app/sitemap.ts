@@ -39,7 +39,7 @@ async function fetchAllWoo(endpoint: string, extraParams: any = {}, client: any 
     } catch (e: any) {
       const msg = (e?.message || "").toLowerCase();
       if (msg.includes("page number is larger") || msg.includes("paginanummer is groter")) break;
-      console.error(`Error fetching page ${page} of ${endpoint}:`, e);
+      // console.error(`Error fetching page ${page} of ${endpoint}:`, e);
       break;
     }
   }
@@ -74,7 +74,7 @@ async function fetchAllWp(endpoint: string, extraParams: any = {}, client: any =
       const status = e?.response?.status;
       if (status === 400) break;
 
-      console.error(`Error fetching WP page ${page} of ${endpoint}:`, e);
+      // console.error(`Error fetching WP page ${page} of ${endpoint}:`, e);
       break;
     }
   }

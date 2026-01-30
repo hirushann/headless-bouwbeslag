@@ -71,7 +71,7 @@ async function getProductBySlug(slug: string) {
               const mediaRes = await api.get(`wp/v2/media/${logoData}`);
               logoUrl = mediaRes.data?.source_url || null;
             } catch (e) {
-              console.error("Failed to fetch brand logo media:", e);
+              // console.error("Failed to fetch brand logo media:", e);
             }
           } else if (typeof logoData === 'string') {
             // Logo is already a URL
@@ -87,14 +87,14 @@ async function getProductBySlug(slug: string) {
           }
         }
       } catch (e) {
-        console.error("Failed to fetch brand data:", e);
+        // console.error("Failed to fetch brand data:", e);
         // Continue without brand logo rather than failing the whole request
       }
     }
     
     return product;
   } catch (error) {
-    console.error("SSR product fetch failed:", error);
+    // console.error("SSR product fetch failed:", error);
     return null;
   }
 }
@@ -105,7 +105,7 @@ async function getCategoryBySlug(slug: string): Promise<Category | null> {
     if (!res.data || res.data.length === 0) return null;
     return res.data[0];
   } catch (error) {
-    console.error("SSR category fetch failed:", error);
+    // console.error("SSR category fetch failed:", error);
     return null;
   }
 }
@@ -129,7 +129,7 @@ async function fetchAttributes(): Promise<Attribute[]> {
 
     return attributesWithTerms;
   } catch (error) {
-    console.error("Attributes fetch failed:", error);
+    // console.error("Attributes fetch failed:", error);
     return [];
   }
 }
@@ -152,7 +152,7 @@ async function getStandardTaxRate(): Promise<number> {
     const standard = rates.find((r: any) => r.class === "standard" || r.class === "");
     return standard && standard.rate ? parseFloat(standard.rate) : 21;
   } catch (error) {
-    console.error("Tax fetch failed, defaulting to 21:", error);
+    // console.error("Tax fetch failed, defaulting to 21:", error);
     return 21;
   }
 }

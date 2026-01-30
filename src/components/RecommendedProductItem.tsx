@@ -107,7 +107,7 @@ export default function RecommendedProductItem({ item, onAddToCart }: { item: an
             }
 
         } catch (err) {
-            console.error(err);
+            // console.error(err);
             toast.error("Er ging iets mis.");
         } finally {
             setIsAdding(false);

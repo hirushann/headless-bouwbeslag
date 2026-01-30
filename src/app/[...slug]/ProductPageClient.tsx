@@ -35,7 +35,7 @@ const formatSpecValue = (value: string | number | null | undefined): string => {
 export default function ProductPageClient({ product, taxRate = 21, slug }: { product: any; taxRate?: number; slug?: string[] }) {
   // 🔍 DEBUG: log full product data coming into this page
   useEffect(() => {
-    console.log("🟦 ProductPageClient → product data:", product);
+    // console.log("🟦 ProductPageClient → product data:", product);
   }, [product]);
 
   const fadeInUp = {
@@ -70,7 +70,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
   const { userRole, isLoading } = useUserContext();
 
   useEffect(() => {
-    console.log("💰 VAT Rate (from Server):", taxRate);
+    // console.log("💰 VAT Rate (from Server):", taxRate);
   }, [taxRate]);
 
   // ✅ Initialize gallery images from SSR product
@@ -346,7 +346,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
           }
         }
       } catch (err) {
-        console.error("❌ Initial stock fetch failed:", err);
+        // console.error("❌ Initial stock fetch failed:", err);
       }
     };
 
@@ -488,7 +488,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
       .filter(Boolean) as OrderModelEntry[];
 
     // Debug log to verify correct mapping between model positions and texts
-    console.log("🟦 DEBUG order model entries (sku + text by position):", modelEntries);
+    // console.log("🟦 DEBUG order model entries (sku + text by position):", modelEntries);
 
     if (modelEntries.length > 0) {
       Promise.all(
@@ -554,7 +554,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
       );
       setter(results.filter((item) => item !== null));
     } catch (err) {
-      console.error(`Error in fetchRelatedGroup for ${prefix}`, err);
+      // console.error(`Error in fetchRelatedGroup for ${prefix}`, err);
     }
   }, [product]);
 
@@ -616,7 +616,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         ? ambianceMeta.value
         : [];
 
-      console.log("🔍 DEBUG: Ambiance image IDs:", ambianceImageIds);
+      // console.log("🔍 DEBUG: Ambiance image IDs:", ambianceImageIds);
 
       const fetchAmbianceImages = async () => {
         if (ambianceImageIds.length === 0) {
@@ -635,7 +635,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
             })
           );
 
-          console.log("🔍 DEBUG: Ambiance media objects:", responses);
+          // console.log("🔍 DEBUG: Ambiance media objects:", responses);
 
           setAmbianceImages(
             responses
@@ -649,7 +649,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
               }))
           );
         } catch (err) {
-          console.error("❌ Error fetching ambiance images:", err);
+          // console.error("❌ Error fetching ambiance images:", err);
         }
       };
 
@@ -764,7 +764,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
 
       return true;
     } catch (err) {
-      console.error("❌ Stock check failed:", err);
+      // console.error("❌ Stock check failed:", err);
       toast.error("Voorraadcontrole mislukt. Probeer opnieuw.");
       return false;
     }

@@ -44,7 +44,7 @@ export default function GuaranteePageClient({
             toast.error(result.error || 'Er ging iets mis. Probeer het opnieuw.');
         }
     } catch (error) {
-        console.error('Submission error:', error);
+        // console.error('Submission error:', error);
         toast.error('Er ging iets mis bij het versturen.');
     } finally {
         setIsSubmitting(false);

@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
         const orderId = (payment.metadata as any)?.order_id;
 
         if (!orderId) {
-            console.error("Order ID not found in payment metadata");
+            // console.error("Order ID not found in payment metadata");
             return NextResponse.json({ message: "Order ID missing" }, { status: 200 }); // Return 200 to acknowledge webhook
         }
 
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ message: "Webhook received" }, { status: 200 });
     } catch (error) {
-        console.error("Mollie Webhook Error:", error);
+        // console.error("Mollie Webhook Error:", error);
         return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
     }
 }

@@ -38,7 +38,7 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods }: CartDra
           updateStockForItems(res.data);
         }
       } catch (error) {
-        console.error("Failed to refresh cart stock:", error);
+        // console.error("Failed to refresh cart stock:", error);
       } finally {
         if (active) setIsFetchingStock(false);
       }

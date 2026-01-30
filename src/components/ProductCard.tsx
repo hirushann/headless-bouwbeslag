@@ -204,7 +204,7 @@ export default function ProductCard({ product, userRole: propUserRole }: { produ
                });
 
             } catch (err) {
-               console.error(err);
+              //  console.error(err);
                toast.error("Er ging iets mis. Probeer het opnieuw.");
             } finally {
                setIsAdding(false);

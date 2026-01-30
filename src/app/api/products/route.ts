@@ -20,7 +20,7 @@ export async function GET(request: Request) {
             }
         });
     } catch (error: any) {
-        console.error('Error fetching products:', error);
+        // console.error('Error fetching products:', error);
         return NextResponse.json(
             { message: error.message || 'Error fetching products' },
             { status: 500 }

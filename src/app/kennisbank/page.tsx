@@ -17,7 +17,7 @@ async function getPosts() {
     });
     return res.data;
   } catch (error) {
-    console.error("Error fetching blog posts:", error);
+    // console.error("Error fetching blog posts:", error);
     return [];
   }
 }
@@ -27,7 +27,7 @@ async function getCategories() {
     const res = await api.get("/categories", { params: { per_page: 100 } });
     return res.data;
   } catch (error) {
-    console.error("Error fetching blog categories:", error);
+    // console.error("Error fetching blog categories:", error);
     return [];
   }
 }

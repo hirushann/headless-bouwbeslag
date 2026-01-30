@@ -144,7 +144,7 @@ export async function searchProducts(
 
         return { products: hits, facets };
     } catch (error) {
-        console.error("Elasticsearch server action error:", error);
+        // console.error("Elasticsearch server action error:", error);
         return { products: [], facets: [] };
     }
 }

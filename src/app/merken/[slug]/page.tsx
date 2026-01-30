@@ -47,7 +47,7 @@ export default async function BrandPage({ params, searchParams }: { params: Prom
     const { category: categorySlug } = await searchParams;
     const brand = await getBrand(slug);
 
-    console.log("Brand Data Response:", JSON.stringify(brand, null, 2));
+    // console.log("Brand Data Response:", JSON.stringify(brand, null, 2));
 
     if (!brand) {
         notFound();

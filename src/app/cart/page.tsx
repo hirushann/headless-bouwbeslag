@@ -20,7 +20,7 @@ export default function CartPage() {
   const updateQty = useCartStore((state) => state.updateQty);
   const clearCart = useCartStore((state) => state.clearCart);
   const total = useCartStore((state) => state.total());
-  console.log("Cart items:", items);
+  // console.log("Cart items:", items);
 
   return (
     <main className="max-w-4xl mx-auto py-10">

@@ -61,7 +61,7 @@ export async function POST(req: Request) {
         });
 
     } catch (error) {
-        console.error('Error updating holidays:', error);
+        // console.error('Error updating holidays:', error);
         return NextResponse.json(
             { error: 'Internal Server Error' },
             { status: 500 }

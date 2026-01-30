@@ -15,7 +15,7 @@ export async function GET() {
         const data = await res.json();
         return NextResponse.json(data);
     } catch (error) {
-        console.error("Error fetching WebwinkelKeur data:", error);
+        // console.error("Error fetching WebwinkelKeur data:", error);
         return NextResponse.json({ status: "error", message: "Failed to fetch data" }, { status: 500 });
     }
 }

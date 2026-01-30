@@ -45,11 +45,11 @@ async function fetchCategory(slug: string): Promise<Category | null> {
   try {
     const fullRes = await api.get(`products/categories/${categoryId}`);
     if (fullRes.data) {
-      console.log(`Full Category Data for ID ${categoryId} (slug: ${slug}):`, JSON.stringify(fullRes.data, null, 2));
+      // console.log(`Full Category Data for ID ${categoryId} (slug: ${slug}):`, JSON.stringify(fullRes.data, null, 2));
       return fullRes.data;
     }
   } catch (error) {
-    console.error(`Error fetching full category details for ID ${categoryId}:`, error);
+    // console.error(`Error fetching full category details for ID ${categoryId}:`, error);
   }
 
   return res.data[0];
@@ -60,7 +60,7 @@ async function fetchAttributes(): Promise<Attribute[]> {
   const attributesData = res.data || [];
   
   if (attributesData.length > 0) {
-      console.log('API Attributes Data Sample:', JSON.stringify(attributesData[0], null, 2));
+      // console.log('API Attributes Data Sample:', JSON.stringify(attributesData[0], null, 2));
   }
 
   const attributesWithTerms: Attribute[] = [];
@@ -80,10 +80,10 @@ async function fetchAttributes(): Promise<Attribute[]> {
                     .replace(/[^\w\u00C0-\u00FF-]+/g, '') // Remove non-word chars
                     .replace(/-+/g, '-');      // Collapse dashes
            
-           console.log(`🔹 Generated Slug for "${attr.name}": "${slug}"`);
+          //  console.log(`🔹 Generated Slug for "${attr.name}": "${slug}"`);
        } else {
            slug = `attr-${attr.id}`; // Fallback if no name
-           console.log(`⚠️ No Name for attribute ID ${attr.id}, using fallback slug: ${slug}`);
+          //  console.log(`⚠️ No Name for attribute ID ${attr.id}, using fallback slug: ${slug}`);
        }
     }
 

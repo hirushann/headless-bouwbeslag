@@ -38,7 +38,7 @@ export async function POST(req: Request) {
         // Check for SMTP credentials first to verify we can send emails
         // This prevents creating "zombie" users if email config is missing
         if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-            console.error("Registration blocked: Missing SMTP_USER or SMTP_PASS");
+            // console.error("Registration blocked: Missing SMTP_USER or SMTP_PASS");
             return NextResponse.json(
                 { message: "Server configuration error: Email service not configured." },
                 { status: 500 }
@@ -147,7 +147,7 @@ export async function POST(req: Request) {
         }
 
     } catch (error: any) {
-        console.error("Registration error:", error.response?.data || error.message);
+        // console.error("Registration error:", error.response?.data || error.message);
 
         // Handle "username already exists" etc.
         const msg = error.response?.data?.message || error.message || "Er is iets misgegaan.";

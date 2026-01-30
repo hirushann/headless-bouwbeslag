@@ -55,7 +55,7 @@ export default function NewCheckoutPage() {
   // Auto-fill form data if user is logged in
   useEffect(() => {
     if (user && user.billing) {
-        console.log("👤 Auto-filling checkout with user data:", user);
+        // console.log("👤 Auto-filling checkout with user data:", user);
         
         // Split address_1 into street and house number if possible?
         // User data usually has address_1. We need to split it if our form separates them.
@@ -576,11 +576,11 @@ export default function NewCheckoutPage() {
         customer_id: user?.id || 0
     };
 
-    console.log("🛒 Frontend: Submitting orderData:", orderData);
+    // console.log("🛒 Frontend: Submitting orderData:", orderData);
 
     const result = await placeOrderAction(orderData);
     
-    console.log("🏁 Frontend: placeOrderAction result:", result);
+    // console.log("🏁 Frontend: placeOrderAction result:", result);
     
     setIsLoading(false);
 

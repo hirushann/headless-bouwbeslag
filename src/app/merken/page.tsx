@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default async function BrandsPage() {
     const brands = await getBrands();
     
-    console.log("Brands Index Page Data:", JSON.stringify(brands.map(b => ({ name: b.name, logo: b.acf?.brand_logo })), null, 2));
+    // console.log("Brands Index Page Data:", JSON.stringify(brands.map(b => ({ name: b.name, logo: b.acf?.brand_logo })), null, 2));
 
     return (
         <div className="max-w-[1440px] container mx-auto px-1 py-8">

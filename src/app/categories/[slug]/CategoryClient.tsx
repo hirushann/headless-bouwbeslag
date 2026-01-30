@@ -68,7 +68,7 @@ export default function CategoryClient({
   attributes,
   currentSlug,
 }: CategoryClientProps) {
-  console.log("CategoryClient received category:", category);
+  // console.log("CategoryClient received category:", category);
   const [products, setProducts] = useState<any[]>([]);
   const [rawProducts, setRawProducts] = useState<any[]>([]);
   const [selectedFilters, setSelectedFilters] = useState<{ [key: number]: Set<number> }>({});
@@ -108,11 +108,11 @@ export default function CategoryClient({
         const res = await fetch(`/api/products?per_page=100&category=${category.id}&_fields=id,attributes`);
         if (res.ok) {
            const data = await res.json();
-           console.log(`🔍 Fetched ${data.length} products for global filter generation`);
+          //  console.log(`🔍 Fetched ${data.length} products for global filter generation`);
            setAllCategoryProductsForFilters(data);
         }
       } catch (err) {
-        console.error("Failed to fetch filter base:", err);
+        // console.error("Failed to fetch filter base:", err);
       } finally {
         setFiltersLoading(false);
       }
@@ -124,7 +124,7 @@ export default function CategoryClient({
     async function loadProducts() {
       if (!category) return;
       
-      console.log(`📦 Loading page ${page} for category ${category.name} (ID: ${category.id})`);
+      // console.log(`📦 Loading page ${page} for category ${category.name} (ID: ${category.id})`);
       setProductsLoading(true);
       // Clear current products to show skeletons and avoid showing wrong page data
       setProducts([]); 
@@ -183,10 +183,10 @@ export default function CategoryClient({
           console.warn("⚠️ All products from current page were filtered out localy!");
         }
 
-        console.log(`✅ Loaded ${prods.length} products for page ${page}`);
+        // console.log(`✅ Loaded ${prods.length} products for page ${page}`);
         setProducts(prods);
       } catch (err) {
-        console.error(err);
+        // console.error(err);
       } finally {
         setProductsLoading(false);
       }
@@ -274,7 +274,6 @@ export default function CategoryClient({
                     .replace(/\s+/g, '-')      
                     .replace(/[^\w\u00C0-\u00FF-]+/g, '')
                     .replace(/-+/g, '-');
-                 console.log(`🔧 Client-side Polyfilled slug for "${attr.name}": "${slug}"`);
             }
 
             let acfKey = ATTRIBUTE_TO_ACF_MAP[slug];
@@ -290,25 +289,20 @@ export default function CategoryClient({
             if (acfKey && category.acf) {
                 const isEnabled = category.acf[acfKey];
 
-                // Debug log to help user find the right mapping
-                console.log(`Attribute: ${attr.name} (${slug}) -> ACF Key: ${acfKey} -> Enabled: ${isEnabled} (Type: ${typeof isEnabled})`);
-
                 // Check for boolean false or string "false"
                 if (isEnabled === false || isEnabled === "false") {
-                     console.log(`❌ BLOCKED Attribute: ${attr.name}`);
                      return null;
                 } else {
-                     console.log(`✅ ALLOWED Attribute: ${attr.name} (ACF check passed or indeterminate)`);
+                    //  console.log(`✅ ALLOWED Attribute: ${attr.name} (ACF check passed or indeterminate)`);
                 }
             } else {
-                 console.log(`⚠️ NO ACF MAPPING/KEY for Attribute: ${attr.name} (${slug}). Defaulting to ALLOWED.`);
+                //  console.log(`⚠️ NO ACF MAPPING/KEY for Attribute: ${attr.name} (${slug}). Defaulting to ALLOWED.`);
             }
         }
 
         const presentSet = presentOptions.get(attr.id);
 
         if (!presentSet) {
-             console.log(`⚠️ Attribute: ${attr.name} has no options present in products. BLOCKED.`);
              return null; 
         }
 
@@ -329,7 +323,7 @@ export default function CategoryClient({
       .filter(Boolean) as Attribute[];
   }, [allCategoryProductsForFilters, rawProducts, attributes, category]);
 
-  console.log("🔥 FINAL RELEVANT ATTRIBUTES:", relevantAttributes.map(a => a.name));
+  // console.log("🔥 FINAL RELEVANT ATTRIBUTES:", relevantAttributes.map(a => a.name));
 
   const colorAttribute = relevantAttributes.find(
     (attr) => attr.name.toLowerCase() === "color"

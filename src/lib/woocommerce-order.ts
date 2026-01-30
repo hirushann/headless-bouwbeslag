@@ -13,14 +13,14 @@ export async function createOrder(
   fee_lines: any[] = []
 ) {
   try {
-    console.log("📤 Sending to WooCommerce API:", JSON.stringify({
-      payment_method,
-      billing,
-      shipping: shipping || billing,
-      line_items: cart.map((item) => ({ product_id: item.id, quantity: item.quantity })),
-      shipping_lines,
-      fee_lines
-    }, null, 2));
+    // console.log("📤 Sending to WooCommerce API:", JSON.stringify({
+    //   payment_method,
+    //   billing,
+    //   shipping: shipping || billing,
+    //   line_items: cart.map((item) => ({ product_id: item.id, quantity: item.quantity })),
+    //   shipping_lines,
+    //   fee_lines
+    // }, null, 2));
 
     const response = await api.post("orders", {
       payment_method,
@@ -43,7 +43,7 @@ export async function createOrder(
 
     return response.data;
   } catch (error: any) {
-    console.error("Order creation failed:", error.response?.data || error.message);
+    // console.error("Order creation failed:", error.response?.data || error.message);
     return {};
   }
 }
@@ -53,7 +53,7 @@ export async function getOrder(id: number | string) {
     const response = await api.get(`orders/${id}`);
     return response.data;
   } catch (error: any) {
-    console.error(`Failed to fetch order ${id}:`, error.response?.data || error.message);
+    // console.error(`Failed to fetch order ${id}:`, error.response?.data || error.message);
     return null;
   }
 }
@@ -63,7 +63,7 @@ export async function updateOrder(id: number | string, data: any) {
     const response = await api.put(`orders/${id}`, data);
     return response.data;
   } catch (error: any) {
-    console.error(`Failed to update order ${id}:`, error.response?.data || error.message);
+    // console.error(`Failed to update order ${id}:`, error.response?.data || error.message);
     return null;
   }
 }

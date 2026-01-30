@@ -52,7 +52,7 @@ export default function SearchAutosuggest({
                     setResults(response.products);
                     setFacets(response.facets);
                 } catch (error) {
-                    console.error("Search error:", error);
+                    // console.error("Search error:", error);
                 } finally {
                     setLoading(false);
                 }

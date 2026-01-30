@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
         return newResponse;
 
     } catch (error) {
-        console.error('Proxy Fetch Error:', error);
+        // console.error('Proxy Fetch Error:', error);
         return new NextResponse('Error fetching content', { status: 500 });
     }
 }

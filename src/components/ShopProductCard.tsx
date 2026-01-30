@@ -230,7 +230,7 @@ export default function ShopProductCard({ product }: { product: any }) {
                });
 
             } catch (err) {
-               console.error(err);
+              //  console.error(err);
                toast.error("Er ging iets mis. Probeer het opnieuw.");
             } finally {
                setIsAdding(false);
