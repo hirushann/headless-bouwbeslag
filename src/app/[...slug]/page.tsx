@@ -218,29 +218,32 @@ export async function generateMetadata(
 
   // 2. Try Category next
   if (category) {
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl";
     // Reconstruct canonical URL from the slug array
-    const canonicalUrl = `${siteUrl}/${slug.join('/')}`;
+    // Ensure properly escaped
+    const canonicalPath = slug.map(s => encodeURIComponent(s)).join('/');
+    const canonicalUrl = `${siteUrl}/${canonicalPath}`;
+
+    // Clean helper
+    const cleanStr = (s?: string) => s?.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim() || "";
 
     // Dynamic Category Title
-    // Priority: ACF Meta Title -> "Category Name | Bouwbeslag"
     const acfTitle = category.acf?.category_meta_title;
-    const title = acfTitle && acfTitle.trim() !== "" 
-        ? acfTitle 
-        : `${category.name} | Bouwbeslag`;
+    let title = cleanStr(acfTitle);
+    
+    if (!title) {
+        title = `${cleanStr(category.name)} | Bouwbeslag`;
+    }
 
     // Dynamic Category Description
-    // Priority: ACF Meta Desc -> Description -> Fallback Template
     const acfDesc = category.acf?.category_meta_description;
-    let description = "";
+    let description = cleanStr(acfDesc);
 
-    if (acfDesc && acfDesc.trim() !== "") {
-        description = acfDesc;
-    } else {
-        const rawDesc = category.description?.replace(/<[^>]+>/g, "") || "";
+    if (!description) {
+        const rawDesc = cleanStr(category.description);
         description = rawDesc.length > 50 
             ? rawDesc.slice(0, 160) 
-            : `Op zoek naar ${category.name}? Bekijk ons ruime assortiment. ✅ Vóór 16:00 besteld, morgen in huis! Bestel direct online.`;
+            : `Op zoek naar ${cleanStr(category.name)}? Bekijk ons ruime assortiment. ✅ Vóór 16:00 besteld, morgen in huis! Bestel direct online.`;
     }
 
     return {
