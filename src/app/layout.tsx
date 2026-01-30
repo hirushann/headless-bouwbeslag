@@ -45,12 +45,6 @@ export default async function RootLayout({
 }>) {
   return (
     <html lang="en" data-theme="light">
-      <head>
-        <link rel="preconnect" href="https://app.bouwbeslag.nl" />
-        <link rel="dns-prefetch" href="https://app.bouwbeslag.nl" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      </head>
       <body className={`${dmsans.variable} ${geistMono.variable} font-sans antialiased overflow-visible`} >
         <Toaster position="top-right" />
         <UserProvider>
