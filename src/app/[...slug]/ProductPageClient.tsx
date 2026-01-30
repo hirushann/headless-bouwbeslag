@@ -825,7 +825,14 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         totalPrice,
         currency,
         userRole: userRole || undefined,
+        // Pass all recommendations
         musthaveprodKeys,
+        matchingProducts,
+        matchingKnobroseKeys,
+        matchingRoseKeys,
+        pcroseKeys,
+        blindtoiletroseKeys,
+        
         deliveryText: deliveryInfo.short,
         deliveryType: deliveryInfo.type
       });
@@ -984,53 +991,101 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                       </button>
                     </div>
 
-            {/* New Must Have Section (Below Images) */}
-            {musthaveprodKeys && musthaveprodKeys.length > 0 && (
-              <motion.div initial="visible" animate="visible" variants={fadeInUp} className="mt-8" id="musthaveprod-section">
-                <div className="mb-4">
-                  <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Aanbevolen producten</h3>
-                  <p className="text-[#3D4752] text-sm mt-1">Handig om erbij te bestellen</p>
-                </div>
-                <div className="space-y-3">
-                  {musthaveprodKeys.map((item, index) => (
-                    <RecommendedProductItem key={item.id || index} item={item} />
-                  ))}
-                </div>
+            {/* Unified Related Products Section */}
+            {(musthaveprodKeys.length > 0 || 
+              matchingProducts.length > 0 || 
+              matchingKnobroseKeys.length > 0 || 
+              matchingRoseKeys.length > 0 || 
+              pcroseKeys.length > 0 || 
+              blindtoiletroseKeys.length > 0) && (
+              <motion.div initial="visible" animate="visible" variants={fadeInUp} className="mt-8 space-y-8">
+                
+                {/* 1. Must Have Products */}
+                {musthaveprodKeys.length > 0 && (
+                  <div id="musthaveprod-section">
+                    <div className="mb-4">
+                      <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Aanbevolen producten</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {musthaveprodKeys.map((item, index) => (
+                        <RecommendedProductItem key={item.id || index} item={item} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Accessories */}
+                {matchingProducts.length > 0 && (
+                  <div id="accessories-section">
+                     <div className="mb-4">
+                        <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende accessoires</h3>
+                     </div>
+                     <div className="space-y-3">
+                        {matchingProducts.map((item, index) => (
+                           <RecommendedProductItem key={item.id || index} item={item} />
+                        ))}
+                     </div>
+                  </div>
+                )}
+
+                {/* 3. Matching Knob Roses */}
+                {matchingKnobroseKeys.length > 0 && (
+                  <div id="knobroses-section">
+                      <div className="mb-4">
+                          <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende rozetten</h3>
+                      </div>
+                      <div className="space-y-3">
+                          {matchingKnobroseKeys.map((item, index) => (
+                              <RecommendedProductItem key={item.id || index} item={item} />
+                          ))}
+                      </div>
+                  </div>
+                )}
+
+                {/* 4. Matching Key Roses */}
+                {matchingRoseKeys.length > 0 && (
+                  <div id="matchingroses-section">
+                      <div className="mb-4">
+                          <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende sleutelrozetten</h3>
+                      </div>
+                      <div className="space-y-3">
+                          {matchingRoseKeys.map((item, index) => (
+                              <RecommendedProductItem key={item.id || index} item={item} />
+                          ))}
+                      </div>
+                  </div>
+                )}
+
+                {/* 5. PC Roses */}
+                {pcroseKeys.length > 0 && (
+                  <div id="pcroses-section">
+                      <div className="mb-4">
+                          <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende cilinderrozetten</h3>
+                      </div>
+                      <div className="space-y-3">
+                          {pcroseKeys.map((item, index) => (
+                              <RecommendedProductItem key={item.id || index} item={item} />
+                          ))}
+                      </div>
+                  </div>
+                )}
+
+                {/* 6. Blind / Toilet Roses */}
+                {blindtoiletroseKeys.length > 0 && (
+                  <div id="blindtoiletroses-section">
+                      <div className="mb-4">
+                          <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende blinde rozetten</h3>
+                      </div>
+                      <div className="space-y-3">
+                          {blindtoiletroseKeys.map((item, index) => (
+                              <RecommendedProductItem key={item.id || index} item={item} />
+                          ))}
+                      </div>
+                  </div>
+                )}
+
               </motion.div>
             )}
-
-            {(matchingProducts.length > 0 ||
-              matchingKnobroseKeys.length > 0 ||
-              matchingRoseKeys.length > 0 ||
-              pcroseKeys.length > 0 ||
-              blindtoiletroseKeys.length > 0
-              // musthaveprodKeys.length < 0
-            ) && (
-                <div className='text-[#1C2530] font-bold text-3xl mt-8 hidden lg:block'>
-                  <h3>Handig om erbij te bestellen</h3>
-                  <div className='grid grid-cols-1 lg:grid-cols-3 gap-2 lg:gap-4 mt-4'>
-                    {matchingProducts.length > 0 && (
-                      <button onClick={() => scrollToSection("accessories-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende accessoires</button>
-                    )}
-                    {matchingKnobroseKeys.length > 0 && (
-                      <button onClick={() => scrollToSection("knobroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende rozetten</button>
-                    )}
-                    {matchingRoseKeys.length > 0 && (
-                      <button onClick={() => scrollToSection("matchingroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende sleutelrozetten</button>
-                    )}
-                    {pcroseKeys.length > 0 && (
-                      <button onClick={() => scrollToSection("pcroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende cilinderrozetten</button>
-                    )}
-                    {blindtoiletroseKeys.length > 0 && (
-                      <button onClick={() => scrollToSection("blindtoiletroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende blinde rozetten</button>
-                    )}
-                    {/* {musthaveprodKeys.length < 0 && (
-                      // Removed Aanbevolen button
-                      null
-                    )} */}
-                  </div>
-                </div>
-              )}
 
 
           </motion.div>
@@ -2021,7 +2076,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         transition={{ duration: 0.6 }}
         className='bg-white py-4'
       >
-        <div className='max-w-[1440px] mx-auto py-8 px-5 lg:px-0'>
+        {/* <div className='max-w-[1440px] mx-auto py-8 px-5 lg:px-0'>
           <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
             {matchingProducts && matchingProducts.length > 0 && (
               <div id="accessories-section" className='lg:bg-[#F7F7F7] rounded-md p-5'>
@@ -2342,11 +2397,8 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                 </div>
               </div>
             )}
-
-            {/* Old Must Have Section Removed */}
-
           </div>
-        </div>
+        </div> */}
       </motion.div>
 
       <div className={`fixed bottom-0 left-0 w-full bg-white text-black p-3 lg:p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] 

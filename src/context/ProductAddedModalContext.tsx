@@ -9,6 +9,11 @@ interface ModalData {
   currency?: string;
   userRole?: string[]; // To determine tax display
   musthaveprodKeys?: any[]; // Recommendations
+  matchingProducts?: any[];
+  matchingKnobroseKeys?: any[];
+  matchingRoseKeys?: any[];
+  pcroseKeys?: any[];
+  blindtoiletroseKeys?: any[];
   deliveryText?: string;
   deliveryType?: string;
 }

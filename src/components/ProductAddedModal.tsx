@@ -81,23 +81,97 @@ export default function ProductAddedModal() {
               </div>
 
               {/* Recommendations Section */}
-              {modalData.musthaveprodKeys && modalData.musthaveprodKeys.length > 0 && (
-                <div className="mt-4">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex flex-col gap-1">
-                      <h3 className="text-lg lg:text-xl font-bold text-[#1C2530]">Vaak samen gekocht</h3>
-                      <p className="text-sm text-gray-500 font-medium tracking-tight">Handige accessoires voor een nog beter resultaat</p>
-                    </div>
-                    <div className="hidden lg:flex items-center gap-1 text-[#0066FF] font-bold text-sm bg-blue-50 px-3 py-1 rounded-full">
-                       <span className="w-2 h-2 rounded-full bg-[#0066FF] animate-pulse"></span>
-                       Bespaar verzendkosten
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
-                    {modalData.musthaveprodKeys.slice(0, 4).map((item, index) => (
-                      <RecommendedProductItem key={item.id || index} item={item} />
-                    ))}
-                  </div>
+              {((modalData.musthaveprodKeys && modalData.musthaveprodKeys.length > 0) ||
+                (modalData.matchingProducts && modalData.matchingProducts.length > 0) ||
+                (modalData.matchingKnobroseKeys && modalData.matchingKnobroseKeys.length > 0) ||
+                (modalData.matchingRoseKeys && modalData.matchingRoseKeys.length > 0) ||
+                (modalData.pcroseKeys && modalData.pcroseKeys.length > 0) ||
+                (modalData.blindtoiletroseKeys && modalData.blindtoiletroseKeys.length > 0)) && (
+                <div className="mt-6 border-t border-gray-100 pt-6">
+                   <div className="flex items-center justify-between mb-4">
+                     <div>
+                       <h3 className="text-lg lg:text-xl font-bold text-[#1C2530]">Vaak samen gekocht</h3>
+                       <p className="text-sm text-gray-500 font-medium">Handige accessoires voor een nog beter resultaat</p>
+                     </div>
+                     <div className="hidden lg:flex items-center gap-1 text-[#0066FF] font-bold text-sm bg-blue-50 px-3 py-1 rounded-full">
+                        <span className="w-2 h-2 rounded-full bg-[#0066FF] animate-pulse"></span>
+                        Bespaar verzendkosten
+                     </div>
+                   </div>
+
+                   <div className="space-y-8">
+                      {/* Must Have */}
+                      {modalData.musthaveprodKeys && modalData.musthaveprodKeys.length > 0 && (
+                        <div>
+                           <h4 className="font-bold text-base text-[#1C2530] mb-3">Aanbevolen producten</h4>
+                           <div className="space-y-3">
+                              {modalData.musthaveprodKeys.slice(0, 4).map((item, index) => (
+                                <RecommendedProductItem key={item.id || index} item={item} />
+                              ))}
+                           </div>
+                        </div>
+                      )}
+
+                      {/* Accessories */}
+                      {modalData.matchingProducts && modalData.matchingProducts.length > 0 && (
+                        <div>
+                           <h4 className="font-bold text-base text-[#1C2530] mb-3">Bijpassende accessoires</h4>
+                           <div className="space-y-3">
+                              {modalData.matchingProducts.slice(0, 4).map((item, index) => (
+                                <RecommendedProductItem key={item.id || index} item={item} />
+                              ))}
+                           </div>
+                        </div>
+                      )}
+
+                      {/* Knob Roses */}
+                      {modalData.matchingKnobroseKeys && modalData.matchingKnobroseKeys.length > 0 && (
+                        <div>
+                           <h4 className="font-bold text-base text-[#1C2530] mb-3">Bijpassende rozetten</h4>
+                           <div className="space-y-3">
+                              {modalData.matchingKnobroseKeys.slice(0, 4).map((item, index) => (
+                                <RecommendedProductItem key={item.id || index} item={item} />
+                              ))}
+                           </div>
+                        </div>
+                      )}
+
+                      {/* Key Roses */}
+                      {modalData.matchingRoseKeys && modalData.matchingRoseKeys.length > 0 && (
+                        <div>
+                           <h4 className="font-bold text-base text-[#1C2530] mb-3">Bijpassende sleutelrozetten</h4>
+                           <div className="space-y-3">
+                              {modalData.matchingRoseKeys.slice(0, 4).map((item, index) => (
+                                <RecommendedProductItem key={item.id || index} item={item} />
+                              ))}
+                           </div>
+                        </div>
+                      )}
+
+                      {/* PC Roses */}
+                      {modalData.pcroseKeys && modalData.pcroseKeys.length > 0 && (
+                        <div>
+                           <h4 className="font-bold text-base text-[#1C2530] mb-3">Bijpassende cilinderrozetten</h4>
+                           <div className="space-y-3">
+                              {modalData.pcroseKeys.slice(0, 4).map((item, index) => (
+                                <RecommendedProductItem key={item.id || index} item={item} />
+                              ))}
+                           </div>
+                        </div>
+                      )}
+
+                      {/* Blind/Toilet Roses */}
+                      {modalData.blindtoiletroseKeys && modalData.blindtoiletroseKeys.length > 0 && (
+                        <div>
+                           <h4 className="font-bold text-base text-[#1C2530] mb-3">Bijpassende blinde rozetten</h4>
+                           <div className="space-y-3">
+                              {modalData.blindtoiletroseKeys.slice(0, 4).map((item, index) => (
+                                <RecommendedProductItem key={item.id || index} item={item} />
+                              ))}
+                           </div>
+                        </div>
+                      )}
+                   </div>
                 </div>
               )}
             </div>

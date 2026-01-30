@@ -199,6 +199,11 @@ export default function ProductCard({ product, userRole: propUserRole }: { produ
                     currency: product.currency_symbol || "€", 
                     userRole: userRole || undefined,
                     musthaveprodKeys: [],
+                    matchingProducts: [],
+                    matchingKnobroseKeys: [],
+                    matchingRoseKeys: [],
+                    pcroseKeys: [],
+                    blindtoiletroseKeys: [],
                     deliveryText: deliveryInfo.short,
                     deliveryType: deliveryInfo.type
                });

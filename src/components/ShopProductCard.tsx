@@ -225,6 +225,11 @@ export default function ShopProductCard({ product }: { product: any }) {
                     currency: product.currency_symbol || "€", 
                     userRole: userRole || undefined,
                     musthaveprodKeys: [],
+                    matchingProducts: [],
+                    matchingKnobroseKeys: [],
+                    matchingRoseKeys: [],
+                    pcroseKeys: [],
+                    blindtoiletroseKeys: [],
                     deliveryText: deliveryInfo.short,
                     deliveryType: deliveryInfo.type
                });
