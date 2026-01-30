@@ -7,6 +7,76 @@ import Link from "next/link";
 import { searchProducts, SearchResult, Facet, FilterState } from "@/actions/search";
 import { useUserContext } from "@/context/UserContext";
 import ProductCard from "./ProductCard";
+import ShopProductCard from "./ShopProductCard";
+
+function FilterGroup({
+    facet,
+    filters,
+    onFilterChange,
+}: {
+    facet: Facet;
+    filters: FilterState;
+    onFilterChange: (facetName: string, value: string) => void;
+}) {
+    const [isOpen, setIsOpen] = useState(true);
+
+    return (
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center justify-between w-full group"
+            >
+                <h3 className="font-semibold text-base capitalize text-gray-800">
+                    {facet.name === "product_cat" ? "Categories" : facet.name}
+                </h3>
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={`text-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                >
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </button>
+
+            {isOpen && (
+                <div className="mt-3 space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
+                    {facet.buckets.map((bucket) => {
+                        const isChecked = filters[facet.name]?.includes(bucket.key) || false;
+                        return (
+                            <label
+                                key={bucket.key}
+                                className="flex items-center gap-2 cursor-pointer group"
+                            >
+                                <input
+                                    type="checkbox"
+                                    className="checkbox checkbox-sm checkbox-primary rounded-sm"
+                                    checked={isChecked}
+                                    onChange={() => onFilterChange(facet.name, bucket.key)}
+                                />
+                                <span
+                                    className={`text-sm group-hover:text-blue-600 transition capitalize ${isChecked ? "font-medium text-gray-900" : "text-gray-600"
+                                        }`}
+                                >
+                                    {bucket.label}
+                                </span>
+                                <span className="text-xs text-gray-400 ml-auto tabular-nums">
+                                    ({bucket.doc_count})
+                                </span>
+                            </label>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
 
 export default function SearchAutosuggest({
     placeholder = "Zoek iets...",
@@ -23,6 +93,7 @@ export default function SearchAutosuggest({
 
     // UI States
     const [isExpanded, setIsExpanded] = useState(false);
+    const [showFiltersMobile, setShowFiltersMobile] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const router = useRouter();
@@ -33,6 +104,10 @@ export default function SearchAutosuggest({
     useEffect(() => {
         if (isExpanded) {
             document.body.style.overflow = "hidden";
+            // Autofocus input
+            setTimeout(() => {
+                inputRef.current?.focus();
+            }, 50);
         } else {
             document.body.style.overflow = "";
         }
@@ -95,14 +170,6 @@ export default function SearchAutosuggest({
         // Optional: clear query or keep it? Keeping it is better for UX if they re-open.
     };
 
-    const handleCreateSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (query.trim()) {
-            handleClose();
-            router.push(`/search?q=${encodeURIComponent(query)}`);
-        }
-    };
-
     return (
         <div ref={containerRef} className={`relative w-full ${className}`}>
             {/* Initial Input (Visible when collapsed) */}
@@ -110,8 +177,6 @@ export default function SearchAutosuggest({
                 className="join w-full border border-[#E2E2E2] rounded-[4px] bg-white cursor-text"
                 onClick={() => {
                     setIsExpanded(true);
-                    // Focus logic after render?
-                    setTimeout(() => inputRef.current?.focus(), 50);
                 }}
             >
                 <div className="w-full rounded-[4px]">
@@ -198,52 +263,66 @@ export default function SearchAutosuggest({
 
                                 {/* Filters Sidebar */}
                                 {results.length > 0 && ( /* Only show filters if we have results or active query? */
-                                    <aside className="w-full lg:w-1/4 space-y-6 shrink-0">
-                                        <div className="flex items-center justify-between lg:hidden mb-4">
-                                            <span className="font-bold text-lg">Filters</span>
+                                    <aside className="w-full lg:w-1/4 shrink-0">
+                                        <div
+                                            className="flex items-center justify-between lg:hidden mb-2 cursor-pointer bg-white p-3 rounded-lg border border-gray-200"
+                                            onClick={() => setShowFiltersMobile(!showFiltersMobile)}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                                                <span className="font-bold text-gray-800">Filters</span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                {Object.keys(filters).length > 0 && (
+                                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                                                        {Object.keys(filters).length}
+                                                    </span>
+                                                )}
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    width="20"
+                                                    height="20"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    className={`text-gray-500 transition-transform ${showFiltersMobile ? "rotate-180" : ""}`}
+                                                >
+                                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                                </svg>
+                                            </div>
+                                        </div>
+
+                                        <div className={`space-y-4 ${showFiltersMobile ? 'block' : 'hidden'} lg:block`}>
+                                            <div className="flex items-center justify-between lg:hidden mb-2 px-1">
+                                                {Object.keys(filters).length > 0 && (
+                                                    <button onClick={() => setFilters({})} className="text-sm text-red-500 hover:text-red-600 font-medium">
+                                                        Clear All Filters
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {facets.map((facet) => (
+                                                <FilterGroup
+                                                    key={facet.name}
+                                                    facet={facet}
+                                                    filters={filters}
+                                                    onFilterChange={handleFilterChange}
+                                                />
+                                            ))}
+
+                                            {/* Clear Filters Button (Desktop) */}
                                             {Object.keys(filters).length > 0 && (
-                                                <button onClick={() => setFilters({})} className="text-sm text-red-500">
-                                                    Clear All
+                                                <button
+                                                    onClick={() => setFilters({})}
+                                                    className="hidden lg:block w-full py-2 text-sm text-red-600 border border-red-200 rounded-md hover:bg-red-50 transition"
+                                                >
+                                                    Clear Filters
                                                 </button>
                                             )}
                                         </div>
-
-                                        {facets.map((facet) => (
-                                            <div key={facet.name} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                                                <h3 className="font-semibold mb-3 capitalize text-gray-800">
-                                                    {facet.name === 'product_cat' ? 'Categories' : facet.name}
-                                                </h3>
-                                                <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
-                                                    {facet.buckets.map((bucket) => {
-                                                        const isChecked = filters[facet.name]?.includes(bucket.key) || false;
-                                                        return (
-                                                            <label key={bucket.key} className="flex items-center gap-2 cursor-pointer group">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    className="checkbox checkbox-sm checkbox-primary rounded-sm"
-                                                                    checked={isChecked}
-                                                                    onChange={() => handleFilterChange(facet.name, bucket.key)}
-                                                                />
-                                                                <span className={`text-sm group-hover:text-blue-600 transition capitalize ${isChecked ? 'font-medium text-gray-900' : 'text-gray-600'}`}>
-                                                                    {bucket.label}
-                                                                </span>
-                                                                <span className="text-xs text-gray-400 ml-auto tabular-nums">({bucket.doc_count})</span>
-                                                            </label>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                        ))}
-
-                                        {/* Clear Filters Button (Desktop) */}
-                                        {Object.keys(filters).length > 0 && (
-                                            <button
-                                                onClick={() => setFilters({})}
-                                                className="hidden lg:block w-full py-2 text-sm text-red-600 border border-red-200 rounded-md hover:bg-red-50 transition"
-                                            >
-                                                Clear Filters
-                                            </button>
-                                        )}
                                     </aside>
                                 )}
 
@@ -271,7 +350,7 @@ export default function SearchAutosuggest({
                                                             handleClose();
                                                         }}
                                                     >
-                                                        <ProductCard product={result} userRole={userRole} />
+                                                        <ShopProductCard product={result} />
                                                     </div>
                                                 ))}
                                             </div>
