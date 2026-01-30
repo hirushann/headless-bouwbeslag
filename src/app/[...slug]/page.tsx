@@ -2,13 +2,16 @@ import React from "react";
 import { Metadata } from "next";
 import api from "@/lib/woocommerce";
 import ProductPageClient from "./ProductPageClient";
-import CategoryClient from "../categories/[slug]/CategoryClient";
+import CategoryClient from "@/components/CategoryClient";
 
 /* ----------------------------------------------------
  | Types
  ---------------------------------------------------- */
+// type PageProps = {
+//   params: Promise<{ slug: string[] }>;
+// };
 type PageProps = {
-  params: Promise<{ slug: string[] }>;
+  params: { slug: string[] };
 };
 
 interface Category {
@@ -225,25 +228,25 @@ export async function generateMetadata(
     const canonicalUrl = `${siteUrl}/${canonicalPath}`;
 
     // Clean helper
-    const cleanStr = (s?: string) => s?.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim() || "";
+    const clean = (s: string | undefined) => s ? s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim() : "";
 
     // Dynamic Category Title
     const acfTitle = category.acf?.category_meta_title;
-    let title = cleanStr(acfTitle);
+    let title = clean(acfTitle);
     
     if (!title) {
-        title = `${cleanStr(category.name)} | Bouwbeslag`;
+        title = `${clean(category.name)} | Bouwbeslag`;
     }
 
     // Dynamic Category Description
     const acfDesc = category.acf?.category_meta_description;
-    let description = cleanStr(acfDesc);
+    let description = clean(acfDesc);
 
     if (!description) {
-        const rawDesc = cleanStr(category.description);
+        const rawDesc = clean(category.description);
         description = rawDesc.length > 50 
             ? rawDesc.slice(0, 160) 
-            : `Op zoek naar ${cleanStr(category.name)}? Bekijk ons ruime assortiment. ✅ Vóór 16:00 besteld, morgen in huis! Bestel direct online.`;
+            : `Op zoek naar ${clean(category.name)}? Bekijk ons ruime assortiment. ✅ Vóór 16:00 besteld, morgen in huis! Bestel direct online.`;
     }
 
     return {
@@ -347,17 +350,17 @@ export default async function Page({ params }: PageProps) {
     const structuredData = generateStructuredData(product, taxRate);
 
     return (
-      <>
+      <React.Fragment>
         {structuredData && (
           <script
             type="application/ld+json"
             dangerouslySetInnerHTML={{
-              __html: JSON.stringify(structuredData),
+              __html: JSON.stringify(structuredData).replace(/</g, '\\u003c'),
             }}
           />
         )}
         <ProductPageClient product={product} taxRate={taxRate} slug={slug} />
-      </>
+      </React.Fragment>
     );
   }
 
@@ -372,16 +375,14 @@ export default async function Page({ params }: PageProps) {
     const subCategories = subCategoriesRes.data || [];
 
     return (
-      <React.Fragment>
-        <React.Suspense fallback={<div className="flex items-center justify-center min-h-screen">Laden...</div>}>
-          <CategoryClient
-            category={category}
-            attributes={attributes}
-            subCategories={subCategories}
-            currentSlug={slug}
-          />
-        </React.Suspense>
-      </React.Fragment>
+      <React.Suspense fallback={<div className="flex items-center justify-center min-h-screen">Laden...</div>}>
+        <CategoryClient
+          category={category}
+          attributes={attributes}
+          subCategories={subCategories}
+          currentSlug={slug}
+        />
+      </React.Suspense>
     );
   }
 
