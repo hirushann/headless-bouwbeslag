@@ -8,6 +8,7 @@ import { useUserContext } from "@/context/UserContext";
 import { checkStockAction } from "@/app/actions";
 import toast from "react-hot-toast";
 
+import { useProductAddedModal } from "@/context/ProductAddedModalContext";
 import { fixImageSrc } from "@/lib/image-utils";
 
 export default function ShopProductCard({ product }: { product: any }) {
@@ -33,6 +34,40 @@ export default function ShopProductCard({ product }: { product: any }) {
   const productTitle = product?.meta_data?.find((m: any) => m.key === "description_bouwbeslag_title")?.value || product?.name || "Untitled Product";
 
   const [isAdding, setIsAdding] = useState(false);
+  const { userRole } = useUserContext();
+  const { openModal } = useProductAddedModal();
+
+  const calculatePrice = () => {
+    const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
+    const getMeta = (k: string) => product?.meta_data?.find((m: any) => m.key === k)?.value;
+
+    const taxRate = 21;
+    const taxMultiplier = 1 + (taxRate / 100);
+
+    let sale = 0;
+
+    if (isB2B) {
+      if (product.regular_price) {
+        sale = parseFloat(product.regular_price);
+      } else if (product.price) {
+        sale = parseFloat(product.price);
+      }
+    } else {
+      sale = product.price ? parseFloat(product.price) : 0;
+      const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
+      const acfPriceRaw = getMeta(b2cKey);
+      if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
+        sale = parseFloat(acfPriceRaw);
+      }
+    }
+
+    const finalPrice = isB2B ? sale : (sale ? sale * taxMultiplier : 0);
+    
+    return {
+      cartPrice: sale,
+      displayPrice: finalPrice
+    };
+  };
 
   return (
     <div className="snap-start shrink-0 w-[100%] border border-[#E2E2E2] rounded-lg shadow-sm bg-[#F7F7F7] flex flex-col h-full">
@@ -54,7 +89,7 @@ export default function ShopProductCard({ product }: { product: any }) {
 
       <div className="flex flex-col mb-2">
           {(() => {
-             const userRole = useUserContext().userRole;
+             // const userRole = useUserContext().userRole; // Using from parent scope
              const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
              
              // Helper
@@ -170,19 +205,37 @@ export default function ShopProductCard({ product }: { product: any }) {
                // 4. Success - Add to Cart
                const customTitle = product?.meta_data?.find((m: any) => m.key === "description_bouwbeslag_title")?.value || product.name;
 
+               const { cartPrice, displayPrice } = calculatePrice();
+               const deliveryInfo = getDeliveryInfo(product.stock_status, 1, product.stock_quantity ?? null);
+
                addItem({
                   id: product.id,
                   name: customTitle,
-                  price: Number(product.sale_price || product.regular_price || product.price || 0),
+                  price: cartPrice,
                   quantity: 1,
                   image: product.images?.[0]?.src,
-                  deliveryText: getDeliveryInfo(product.stock_status, 1, product.stock_quantity ?? null).short,
-                  deliveryType: getDeliveryInfo(product.stock_status, 1, product.stock_quantity ?? null).type,
+                  deliveryText: deliveryInfo.short,
+                  deliveryType: deliveryInfo.type,
                });
-               toast.success("Product toegevoegd aan winkelwagen!");
+               
+               openModal({
+                    product,
+                    quantity: 1,
+                    totalPrice: displayPrice,
+                    currency: product.currency_symbol || "€", 
+                    userRole: userRole || undefined,
+                    musthaveprodKeys: [],
+                    matchingProducts: [],
+                    matchingKnobroseKeys: [],
+                    matchingRoseKeys: [],
+                    pcroseKeys: [],
+                    blindtoiletroseKeys: [],
+                    deliveryText: deliveryInfo.short,
+                    deliveryType: deliveryInfo.type
+               });
 
             } catch (err) {
-               console.error(err);
+              //  console.error(err);
                toast.error("Er ging iets mis. Probeer het opnieuw.");
             } finally {
                setIsAdding(false);

@@ -25,10 +25,10 @@ export const fetchCategories = async () => {
 export const fetchMedia = async (id: number | string) => {
   try {
     const res = await wpApi.get(`media/${id}`);
-    console.log("🟦 Media data for ID " + id + ":", res.data);
+    // console.log("🟦 Media data for ID " + id + ":", res.data);
     return res.data;
   } catch (error) {
-    console.error(`Error fetching media ${id}:`, error);
+    // console.error(`Error fetching media ${id}:`, error);
     // Explicitly return null if 401 or other errors occur, to avoid crashing
     return null;
   }

@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import api from "@/lib/woocommerce";
 import ShopProductCard from "@/components/ShopProductCard";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 
 const container = {
@@ -67,7 +68,7 @@ export default function CategoryClient({
   attributes,
   currentSlug,
 }: CategoryClientProps) {
-  console.log("CategoryClient received category:", category);
+  // console.log("CategoryClient received category:", category);
   const [products, setProducts] = useState<any[]>([]);
   const [rawProducts, setRawProducts] = useState<any[]>([]);
   const [selectedFilters, setSelectedFilters] = useState<{ [key: number]: Set<number> }>({});
@@ -77,19 +78,59 @@ export default function CategoryClient({
   const [sortBy, setSortBy] = useState<string>("");
   // const [activeSubCategories, setActiveSubCategories] = useState<Set<number>>(new Set()); // nested url change
   const [showFilters, setShowFilters] = useState(false);
+  
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
+  // Initialize page from URL
+  const initialPage = parseInt(searchParams.get("page") || "1");
+  const [page, setPage] = useState<number>(initialPage);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalProducts, setTotalProducts] = useState<number>(0);
+  const [allCategoryProductsForFilters, setAllCategoryProductsForFilters] = useState<any[]>([]);
+
+  // Sync state with URL when page changes
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("page", page.toString());
+    const newPathname = window.location.pathname + "?" + params.toString();
+    // Use replace to avoid bloating history
+    router.replace(newPathname, { scroll: false });
+  }, [page, router]);
 
   useEffect(() => {
-    setFiltersLoading(false);
-  }, []);
+    async function fetchFilterBase() {
+      if (!category) return;
+      setFiltersLoading(true);
+      try {
+        // Fetch a larger batch (max 100) exactly once per category to determine available filters
+        // Only fetch minimal fields to keep it fast
+        const res = await fetch(`/api/products?per_page=100&category=${category.id}&_fields=id,attributes`);
+        if (res.ok) {
+           const data = await res.json();
+          //  console.log(`🔍 Fetched ${data.length} products for global filter generation`);
+           setAllCategoryProductsForFilters(data);
+        }
+      } catch (err) {
+        // console.error("Failed to fetch filter base:", err);
+      } finally {
+        setFiltersLoading(false);
+      }
+    }
+    fetchFilterBase();
+  }, [category]);
 
   useEffect(() => {
     async function loadProducts() {
       if (!category) return;
-
+      
+      // console.log(`📦 Loading page ${page} for category ${category.name} (ID: ${category.id})`);
       setProductsLoading(true);
+      // Clear current products to show skeletons and avoid showing wrong page data
+      setProducts([]); 
 
       try {
-        let params: any = { per_page: 20 };
+        let params: any = { per_page: 20, page: page };
 
         // For nested URLs, we always just valid the current category's ID
         // The subcategory logic is now handled by navigating to a new URL
@@ -110,9 +151,14 @@ export default function CategoryClient({
         // Use local API proxy to avoid CORS
         // Convert params object to query string
         const queryString = new URLSearchParams(params as any).toString();
-        const res = await fetch(`/api/products?${queryString}`);
+        const res = await fetch(`/api/products?${queryString}`, { cache: 'no-store' });
         if (!res.ok) throw new Error('Failed to fetch products');
         
+        const totalPagesHeader = res.headers.get('x-wp-totalpages');
+        const totalItemsHeader = res.headers.get('x-wp-total');
+        if (totalPagesHeader) setTotalPages(parseInt(totalPagesHeader));
+        if (totalItemsHeader) setTotalProducts(parseInt(totalItemsHeader));
+
         const data = await res.json();
         setRawProducts(data);
         let prods = data;
@@ -133,15 +179,31 @@ export default function CategoryClient({
           );
         }
 
+        if (prods.length === 0 && data.length > 0) {
+          console.warn("⚠️ All products from current page were filtered out localy!");
+        }
+
+        // console.log(`✅ Loaded ${prods.length} products for page ${page}`);
         setProducts(prods);
       } catch (err) {
-        console.error(err);
+        // console.error(err);
       } finally {
         setProductsLoading(false);
       }
     }
 
     loadProducts();
+  }, [category, selectedFilters, sortBy, page]);
+
+  // Reset page when category OR filters OR sorting changes
+  useEffect(() => {
+    // Only reset if it's NOT the initial load from URL
+    const urlPage = parseInt(searchParams.get("page") || "1");
+    if (page !== 1 && urlPage === page) {
+       // do nothing if they already match
+    } else if (page !== 1) {
+       setPage(1);
+    }
   }, [category, selectedFilters, sortBy]);
 
   const toggleFilter = (attrId: number, termId: number) => {
@@ -177,13 +239,17 @@ export default function CategoryClient({
   // Only show attributes/terms that exist in the currently loaded `rawProducts`.
   // AND match the ACF configuration from the category
   // ------------------------------------------------------------------
-  const relevantAttributes = useMemo(() => {
-    if (!rawProducts || rawProducts.length === 0) return [];
+   const relevantAttributes = useMemo(() => {
+    // If we have products for the current page, we can at least show those.
+    // If we have the larger batch, we show all filters available in that batch.
+    const sourceProducts = allCategoryProductsForFilters.length > 0 ? allCategoryProductsForFilters : rawProducts;
+
+    if (!sourceProducts || sourceProducts.length === 0) return [];
 
     // 1. Collect all "Option Names" present for each Attribute ID
     const presentOptions = new Map<number, Set<string>>();
 
-    rawProducts.forEach((p) => {
+    sourceProducts.forEach((p) => {
       if (!Array.isArray(p.attributes)) return;
       p.attributes.forEach((pAttr: any) => {
         if (!presentOptions.has(pAttr.id)) {
@@ -208,7 +274,6 @@ export default function CategoryClient({
                     .replace(/\s+/g, '-')      
                     .replace(/[^\w\u00C0-\u00FF-]+/g, '')
                     .replace(/-+/g, '-');
-                 console.log(`🔧 Client-side Polyfilled slug for "${attr.name}": "${slug}"`);
             }
 
             let acfKey = ATTRIBUTE_TO_ACF_MAP[slug];
@@ -224,25 +289,20 @@ export default function CategoryClient({
             if (acfKey && category.acf) {
                 const isEnabled = category.acf[acfKey];
 
-                // Debug log to help user find the right mapping
-                console.log(`Attribute: ${attr.name} (${slug}) -> ACF Key: ${acfKey} -> Enabled: ${isEnabled} (Type: ${typeof isEnabled})`);
-
                 // Check for boolean false or string "false"
                 if (isEnabled === false || isEnabled === "false") {
-                     console.log(`❌ BLOCKED Attribute: ${attr.name}`);
                      return null;
                 } else {
-                     console.log(`✅ ALLOWED Attribute: ${attr.name} (ACF check passed or indeterminate)`);
+                    //  console.log(`✅ ALLOWED Attribute: ${attr.name} (ACF check passed or indeterminate)`);
                 }
             } else {
-                 console.log(`⚠️ NO ACF MAPPING/KEY for Attribute: ${attr.name} (${slug}). Defaulting to ALLOWED.`);
+                //  console.log(`⚠️ NO ACF MAPPING/KEY for Attribute: ${attr.name} (${slug}). Defaulting to ALLOWED.`);
             }
         }
 
         const presentSet = presentOptions.get(attr.id);
 
         if (!presentSet) {
-             console.log(`⚠️ Attribute: ${attr.name} has no options present in products. BLOCKED.`);
              return null; 
         }
 
@@ -261,9 +321,9 @@ export default function CategoryClient({
         };
       })
       .filter(Boolean) as Attribute[];
-  }, [rawProducts, attributes, category]);
+  }, [allCategoryProductsForFilters, rawProducts, attributes, category]);
 
-  console.log("🔥 FINAL RELEVANT ATTRIBUTES:", relevantAttributes.map(a => a.name));
+  // console.log("🔥 FINAL RELEVANT ATTRIBUTES:", relevantAttributes.map(a => a.name));
 
   const colorAttribute = relevantAttributes.find(
     (attr) => attr.name.toLowerCase() === "color"
@@ -434,6 +494,71 @@ export default function CategoryClient({
                   </motion.div>
                 ))}
               </motion.div>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex flex-col md:flex-row justify-center items-center gap-4 mt-12 mb-8">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setPage(prev => Math.max(1, prev - 1));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    disabled={page === 1}
+                    className="flex items-center gap-1 px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors font-medium cursor-pointer"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+                    Vorige
+                  </button>
+                  
+                  <div className="flex gap-1 overflow-x-auto py-1 scrollbar-hide">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                      const isVisible = totalPages <= 5 || p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1);
+                      const isEllipsis = totalPages > 5 && (p === 2 && page > 3 || p === totalPages - 1 && page < totalPages - 2);
+
+                      if (isVisible) {
+                        return (
+                          <button
+                            key={p}
+                            onClick={() => {
+                              setPage(p);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className={`w-10 h-10 flex-shrink-0 rounded-md border font-bold transition-all cursor-pointer text-sm ${
+                              page === p
+                                ? "bg-[#0066FF] border-[#0066FF] text-white shadow-md shadow-blue-100"
+                                : "bg-white border-gray-300 text-gray-600 hover:border-[#0066FF] hover:text-[#0066FF]"
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        );
+                      } else if (isEllipsis) {
+                        // Avoid double dots
+                        if (p === 2 && page > 3) return <span key={`dots-start`} className="flex items-center justify-center w-8 text-gray-400">...</span>;
+                        if (p === totalPages - 1 && page < totalPages - 2) return <span key={`dots-end`} className="flex items-center justify-center w-8 text-gray-400">...</span>;
+                      }
+                      return null;
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setPage(prev => Math.min(totalPages, prev + 1));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    disabled={page === totalPages}
+                    className="flex items-center gap-1 px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors font-medium cursor-pointer"
+                  >
+                    Volgende
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                  </button>
+                </div>
+                <div className="text-sm text-gray-500 font-medium">
+                  Pagina {page} van {totalPages} ({totalProducts} producten)
+                </div>
+              </div>
             )}
 
             {/* Category description above subcategories */}

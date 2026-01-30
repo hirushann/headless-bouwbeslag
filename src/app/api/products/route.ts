@@ -11,10 +11,16 @@ export async function GET(request: Request) {
 
     try {
         const res = await api.get('products', params);
-        // Return the response data with CORS headers handled by Next.js automatically
-        return NextResponse.json(res.data);
+
+        return NextResponse.json(res.data, {
+            headers: {
+                'x-wp-total': res.total || '0',
+                'x-wp-totalpages': res.totalPages || '0',
+                'Access-Control-Expose-Headers': 'x-wp-total, x-wp-totalpages'
+            }
+        });
     } catch (error: any) {
-        console.error('Error fetching products:', error);
+        // console.error('Error fetching products:', error);
         return NextResponse.json(
             { message: error.message || 'Error fetching products' },
             { status: 500 }

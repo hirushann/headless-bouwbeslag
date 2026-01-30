@@ -18,7 +18,7 @@ async function run() {
         query: { match_all: {} }
       }
     });
-    console.log(JSON.stringify(result.hits.hits[0], null, 2));
+    // console.log(JSON.stringify(result.hits.hits[0], null, 2));
   } catch (err) {
     console.error(err);
   }
@@ -26,5 +26,5 @@ async function run() {
 
 // Check for env vars, if not present we might fail, but usually they are in .env.lcoal
 // Since I can't load .env easily with node directly without dotenv, I'll rely on the app running it or just try to run it with run_command and hope for the best or inspect .env
-console.log("Starting...");
+// console.log("Starting...");
 // run(); 

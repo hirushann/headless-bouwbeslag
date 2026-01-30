@@ -44,7 +44,7 @@ export default function LoginPage() {
       localStorage.setItem("user", JSON.stringify(res));
       router.push("/account");
     } catch (err: any) {
-      console.error("Login error details:", err.response?.data || err);
+      // console.error("Login error details:", err.response?.data || err);
       // Try to get specific message from JWT response, fallback to generic
       const apiMessage = err.response?.data?.message;
       // Strip HTML tags if WP sends them (WP often sends <strong>ERROR</strong>...)

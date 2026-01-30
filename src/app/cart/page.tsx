@@ -20,7 +20,7 @@ export default function CartPage() {
   const updateQty = useCartStore((state) => state.updateQty);
   const clearCart = useCartStore((state) => state.clearCart);
   const total = useCartStore((state) => state.total());
-  console.log("Cart items:", items);
+  // console.log("Cart items:", items);
 
   return (
     <main className="max-w-4xl mx-auto py-10">
@@ -52,7 +52,7 @@ export default function CartPage() {
                       onChange={(e) =>
                         updateQty(item.id, Math.max(1, Number(e.target.value) || 1))
                       }
-                      className="w-14 border rounded text-center py-1"
+                      className="w-14 border rounded text-center py-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       aria-label="Quantity"
                     />
                     <button

@@ -9,7 +9,7 @@ export async function checkStockAction(productId: number) {
         const res = await api.get(`products/${productId}`);
         return { success: true, data: res.data };
     } catch (error: any) {
-        console.error("Stock check error:", error?.message);
+        // console.error("Stock check error:", error?.message);
         return { success: false, error: error?.message || "Failed to fetch stock" };
     }
 }
@@ -19,7 +19,7 @@ export async function fetchProductByIdAction(productId: number) {
         const res = await api.get(`products/${productId}`);
         return { success: true, data: res.data };
     } catch (error: any) {
-        console.error("Fetch product by ID error:", error?.message);
+        // console.error("Fetch product by ID error:", error?.message);
         return { success: false, error: error?.message || "Failed to fetch product" };
     }
 }
@@ -30,7 +30,7 @@ export async function fetchProductBySkuAction(sku: string) {
         const product = Array.isArray(res.data) && res.data.length > 0 ? res.data[0] : null;
         return { success: true, data: product };
     } catch (error: any) {
-        console.error("Fetch product by SKU error:", error?.message);
+        // console.error("Fetch product by SKU error:", error?.message);
         return { success: false, error: error?.message || "Failed to fetch product" };
     }
 }
@@ -50,7 +50,7 @@ export async function refreshCartStockAction(productIds: number[]) {
 
         return { success: true, data: updates };
     } catch (error: any) {
-        console.error("Refresh cart stock error:", error?.message);
+        // console.error("Refresh cart stock error:", error?.message);
         return { success: false, error: error?.message || "Failed to refresh stock" };
     }
 }

@@ -97,7 +97,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 localStorage.setItem("user", JSON.stringify(res.data));
             }
            } catch (apiErr) {
-             console.error("Failed to fetch user data from API:", apiErr);
+            //  console.error("Failed to fetch user data from API:", apiErr);
            }
         }
 
@@ -115,7 +115,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
       }
     } catch (e) {
-      console.error("Error checking user role:", e);
+      // console.error("Error checking user role:", e);
       setUserRole(null);
       setUser(null);
     } finally {

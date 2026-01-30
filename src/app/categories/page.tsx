@@ -65,12 +65,12 @@ export default async function Categories() {
       }
     }
   } catch (err: any) {
-    console.error("Error fetching categories:", err.response?.data || err.message);
+    // console.error("Error fetching categories:", err.response?.data || err.message);
   }
 
-  console.log("--- DEBUG CATEGORIES PAGE ---");
-  console.log("Categories found:", categories.length);
-  console.log("-----------------------------");
+  // console.log("--- DEBUG CATEGORIES PAGE ---");
+  // console.log("Categories found:", categories.length);
+  // console.log("-----------------------------");
 
   return (
     <main className="font-sans bg-[#F7F7F7] min-h-screen">

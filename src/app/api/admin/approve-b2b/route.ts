@@ -110,7 +110,7 @@ export async function GET(req: Request) {
         });
 
     } catch (error: any) {
-        console.error("Approval Error:", error.response?.data || error);
+        // console.error("Approval Error:", error.response?.data || error);
         return NextResponse.json({ message: "Error processing request", details: error.message }, { status: 500 });
     }
 }

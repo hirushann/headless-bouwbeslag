@@ -5,7 +5,7 @@ const WP_API_URL = `${(process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "").replace(
 // Login with username & password
 export async function login(username: string, password: string) {
   const url = `${WP_API_URL}/jwt-auth/v1/token`;
-  console.log("Attempting login at:", url);
+  // console.log("Attempting login at:", url);
   const res = await axios.post(url, {
     username,
     password,

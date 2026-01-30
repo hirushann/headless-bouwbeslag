@@ -8,7 +8,7 @@ import { checkStockAction } from "@/app/actions";
 import toast from "react-hot-toast";
 import { useUserContext } from "@/context/UserContext";
 
-export default function RecommendedProductItem({ item }: { item: any }) {
+export default function RecommendedProductItem({ item, onAddToCart }: { item: any, onAddToCart?: () => void }) {
     const { userRole, isLoading } = useUserContext();
     const [isAdding, setIsAdding] = useState(false);
 
@@ -100,10 +100,14 @@ export default function RecommendedProductItem({ item }: { item: any }) {
                 isMaatwerk: getMeta("crucial_data_maatwerk") === "1"
             });
             toast.success("Product toegevoegd aan winkelwagen!");
-            useCartStore.getState().setCartOpen(true);
+            if (onAddToCart) {
+                onAddToCart();
+            } else {
+                useCartStore.getState().setCartOpen(true);
+            }
 
         } catch (err) {
-            console.error(err);
+            // console.error(err);
             toast.error("Er ging iets mis.");
         } finally {
             setIsAdding(false);
@@ -125,28 +129,30 @@ export default function RecommendedProductItem({ item }: { item: any }) {
 
             {/* Content */}
             <div className="flex-1 flex flex-col lg:flex-row justify-between">
-                <div className="flex justify-center items-start flex-col w-full">
-                    <div className='max-w-[70%]'>
-                        {item.slug ? (
-                            <Link href={`/${item.slug}`} className="hover:text-blue-600 transition-colors">
+                <div className="flex justify-center items-start flex-col w-full lg:gap-1.5">
+                    <div className="flex justify-center items-start flex-row lg:flex-col w-full lg:gap-1.5">
+                        <div className='max-w-[70%]'>
+                            {item.slug ? (
+                                <Link href={`/${item.slug}`} className="hover:text-blue-600 transition-colors">
+                                    <h4 className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</h4>
+                                </Link>
+                            ) : (
                                 <h4 className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</h4>
-                            </Link>
-                        ) : (
-                            <h4 className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</h4>
-                        )}
-                    </div>
-                    <div className="flex gap-2.5 items-center">
-                        {isLoading ? (
-                            <div className="h-4 w-16 bg-gray-200 animate-pulse rounded"></div>
-                        ) : (
-                            <>
-                                <span className="text-sm font-bold text-gray-900 whitespace-nowrap">€ {finalPrice.toFixed(2).replace('.', ',')}</span>
-                                <div className="text-xs text-gray-500 font-normal">{taxLabel}</div>
-                            </>
-                        )}
+                            )}
+                        </div>
+                        <div className="flex items-center flex-col lg:flex-row lg:gap-1.5">
+                            {isLoading ? (
+                                <div className="h-4 w-16 bg-gray-200 animate-pulse rounded"></div>
+                            ) : (
+                                <>
+                                    <span className="text-sm font-bold text-gray-900 whitespace-nowrap">€ {finalPrice.toFixed(2).replace('.', ',')}</span>
+                                    <div className="text-xs text-gray-500 font-normal">{taxLabel}</div>
+                                </>
+                            )}
+                        </div>
                     </div>
                     {/* Delivery Notice */}
-                    <div className="text-xs w-full lg:w-auto mb-2 lg:mb-0">
+                    <div className="text-xs w-full lg:w-auto mb-2 lg:mb-0 ml-1">
                         {deliveryInfo.type === 'IN_STOCK' || deliveryInfo.type === 'PARTIAL_STOCK' ? (
                             <span className="text-[#03B955] font-medium flex items-center gap-1">
                                 <span className="w-2 h-2 rounded-full bg-[#03B955]"></span>
@@ -162,9 +168,7 @@ export default function RecommendedProductItem({ item }: { item: any }) {
                 </div>
 
                 <div className="flex justify-between items-center mt-2 flex-wrap gap-2">
-                    
-
-                    <div className="flex items-center gap-2 lg:ml-auto flex-col items-start lg:items-end">
+                    <div className="flex items-center gap-2 lg:ml-auto flex-row items-start lg:items-end">
                         {/* Quantity Selector */}
                         <div className="flex border border-gray-300 rounded-sm overflow-hidden bg-white h-8">
                             <button

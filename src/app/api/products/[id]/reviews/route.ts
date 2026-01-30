@@ -20,7 +20,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
         return NextResponse.json(response.data);
     } catch (error: any) {
-        console.error("Error fetching reviews:", error);
+        // console.error("Error fetching reviews:", error);
         return NextResponse.json(
             { message: error.message || "Failed to fetch reviews" },
             { status: 500 }
@@ -54,7 +54,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
         return NextResponse.json(response.data, { status: 201 });
     } catch (error: any) {
-        console.error("Error submitting review:", error);
+        // console.error("Error submitting review:", error);
         return NextResponse.json(
             { message: error.message || "Failed to submit review" },
             { status: 500 }

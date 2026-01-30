@@ -1,3 +1,4 @@
+import React from "react";
 import { Metadata } from "next";
 import api from "@/lib/woocommerce";
 import ProductPageClient from "./ProductPageClient";
@@ -43,34 +44,28 @@ async function getProductBySlug(slug: string) {
       return null;
     }
 
-    // Fetch full product
     const full = await api.get(`products/${res.data[0].id}`);
     const product = full?.data ?? null;
     
     if (!product) return null;
 
-    // Fetch brand logo if product has a brand
     if (product.brands && product.brands.length > 0) {
       const brandId = product.brands[0].id;
       
       try {
-        // Fetch brand details from wp/v2/product_brand to get ACF data
         const brandRes = await api.get(`wp/v2/product_brand/${brandId}`);
         const brandData = brandRes.data;
         
-        // Check if brand has a logo in ACF
         if (brandData?.acf?.brand_logo) {
           let logoUrl = null;
           const logoData = brandData.acf.brand_logo;
           
-          // Handle different logo data formats
           if (typeof logoData === 'number') {
-            // Logo is a media ID, fetch the media URL
             try {
               const mediaRes = await api.get(`wp/v2/media/${logoData}`);
               logoUrl = mediaRes.data?.source_url || null;
             } catch (e) {
-              console.error("Failed to fetch brand logo media:", e);
+              // console.error("Failed to fetch brand logo media:", e);
             }
           } else if (typeof logoData === 'string') {
             // Logo is already a URL
@@ -86,14 +81,14 @@ async function getProductBySlug(slug: string) {
           }
         }
       } catch (e) {
-        console.error("Failed to fetch brand data:", e);
+        // console.error("Failed to fetch brand data:", e);
         // Continue without brand logo rather than failing the whole request
       }
     }
     
     return product;
   } catch (error) {
-    console.error("SSR product fetch failed:", error);
+    // console.error("SSR product fetch failed:", error);
     return null;
   }
 }
@@ -104,7 +99,7 @@ async function getCategoryBySlug(slug: string): Promise<Category | null> {
     if (!res.data || res.data.length === 0) return null;
     return res.data[0];
   } catch (error) {
-    console.error("SSR category fetch failed:", error);
+    // console.error("SSR category fetch failed:", error);
     return null;
   }
 }
@@ -128,7 +123,7 @@ async function fetchAttributes(): Promise<Attribute[]> {
 
     return attributesWithTerms;
   } catch (error) {
-    console.error("Attributes fetch failed:", error);
+    // console.error("Attributes fetch failed:", error);
     return [];
   }
 }
@@ -151,7 +146,7 @@ async function getStandardTaxRate(): Promise<number> {
     const standard = rates.find((r: any) => r.class === "standard" || r.class === "");
     return standard && standard.rate ? parseFloat(standard.rate) : 21;
   } catch (error) {
-    console.error("Tax fetch failed, defaulting to 21:", error);
+    // console.error("Tax fetch failed, defaulting to 21:", error);
     return 21;
   }
 }
@@ -374,12 +369,16 @@ export default async function Page({ params }: PageProps) {
     const subCategories = subCategoriesRes.data || [];
 
     return (
-      <CategoryClient
-        category={category}
-        attributes={attributes}
-        subCategories={subCategories}
-        currentSlug={slug}
-      />
+      <React.Fragment>
+        <React.Suspense fallback={<div className="flex items-center justify-center min-h-screen">Laden...</div>}>
+          <CategoryClient
+            category={category}
+            attributes={attributes}
+            subCategories={subCategories}
+            currentSlug={slug}
+          />
+        </React.Suspense>
+      </React.Fragment>
     );
   }
 

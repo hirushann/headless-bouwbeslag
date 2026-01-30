@@ -9,10 +9,10 @@ https.get('https://app.bouwbeslag.nl/wp-json', (res) => {
     try {
       const json = JSON.parse(data);
       if (json.namespaces && json.namespaces.includes('jwt-auth/v1')) {
-        console.log('jwt-auth/v1 is PRESENT');
+        // console.log('jwt-auth/v1 is PRESENT');
       } else {
-        console.log('jwt-auth/v1 is MISSING');
-        console.log('Available namespaces:', json.namespaces);
+        // console.log('jwt-auth/v1 is MISSING');
+        // console.log('Available namespaces:', json.namespaces);
       }
     } catch (e) {
       console.error('Error parsing JSON:', e.message);

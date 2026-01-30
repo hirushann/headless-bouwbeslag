@@ -17,10 +17,10 @@ export async function checkOrderStatusAction(orderId: number) {
 
         // Check if it's still pending but should be processing
         if ((order.status === 'pending' || order.status === 'pending-payment') && order.transaction_id) {
-            console.log(`🔎 Order ${orderId} is still pending but has transaction_id. Checking Mollie...`);
+            // console.log(`🔎 Order ${orderId} is still pending but has transaction_id. Checking Mollie...`);
             const payment = await mollieClient.payments.get(order.transaction_id);
             if (payment.status === 'paid') {
-                console.log(`✅ Mollie says paid! Updating order ${orderId} to processing...`);
+                // console.log(`✅ Mollie says paid! Updating order ${orderId} to processing...`);
                 await updateOrder(orderId, {
                     status: 'processing',
                     set_paid: true
@@ -36,7 +36,7 @@ export async function checkOrderStatusAction(orderId: number) {
             total: order.total
         };
     } catch (error) {
-        console.error("Failed to check order status:", error);
+        // console.error("Failed to check order status:", error);
         return { success: false, message: "Error checking status" };
     }
 }
@@ -52,7 +52,7 @@ export async function getShippingRatesAction() {
         // rates is now ShippingMethod[]
         return { success: true, methods: rates };
     } catch (error) {
-        console.error("Failed to fetch shipping rates:", error);
+        // console.error("Failed to fetch shipping rates:", error);
         return { success: false, methods: [] };
     }
 }
@@ -64,23 +64,23 @@ export async function validateCouponAction(
     email: string = ""
 ) {
     try {
-        console.log(`Validating coupon '${code}'. Total: ${cartTotal}, Items: ${cartItems.length}, Email: ${email}`);
+        // console.log(`Validating coupon '${code}'. Total: ${cartTotal}, Items: ${cartItems.length}, Email: ${email}`);
 
         const coupon = await getCouponByCode(code);
 
         if (!coupon) {
-            console.log("Coupon not found");
+            // console.log("Coupon not found");
             return { success: false, message: "Invalid coupon code" };
         }
 
-        console.log("Coupon details:", {
-            id: coupon.id,
-            code: coupon.code,
-            min: coupon.minimum_amount,
-            max: coupon.maximum_amount,
-            expiry: coupon.date_expires,
-            product_ids: coupon.product_ids
-        });
+        // console.log("Coupon details:", {
+        //     id: coupon.id,
+        //     code: coupon.code,
+        //     min: coupon.minimum_amount,
+        //     max: coupon.maximum_amount,
+        //     expiry: coupon.date_expires,
+        //     product_ids: coupon.product_ids
+        // });
 
         // 1. Expiry Check
         if (coupon.date_expires) {
@@ -149,7 +149,7 @@ export async function validateCouponAction(
 
         return { success: true, coupon };
     } catch (error) {
-        console.error("Failed to validate coupon:", error);
+        // console.error("Failed to validate coupon:", error);
         return { success: false, message: "Error validating coupon" };
     }
 }
@@ -165,7 +165,7 @@ export async function getPaymentMethodsAction() {
         }));
         return { success: true, methods: serializableMethods };
     } catch (error) {
-        console.error("Failed to fetch payment methods:", error);
+        // console.error("Failed to fetch payment methods:", error);
         // Fallback to empty list, UI handles it
         return { success: false, methods: [] };
     }
@@ -173,7 +173,7 @@ export async function getPaymentMethodsAction() {
 
 export async function placeOrderAction(data: any) {
     try {
-        console.log("🚀 Starting placeOrderAction. Input data:", JSON.stringify(data, null, 2));
+        // console.log("🚀 Starting placeOrderAction. Input data:", JSON.stringify(data, null, 2));
 
         const order = await createOrder(
             data.cart,
@@ -188,14 +188,14 @@ export async function placeOrderAction(data: any) {
             data.fee_lines || [] // Pass fee lines (e.g., card payment fee)
         );
 
-        console.log("📦 WooCommerce Order Created:", JSON.stringify({
-            id: order?.id,
-            total: order?.total,
-            total_tax: order?.total_tax,
-            shipping_total: order?.shipping_total,
-            shipping_tax: order?.shipping_tax,
-            status: order?.status
-        }, null, 2));
+        // console.log("📦 WooCommerce Order Created:", JSON.stringify({
+        //     id: order?.id,
+        //     total: order?.total,
+        //     total_tax: order?.total_tax,
+        //     shipping_total: order?.shipping_total,
+        //     shipping_tax: order?.shipping_tax,
+        //     status: order?.status
+        // }, null, 2));
 
         if (order && order.id) {
             const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
@@ -206,7 +206,7 @@ export async function placeOrderAction(data: any) {
             const webhookUrl = isLocal ? undefined : `${siteUrl}/api/webhooks/mollie`;
 
             const paymentValue = parseFloat(order.total).toFixed(2);
-            console.log(`💳 Creating Mollie Payment. Value: ${paymentValue}, Webhook: ${webhookUrl}`);
+            // console.log(`💳 Creating Mollie Payment. Value: ${paymentValue}, Webhook: ${webhookUrl}`);
 
             // Create Mollie Payment
             const payment = await mollieClient.payments.create({
@@ -223,15 +223,15 @@ export async function placeOrderAction(data: any) {
                 method: data.mollie_method_id, // Pass selected method to Mollie
             });
 
-            console.log("💸 Mollie Payment Response:", JSON.stringify({
-                id: payment?.id,
-                status: payment?.status,
-                checkoutUrl: payment?._links?.checkout?.href
-            }, null, 2));
+            // console.log("💸 Mollie Payment Response:", JSON.stringify({
+            //     id: payment?.id,
+            //     status: payment?.status,
+            //     checkoutUrl: payment?._links?.checkout?.href
+            // }, null, 2));
 
             // CRITICAL: Save the payment ID to the order
             if (payment && payment.id) {
-                console.log(`📝 Saving transaction_id ${payment.id} to order ${order.id}...`);
+                // console.log(`📝 Saving transaction_id ${payment.id} to order ${order.id}...`);
                 await updateOrder(order.id, {
                     transaction_id: payment.id
                 });
@@ -243,7 +243,7 @@ export async function placeOrderAction(data: any) {
         }
         return { success: false, message: "Failed to create order" };
     } catch (error: any) {
-        console.error("❌ Failed to place order:", error);
+        // console.error("❌ Failed to place order:", error);
         // Return the actual error message for debugging
         return { success: false, message: error.message || "An unexpected error occurred" };
     }
@@ -253,7 +253,7 @@ export async function placeOrderAction(data: any) {
 
 export async function checkPostcodeAction(postcode: string, number: string) {
     try {
-        console.log(`Checking postcode with Axios: ${postcode}, number: ${number}`);
+        // console.log(`Checking postcode with Axios: ${postcode}, number: ${number}`);
 
         const config = {
             method: 'get',
@@ -268,10 +268,10 @@ export async function checkPostcodeAction(postcode: string, number: string) {
 
         return { success: true, data: response.data };
     } catch (error: any) {
-        console.error("Failed to check postcode (Axios):", error.message);
+        // console.error("Failed to check postcode (Axios):", error.message);
         if (error.response) {
-            console.error("Error response status:", error.response.status);
-            console.error("Error response data:", JSON.stringify(error.response.data));
+            // console.error("Error response status:", error.response.status);
+            // console.error("Error response data:", JSON.stringify(error.response.data));
             if (error.response.status === 404) {
                 return { success: false, message: "Address not found" };
             }
@@ -299,7 +299,7 @@ export async function validateVatAction(vatNumber: string) {
             return { success: true, valid: false, message: "Ongeldig BTW-nummer" };
         }
     } catch (error: any) {
-        console.error("VAT Validation Failed:", error);
+        // console.error("VAT Validation Failed:", error);
         return { success: false, message: "Kon BTW-nummer niet controleren. Probeer het later opnieuw." };
     }
 }

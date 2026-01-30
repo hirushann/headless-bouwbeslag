@@ -104,12 +104,12 @@ export const syncAddItem = async (productId: number, quantity: number) => {
     const cartRes = await fetchRemoteCart();
     let nonce = cartRes?.nonce;
 
-    console.log(`Syncing add: Adding product ${productId} with Nonce: ${nonce ? 'Yes' : 'No'}`);
+    // console.log(`Syncing add: Adding product ${productId} with Nonce: ${nonce ? 'Yes' : 'No'}`);
     const result = await addItemToRemoteCart(productId, quantity, nonce);
     if (!result) {
-        console.error("Syncing add failed: Check proxy logs.");
+        // console.error("Syncing add failed: Check proxy logs.");
     } else {
-        console.log("Syncing add success:", result);
+        // console.log("Syncing add success:", result);
     }
 };
 

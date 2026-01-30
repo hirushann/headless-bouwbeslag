@@ -44,7 +44,7 @@ function SuccessContent() {
                 setStatus('failed');
             }
         } catch (error) {
-            console.error(error);
+            // console.error(error);
             setStatus('failed');
         } finally {
             setLoading(false);
