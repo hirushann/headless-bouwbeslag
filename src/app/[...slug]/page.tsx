@@ -375,14 +375,16 @@ export default async function Page({ params }: PageProps) {
     const subCategories = subCategoriesRes.data || [];
 
     return (
-      <React.Suspense fallback={<div className="flex items-center justify-center min-h-screen">Laden...</div>}>
-        <CategoryClient
-          category={category}
-          attributes={attributes}
-          subCategories={subCategories}
-          currentSlug={slug}
-        />
-      </React.Suspense>
+      <React.Fragment>
+        <React.Suspense fallback={<div className="flex items-center justify-center min-h-screen">Laden...</div>}>
+          <CategoryClient
+            category={category}
+            attributes={attributes}
+            subCategories={subCategories}
+            currentSlug={slug}
+          />
+        </React.Suspense>
+      </React.Fragment>
     );
   }
 
