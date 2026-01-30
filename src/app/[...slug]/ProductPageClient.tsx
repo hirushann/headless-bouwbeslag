@@ -948,22 +948,24 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
 
                     {/* Thumbnails Carousel with slice-based logic */}
                     <div className="flex items-center gap-2 mt-2">
-                      <button type="button" onClick={() => setThumbIndex((prev) => Math.max(0, prev - 1))} className="w-8 h-8 flex items-center justify-center rounded-full border border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer" aria-label="Previous thumbnails" disabled={thumbIndex === 0} style={{ opacity: thumbIndex === 0 ? 0.5 : 1 }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-                      </button>
+                      {galleryImages.length > 4 && (
+                        <button type="button" onClick={() => setThumbIndex((prev) => Math.max(0, prev - 1))} className="w-8 h-8 flex items-center justify-center rounded-full border border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer" aria-label="Previous thumbnails" disabled={thumbIndex === 0} style={{ opacity: thumbIndex === 0 ? 0.5 : 1 }}>
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                        </button>
+                      )}
                       <div className="grid grid-cols-4 gap-4 pb-1 w-[90%]">
                         {(galleryImages && galleryImages.length > 0 ? galleryImages : [])
                           .slice(thumbIndex, thumbIndex + 4)
                           .map((thumb, idx) => {
-                            // Use global index for aria-label and key
-                            const globalIdx = thumbIndex + idx;
+                            const globalIdx = thumbIndex + idx; // Use global index for aria-label and key
                             return (
-                              <button key={globalIdx} onClick={() => setSelectedImage(thumb.src)} className={`border rounded-md overflow-hidden flex-shrink-0 transition-all ${selectedImage === thumb.src ? 'border-blue-600 ring-2 ring-blue-100' : 'border-gray-200 hover:border-blue-400'}`} aria-label={`Thumbnail ${globalIdx + 1}`} type="button">
-                                <img src={thumb.src} alt={`Thumbnail ${globalIdx + 1}`} className="w-full h-full object-cover" />
-                              </button>
+                                <button key={globalIdx} onClick={() => setSelectedImage(thumb.src)} className={`items-center justify-center border aspect-square rounded-md overflow-hidden flex-shrink-0 transition-all ${selectedImage === thumb.src ? 'border-blue-600 ring-2 ring-blue-100' : 'border-gray-200 hover:border-blue-400'}`} aria-label={`Thumbnail ${globalIdx + 1}`} type="button">
+                                <img src={thumb.src} alt={`Thumbnail ${globalIdx + 1}`} className="w-full h-full object-contain" />
+                                </button>
                             );
                           })}
                       </div>
+                      {galleryImages.length > 4 && (
                       <button type="button"
                         onClick={() =>
                           setThumbIndex((prev) =>
@@ -989,6 +991,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                       </button>
+                      )}
                     </div>
 
             {/* Unified Related Products Section */}
@@ -998,7 +1001,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
               matchingRoseKeys.length > 0 || 
               pcroseKeys.length > 0 || 
               blindtoiletroseKeys.length > 0) && (
-              <motion.div initial="visible" animate="visible" variants={fadeInUp} className="mt-8 space-y-8">
+              <motion.div initial="visible" animate="visible" variants={fadeInUp} className="mt-8 space-y-8 hidden lg:block">
                 
                 {/* 1. Must Have Products */}
                 {musthaveprodKeys.length > 0 && (
@@ -1098,7 +1101,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                 <img
                   src={brandImageUrl}
                   alt="Brand Logo"
-                  className="h-10 w-auto object-contain"
+                  className="h-10 w-auto object-contain hidden lg:block"
                 />
               )}
 
@@ -1564,36 +1567,101 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                         </div>
                     </div>
                     </motion.div>
-                    {(matchingProducts.length > 0 ||
-                      matchingKnobroseKeys.length > 0 ||
-                      matchingRoseKeys.length > 0 ||
-                      pcroseKeys.length > 0 ||
-                      blindtoiletroseKeys.length > 0 ||
-                      musthaveprodKeys.length > 0
-                    ) && (
-                    <div className='text-[#1C2530] font-bold text-3xl mt-8 lg:hidden block'>
-                        <h3>Handig om erbij te bestellen</h3>
-                        <div className='grid grid-cols-1 lg:grid-cols-3 gap-2 lg:gap-4 mt-4'>
-                          {matchingProducts.length > 0 && (
-                            <button onClick={() => scrollToSection("accessories-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende accessoires</button>
-                          )}
-                          {matchingKnobroseKeys.length > 0 && (
-                            <button onClick={() => scrollToSection("knobroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende rozetten</button>
-                          )}
-                          {matchingRoseKeys.length > 0 && (
-                            <button onClick={() => scrollToSection("matchingroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende sleutelrozetten</button>
-                          )}
-                          {pcroseKeys.length > 0 && (
-                            <button onClick={() => scrollToSection("pcroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende cilinderrozetten</button>
-                          )}
-                          {blindtoiletroseKeys.length > 0 && (
-                            <button onClick={() => scrollToSection("blindtoiletroses-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Bijpassende blinde rozetten</button>
-                          )}
-                          {musthaveprodKeys.length > 0 && (
-                            <button onClick={() => scrollToSection("musthaveprod-section")} className='border border-[#0066FF1A] bg-[#0066FF1A] py-2.5 cursor-pointer text-[#0066FF] font-bold text-base rounded-sm hover:bg-white'>Aanbevolen</button>
-                          )}   
-                        </div>
-                    </div>
+
+                    {/* Unified Related Products Section */}
+                    {(musthaveprodKeys.length > 0 || 
+                      matchingProducts.length > 0 || 
+                      matchingKnobroseKeys.length > 0 || 
+                      matchingRoseKeys.length > 0 || 
+                      pcroseKeys.length > 0 || 
+                      blindtoiletroseKeys.length > 0) && (
+                      <motion.div initial="visible" animate="visible" variants={fadeInUp} className="mt-8 space-y-8 block lg:hidden">
+                        
+                        {/* 1. Must Have Products */}
+                        {musthaveprodKeys.length > 0 && (
+                          <div id="musthaveprod-section">
+                            <div className="mb-4">
+                              <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Aanbevolen producten</h3>
+                            </div>
+                            <div className="space-y-3">
+                              {musthaveprodKeys.map((item, index) => (
+                                <RecommendedProductItem key={item.id || index} item={item} />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 2. Accessories */}
+                        {matchingProducts.length > 0 && (
+                          <div id="accessories-section">
+                            <div className="mb-4">
+                                <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende accessoires</h3>
+                            </div>
+                            <div className="space-y-3">
+                                {matchingProducts.map((item, index) => (
+                                  <RecommendedProductItem key={item.id || index} item={item} />
+                                ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 3. Matching Knob Roses */}
+                        {matchingKnobroseKeys.length > 0 && (
+                          <div id="knobroses-section">
+                              <div className="mb-4">
+                                  <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende rozetten</h3>
+                              </div>
+                              <div className="space-y-3">
+                                  {matchingKnobroseKeys.map((item, index) => (
+                                      <RecommendedProductItem key={item.id || index} item={item} />
+                                  ))}
+                              </div>
+                          </div>
+                        )}
+
+                        {/* 4. Matching Key Roses */}
+                        {matchingRoseKeys.length > 0 && (
+                          <div id="matchingroses-section">
+                              <div className="mb-4">
+                                  <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende sleutelrozetten</h3>
+                              </div>
+                              <div className="space-y-3">
+                                  {matchingRoseKeys.map((item, index) => (
+                                      <RecommendedProductItem key={item.id || index} item={item} />
+                                  ))}
+                              </div>
+                          </div>
+                        )}
+
+                        {/* 5. PC Roses */}
+                        {pcroseKeys.length > 0 && (
+                          <div id="pcroses-section">
+                              <div className="mb-4">
+                                  <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende cilinderrozetten</h3>
+                              </div>
+                              <div className="space-y-3">
+                                  {pcroseKeys.map((item, index) => (
+                                      <RecommendedProductItem key={item.id || index} item={item} />
+                                  ))}
+                              </div>
+                          </div>
+                        )}
+
+                        {/* 6. Blind / Toilet Roses */}
+                        {blindtoiletroseKeys.length > 0 && (
+                          <div id="blindtoiletroses-section">
+                              <div className="mb-4">
+                                  <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende blinde rozetten</h3>
+                              </div>
+                              <div className="space-y-3">
+                                  {blindtoiletroseKeys.map((item, index) => (
+                                      <RecommendedProductItem key={item.id || index} item={item} />
+                                  ))}
+                              </div>
+                          </div>
+                        )}
+
+                      </motion.div>
                     )}
             </div>
 
@@ -2495,7 +2563,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                     isQuantityInvalid ||
                     isStockLimitReached
                   }
-                  className={`cursor-pointer flex-1 px-2.5 py-1.5 rounded-sm transition font-semibold flex items-center justify-center gap-3 w-full text-sm
+                  className={`cursor-pointer flex-1 px-2.5 py-2.5 rounded-sm transition font-semibold flex items-center justify-center gap-3 w-full text-sm
                             ${isOutOfStock || isQuantityInvalid || isStockLimitReached
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-blue-600 text-white hover:bg-blue-700"
