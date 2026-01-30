@@ -44,29 +44,23 @@ async function getProductBySlug(slug: string) {
       return null;
     }
 
-    // Fetch full product
     const full = await api.get(`products/${res.data[0].id}`);
     const product = full?.data ?? null;
     
     if (!product) return null;
 
-    // Fetch brand logo if product has a brand
     if (product.brands && product.brands.length > 0) {
       const brandId = product.brands[0].id;
       
       try {
-        // Fetch brand details from wp/v2/product_brand to get ACF data
         const brandRes = await api.get(`wp/v2/product_brand/${brandId}`);
         const brandData = brandRes.data;
         
-        // Check if brand has a logo in ACF
         if (brandData?.acf?.brand_logo) {
           let logoUrl = null;
           const logoData = brandData.acf.brand_logo;
           
-          // Handle different logo data formats
           if (typeof logoData === 'number') {
-            // Logo is a media ID, fetch the media URL
             try {
               const mediaRes = await api.get(`wp/v2/media/${logoData}`);
               logoUrl = mediaRes.data?.source_url || null;

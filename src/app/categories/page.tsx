@@ -13,31 +13,23 @@ interface Category {
   count: number;
 }
 
-export async function generateMetadata(): Promise<Metadata> {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
-
-  const title = "Shop categories | Bouwbeslag";
-  const description =
-    "Bekijk alle productcategorieën bij Bouwbeslag. Ontdek hoogwaardige deurklinken, beslag en accessoires met snelle levering en garantie.";
-
-  return {
-    title,
-    description,
-    alternates: {
-      canonical: `${siteUrl}/categories`,
-    },
-    openGraph: {
-      title,
-      description,
-      url: `${siteUrl}/categories`,
-      type: "website",
-    },
-    robots: {
-      index: true,
-      follow: true,
-    },
-  };
-}
+export const metadata: Metadata = {
+  title: "Shop categories | Bouwbeslag",
+  description: "Bekijk alle productcategorieën bij Bouwbeslag. Ontdek hoogwaardige deurklinken, beslag en accessoires met snelle levering en garantie.",
+  alternates: {
+    canonical: `${process.env.NEXT_PUBLIC_SITE_URL || ""}/categories`,
+  },
+  openGraph: {
+    title: "Shop categories | Bouwbeslag",
+    description: "Bekijk alle productcategorieën bij Bouwbeslag. Ontdek hoogwaardige deurklinken, beslag en accessoires met snelle levering en garantie.",
+    url: `${process.env.NEXT_PUBLIC_SITE_URL || ""}/categories`,
+    type: "website",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
 
 export default async function Categories() {
   let categories: Category[] = [];
