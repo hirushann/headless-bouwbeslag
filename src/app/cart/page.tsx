@@ -52,7 +52,7 @@ export default function CartPage() {
                       onChange={(e) =>
                         updateQty(item.id, Math.max(1, Number(e.target.value) || 1))
                       }
-                      className="w-14 border rounded text-center py-1"
+                      className="w-14 border rounded text-center py-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       aria-label="Quantity"
                     />
                     <button

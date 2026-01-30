@@ -206,7 +206,7 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods }: CartDra
                   <div className="flex w-full lg:w-auto flex-row-reverse lg:flex-col items-center lg:items-end gap-2">
                     <div className="flex items-center border border-[#EDEDED] shadow-xs rounded-sm w-auto">
                       <button onClick={() => decreaseQuantity(item.id)} aria-label={`${item.name} aantal verlagen`} className="border-r border-[#EDEDED] cursor-pointer px-3 py-1 text-lg font-bold text-gray-700 hover:bg-gray-200">−</button>
-                      <input type="number" min={1} aria-label="Aantal" className="w-14 text-center px-2 py-1 outline-none" value={item.quantity} onChange={(e) => useCartStore.getState().updateQty(item.id, Math.max(1, parseInt(e.target.value) || 1))} />
+                      <input type="number" min={1} aria-label="Aantal" className="w-14 text-center px-2 py-1 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" value={item.quantity} onChange={(e) => useCartStore.getState().updateQty(item.id, Math.max(1, parseInt(e.target.value) || 1))} />
                       <button onClick={() => increaseQuantity(item.id)} aria-label={`${item.name} aantal verhogen`} className="border-l border-[#EDEDED] cursor-pointer px-3 py-1 text-lg font-bold text-gray-700 hover:bg-gray-200">+</button>
                     </div>
                     <span className="font-bold text-lg flex flex-col">

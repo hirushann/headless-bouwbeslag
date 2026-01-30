@@ -24,10 +24,12 @@ function normalizeImageUrl(url?: string): string {
 }
 
 import { useUserContext } from "@/context/UserContext";
+import { useProductAddedModal } from "@/context/ProductAddedModalContext";
 
 export default function ProductCard({ product, userRole: propUserRole }: { product: any; userRole?: string[] | null }) {
   const { userRole: contextUserRole, isLoading } = useUserContext();
   const userRole = propUserRole || contextUserRole;
+  const { openModal } = useProductAddedModal();
 
   // Format price safely (remove weird HTML entities)
   const cleanPrice = (price: string) =>
@@ -177,17 +179,29 @@ export default function ProductCard({ product, userRole: propUserRole }: { produ
                }
 
                // 4. Success - Add to Cart
+               const deliveryInfo = getDeliveryInfo(product.stock_status, 1, product.stock_quantity ?? null);
+
                addItem({
                   id: product.id,
                   name: product.name,
                   price: sale !== null ? sale : Number(product.regular_price || product.price || 0),
                   quantity: 1,
                   image: product.images?.[0]?.src,
-                  deliveryText: getDeliveryInfo(product.stock_status, 1, product.stock_quantity ?? null).short,
-                  deliveryType: getDeliveryInfo(product.stock_status, 1, product.stock_quantity ?? null).type,
+                  deliveryText: deliveryInfo.short,
+                  deliveryType: deliveryInfo.type,
                   slug: product.slug,
                });
-               toast.success("Product toegevoegd aan winkelwagen!");
+               
+               openModal({
+                    product,
+                    quantity: 1,
+                    totalPrice: finalPrice ?? (product.price ? parseFloat(product.price) : 0),
+                    currency: product.currency_symbol || "€", 
+                    userRole: userRole || undefined,
+                    musthaveprodKeys: [],
+                    deliveryText: deliveryInfo.short,
+                    deliveryType: deliveryInfo.type
+               });
 
             } catch (err) {
                console.error(err);
