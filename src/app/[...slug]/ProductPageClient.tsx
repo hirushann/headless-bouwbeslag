@@ -1198,7 +1198,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                           </span>
                         </div>
                         {packingType && (
-                          <span className="text-md font-normal text-[#3D4752]">
+                          <span className="text-md font-normal text-[#3D4752] lowercase">
                             per {packingType}
                           </span>
                         )}
@@ -1422,7 +1422,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                     {currency}{displayBasePrice.toFixed(2)}
                   </span>
                 )}
-                {packingType && `per ${packingType}`}
+                <span className="text-md font-normal text-[#3D4752] lowercase">{packingType && `per ${packingType}`}</span>
               </div>
 
               <div className="flex border border-[#EDEDED] shadow-xs rounded-sm overflow-hidden bg-white w-auto">
