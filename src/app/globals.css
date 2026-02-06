@@ -31,8 +31,6 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
   overflow-x: hidden;
-  overscroll-behavior: none;
-  touch-action: pan-x pan-y;
 }
 
 .collapse-arrow > .collapse-title:after{

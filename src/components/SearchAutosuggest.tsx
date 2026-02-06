@@ -27,7 +27,7 @@ function FilterGroup({
                 className="flex items-center justify-between w-full group"
             >
                 <h3 className="font-semibold text-base capitalize text-gray-800">
-                    {facet.name === "product_cat" ? "Categories" : facet.name}
+                    {facet.name === "product_cat" ? "Categorieën" : facet.name}
                 </h3>
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -300,7 +300,7 @@ export default function SearchAutosuggest({
                                             <div className="flex items-center justify-between lg:hidden mb-2 px-1">
                                                 {Object.keys(filters).length > 0 && (
                                                     <button onClick={() => setFilters({})} className="text-sm text-red-500 hover:text-red-600 font-medium">
-                                                        Clear All Filters
+                                                        Alle filters wissen
                                                     </button>
                                                 )}
                                             </div>
@@ -320,7 +320,7 @@ export default function SearchAutosuggest({
                                                     onClick={() => setFilters({})}
                                                     className="hidden lg:block w-full py-2 text-sm text-red-600 border border-red-200 rounded-md hover:bg-red-50 transition"
                                                 >
-                                                    Clear Filters
+                                                    Filters wissen
                                                 </button>
                                             )}
                                         </div>
@@ -337,7 +337,7 @@ export default function SearchAutosuggest({
                                         </div>
                                     ) : results.length > 0 ? (
                                         <>
-                                            <p className="text-sm text-gray-500 mb-4">{results.length} results found</p>
+                                            <p className="text-sm text-gray-500 mb-4">{results.length} resultaten gevonden</p>
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                                 {results.map((result) => (
                                                     <div
@@ -363,8 +363,8 @@ export default function SearchAutosuggest({
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                                 </svg>
                                             </div>
-                                            <h3 className="text-lg font-medium text-gray-900">No results found</h3>
-                                            <p className="text-gray-500">Try adjusting your search or filters.</p>
+                                            <h3 className="text-lg font-medium text-gray-900">Geen resultaten gevonden</h3>
+                                            <p className="text-gray-500">Probeer uw zoekopdracht of filters aan te passen.</p>
                                         </div>
                                     )}
                                 </main>

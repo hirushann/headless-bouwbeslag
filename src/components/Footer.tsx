@@ -77,8 +77,8 @@ export default function Footer() {
           <div className="mt-5 lg:mt-0">
             <p className="text-white font-bold text-xl mb-5">Contactgegevens</p>
             <div className="flex flex-col gap-3">
-              <p className="text-white font-medium text-base">contact@bouwbeslag.nl</p>
-              <a href="tel:0031578760508" className="text-white font-medium text-base hover:underline">0578-760508</a>
+              <Link href="mailto:contact@bouwbeslag.nl" className="text-white font-medium text-base">contact@bouwbeslag.nl</Link>
+              <Link href="tel:0031578760508" className="text-white font-medium text-base hover:underline">0578-760508</Link>
               <p className="text-white font-medium text-base">KVK: 77245350</p>
               <p className="text-white font-medium text-base">BTW: NL003174000B88</p>
             </div>

@@ -99,6 +99,8 @@ export default function ShopProductCard({ product }: { product: any }) {
             const taxRate = 21;
             const taxMultiplier = 1 + (taxRate / 100);
 
+
+
             let sale = 0;
 
             if (isB2B) {
