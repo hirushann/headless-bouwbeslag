@@ -774,6 +774,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         ? parseInt(totalStockMeta, 10)
         : (typeof wcProduct.stock_quantity === "number" ? wcProduct.stock_quantity : null);
 
+      console.log("🟦 [checkStockBeforeAdd] Resolved Total Stock:", totalStock, "Original Stock Qty:", wcProduct.stock_quantity);
 
       // If stock management enabled, validate quantity ONLY if backorders are NOT allowed
       if (
@@ -825,6 +826,14 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
       const leadTimeInStock = stockLeadRaw && !isNaN(parseInt(stockLeadRaw)) ? parseInt(stockLeadRaw) : 1;
       const leadTimeNoStock = noStockLeadRaw && !isNaN(parseInt(noStockLeadRaw)) ? parseInt(noStockLeadRaw) : 30;
 
+      console.log("🟦 [handleAddToCart] Delivery Params:", {
+         stockStatus: product.stock_status,
+         quantity,
+         availableStock,
+         leadTimeInStock,
+         leadTimeNoStock
+      });
+
       const deliveryInfo = getDeliveryInfo(
         product.stock_status,
         quantity,
@@ -832,6 +841,8 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         leadTimeInStock,
         leadTimeNoStock
       );
+      
+      console.log("🟦 [handleAddToCart] Calculated Delivery Info:", deliveryInfo);
 
       await addItem({
         id: product.id,
