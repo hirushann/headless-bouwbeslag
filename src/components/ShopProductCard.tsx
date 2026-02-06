@@ -107,7 +107,7 @@ export default function ShopProductCard({ product }: { product: any }) {
                      sale = parseFloat(product.regular_price);
                  } else if (product.price) {
                      sale = parseFloat(product.price);
-                 }
+                 }  
              } else {
                  // B2C: Standard logic (ACF or Price)
                  sale = product.price ? parseFloat(product.price) : 0;

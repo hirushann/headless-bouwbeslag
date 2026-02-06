@@ -87,7 +87,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
   // 1) Categories (Deep Hierarchy)
-  const allCategories = await fetchAllWoo("products/categories", { hide_empty: false });
+  // Optimize: Only fetch fields needed for path building + lastModified
+  const allCategories = await fetchAllWoo("products/categories", {
+    hide_empty: false,
+    _fields: "id,slug,parent,date_modified"
+  });
 
   // Build a map for fast parent lookup
   const catMap = new Map();
@@ -116,7 +120,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }));
 
   // 2) Products (Woo)
-  const allProducts = await fetchAllWoo("products", { status: "publish" });
+  // Optimize: Select strictly needed fields. 
+  // We need: slug, date_modified, status, catalog_visibility, meta_data (for custom slug)
+  const allProducts = await fetchAllWoo("products", {
+    status: "publish",
+    _fields: "id,slug,date_modified,status,catalog_visibility,meta_data"
+  });
 
   const products: MetadataRoute.Sitemap = allProducts
     .filter((p: any) => p?.slug && p?.status === "publish")
@@ -131,17 +140,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     });
 
   // 3) Blog posts (WordPress)
-  const allPosts = await fetchAllWp("wp/v2/posts", { status: "publish" });
+  const allPosts = await fetchAllWp("wp/v2/posts", {
+    status: "publish",
+    _fields: "slug,modified"
+  });
 
   const posts: MetadataRoute.Sitemap = allPosts
-    .filter((p: any) => p?.slug && p?.status === "publish")
+    .filter((p: any) => p?.slug && p?.status === "publish") // status checked by API but consistent here
     .map((post: any) => ({
       url: normalizeUrl(`${baseUrl}/kennisbank/${post.slug}`),
       lastModified: post?.modified ? new Date(post.modified) : now,
     }));
 
   // 4) Brands (WordPress)
-  const allBrands = await fetchAllWp("wp/v2/product_brand", { hide_empty: true });
+  const allBrands = await fetchAllWp("wp/v2/product_brand", {
+    hide_empty: true,
+    _fields: "slug,modified"
+  });
 
   const brands: MetadataRoute.Sitemap = allBrands
     .filter((b: any) => b?.slug)
