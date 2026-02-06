@@ -78,11 +78,11 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
     const imgs =
       Array.isArray(product.images)
         ? product.images.filter((img: any) => !!img?.src).map((img: any) => ({
-            src: img.src,
-            width: img.width || 1200,
-            height: img.height || 1200,
-            alt: img.alt || product.name
-          }))
+          src: img.src,
+          width: img.width || 1200,
+          height: img.height || 1200,
+          alt: img.alt || product.name
+        }))
         : [];
 
     if (imgs.length > 0) {
@@ -326,6 +326,8 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         const res = await fetchProductByIdAction(product.id);
         if (!res.success || !res.data) return;
         const wcProduct = res.data;
+
+        console.log(wcProduct);
 
         // Check if backorders are allowed (yes or notify)
         const isBackorder = wcProduct.backorders === "yes" || wcProduct.backorders === "notify" || wcProduct.backorders_allowed === true;
@@ -832,7 +834,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         matchingRoseKeys,
         pcroseKeys,
         blindtoiletroseKeys,
-        
+
         deliveryText: deliveryInfo.short,
         deliveryType: deliveryInfo.type
       });
@@ -899,196 +901,196 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                 .map((c: any) => c.slug)
                 .join("/");
 
-                  return (
-                    <React.Fragment key={cat.id}>
-                      <span>/</span>
-                      <Link
-                        href={`/${nestedPath}`}
-                        className="hover:underline text-black"
-                      >
-                        {cat.name}
-                      </Link>
-                    </React.Fragment>
-                  );
-                });
-              })()}
-            </motion.div>
-            <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
-                {/* Left side: Images */}
-                <motion.div variants={fadeInUp} className="lg:w-1/2 pswp-gallery" id="product-gallery">
-                    <div className="mb-4 relative group">
-                        <a 
-                          href={selectedImage}
-                          data-pswp-width={galleryImages.find(img => img.src === selectedImage)?.width || 1200}
-                          data-pswp-height={galleryImages.find(img => img.src === selectedImage)?.height || 1200}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="pswp-gallery-item cursor-zoom-in"
-                        >
-                          <img src={selectedImage} alt="Main Product" className="w-full h-auto rounded-lg object-cover" />
-                        </a>
-                        
-                        {/* Hidden links for the rest of the gallery so they are all available in the lightbox */}
-                        <div className="hidden">
-                          {galleryImages.filter(img => img.src !== selectedImage).map((img, idx) => (
-                            <a 
-                              key={idx}
-                              href={img.src}
-                              data-pswp-width={img.width}
-                              data-pswp-height={img.height}
-                              className="pswp-gallery-item"
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              <img src={img.src} alt={`Gallery image ${idx}`} />
-                            </a>
-                          ))}
-                        </div>
-                    </div>
+              return (
+                <React.Fragment key={cat.id}>
+                  <span>/</span>
+                  <Link
+                    href={`/${nestedPath}`}
+                    className="hover:underline text-black"
+                  >
+                    {cat.name}
+                  </Link>
+                </React.Fragment>
+              );
+            });
+          })()}
+        </motion.div>
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+          {/* Left side: Images */}
+          <motion.div variants={fadeInUp} className="lg:w-1/2 pswp-gallery" id="product-gallery">
+            <div className="mb-4 relative group">
+              <a
+                href={selectedImage}
+                data-pswp-width={galleryImages.find(img => img.src === selectedImage)?.width || 1200}
+                data-pswp-height={galleryImages.find(img => img.src === selectedImage)?.height || 1200}
+                target="_blank"
+                rel="noreferrer"
+                className="pswp-gallery-item cursor-zoom-in"
+              >
+                <img src={selectedImage} alt="Main Product" className="w-full h-auto rounded-lg object-cover" />
+              </a>
 
-                    {/* Thumbnails Carousel with slice-based logic */}
-                    <div className="flex items-center gap-2 mt-2">
-                      {galleryImages.length > 4 && (
-                        <button type="button" onClick={() => setThumbIndex((prev) => Math.max(0, prev - 1))} className="w-8 h-8 flex items-center justify-center rounded-full border border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer" aria-label="Previous thumbnails" disabled={thumbIndex === 0} style={{ opacity: thumbIndex === 0 ? 0.5 : 1 }}>
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-                        </button>
-                      )}
-                      <div className="grid grid-cols-4 gap-4 pb-1 w-[90%]">
-                        {(galleryImages && galleryImages.length > 0 ? galleryImages : [])
-                          .slice(thumbIndex, thumbIndex + 4)
-                          .map((thumb, idx) => {
-                            const globalIdx = thumbIndex + idx; // Use global index for aria-label and key
-                            return (
-                                <button key={globalIdx} onClick={() => setSelectedImage(thumb.src)} className={`items-center justify-center border aspect-square rounded-md overflow-hidden flex-shrink-0 transition-all ${selectedImage === thumb.src ? 'border-blue-600 ring-2 ring-blue-100' : 'border-gray-200 hover:border-blue-400'}`} aria-label={`Thumbnail ${globalIdx + 1}`} type="button">
-                                <img src={thumb.src} alt={`Thumbnail ${globalIdx + 1}`} className="w-full h-full object-contain" />
-                                </button>
-                            );
-                          })}
-                      </div>
-                      {galleryImages.length > 4 && (
-                      <button type="button"
-                        onClick={() =>
-                          setThumbIndex((prev) =>
-                            Math.min(
-                              (galleryImages && galleryImages.length > 0 ? galleryImages.length : 0) - 4,
-                              prev + 1
-                            )
-                          )
-                        }
-                        className="w-8 h-8 flex items-center justify-center rounded-full border border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer"
-                        aria-label="Next thumbnails"
-                        disabled={
-                          thumbIndex >=
-                          ((galleryImages && galleryImages.length > 0 ? galleryImages.length : 0) - 4)
-                        }
-                        style={{
-                          opacity:
-                            thumbIndex >=
-                            ((galleryImages && galleryImages.length > 0 ? galleryImages.length : 0) - 4)
-                              ? 0.5
-                              : 1,
-                        }}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              {/* Hidden links for the rest of the gallery so they are all available in the lightbox */}
+              <div className="hidden">
+                {galleryImages.filter(img => img.src !== selectedImage).map((img, idx) => (
+                  <a
+                    key={idx}
+                    href={img.src}
+                    data-pswp-width={img.width}
+                    data-pswp-height={img.height}
+                    className="pswp-gallery-item"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <img src={img.src} alt={`Gallery image ${idx}`} />
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            {/* Thumbnails Carousel with slice-based logic */}
+            <div className="flex items-center gap-2 mt-2">
+              {galleryImages.length > 4 && (
+                <button type="button" onClick={() => setThumbIndex((prev) => Math.max(0, prev - 1))} className="w-8 h-8 flex items-center justify-center rounded-full border border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer" aria-label="Previous thumbnails" disabled={thumbIndex === 0} style={{ opacity: thumbIndex === 0 ? 0.5 : 1 }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                </button>
+              )}
+              <div className="grid grid-cols-4 gap-4 pb-1 w-[90%]">
+                {(galleryImages && galleryImages.length > 0 ? galleryImages : [])
+                  .slice(thumbIndex, thumbIndex + 4)
+                  .map((thumb, idx) => {
+                    const globalIdx = thumbIndex + idx; // Use global index for aria-label and key
+                    return (
+                      <button key={globalIdx} onClick={() => setSelectedImage(thumb.src)} className={`items-center justify-center border aspect-square rounded-md overflow-hidden flex-shrink-0 transition-all ${selectedImage === thumb.src ? 'border-blue-600 ring-2 ring-blue-100' : 'border-gray-200 hover:border-blue-400'}`} aria-label={`Thumbnail ${globalIdx + 1}`} type="button">
+                        <img src={thumb.src} alt={`Thumbnail ${globalIdx + 1}`} className="w-full h-full object-contain" />
                       </button>
-                      )}
-                    </div>
+                    );
+                  })}
+              </div>
+              {galleryImages.length > 4 && (
+                <button type="button"
+                  onClick={() =>
+                    setThumbIndex((prev) =>
+                      Math.min(
+                        (galleryImages && galleryImages.length > 0 ? galleryImages.length : 0) - 4,
+                        prev + 1
+                      )
+                    )
+                  }
+                  className="w-8 h-8 flex items-center justify-center rounded-full border border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer"
+                  aria-label="Next thumbnails"
+                  disabled={
+                    thumbIndex >=
+                    ((galleryImages && galleryImages.length > 0 ? galleryImages.length : 0) - 4)
+                  }
+                  style={{
+                    opacity:
+                      thumbIndex >=
+                        ((galleryImages && galleryImages.length > 0 ? galleryImages.length : 0) - 4)
+                        ? 0.5
+                        : 1,
+                  }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                </button>
+              )}
+            </div>
 
             {/* Unified Related Products Section */}
-            {(musthaveprodKeys.length > 0 || 
-              matchingProducts.length > 0 || 
-              matchingKnobroseKeys.length > 0 || 
-              matchingRoseKeys.length > 0 || 
-              pcroseKeys.length > 0 || 
+            {(musthaveprodKeys.length > 0 ||
+              matchingProducts.length > 0 ||
+              matchingKnobroseKeys.length > 0 ||
+              matchingRoseKeys.length > 0 ||
+              pcroseKeys.length > 0 ||
               blindtoiletroseKeys.length > 0) && (
-              <motion.div initial="visible" animate="visible" variants={fadeInUp} className="mt-8 space-y-8 hidden lg:block">
-                
-                {/* 1. Must Have Products */}
-                {musthaveprodKeys.length > 0 && (
-                  <div id="musthaveprod-section">
-                    <div className="mb-4">
-                      <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Aanbevolen producten</h3>
-                    </div>
-                    <div className="space-y-3">
-                      {musthaveprodKeys.map((item, index) => (
-                        <RecommendedProductItem key={item.id || index} item={item} />
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <motion.div initial="visible" animate="visible" variants={fadeInUp} className="mt-8 space-y-8 hidden lg:block">
 
-                {/* 2. Accessories */}
-                {matchingProducts.length > 0 && (
-                  <div id="accessories-section">
-                     <div className="mb-4">
-                        <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende accessoires</h3>
-                     </div>
-                     <div className="space-y-3">
-                        {matchingProducts.map((item, index) => (
-                           <RecommendedProductItem key={item.id || index} item={item} />
+                  {/* 1. Must Have Products */}
+                  {musthaveprodKeys.length > 0 && (
+                    <div id="musthaveprod-section">
+                      <div className="mb-4">
+                        <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Aanbevolen producten</h3>
+                      </div>
+                      <div className="space-y-3">
+                        {musthaveprodKeys.map((item, index) => (
+                          <RecommendedProductItem key={item.id || index} item={item} />
                         ))}
-                     </div>
-                  </div>
-                )}
+                      </div>
+                    </div>
+                  )}
 
-                {/* 3. Matching Knob Roses */}
-                {matchingKnobroseKeys.length > 0 && (
-                  <div id="knobroses-section">
+                  {/* 2. Accessories */}
+                  {matchingProducts.length > 0 && (
+                    <div id="accessories-section">
                       <div className="mb-4">
-                          <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende rozetten</h3>
+                        <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende accessoires</h3>
                       </div>
                       <div className="space-y-3">
-                          {matchingKnobroseKeys.map((item, index) => (
-                              <RecommendedProductItem key={item.id || index} item={item} />
-                          ))}
+                        {matchingProducts.map((item, index) => (
+                          <RecommendedProductItem key={item.id || index} item={item} />
+                        ))}
                       </div>
-                  </div>
-                )}
+                    </div>
+                  )}
 
-                {/* 4. Matching Key Roses */}
-                {matchingRoseKeys.length > 0 && (
-                  <div id="matchingroses-section">
+                  {/* 3. Matching Knob Roses */}
+                  {matchingKnobroseKeys.length > 0 && (
+                    <div id="knobroses-section">
                       <div className="mb-4">
-                          <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende sleutelrozetten</h3>
+                        <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende rozetten</h3>
                       </div>
                       <div className="space-y-3">
-                          {matchingRoseKeys.map((item, index) => (
-                              <RecommendedProductItem key={item.id || index} item={item} />
-                          ))}
+                        {matchingKnobroseKeys.map((item, index) => (
+                          <RecommendedProductItem key={item.id || index} item={item} />
+                        ))}
                       </div>
-                  </div>
-                )}
+                    </div>
+                  )}
 
-                {/* 5. PC Roses */}
-                {pcroseKeys.length > 0 && (
-                  <div id="pcroses-section">
+                  {/* 4. Matching Key Roses */}
+                  {matchingRoseKeys.length > 0 && (
+                    <div id="matchingroses-section">
                       <div className="mb-4">
-                          <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende cilinderrozetten</h3>
+                        <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende sleutelrozetten</h3>
                       </div>
                       <div className="space-y-3">
-                          {pcroseKeys.map((item, index) => (
-                              <RecommendedProductItem key={item.id || index} item={item} />
-                          ))}
+                        {matchingRoseKeys.map((item, index) => (
+                          <RecommendedProductItem key={item.id || index} item={item} />
+                        ))}
                       </div>
-                  </div>
-                )}
+                    </div>
+                  )}
 
-                {/* 6. Blind / Toilet Roses */}
-                {blindtoiletroseKeys.length > 0 && (
-                  <div id="blindtoiletroses-section">
+                  {/* 5. PC Roses */}
+                  {pcroseKeys.length > 0 && (
+                    <div id="pcroses-section">
                       <div className="mb-4">
-                          <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende blinde rozetten</h3>
+                        <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende cilinderrozetten</h3>
                       </div>
                       <div className="space-y-3">
-                          {blindtoiletroseKeys.map((item, index) => (
-                              <RecommendedProductItem key={item.id || index} item={item} />
-                          ))}
+                        {pcroseKeys.map((item, index) => (
+                          <RecommendedProductItem key={item.id || index} item={item} />
+                        ))}
                       </div>
-                  </div>
-                )}
+                    </div>
+                  )}
 
-              </motion.div>
-            )}
+                  {/* 6. Blind / Toilet Roses */}
+                  {blindtoiletroseKeys.length > 0 && (
+                    <div id="blindtoiletroses-section">
+                      <div className="mb-4">
+                        <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende blinde rozetten</h3>
+                      </div>
+                      <div className="space-y-3">
+                        {blindtoiletroseKeys.map((item, index) => (
+                          <RecommendedProductItem key={item.id || index} item={item} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                </motion.div>
+              )}
 
 
           </motion.div>
@@ -1549,121 +1551,121 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
               }
             })()}
 
-                    <div>
-                        <p className='text-[#212121] font-medium text-lg mb-3'>Heb je vragen over dit product? Wij helpen je graag!</p>
-                        <div className='flex gap-1.5 lg:gap-3 items-center justify-center'>
-                            <a href={`mailto:contact@bouwbeslag.nl?subject=${encodeURIComponent(productTitle)}`} className='border border-[#0066FF] rounded-sm py-2.5 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-1.5 lg:gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors'>
-                                <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-5 transition-colors"><path d="M1.5 8.67v8.58a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3V8.67l-8.928 5.493a3 3 0 0 1-3.144 0L1.5 8.67Z" /><path d="M22.5 6.908V6.75a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3v.158l9.714 5.978a1.5 1.5 0 0 0 1.572 0L22.5 6.908Z" /></svg></span>
-                                Mail ons
-                            </a>
-                            <a href={`https://wa.me/31578760508?text=${encodeURIComponent(`Hoi! Ik heb een vraag over ${productTitle} (SKU: ${productSKU}). Die vraag luidt:`)}`} className='border border-[#0066FF] rounded-sm py-2 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-1.5 lg:gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors' target="_blank" rel="noopener noreferrer">
-                                <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" fill="currentColor" className="size-6"><path d="M476.9 161.1C435 119.1 379.2 96 319.9 96C197.5 96 97.9 195.6 97.9 318C97.9 357.1 108.1 395.3 127.5 429L96 544L213.7 513.1C246.1 530.8 282.6 540.1 319.8 540.1L319.9 540.1C442.2 540.1 544 440.5 544 318.1C544 258.8 518.8 203.1 476.9 161.1zM319.9 502.7C286.7 502.7 254.2 493.8 225.9 477L219.2 473L149.4 491.3L168 423.2L163.6 416.2C145.1 386.8 135.4 352.9 135.4 318C135.4 216.3 218.2 133.5 320 133.5C369.3 133.5 415.6 152.7 450.4 187.6C485.2 222.5 506.6 268.8 506.5 318.1C506.5 419.9 421.6 502.7 319.9 502.7zM421.1 364.5C415.6 361.7 388.3 348.3 383.2 346.5C378.1 344.6 374.4 343.7 370.7 349.3C367 354.9 356.4 367.3 353.1 371.1C349.9 374.8 346.6 375.3 341.1 372.5C308.5 356.2 287.1 343.4 265.6 306.5C259.9 296.7 271.3 297.4 281.9 276.2C283.7 272.5 282.8 269.3 281.4 266.5C280 263.7 268.9 236.4 264.3 225.3C259.8 214.5 255.2 216 251.8 215.8C248.6 215.6 244.9 215.6 241.2 215.6C237.5 215.6 231.5 217 226.4 222.5C221.3 228.1 207 241.5 207 268.8C207 296.1 226.9 322.5 229.6 326.2C232.4 329.9 268.7 385.9 324.4 410C359.6 425.2 373.4 426.5 391 423.9C401.7 422.3 423.8 410.5 428.4 397.5C433 384.5 433 373.4 431.6 371.1C430.3 368.6 426.6 367.2 421.1 364.5z"/></svg></span>
-                                WhatsApp
-                            </a>
-                            <a href="tel:0031578760508" className='border border-[#0066FF] rounded-sm py-2.5 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-1.5 lg:gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors'>
-                                <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" fill="currentColor" className="size-5"><path d="M376 32C504.1 32 608 135.9 608 264C608 277.3 597.3 288 584 288C570.7 288 560 277.3 560 264C560 162.4 477.6 80 376 80C362.7 80 352 69.3 352 56C352 42.7 362.7 32 376 32zM384 224C401.7 224 416 238.3 416 256C416 273.7 401.7 288 384 288C366.3 288 352 273.7 352 256C352 238.3 366.3 224 384 224zM352 152C352 138.7 362.7 128 376 128C451.1 128 512 188.9 512 264C512 277.3 501.3 288 488 288C474.7 288 464 277.3 464 264C464 215.4 424.6 176 376 176C362.7 176 352 165.3 352 152zM176.1 65.4C195.8 60 216.4 70.1 224.2 88.9L264.7 186.2C271.6 202.7 266.8 221.8 252.9 233.2L208.8 269.3C241.3 340.9 297.8 399.3 368.1 434.2L406.7 387C418 373.1 437.1 368.4 453.7 375.2L551 415.8C569.8 423.6 579.9 444.2 574.5 463.9L573 469.4C555.4 534.1 492.9 589.3 416.6 573.2C241.6 536.1 103.9 398.4 66.8 223.4C50.7 147.1 105.9 84.6 170.5 66.9L176 65.4z"/></svg></span>
-                                Bel ons
-                            </a>
-                        </div>
-                    </div>
-                    </motion.div>
-
-                    {/* Unified Related Products Section */}
-                    {(musthaveprodKeys.length > 0 || 
-                      matchingProducts.length > 0 || 
-                      matchingKnobroseKeys.length > 0 || 
-                      matchingRoseKeys.length > 0 || 
-                      pcroseKeys.length > 0 || 
-                      blindtoiletroseKeys.length > 0) && (
-                      <motion.div initial="visible" animate="visible" variants={fadeInUp} className="mt-8 space-y-8 block lg:hidden">
-                        
-                        {/* 1. Must Have Products */}
-                        {musthaveprodKeys.length > 0 && (
-                          <div id="musthaveprod-section">
-                            <div className="mb-4">
-                              <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Aanbevolen producten</h3>
-                            </div>
-                            <div className="space-y-3">
-                              {musthaveprodKeys.map((item, index) => (
-                                <RecommendedProductItem key={item.id || index} item={item} />
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* 2. Accessories */}
-                        {matchingProducts.length > 0 && (
-                          <div id="accessories-section">
-                            <div className="mb-4">
-                                <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende accessoires</h3>
-                            </div>
-                            <div className="space-y-3">
-                                {matchingProducts.map((item, index) => (
-                                  <RecommendedProductItem key={item.id || index} item={item} />
-                                ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* 3. Matching Knob Roses */}
-                        {matchingKnobroseKeys.length > 0 && (
-                          <div id="knobroses-section">
-                              <div className="mb-4">
-                                  <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende rozetten</h3>
-                              </div>
-                              <div className="space-y-3">
-                                  {matchingKnobroseKeys.map((item, index) => (
-                                      <RecommendedProductItem key={item.id || index} item={item} />
-                                  ))}
-                              </div>
-                          </div>
-                        )}
-
-                        {/* 4. Matching Key Roses */}
-                        {matchingRoseKeys.length > 0 && (
-                          <div id="matchingroses-section">
-                              <div className="mb-4">
-                                  <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende sleutelrozetten</h3>
-                              </div>
-                              <div className="space-y-3">
-                                  {matchingRoseKeys.map((item, index) => (
-                                      <RecommendedProductItem key={item.id || index} item={item} />
-                                  ))}
-                              </div>
-                          </div>
-                        )}
-
-                        {/* 5. PC Roses */}
-                        {pcroseKeys.length > 0 && (
-                          <div id="pcroses-section">
-                              <div className="mb-4">
-                                  <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende cilinderrozetten</h3>
-                              </div>
-                              <div className="space-y-3">
-                                  {pcroseKeys.map((item, index) => (
-                                      <RecommendedProductItem key={item.id || index} item={item} />
-                                  ))}
-                              </div>
-                          </div>
-                        )}
-
-                        {/* 6. Blind / Toilet Roses */}
-                        {blindtoiletroseKeys.length > 0 && (
-                          <div id="blindtoiletroses-section">
-                              <div className="mb-4">
-                                  <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende blinde rozetten</h3>
-                              </div>
-                              <div className="space-y-3">
-                                  {blindtoiletroseKeys.map((item, index) => (
-                                      <RecommendedProductItem key={item.id || index} item={item} />
-                                  ))}
-                              </div>
-                          </div>
-                        )}
-
-                      </motion.div>
-                    )}
+            <div>
+              <p className='text-[#212121] font-medium text-lg mb-3'>Heb je vragen over dit product? Wij helpen je graag!</p>
+              <div className='flex gap-1.5 lg:gap-3 items-center justify-center'>
+                <a href={`mailto:contact@bouwbeslag.nl?subject=${encodeURIComponent(productTitle)}`} className='border border-[#0066FF] rounded-sm py-2.5 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-1.5 lg:gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors'>
+                  <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-5 transition-colors"><path d="M1.5 8.67v8.58a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3V8.67l-8.928 5.493a3 3 0 0 1-3.144 0L1.5 8.67Z" /><path d="M22.5 6.908V6.75a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3v.158l9.714 5.978a1.5 1.5 0 0 0 1.572 0L22.5 6.908Z" /></svg></span>
+                  Mail ons
+                </a>
+                <a href={`https://wa.me/31578760508?text=${encodeURIComponent(`Hoi! Ik heb een vraag over ${productTitle} (SKU: ${productSKU}). Die vraag luidt:`)}`} className='border border-[#0066FF] rounded-sm py-2 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-1.5 lg:gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors' target="_blank" rel="noopener noreferrer">
+                  <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" fill="currentColor" className="size-6"><path d="M476.9 161.1C435 119.1 379.2 96 319.9 96C197.5 96 97.9 195.6 97.9 318C97.9 357.1 108.1 395.3 127.5 429L96 544L213.7 513.1C246.1 530.8 282.6 540.1 319.8 540.1L319.9 540.1C442.2 540.1 544 440.5 544 318.1C544 258.8 518.8 203.1 476.9 161.1zM319.9 502.7C286.7 502.7 254.2 493.8 225.9 477L219.2 473L149.4 491.3L168 423.2L163.6 416.2C145.1 386.8 135.4 352.9 135.4 318C135.4 216.3 218.2 133.5 320 133.5C369.3 133.5 415.6 152.7 450.4 187.6C485.2 222.5 506.6 268.8 506.5 318.1C506.5 419.9 421.6 502.7 319.9 502.7zM421.1 364.5C415.6 361.7 388.3 348.3 383.2 346.5C378.1 344.6 374.4 343.7 370.7 349.3C367 354.9 356.4 367.3 353.1 371.1C349.9 374.8 346.6 375.3 341.1 372.5C308.5 356.2 287.1 343.4 265.6 306.5C259.9 296.7 271.3 297.4 281.9 276.2C283.7 272.5 282.8 269.3 281.4 266.5C280 263.7 268.9 236.4 264.3 225.3C259.8 214.5 255.2 216 251.8 215.8C248.6 215.6 244.9 215.6 241.2 215.6C237.5 215.6 231.5 217 226.4 222.5C221.3 228.1 207 241.5 207 268.8C207 296.1 226.9 322.5 229.6 326.2C232.4 329.9 268.7 385.9 324.4 410C359.6 425.2 373.4 426.5 391 423.9C401.7 422.3 423.8 410.5 428.4 397.5C433 384.5 433 373.4 431.6 371.1C430.3 368.6 426.6 367.2 421.1 364.5z" /></svg></span>
+                  WhatsApp
+                </a>
+                <a href="tel:0031578760508" className='border border-[#0066FF] rounded-sm py-2.5 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-1.5 lg:gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors'>
+                  <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" fill="currentColor" className="size-5"><path d="M376 32C504.1 32 608 135.9 608 264C608 277.3 597.3 288 584 288C570.7 288 560 277.3 560 264C560 162.4 477.6 80 376 80C362.7 80 352 69.3 352 56C352 42.7 362.7 32 376 32zM384 224C401.7 224 416 238.3 416 256C416 273.7 401.7 288 384 288C366.3 288 352 273.7 352 256C352 238.3 366.3 224 384 224zM352 152C352 138.7 362.7 128 376 128C451.1 128 512 188.9 512 264C512 277.3 501.3 288 488 288C474.7 288 464 277.3 464 264C464 215.4 424.6 176 376 176C362.7 176 352 165.3 352 152zM176.1 65.4C195.8 60 216.4 70.1 224.2 88.9L264.7 186.2C271.6 202.7 266.8 221.8 252.9 233.2L208.8 269.3C241.3 340.9 297.8 399.3 368.1 434.2L406.7 387C418 373.1 437.1 368.4 453.7 375.2L551 415.8C569.8 423.6 579.9 444.2 574.5 463.9L573 469.4C555.4 534.1 492.9 589.3 416.6 573.2C241.6 536.1 103.9 398.4 66.8 223.4C50.7 147.1 105.9 84.6 170.5 66.9L176 65.4z" /></svg></span>
+                  Bel ons
+                </a>
+              </div>
             </div>
+          </motion.div>
+
+          {/* Unified Related Products Section */}
+          {(musthaveprodKeys.length > 0 ||
+            matchingProducts.length > 0 ||
+            matchingKnobroseKeys.length > 0 ||
+            matchingRoseKeys.length > 0 ||
+            pcroseKeys.length > 0 ||
+            blindtoiletroseKeys.length > 0) && (
+              <motion.div initial="visible" animate="visible" variants={fadeInUp} className="mt-8 space-y-8 block lg:hidden">
+
+                {/* 1. Must Have Products */}
+                {musthaveprodKeys.length > 0 && (
+                  <div id="musthaveprod-section">
+                    <div className="mb-4">
+                      <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Aanbevolen producten</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {musthaveprodKeys.map((item, index) => (
+                        <RecommendedProductItem key={item.id || index} item={item} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Accessories */}
+                {matchingProducts.length > 0 && (
+                  <div id="accessories-section">
+                    <div className="mb-4">
+                      <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende accessoires</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {matchingProducts.map((item, index) => (
+                        <RecommendedProductItem key={item.id || index} item={item} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. Matching Knob Roses */}
+                {matchingKnobroseKeys.length > 0 && (
+                  <div id="knobroses-section">
+                    <div className="mb-4">
+                      <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende rozetten</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {matchingKnobroseKeys.map((item, index) => (
+                        <RecommendedProductItem key={item.id || index} item={item} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. Matching Key Roses */}
+                {matchingRoseKeys.length > 0 && (
+                  <div id="matchingroses-section">
+                    <div className="mb-4">
+                      <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende sleutelrozetten</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {matchingRoseKeys.map((item, index) => (
+                        <RecommendedProductItem key={item.id || index} item={item} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 5. PC Roses */}
+                {pcroseKeys.length > 0 && (
+                  <div id="pcroses-section">
+                    <div className="mb-4">
+                      <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende cilinderrozetten</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {pcroseKeys.map((item, index) => (
+                        <RecommendedProductItem key={item.id || index} item={item} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 6. Blind / Toilet Roses */}
+                {blindtoiletroseKeys.length > 0 && (
+                  <div id="blindtoiletroses-section">
+                    <div className="mb-4">
+                      <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende blinde rozetten</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {blindtoiletroseKeys.map((item, index) => (
+                        <RecommendedProductItem key={item.id || index} item={item} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              </motion.div>
+            )}
+        </div>
 
         <div className='mt-8'>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 h-full">
@@ -1860,70 +1862,70 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                 </div>
               )}
 
-                        {/* fourth row left accordion */}
-                        {(manualPdf || installationGuide || certificate || careInstructions) && (
-                        <div className="bg-white rounded-lg border border-white">
-                            <details className="group">
-                                <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
-                                    Downloads & Documentatie
-                                    <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
-                                    <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
-                                </summary>
-                                <div className="px-6 pb-4 text-gray-700 space-y-4">
-                                    <div className='flex flex-col gap-4'>
-                                        <p className='text-[#3D4752] font-normal text-base'>Download Technische documentatie, Installatie instructies, Product certificaat en Onderhoudsinstructies.</p>
-                                        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
-                                            {manualPdf && (
-                                            <div className='bg-[#F3F8FF] rounded-sm p-4 flex items-center justify-between'>
-                                                <div>
-                                                    <p className='text-[#1C2530] font-semibold text-base'>Technische Tekening</p>
-                                                    <p className='text-[#3D4752] font-normal text-xs'>CAD-bestand met afmetingen</p>
-                                                </div>
-                                                <div>
-                                                    <a href={manualPdf} target="_blank" rel="noopener noreferrer" className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Downloaden</a>
-                                                </div>
-                                            </div>
-                                            )}
+              {/* fourth row left accordion */}
+              {(manualPdf || installationGuide || certificate || careInstructions) && (
+                <div className="bg-white rounded-lg border border-white">
+                  <details className="group">
+                    <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
+                      Downloads & Documentatie
+                      <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
+                      <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
+                    </summary>
+                    <div className="px-6 pb-4 text-gray-700 space-y-4">
+                      <div className='flex flex-col gap-4'>
+                        <p className='text-[#3D4752] font-normal text-base'>Download Technische documentatie, Installatie instructies, Product certificaat en Onderhoudsinstructies.</p>
+                        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+                          {manualPdf && (
+                            <div className='bg-[#F3F8FF] rounded-sm p-4 flex items-center justify-between'>
+                              <div>
+                                <p className='text-[#1C2530] font-semibold text-base'>Technische Tekening</p>
+                                <p className='text-[#3D4752] font-normal text-xs'>CAD-bestand met afmetingen</p>
+                              </div>
+                              <div>
+                                <a href={manualPdf} target="_blank" rel="noopener noreferrer" className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Downloaden</a>
+                              </div>
+                            </div>
+                          )}
 
-                                            {installationGuide && (
-                                            <div className='bg-[#F3F8FF] rounded-sm p-4 flex items-center justify-between'>
-                                                <div>
-                                                    <p className='text-[#1C2530] font-semibold text-base'>Installatiehandleiding</p>
-                                                    <p className='text-[#3D4752] font-normal text-xs'>Stap-voor-stap PDF-handleiding</p>
-                                                </div>
-                                                <div>
-                                                    <a href={installationGuide} target="_blank" rel="noopener noreferrer" className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Downloaden</a>
-                                                </div>
-                                            </div>
-                                            )}
-                                            {certificate && (
-                                            <div className='bg-[#F3F8FF] rounded-sm p-4 flex items-center justify-between'>
-                                                <div>
-                                                    <p className='text-[#1C2530] font-semibold text-base'>Productcertificaat</p>
-                                                    <p className='text-[#3D4752] font-normal text-xs'>EN1906:2012 conformiteit</p>
-                                                </div>
-                                                <div>
-                                                    <a href={certificate} target="_blank" rel="noopener noreferrer" className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Downloaden</a>
-                                                </div>
-                                            </div>
-                                            )}
-                                            {careInstructions && (
-                                            <div className='bg-[#F3F8FF] rounded-sm p-4 flex items-center justify-between'>
-                                                <div>
-                                                    <p className='text-[#1C2530] font-semibold text-base'>Onderhoudsinstructies</p>
-                                                    <p className='text-[#3D4752] font-normal text-xs'>Onderhoudsrichtlijnen</p>
-                                                </div>
-                                                <div>
-                                                    <a href={careInstructions} target="_blank" rel="noopener noreferrer" className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Downloaden</a>
-                                                </div>
-                                            </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </details>
+                          {installationGuide && (
+                            <div className='bg-[#F3F8FF] rounded-sm p-4 flex items-center justify-between'>
+                              <div>
+                                <p className='text-[#1C2530] font-semibold text-base'>Installatiehandleiding</p>
+                                <p className='text-[#3D4752] font-normal text-xs'>Stap-voor-stap PDF-handleiding</p>
+                              </div>
+                              <div>
+                                <a href={installationGuide} target="_blank" rel="noopener noreferrer" className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Downloaden</a>
+                              </div>
+                            </div>
+                          )}
+                          {certificate && (
+                            <div className='bg-[#F3F8FF] rounded-sm p-4 flex items-center justify-between'>
+                              <div>
+                                <p className='text-[#1C2530] font-semibold text-base'>Productcertificaat</p>
+                                <p className='text-[#3D4752] font-normal text-xs'>EN1906:2012 conformiteit</p>
+                              </div>
+                              <div>
+                                <a href={certificate} target="_blank" rel="noopener noreferrer" className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Downloaden</a>
+                              </div>
+                            </div>
+                          )}
+                          {careInstructions && (
+                            <div className='bg-[#F3F8FF] rounded-sm p-4 flex items-center justify-between'>
+                              <div>
+                                <p className='text-[#1C2530] font-semibold text-base'>Onderhoudsinstructies</p>
+                                <p className='text-[#3D4752] font-normal text-xs'>Onderhoudsrichtlijnen</p>
+                              </div>
+                              <div>
+                                <a href={careInstructions} target="_blank" rel="noopener noreferrer" className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Downloaden</a>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        )}
+                      </div>
+                    </div>
+                  </details>
+                </div>
+              )}
 
               {/* fifth row left accordion */}
               {/* <div className="bg-white rounded-lg border border-white">
@@ -1967,47 +1969,47 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                 </div>
               )}
 
-                        {/* second row right accordion */}
-                        {ambianceImages.length > 0 && (
-                        <div className="bg-white rounded-lg border border-white">
-                            <details className="group">
-                                <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
-                                    Gebruikersfoto's
-                                    <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
-                                    <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
-                                </summary>
-                                <div className="px-6 pb-4 text-gray-700 space-y-4">
-                                      <div className='grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4 pswp-gallery' id="ambiance-gallery">
-                                        {ambianceImages.map((img, idx) => (
-                                          <a 
-                                            key={img.id || idx}
-                                            href={img.url}
-                                            data-pswp-width={img.width}
-                                            data-pswp-height={img.height}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="pswp-gallery-item block group relative overflow-hidden rounded-sm cursor-zoom-in"
-                                          >
-                                            <img
-                                              src={img.url}
-                                              className='w-full h-34 lg:h-52 rounded-sm object-cover transition-transform duration-500 group-hover:scale-105'
-                                              alt={img.alt}
-                                            />
-                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
-                                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="white" className="w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity scale-75 group-hover:scale-100 duration-300">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
-                                              </svg>
-                                            </div>
-                                          </a>
-                                        ))}
-                                      </div>
-                                    <div>
-                                        <p className='text-[#3D4752] font-normal text-base'>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries,</p>
-                                    </div>
-                                </div>
-                            </details>
-                        </div>
-                        )}
+              {/* second row right accordion */}
+              {ambianceImages.length > 0 && (
+                <div className="bg-white rounded-lg border border-white">
+                  <details className="group">
+                    <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
+                      Gebruikersfoto's
+                      <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
+                      <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
+                    </summary>
+                    <div className="px-6 pb-4 text-gray-700 space-y-4">
+                      <div className='grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4 pswp-gallery' id="ambiance-gallery">
+                        {ambianceImages.map((img, idx) => (
+                          <a
+                            key={img.id || idx}
+                            href={img.url}
+                            data-pswp-width={img.width}
+                            data-pswp-height={img.height}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="pswp-gallery-item block group relative overflow-hidden rounded-sm cursor-zoom-in"
+                          >
+                            <img
+                              src={img.url}
+                              className='w-full h-34 lg:h-52 rounded-sm object-cover transition-transform duration-500 group-hover:scale-105'
+                              alt={img.alt}
+                            />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="white" className="w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity scale-75 group-hover:scale-100 duration-300">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
+                              </svg>
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                      <div>
+                        <p className='text-[#3D4752] font-normal text-base'>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries,</p>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+              )}
 
               {/* third row right accordion */}
               <div className="bg-white rounded-lg border border-white">

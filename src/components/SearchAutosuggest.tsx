@@ -124,6 +124,7 @@ export default function SearchAutosuggest({
                 setLoading(true);
                 try {
                     const response = await searchProducts(query, filters);
+                    console.log(response);
                     setResults(response.products);
                     setFacets(response.facets);
                 } catch (error) {

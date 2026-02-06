@@ -6,6 +6,7 @@ export interface SearchResult {
   ID: number;
   post_title: string;
   post_name: string;
+  images: { src: string; alt: string }[];
 }
 
 export type FilterState = {
@@ -36,7 +37,7 @@ export async function searchProducts(
         must.push({
             multi_match: {
                 query: query,
-                fields: ["post_title^3", "post_content", "meta.*.value", "meta._sku.value^2"],
+                fields: ["post_title^3", "post_content", "meta.*.value", "meta._sku.value^2", ],
                 type: "best_fields",
                 operator: "and" // Optional: helps with specific number searches
             },
@@ -74,7 +75,7 @@ export async function searchProducts(
                     },
                 },
                 size: 20, // Check how many we want
-                _source: ["post_title", "post_name", "ID", "meta", "terms"], // Need terms for potential display
+                _source: ["post_title", "post_name", "ID", "meta", "terms", "thumbnail", "images"], // Need terms for potential display
                 aggs: {
                     categories: {
                         terms: { field: "terms.product_cat.slug", size: 20 },
@@ -106,12 +107,16 @@ export async function searchProducts(
                  return { key, value: val };
              }) : [];
 
+             // Map thumbnail to images array
+             const images = source.thumbnail ? [{ src: source.thumbnail.src, alt: source.thumbnail.alt || "" }] : [];
+
              return {
                  ...source,
                  meta_data: meta_data,
                  name: source.post_title,
                  slug: source.post_name,
-                 id: source.ID
+                 id: source.ID,
+                 images: images
              } as SearchResult;
         });
 
