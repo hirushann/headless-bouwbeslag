@@ -293,8 +293,22 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
 
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isOutOfStock, setIsOutOfStock] = useState(false);
-  const [availableStock, setAvailableStock] = useState<number | null>(null);
-  const [backordersAllowed, setBackordersAllowed] = useState(false);
+  const [availableStock, setAvailableStock] = useState<number | null>(() => {
+    // Initial state from SSR product prop
+    if (!product) return null;
+    const totalStockMeta = product.meta_data?.find((m: any) => m.key === "crucial_data_total_stock")?.value;
+    const totalStock = totalStockMeta !== undefined && totalStockMeta !== null && totalStockMeta !== ""
+      ? parseInt(totalStockMeta, 10)
+      : (typeof product.stock_quantity === "number" ? product.stock_quantity : null);
+    
+    // Safety check just like in the async function
+    if (totalStock !== null && !isNaN(totalStock)) return totalStock;
+    return null;
+  });
+  const [backordersAllowed, setBackordersAllowed] = useState(() => {
+    if (!product) return false;
+    return product.backorders === "yes" || product.backorders === "notify" || product.backorders_allowed === true;
+  });
   const [addCartSuccess, setAddCartSuccess] = useState(false);
   const [addCartError, setAddCartError] = useState(false);
   const { openModal } = useProductAddedModal();
@@ -755,7 +769,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
       }
 
       // Extract Total Stock from ACF
-      const totalStockMeta = wcProduct.meta_data?.find((m: any) => m.key === "total_stock")?.value;
+      const totalStockMeta = wcProduct.meta_data?.find((m: any) => m.key === "crucial_data_total_stock")?.value;
       const totalStock = totalStockMeta !== undefined && totalStockMeta !== null && totalStockMeta !== ""
         ? parseInt(totalStockMeta, 10)
         : (typeof wcProduct.stock_quantity === "number" ? wcProduct.stock_quantity : null);
