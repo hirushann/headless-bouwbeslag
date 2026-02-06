@@ -40,13 +40,23 @@ export async function refreshCartStockAction(productIds: number[]) {
         if (!productIds || productIds.length === 0) return { success: true, data: [] };
 
         const res = await api.get("products", { include: productIds, per_page: 50 }); // Assume max 50 items in cart for now
-        
+
         // Map response to just what we need
-        const updates = Array.isArray(res.data) ? res.data.map((p: any) => ({
-             id: p.id,
-             stockStatus: p.stock_status,
-             stockQuantity: p.stock_quantity,
-        })) : [];
+        const updates = Array.isArray(res.data) ? res.data.map((p: any) => {
+            const totalStockMeta = p.meta_data?.find((m: any) => m.key === "crucial_data_total_stock")?.value;
+            const parsedStock = parseInt(totalStockMeta, 10);
+            const totalStock = totalStockMeta !== undefined && totalStockMeta !== null && totalStockMeta !== "" && !isNaN(parsedStock)
+                ? parsedStock
+                : null;
+
+            return {
+                id: p.id,
+                stockStatus: p.stock_status,
+                stockQuantity: totalStock !== null ? totalStock : p.stock_quantity,
+                leadTimeInStock: p.meta_data?.find((m: any) => m.key === "crucial_data_delivery_if_stock")?.value,
+                leadTimeNoStock: p.meta_data?.find((m: any) => m.key === "crucial_data_delivery_if_no_stock")?.value,
+            };
+        }) : [];
 
         return { success: true, data: updates };
     } catch (error: any) {

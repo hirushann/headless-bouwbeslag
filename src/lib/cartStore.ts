@@ -34,7 +34,7 @@ interface CartState {
   lengthFreightCost: () => number;
   isCartOpen: boolean;
   setCartOpen: (isOpen: boolean) => void;
-  updateStockForItems: (updates: { id: number; stockStatus: string; stockQuantity: number | null }[]) => void;
+  updateStockForItems: (updates: { id: number; stockStatus: string; stockQuantity: number | null; leadTimeInStock?: string; leadTimeNoStock?: string }[]) => void;
 }
 
 export const useCartStore = create<CartState>()(
@@ -95,23 +95,25 @@ export const useCartStore = create<CartState>()(
         }));
       },
       updateStockForItems: (updates) => {
-          set((state) => ({
-            items: state.items.map((i) => {
-                const update = updates.find(u => u.id === i.id);
-                if (update) {
-                    return { 
-                        ...i, 
-                        stockStatus: update.stockStatus, 
-                        stockQuantity: update.stockQuantity,
-                        // Clear the baked-in text so it re-generates on render or we re-generate here?
-                        // Better to clear it so the component calculates it fresh.
-                        deliveryText: undefined,
-                        deliveryType: undefined
-                    };
-                }
-                return i;
-            })
-          }));
+        set((state) => ({
+          items: state.items.map((i) => {
+            const update = updates.find(u => u.id === i.id);
+            if (update) {
+              return {
+                ...i,
+                stockStatus: update.stockStatus,
+                stockQuantity: update.stockQuantity,
+                leadTimeInStock: update.leadTimeInStock && !isNaN(parseInt(update.leadTimeInStock)) ? parseInt(update.leadTimeInStock) : i.leadTimeInStock,
+                leadTimeNoStock: update.leadTimeNoStock && !isNaN(parseInt(update.leadTimeNoStock)) ? parseInt(update.leadTimeNoStock) : i.leadTimeNoStock,
+                // Clear the baked-in text so it re-generates on render or we re-generate here?
+                // Better to clear it so the component calculates it fresh.
+                deliveryText: undefined,
+                deliveryType: undefined
+              };
+            }
+            return i;
+          })
+        }));
       },
       clearCart: () => set({ items: [] }),
       // ... existing syncWithServer ...

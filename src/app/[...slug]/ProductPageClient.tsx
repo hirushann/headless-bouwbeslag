@@ -4,7 +4,6 @@ import React, { useState, useRef, useEffect, use } from 'react';
 import { useUserContext } from "@/context/UserContext";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
-// import api from "@/lib/woocommerce"; // Removed
 import { checkStockAction, fetchProductByIdAction, fetchProductBySkuAction } from "@/app/actions";
 import Link from "next/link";
 import Image from "next/image";
@@ -13,19 +12,15 @@ import RecommendedProductItem from "@/components/RecommendedProductItem";
 import { useCartStore } from "@/lib/cartStore";
 import { fetchMedia } from "@/lib/wordpress";
 import { COLOR_MAP } from "@/config/colorMap";
-// import { syncAddToCart, syncRemoveItem, syncUpdateItemQty } from "@/lib/cartApi";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
-// import { checkStockAction } from "@/app/actions"; // Already imported above
 import ReviewsSection from "@/components/ReviewsSection";
 import PhotoSwipeLightbox from 'photoswipe/lightbox';
 import 'photoswipe/dist/photoswipe.css';
 import { useProductAddedModal } from "@/context/ProductAddedModalContext";
 
-// Helper to format values: remove trailing zeros from decimals (e.g. "200.00" -> "200")
 const formatSpecValue = (value: string | number | null | undefined): string => {
   if (value === null || value === undefined) return "";
   const strVal = String(value);
-  // Check if the string represents a valid number
   if (!isNaN(Number(strVal)) && strVal.trim() !== "") {
     return String(parseFloat(strVal));
   }
@@ -33,9 +28,7 @@ const formatSpecValue = (value: string | number | null | undefined): string => {
 };
 
 export default function ProductPageClient({ product, taxRate = 21, slug }: { product: any; taxRate?: number; slug?: string[] }) {
-  // 🔍 DEBUG: log full product data coming into this page
   useEffect(() => {
-    // console.log("🟦 ProductPageClient → product data:", product);
   }, [product]);
 
   const fadeInUp = {
@@ -327,24 +320,34 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         if (!res.success || !res.data) return;
         const wcProduct = res.data;
 
-        console.log(wcProduct);
+        console.log("🟦 ProductPageClient Stock Check Response:", wcProduct);
 
         // Check if backorders are allowed (yes or notify)
         const isBackorder = wcProduct.backorders === "yes" || wcProduct.backorders === "notify" || wcProduct.backorders_allowed === true;
         setBackordersAllowed(isBackorder);
 
+        // Extract Total Stock from ACF
+        const totalStockMeta = wcProduct.meta_data?.find((m: any) => m.key === "crucial_data_total_stock")?.value;
+        const totalStock = totalStockMeta !== undefined && totalStockMeta !== null && totalStockMeta !== "" 
+          ? parseInt(totalStockMeta, 10) 
+          : (typeof wcProduct.stock_quantity === "number" ? wcProduct.stock_quantity : null);
+
         if (wcProduct.stock_status !== "instock" && !isBackorder) {
           setIsOutOfStock(true);
+          // If explicitly out of stock status, we might still want to show 0 stock? 
+          // But strict Woo logic usually trusts status. 
+          // However for total_stock logic, often quantity is the truth. 
+          // Staying consistent with existing logic:
           return;
         }
 
-        if (
-          wcProduct.manage_stock &&
-          typeof wcProduct.stock_quantity === "number"
-        ) {
-          setAvailableStock(wcProduct.stock_quantity);
-          if (wcProduct.stock_quantity <= 0 && !isBackorder) {
-            setIsOutOfStock(true);
+        if (totalStock !== null) {
+          setAvailableStock(totalStock);
+          if (totalStock <= 0 && !isBackorder) {
+             // If status says instock but total_stock is 0, we treat it as out of stock?
+             // Or rely on status? Existing code relied on stock_quantity logic:
+             // if (wcProduct.stock_quantity <= 0 && !isBackorder) setIsOutOfStock(true);
+             setIsOutOfStock(true);
           }
         }
       } catch (err) {
@@ -751,15 +754,21 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         return false;
       }
 
+      // Extract Total Stock from ACF
+      const totalStockMeta = wcProduct.meta_data?.find((m: any) => m.key === "total_stock")?.value;
+      const totalStock = totalStockMeta !== undefined && totalStockMeta !== null && totalStockMeta !== ""
+        ? parseInt(totalStockMeta, 10)
+        : (typeof wcProduct.stock_quantity === "number" ? wcProduct.stock_quantity : null);
+
+
       // If stock management enabled, validate quantity ONLY if backorders are NOT allowed
       if (
-        wcProduct.manage_stock &&
-        typeof wcProduct.stock_quantity === "number" &&
+        totalStock !== null &&
         !backordersAllowed &&
-        qty > wcProduct.stock_quantity
+        qty > totalStock
       ) {
         toast.error(
-          `Maximale beschikbare voorraad: ${wcProduct.stock_quantity}`
+          `Maximale beschikbare voorraad: ${totalStock}`
         );
         return false;
       }
@@ -796,12 +805,18 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         return;
       }
 
+      const stockLeadRaw = getMetaValue("crucial_data_delivery_if_stock");
+      const noStockLeadRaw = getMetaValue("crucial_data_delivery_if_no_stock");
+
+      const leadTimeInStock = stockLeadRaw && !isNaN(parseInt(stockLeadRaw)) ? parseInt(stockLeadRaw) : 1;
+      const leadTimeNoStock = noStockLeadRaw && !isNaN(parseInt(noStockLeadRaw)) ? parseInt(noStockLeadRaw) : 30;
+
       const deliveryInfo = getDeliveryInfo(
         product.stock_status,
         quantity,
-        product.stock_quantity ?? null,
-        1,
-        30
+        availableStock ?? product.stock_quantity ?? null,
+        leadTimeInStock,
+        leadTimeNoStock
       );
 
       await addItem({
@@ -814,9 +829,9 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         deliveryType: deliveryInfo.type,
         slug: product.slug,
         stockStatus: product.stock_status,
-        stockQuantity: product.stock_quantity ?? null,
-        leadTimeInStock: 1, // Default from page code
-        leadTimeNoStock: 30, // Default from page code
+        stockQuantity: availableStock ?? product.stock_quantity ?? null,
+        leadTimeInStock,
+        leadTimeNoStock,
         isMaatwerk: getMetaValue("crucial_data_maatwerk") === "1",
         hasLengthFreight
       });
