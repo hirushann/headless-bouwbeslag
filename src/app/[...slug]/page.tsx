@@ -41,13 +41,13 @@ interface Attribute {
  ---------------------------------------------------- */
 async function getProductBySlug(slug: string) {
   try {
-    const res = await api.get("products", { slug });
+    const res = await api.get("products", { slug, cache: "no-store" });
 
     if (!Array.isArray(res.data) || !res.data[0]) {
       return null;
     }
 
-    const full = await api.get(`products/${res.data[0].id}`);
+    const full = await api.get(`products/${res.data[0].id}`, { cache: "no-store" });
     const product = full?.data ?? null;
     
     if (!product) return null;
@@ -98,7 +98,7 @@ async function getProductBySlug(slug: string) {
 
 async function getCategoryBySlug(slug: string): Promise<Category | null> {
   try {
-    const res = await api.get("products/categories", { slug });
+    const res = await api.get("products/categories", { slug, cache: "no-store" });
     if (!res.data || res.data.length === 0) return null;
     return res.data[0];
   } catch (error) {

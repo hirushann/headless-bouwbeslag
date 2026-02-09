@@ -332,7 +332,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
 
     const checkInitialStock = async () => {
       try {
-        const res = await fetchProductByIdAction(product.id);
+        const res = await checkStockAction(product.id);
         if (!res.success || !res.data) return;
         const wcProduct = res.data;
 
@@ -767,7 +767,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
       // If Woo says out of stock AND backorders not allowed
       if (wcProduct.stock_status !== "instock" && wcProduct.stock_status !== "onbackorder" && !backordersAllowed) {
         toast.error("Dit product is momenteel niet op voorraad.");
-        return false;
+        return { success: false };
       }
 
       // Extract Total Stock from ACF
@@ -778,6 +778,15 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
 
       console.log("🟦 [checkStockBeforeAdd] Resolved Total Stock:", totalStock, "Original Stock Qty:", wcProduct.stock_quantity);
 
+      // --- CRITICAL: Update local state with fresh data so popup uses it ---
+      setAvailableStock(totalStock);
+      setBackordersAllowed(backordersAllowed);
+      if (wcProduct.stock_status !== "instock" && !backordersAllowed) {
+        setIsOutOfStock(true);
+      } else {
+        setIsOutOfStock(false);
+      }
+
       // If stock management enabled, validate quantity ONLY if backorders are NOT allowed
       if (
         totalStock !== null &&
@@ -787,14 +796,14 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         toast.error(
           `Maximale beschikbare voorraad: ${totalStock}`
         );
-        return false;
+        return { success: false };
       }
 
-      return true;
+      return { success: true, totalStock, backordersAllowed };
     } catch (err) {
       // console.error("❌ Stock check failed:", err);
       toast.error("Voorraadcontrole mislukt. Probeer opnieuw.");
-      return false;
+      return { success: false };
     }
   };
 
@@ -816,11 +825,13 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
     try {
       setIsAddingToCart(true);
 
-      const stockOk = await checkStockBeforeAdd(product.id, quantity);
-      if (!stockOk) {
+      const stockResult = await checkStockBeforeAdd(product.id, quantity);
+      if (!stockResult.success) {
         setIsAddingToCart(false);
         return;
       }
+
+      const freshAvailableStock = stockResult.totalStock !== undefined ? stockResult.totalStock : availableStock;
 
       const stockLeadRaw = getMetaValue("crucial_data_delivery_if_stock");
       const noStockLeadRaw = getMetaValue("crucial_data_delivery_if_no_stock");
@@ -831,7 +842,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
       console.log("🟦 [handleAddToCart] Delivery Params:", {
          stockStatus: product.stock_status,
          quantity,
-         availableStock,
+         availableStock: freshAvailableStock,
          leadTimeInStock,
          leadTimeNoStock
       });
@@ -839,7 +850,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
       const deliveryInfo = getDeliveryInfo(
         product.stock_status,
         quantity + cartItemQuantity,
-        availableStock ?? product.stock_quantity ?? null,
+        freshAvailableStock ?? product.stock_quantity ?? null,
         leadTimeInStock,
         leadTimeNoStock
       );
