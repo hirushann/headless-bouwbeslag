@@ -69,13 +69,14 @@ export default function ReviewsSection({ productId, productName }: ReviewsSectio
           reviewer: formData.name,
           reviewer_email: formData.email,
           rating: formData.rating,
-          review: formData.message
+          review: formData.message,
+          productName: productName
         })
       });
 
       if (!res.ok) throw new Error("Failed to submit");
 
-      toast.success("Review submitted! It will appear after approval.");
+      toast.success("Beoordeling ingediend! Deze verschijnt na goedkeuring.");
       setFormData({ name: "", email: "", rating: 5, message: "" });
       setShowForm(false);
       // Optional: re-fetch, though it might not show up immediately if needs approval
