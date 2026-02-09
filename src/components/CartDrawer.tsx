@@ -190,7 +190,7 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods }: CartDra
                           }
 
                           let colorClass = "text-[#03B955]";
-                          if (type === "PARTIAL_STOCK") colorClass = "text-[#03B955]";
+                          if (type === "PARTIAL_STOCK") colorClass = "text-[#B28900]";
                           else if (type === "BACKORDER" || type === "OUT_OF_STOCK") colorClass = "text-[#FF5E00]";
                           return <p className={`${colorClass} text-xs font-semibold mt-1`}>{message}</p>;
                         })()

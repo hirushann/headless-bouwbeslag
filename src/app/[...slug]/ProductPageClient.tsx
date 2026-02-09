@@ -54,11 +54,13 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
   const [selectedImage, setSelectedImage] = useState('/afbeelding.webp');
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
   const [currentUrl, setCurrentUrl] = useState("");
+  const [mounted, setMounted] = useState(false);
 
 
   useEffect(() => {
     setCurrentUrl(window.location.href);
-  }, []); // Only run once for URL
+    setMounted(true);
+  }, []); // Run once on mount
 
   const { userRole, isLoading } = useUserContext();
 
@@ -1565,6 +1567,11 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                 leadTimeInStock,
                 leadTimeNoStock
               );
+
+              // Use a key or state to ensure it re-renders on client with fresh "Date.now()"
+              if (!mounted) {
+                return <div className='bg-gray-50 py-3 px-5 rounded-md animate-pulse h-20' />;
+              }
 
               if (info.type === "IN_STOCK") {
                 return (

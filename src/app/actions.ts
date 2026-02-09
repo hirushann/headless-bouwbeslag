@@ -6,7 +6,7 @@ import api from "@/lib/woocommerce";
 
 export async function checkStockAction(productId: number) {
     try {
-        const res = await api.get(`products/${productId}`);
+        const res = await api.get(`products/${productId}`, { cache: "no-store" });
         return { success: true, data: res.data };
     } catch (error: any) {
         // console.error("Stock check error:", error?.message);
@@ -16,7 +16,7 @@ export async function checkStockAction(productId: number) {
 
 export async function fetchProductByIdAction(productId: number) {
     try {
-        const res = await api.get(`products/${productId}`);
+        const res = await api.get(`products/${productId}`, { next: { revalidate: 60 } });
         return { success: true, data: res.data };
     } catch (error: any) {
         // console.error("Fetch product by ID error:", error?.message);
@@ -39,7 +39,11 @@ export async function refreshCartStockAction(productIds: number[]) {
     try {
         if (!productIds || productIds.length === 0) return { success: true, data: [] };
 
-        const res = await api.get("products", { include: productIds, per_page: 50 }); // Assume max 50 items in cart for now
+        const res = await api.get("products", {
+            include: productIds,
+            per_page: 50,
+            cache: "no-store"
+        }); // Assume max 50 items in cart for now
 
         // Map response to just what we need
         const updates = Array.isArray(res.data) ? res.data.map((p: any) => {

@@ -27,21 +27,32 @@ export class WooCommerceClient {
       "Content-Type": "application/json",
     };
 
+    const params = isGet ? (data.params || data) : data;
+    const revalidate = params?.next?.revalidate !== undefined ? params.next.revalidate : 3600;
+    const cache = params?.cache;
+
     const config: any = {
       method,
       headers,
-      next: { revalidate: 3600 } // Default cache 1 hour
+      next: { revalidate }
     };
 
+    if (cache) {
+      config.cache = cache;
+      delete config.next; // cache and next.revalidate are mutually exclusive in fetch
+    }
+
     if (isGet) {
-      const params = data.params || data;
-      if (params) {
-        Object.keys(params).forEach((key) => {
-          if (params[key] !== undefined && params[key] !== null) {
-            requestUrl.searchParams.append(key, String(params[key]));
-          }
-        });
-      }
+      // Remove our custom options before appending to searchParams
+      const filteredParams = { ...params };
+      if (filteredParams.next) delete filteredParams.next;
+      if (filteredParams.cache) delete filteredParams.cache;
+
+      Object.keys(filteredParams).forEach((key) => {
+        if (filteredParams[key] !== undefined && filteredParams[key] !== null) {
+          requestUrl.searchParams.append(key, String(filteredParams[key]));
+        }
+      });
     } else {
       config.body = JSON.stringify(data);
     }
