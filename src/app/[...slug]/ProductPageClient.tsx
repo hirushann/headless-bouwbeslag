@@ -836,7 +836,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
 
       const deliveryInfo = getDeliveryInfo(
         product.stock_status,
-        quantity,
+        quantity + cartItemQuantity,
         availableStock ?? product.stock_quantity ?? null,
         leadTimeInStock,
         leadTimeNoStock
@@ -1119,7 +1119,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                   {blindtoiletroseKeys.length > 0 && (
                     <div id="blindtoiletroses-section">
                       <div className="mb-4">
-                        <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende blinde rozetten</h3>
+                        <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende toiletgarnituren</h3>
                       </div>
                       <div className="space-y-3">
                         {blindtoiletroseKeys.map((item, index) => (
@@ -1560,7 +1560,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
 
               const info = getDeliveryInfo(
                 stockStatus,
-                quantity,
+                quantity + cartItemQuantity,
                 stockQty,
                 leadTimeInStock,
                 leadTimeNoStock
@@ -1575,8 +1575,8 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                 );
               } else if (info.type === "PARTIAL_STOCK") {
                 return (
-                  <div className='bg-[#EDFCF2] py-3 px-5 rounded-md'>
-                    <p className='text-[#03B955] font-semibold text-lg'>Dit product is op voorraad</p>
+                  <div className='bg-[#FFF9E6] py-3 px-5 rounded-md border border-[#FFCC00]'>
+                    <p className='text-[#B28900] font-semibold text-lg'>Deels op voorraad</p>
                     <p className='text-[#3D4752] font-normal text-sm'>{info.message}</p>
                   </div>
                 );
@@ -1693,7 +1693,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                 {blindtoiletroseKeys.length > 0 && (
                   <div id="blindtoiletroses-section">
                     <div className="mb-4">
-                      <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende blinde rozetten</h3>
+                      <h3 className="text-[#1C2530] font-bold text-2xl lg:text-3xl">Bijpassende toiletgarnituren</h3>
                     </div>
                     <div className="space-y-3">
                       {blindtoiletroseKeys.map((item, index) => (

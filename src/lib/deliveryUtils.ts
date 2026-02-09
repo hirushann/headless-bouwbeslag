@@ -163,7 +163,7 @@ export const getDeliveryInfo = (
 
         return {
             type: "PARTIAL_STOCK", // Mixed/Green warning
-            message: `LET OP: van dit product hebben wij momenteel maar ${stockQuantity} op voorraad. De nalevering zal ${msgBack} zijn.`,
+            message: `LET OP: van dit product hebben wij momenteel maar ${stockQuantity} op voorraad voor levering ${msgDirect}. De resterende ${(quantityRequested - stockQuantity)} stuks worden ${msgBack} verzonden.`,
             short: `Levering: ${stockQuantity}x ${msgDirect}, ${(quantityRequested - stockQuantity)}x ${msgBack}`
         };
     }

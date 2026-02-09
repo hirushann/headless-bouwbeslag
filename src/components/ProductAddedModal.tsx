@@ -61,13 +61,17 @@ export default function ProductAddedModal() {
                   <h3 className="font-bold text-base lg:text-base text-[#1C2530] leading-tight">{modalData.product?.name}</h3>
                   <div className="flex flex-col md:flex-row items-center gap-2 justify-center md:justify-start mt-2">
                      <span className="bg-blue-100 text-[#0066FF] px-2 py-0.5 rounded text-[10px] lg:text-xs font-bold uppercase tracking-wider">Aantal: {modalData.quantity}</span>
-                     <div className="text-[10px] lg:text-xs">
+                      <div className="text-[10px] lg:text-xs">
                         {modalData.deliveryText && (
-                            <span className={`font-bold ${modalData.deliveryType === 'IN_STOCK' || modalData.deliveryType === 'PARTIAL_STOCK' ? 'text-[#03B955]' : 'text-[#FF5E00]'}`}>
+                            <span className={`font-bold ${
+                              modalData.deliveryType === 'IN_STOCK' ? 'text-[#03B955]' : 
+                              modalData.deliveryType === 'PARTIAL_STOCK' ? 'text-[#B28900]' : 
+                              'text-[#FF5E00]'
+                            }`}>
                               {modalData.deliveryText}
                             </span>
                         )}
-                     </div>
+                      </div>
                   </div>
                 </div>
                 <div className="text-center md:text-right flex flex-col items-center md:items-end">
@@ -163,7 +167,7 @@ export default function ProductAddedModal() {
                       {/* Blind/Toilet Roses */}
                       {modalData.blindtoiletroseKeys && modalData.blindtoiletroseKeys.length > 0 && (
                         <div>
-                           <h4 className="font-bold text-base text-[#1C2530] mb-3">Bijpassende blinde rozetten</h4>
+                           <h4 className="font-bold text-base text-[#1C2530] mb-3">Bijpassende toiletgarnituren</h4>
                            <div className="space-y-3">
                               {modalData.blindtoiletroseKeys.slice(0, 4).map((item, index) => (
                                 <RecommendedProductItem key={item.id || index} item={item} />
