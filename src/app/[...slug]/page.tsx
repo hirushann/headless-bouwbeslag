@@ -10,6 +10,7 @@ import CategoryClient from "@/components/CategoryClient";
  ---------------------------------------------------- */
 type PageProps = {
   params: Promise<{ slug: string[] }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
 interface Category {
@@ -17,6 +18,7 @@ interface Category {
   name: string;
   slug: string;
   description: string;
+  parent: number;
   acf?: {
     category_meta_title?: string;
     category_meta_description?: string;
@@ -54,7 +56,7 @@ const getCategoryMetadataCached = cache(async (slug: string) => {
   try {
     const res = await api.get("products/categories", { 
       slug, 
-      _fields: "id,name,slug,description,acf"
+      _fields: "id,name,slug,description,acf,parent"
     });
     if (!res.data || res.data.length === 0) return null;
     return res.data[0];
@@ -105,9 +107,24 @@ const getProductBySlugCached = cache(async (slug: string) => {
 
 const getCategoryBySlugCached = cache(async (slug: string): Promise<Category | null> => {
   try {
-    const res = await api.get("products/categories", { slug, cache: "no-store" });
+    const res = await api.get("products/categories", { 
+      slug, 
+      cache: "no-store",
+      _fields: "id,name,slug,description,acf,parent"
+    });
     if (!res.data || res.data.length === 0) return null;
     return res.data[0];
+  } catch (error) {
+    return null;
+  }
+});
+
+const getCategoryByIdCached = cache(async (id: number) => {
+  try {
+    const res = await api.get(`products/categories/${id}`, { 
+      _fields: "id,name,slug,parent" 
+    });
+    return res.data;
   } catch (error) {
     return null;
   }
@@ -182,6 +199,21 @@ async function getStandardTaxRate(): Promise<number> {
  ---------------------------------------------------- */
 const clean = (s: string | undefined) => s ? s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim() : "";
 
+async function traverseCategoryPath(category: any): Promise<string> {
+  const path = [category.slug];
+  let currentParentId = category.parent;
+  let depth = 0;
+
+  while (currentParentId && currentParentId !== 0 && depth < 10) {
+    const parent = await getCategoryByIdCached(currentParentId);
+    if (!parent) break;
+    path.unshift(parent.slug);
+    currentParentId = parent.parent;
+    depth++;
+  }
+  return path.join('/');
+}
+
 /* ----------------------------------------------------
  | ✅ SEO METADATA (ACF-powered)
  ---------------------------------------------------- */
@@ -254,16 +286,18 @@ export async function generateMetadata(
             : `Op zoek naar ${clean(category.name)}? Bekijk ons ruime assortiment. ✅ Vóór 16:00 besteld, morgen in huis! Bestel direct online.`;
     }
 
+    const correctPath = await traverseCategoryPath(category);
+
     return {
       title,
       description,
       alternates: {
-        canonical: `/${slug.join('/')}`,
+        canonical: `/${correctPath}`,
       },
       openGraph: {
         title,
         description,
-        url: `/${slug.join('/')}`,
+        url: `/${correctPath}`,
         type: "website",
       },
       robots: {
@@ -336,7 +370,7 @@ function generateStructuredData(product: any, taxRate: number) {
 /* ----------------------------------------------------
  | ✅ PAGE (SERVER COMPONENT)
  ---------------------------------------------------- */
-export default async function Page({ params }: PageProps) {
+export default async function Page({ params, searchParams }: PageProps) {
   const { slug } = await params;
   const { product, category } = await getPageData(slug);
 
@@ -368,6 +402,17 @@ export default async function Page({ params }: PageProps) {
     ]);
     
     const subCategories = subCategoriesRes.data || [];
+
+    // URL Validation & Redirection Logic
+    const correctPath = await traverseCategoryPath(category);
+    const currentPath = slug.join("/");
+
+    if (currentPath !== correctPath) {
+      const sp = await searchParams;
+      const query = sp ? new URLSearchParams(sp as any).toString() : "";
+      const destination = `/${correctPath}${query ? `?${query}` : ""}`;
+      redirect(destination);
+    }
 
     return (
       <main>
