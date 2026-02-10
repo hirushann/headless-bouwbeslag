@@ -167,13 +167,32 @@ const resolveBrandLogin = async (brand: Brand): Promise<Brand> => {
 
 export const getBrands = async (): Promise<Brand[]> => {
   try {
-    // Fetch from product_brand taxonomy (wp/v2 namespace)
-    const { data: brands } = await api.get("wp/v2/product_brand", {
-      params: { per_page: 100, hide_empty: true, _embed: true, next: { revalidate: 60 } }
-    });
+    let allBrands: Brand[] = [];
+    let page = 1;
+    let totalPages = 1;
 
-    // Resolve images in parallel (careful with concurrency if many brands)
-    const resolvedBrands = await Promise.all(brands.map((b: Brand) => resolveBrandLogin(b)));
+    do {
+      // Fetch from product_brand taxonomy (wp/v2 namespace)
+      const response = await api.get("wp/v2/product_brand", {
+        params: {
+          per_page: 100,
+          page: page,
+          hide_empty: true,
+          _embed: true,
+          next: { revalidate: 60 }
+        }
+      });
+
+      const brands = response.data;
+      if (!brands || brands.length === 0) break;
+
+      allBrands = [...allBrands, ...brands];
+      totalPages = Number(response.totalPages) || 1;
+      page++;
+    } while (page <= totalPages);
+
+    // Resolve images in parallel
+    const resolvedBrands = await Promise.all(allBrands.map((b: Brand) => resolveBrandLogin(b)));
 
     return resolvedBrands;
   } catch (error) {

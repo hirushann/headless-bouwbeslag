@@ -146,7 +146,11 @@ export default async function BrandPage({ params, searchParams }: { params: Prom
                         <h1 className="text-3xl font-bold mb-4 text-gray-900">{brand.name}</h1>
                         <div 
                             className="prose prose-sm max-w-none text-gray-600"
-                            dangerouslySetInnerHTML={{ __html: brand.acf?.brand_description || brand.description || `Bekijk ons assortiment van ${brand.name}.` }}
+                            dangerouslySetInnerHTML={{ 
+                                __html: (brand.acf?.brand_description && brand.acf.brand_description.trim() !== "") 
+                                    ? brand.acf.brand_description 
+                                    : (brand.description || `Bekijk ons assortiment van ${brand.name}.`) 
+                            }}
                         />
                     </div>
                 </div>
