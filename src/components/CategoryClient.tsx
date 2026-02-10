@@ -6,6 +6,7 @@ import ShopProductCard from "@/components/ShopProductCard";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import CategoryBreadcrumbs from "@/components/CategoryBreadcrumbs";
 
 const container = {
   hidden: { opacity: 0 },
@@ -428,6 +429,7 @@ export default function CategoryClient({
 
           {/* Main Content */}
           <main className="flex-1">
+            <CategoryBreadcrumbs categoryNames={currentSlug.map(s => s.charAt(0).toUpperCase() + s.slice(1))} />
             <div className="flex justify-between items-end mb-4 sticky top-[88px] bg-[#F7F7F7] z-40 py-4 -mx-5 px-5 lg:static lg:p-0 lg:mx-0"> 
               <h1 className="text-xl lg:text-3xl font-bold">{category?.name ?? "Category"}</h1>
               <div className='flex gap-3 '>

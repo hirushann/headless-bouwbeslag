@@ -34,26 +34,20 @@ export const viewport = {
   initialScale: 1,
 };
 
-async function HeaderWrapper() {
-  const shippingSettings = await getShippingSettings();
-  return <Header shippingMethods={shippingSettings} />;
-}
-
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const shippingSettings = await getShippingSettings();
+
   return (
     <html lang="nl" data-theme="light">
-      <head />
       <body className={`${dmsans.variable} ${geistMono.variable} font-sans antialiased overflow-visible`} >
         <Toaster position="top-right" />
         <UserProvider>
           <ProductAddedModalProvider>
-            <Suspense fallback={<div className="h-[180px] lg:h-[182px] w-full bg-white border-b border-gray-100" />}>
-              <HeaderWrapper />
-            </Suspense>
+            <Header shippingMethods={shippingSettings} />
             {children}
             <ProductAddedModal />
           </ProductAddedModalProvider>

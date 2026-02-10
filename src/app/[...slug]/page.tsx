@@ -1,5 +1,6 @@
-import React from "react";
+import React, { cache } from "react";
 import { Metadata } from "next";
+import { notFound, redirect } from "next/navigation";
 import api from "@/lib/woocommerce";
 import ProductPageClient from "./ProductPageClient";
 import CategoryClient from "@/components/CategoryClient";
@@ -34,24 +35,46 @@ interface Attribute {
 }
 
 /* ----------------------------------------------------
- | Server-side Fetch Helpers
+ | Server-side Fetch Helpers (Deduplicated with cache)
  ---------------------------------------------------- */
-async function getProductBySlug(slug: string) {
+const getProductMetadataCached = cache(async (slug: string) => {
+  try {
+    const res = await api.get("products", { 
+      slug, 
+      _fields: "id,name,slug,meta_data,short_description,sku"
+    });
+    if (!Array.isArray(res.data) || !res.data[0]) return null;
+    return res.data[0];
+  } catch (error) {
+    return null;
+  }
+});
+
+const getCategoryMetadataCached = cache(async (slug: string) => {
+  try {
+    const res = await api.get("products/categories", { 
+      slug, 
+      _fields: "id,name,slug,description,acf"
+    });
+    if (!res.data || res.data.length === 0) return null;
+    return res.data[0];
+  } catch (error) {
+    return null;
+  }
+});
+
+const getProductBySlugCached = cache(async (slug: string) => {
   try {
     const res = await api.get("products", { slug, cache: "no-store" });
-
-    if (!Array.isArray(res.data) || !res.data[0]) {
-      return null;
-    }
+    if (!Array.isArray(res.data) || !res.data[0]) return null;
 
     const full = await api.get(`products/${res.data[0].id}`, { cache: "no-store" });
     const product = full?.data ?? null;
-    
     if (!product) return null;
 
+    // Fetch Brand Logo if present
     if (product.brands && product.brands.length > 0) {
       const brandId = product.brands[0].id;
-      
       try {
         const brandRes = await api.get(`wp/v2/product_brand/${brandId}`);
         const brandData = brandRes.data;
@@ -64,53 +87,59 @@ async function getProductBySlug(slug: string) {
             try {
               const mediaRes = await api.get(`wp/v2/media/${logoData}`);
               logoUrl = mediaRes.data?.source_url || null;
-            } catch (e) {
-              // console.error("Failed to fetch brand logo media:", e);
-            }
+            } catch (e) {}
           } else if (typeof logoData === 'string') {
-            // Logo is already a URL
             logoUrl = logoData;
           } else if (logoData?.url) {
-            // Logo is an object with URL
             logoUrl = logoData.url;
           }
-          
-          // Attach logo URL to the brand data
-          if (logoUrl) {
-            product.brands[0].logoUrl = logoUrl;
-          }
+          if (logoUrl) product.brands[0].logoUrl = logoUrl;
         }
-      } catch (e) {
-        // console.error("Failed to fetch brand data:", e);
-        // Continue without brand logo rather than failing the whole request
-      }
+      } catch (e) {}
     }
-    
     return product;
   } catch (error) {
-    // console.error("SSR product fetch failed:", error);
     return null;
   }
-}
+});
 
-async function getCategoryBySlug(slug: string): Promise<Category | null> {
+const getCategoryBySlugCached = cache(async (slug: string): Promise<Category | null> => {
   try {
     const res = await api.get("products/categories", { slug, cache: "no-store" });
     if (!res.data || res.data.length === 0) return null;
     return res.data[0];
   } catch (error) {
-    // console.error("SSR category fetch failed:", error);
     return null;
   }
-}
+});
+
+const getPageMetadata = cache(async (slugArray: string[]) => {
+  const currentSlug = slugArray[slugArray.length - 1];
+  const product = await getProductMetadataCached(currentSlug);
+  if (product) return { product, category: null };
+  const category = await getCategoryMetadataCached(currentSlug);
+  return { product: null, category };
+});
+
+const getPageData = cache(async (slugArray: string[]) => {
+  const currentSlug = slugArray[slugArray.length - 1];
+
+  // If multiple segments, it's very likely a category hierarchy.
+  // We'll check for a product first just in case, then a category to redirect.
+  
+  const product = await getProductBySlugCached(currentSlug);
+  if (product) return { product, category: null };
+
+  const category = await getCategoryBySlugCached(currentSlug);
+  return { product: null, category };
+});
 
 async function fetchAttributes(): Promise<Attribute[]> {
   try {
     const res = await api.get("products/attributes");
     const attributesData = res.data || [];
     
-    // Parallelize fetching terms for all attributes
-    const attributesWithTerms = await Promise.all(
+    return await Promise.all(
       attributesData.map(async (attr: any) => {
         const termsRes = await fetchTermsForAttribute(attr.id);
         return {
@@ -120,10 +149,7 @@ async function fetchAttributes(): Promise<Attribute[]> {
         };
       })
     );
-
-    return attributesWithTerms;
   } catch (error) {
-    // console.error("Attributes fetch failed:", error);
     return [];
   }
 }
@@ -163,27 +189,14 @@ export async function generateMetadata(
   { params }: PageProps
 ): Promise<Metadata> {
   const { slug } = await params;
-  // Use the last segment of the slug array for lookup
   const currentSlug = slug[slug.length - 1];
   
-  const [product, category] = await Promise.all([
-    getProductBySlug(currentSlug),
-    getCategoryBySlug(currentSlug)
-  ]);
+  const { product, category } = await getPageMetadata(slug);
 
-  // console.log(`[DEBUG] generateMetadata for ${currentSlug}. Product: ${!!product}, Category: ${!!category}`);
-
-  // 1. Try Product first
   if (product) {
     const meta = product.meta_data || [];
-    
-    // Dynamic Product Title
-    // Priority: Custom Meta Title -> "Product Name | Bouwbeslag"
     const acfTitle = meta.find((m: any) => m.key === "description_meta_title")?.value;
     const metaTitle = clean(acfTitle) || `${clean(product.name)} | Bouwbeslag`;
-
-    // Dynamic Product Description
-    // Priority: Custom Meta Desc -> Short Desc -> Default Template
     const acfDesc = meta.find((m: any) => m.key === "description_meta_description")?.value;
     
     let metaDescription = clean(acfDesc);
@@ -217,27 +230,18 @@ export async function generateMetadata(
         follow: true,
       }
     };
-    // console.log(`[DEBUG] Product Metadata:`, JSON.stringify(result));
     return result;
   }
 
   // 2. Try Category next
   if (category) {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl";
-    // Reconstruct canonical URL from the slug array
-    // Ensure properly escaped
     const canonicalPath = slug.map(s => encodeURIComponent(s)).join('/');
     const canonicalUrl = `${siteUrl}/${canonicalPath}`;
 
-    // Clean helper already defined above
-    
     // Dynamic Category Title
     const acfTitle = category.acf?.category_meta_title;
-    let title = clean(acfTitle);
-    
-    if (!title) {
-        title = `${clean(category.name)} | Bouwbeslag`;
-    }
+    let title = clean(acfTitle) || `${clean(category.name)} | Bouwbeslag`;
 
     // Dynamic Category Description
     const acfDesc = category.acf?.category_meta_description;
@@ -254,12 +258,12 @@ export async function generateMetadata(
       title,
       description,
       alternates: {
-        canonical: canonicalUrl,
+        canonical: `/${slug.join('/')}`,
       },
       openGraph: {
         title,
         description,
-        url: canonicalUrl,
+        url: `/${slug.join('/')}`,
         type: "website",
       },
       robots: {
@@ -269,7 +273,6 @@ export async function generateMetadata(
     };
   }
 
-  // 3. Not Found
   return {};
 }
 
@@ -335,18 +338,9 @@ function generateStructuredData(product: any, taxRate: number) {
  ---------------------------------------------------- */
 export default async function Page({ params }: PageProps) {
   const { slug } = await params;
-  // Use the last segment of the slug array for lookup
-  const currentSlug = slug[slug.length - 1];
-  
-  // 1. Check Product & Category in Parallel
-  // This drastically reduces load time for category pages, as we don't wait for product fetch to fail.
-  const [product, category] = await Promise.all([
-    getProductBySlug(currentSlug),
-    getCategoryBySlug(currentSlug)
-  ]);
+  const { product, category } = await getPageData(slug);
 
   if (product) {
-    // Determine tax rate only if product exists
     const taxRate = await getStandardTaxRate();
     const structuredData = generateStructuredData(product, taxRate);
 
@@ -390,9 +384,5 @@ export default async function Page({ params }: PageProps) {
   }
 
   // 3. Not Found
-  return (
-    <main className="flex items-center justify-center min-h-[300px]">
-      <span>Product of categorie niet gevonden.</span>
-    </main>
-  );
+  notFound();
 }
