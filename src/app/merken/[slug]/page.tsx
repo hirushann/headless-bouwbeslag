@@ -1,4 +1,4 @@
-import { getBrand, fetchProducts, getProductsByBrand } from "@/lib/woocommerce";
+import api, { getBrand, fetchProducts, getProductsByBrand } from "@/lib/woocommerce";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ShopProductCard from "@/components/ShopProductCard";
@@ -6,8 +6,11 @@ import { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+import api from "@/lib/woocommerce"; 
+
+export async function generateMetadata({ params, searchParams }: { params: Promise<{ slug: string }>, searchParams: Promise<{ category?: string }> }): Promise<Metadata> {
     const { slug } = await params;
+    const { category: categorySlug } = await searchParams;
     const brand = await getBrand(slug);
 
     if (!brand) {
@@ -15,9 +18,23 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     }
 
     // Dynamic Title
-    // Priority: ACF Title -> "Brand Name | Bouwbeslag"
-    const acfTitle = brand.acf?.brand_meta_title;
-    const title = acfTitle && acfTitle.trim() !== "" ? acfTitle : `${brand.name} | Bouwbeslag`;
+    // Priority: Category Filter -> ACF Title -> "Brand Name | Bouwbeslag"
+    let title = brand.acf?.brand_meta_title && brand.acf.brand_meta_title.trim() !== "" 
+        ? brand.acf.brand_meta_title 
+        : `${brand.name} | Bouwbeslag`;
+    
+    // Fetch Category Name if filtered to create unique title
+    if (categorySlug) {
+        try {
+            const { data: categories } = await api.get("products/categories", { slug: categorySlug });
+            if (categories && categories.length > 0) {
+                 const categoryName = categories[0].name;
+                 title = `${brand.name} ${categoryName} | Bouwbeslag`;
+            }
+        } catch (e) {
+            console.error("Error fetching category for metadata:", e);
+        }
+    }
 
     // Dynamic Description
     // Priority: ACF Desc -> Brand Desc -> Fallback Template
@@ -32,12 +49,21 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         description = `Bekijk het complete assortiment van ${brand.name} bij Bouwbeslag. ✅ Scherpe prijzen ✅ Snelle levering ✅ Deskundig advies.`;
     }
 
+    // Construct Canonical URL (Self-referencing for filtered pages)
+    const canonicalPath = categorySlug 
+        ? `/merken/${slug}?category=${categorySlug}`
+        : `/merken/${slug}`;
+
     return {
         title: title,
         description: description,
+        alternates: {
+            canonical: canonicalPath,
+        },
         openGraph: {
             title: title,
             description: description,
+            url: canonicalPath,
         }
     };
 }
