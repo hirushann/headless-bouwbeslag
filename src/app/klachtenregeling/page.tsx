@@ -4,6 +4,9 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Klachtenregeling | Bouwbeslag',
   description: 'Heeft u een klacht? Lees hier hoe wij klachten afhandelen en waar u terecht kunt.',
+  alternates: {
+    canonical: '/klachtenregeling',
+  },
 };
 
 export default function ComplaintsPolicyPage() {

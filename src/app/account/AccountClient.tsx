@@ -238,7 +238,25 @@ function AccountContent() {
 
 
   if (!user) {
-    return <div className="p-10 text-gray-500 flex justify-center mt-10">Loading your account...</div>;
+    return (
+      <main className="bg-[#F5F5F5] min-h-screen">
+        <div className="max-w-[1440px] mx-auto py-12 px-6 lg:px-12 font-sans">
+          {/* Breadcrumb */}
+          <div className="mb-8">
+            <div className="text-sm text-gray-500 mb-6 flex items-center gap-2">
+              <Link href="/" className="hover:text-[#0066FF] flex items-center gap-1 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-4"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>
+                Home
+              </Link>
+              <span className="text-gray-300">/</span>
+              <span>Mijn Account</span>
+            </div>
+            <h1 className="font-bold text-4xl text-[#1C2530]">Mijn Account</h1>
+          </div>
+          <div className="p-10 text-gray-500 flex justify-center mt-10">Je account wordt geladen...</div>
+        </div>
+      </main>
+    );
   }
 
   const NavItem = ({ id, label, icon }: { id: string; label: string; icon: React.ReactNode }) => (
@@ -275,9 +293,9 @@ function AccountContent() {
               Home
             </Link>
             <span className="text-gray-300">/</span>
-            <span>My Account</span>
+            <span>Mijn Account</span>
           </div>
-          <h1 className="font-bold text-4xl text-[#1C2530]">My Account</h1>
+          <h1 className="font-bold text-4xl text-[#1C2530]">Mijn Account</h1>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">

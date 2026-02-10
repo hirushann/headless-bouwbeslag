@@ -4,6 +4,9 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Algemene Voorwaarden | Bouwbeslag',
   description: 'Lees onze algemene voorwaarden voor gebruik van onze diensten en producten.',
+  alternates: {
+    canonical: '/algemene-voorwaarden',
+  },
 };
 
 export default function TermsAndConditionsPage() {

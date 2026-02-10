@@ -4,6 +4,9 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Retourbeleid | Bouwbeslag',
   description: 'Lees hier alles over ons retourbeleid en hoe u uw producten kunt retourneren.',
+  alternates: {
+    canonical: '/retourbeleid',
+  },
 };
 
 export default function ReturnPolicyPage() {

@@ -5,6 +5,9 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Hulp & Ondersteuning | Bouwbeslag",
   description: "Heeft u vragen of hulp nodig? Bekijk onze contactmogelijkheden en veelgestelde vragen.",
+  alternates: {
+    canonical: '/hulp',
+  },
 };
 
 export default function HelpPage() {

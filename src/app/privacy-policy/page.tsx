@@ -4,6 +4,9 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Privacybeleid | Bouwbeslag',
   description: 'Lees hoe wij omgaan met uw privacy en persoonsgegevens bij Bouwbeslag.',
+  alternates: {
+    canonical: '/privacy-policy',
+  },
 };
 
 export default function PrivacyPolicyPage() {
