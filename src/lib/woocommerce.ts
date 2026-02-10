@@ -28,7 +28,7 @@ export class WooCommerceClient {
     };
 
     const params = isGet ? (data.params || data) : data;
-    const revalidate = params?.next?.revalidate !== undefined ? params.next.revalidate : 3600;
+    const revalidate = params?.next?.revalidate !== undefined ? params.next.revalidate : 60; // Lowered from 3600 to 60 for better responsiveness
     const cache = params?.cache;
 
     const config: any = {
@@ -317,33 +317,45 @@ export interface Brand {
 
 
 
-export const getProductsByBrand = async (brandId: number, perPage: number = 20): Promise<any[]> => {
+export const getProductsByBrand = async (brandId: number): Promise<any[]> => {
   try {
-    // 1. Fetch IDs from WP Core endpoint (which supports filtering by custom taxonomy)
-    const { data: wpProducts } = await api.get("wp/v2/product", {
-      params: {
-        product_brand: brandId,
-        per_page: perPage,
-        _fields: 'id'
-      }
-    });
+    let allProducts: any[] = [];
+    let page = 1;
+    let totalPages = 1;
 
-    if (!wpProducts || wpProducts.length === 0) {
-      return [];
-    }
+    // 1. Fetch all product IDs for this brand from WP Core endpoint
+    do {
+      const response = await api.get("wp/v2/product", {
+        params: {
+          product_brand: brandId,
+          per_page: 100, // Max allowed by WP
+          page: page,
+          _fields: 'id',
+          next: { revalidate: 60 } // Lower revalidate for better updates
+        }
+      });
 
-    const ids = wpProducts.map((p: any) => p.id);
+      const wpProducts = response.data;
+      if (!wpProducts || wpProducts.length === 0) break;
 
-    // 2. Fetch full product details from WC API using IDs
-    const { data: wcProducts } = await api.get("products", {
-      params: {
-        include: ids.join(','),
-        per_page: perPage,
-        status: 'publish'
-      }
-    });
+      const ids = wpProducts.map((p: any) => p.id);
 
-    return wcProducts;
+      // 2. Fetch full product details for these IDs from WC API
+      const { data: wcProducts } = await api.get("products", {
+        params: {
+          include: ids.join(','),
+          per_page: 100,
+          status: 'publish',
+          next: { revalidate: 60 }
+        }
+      });
+
+      allProducts = [...allProducts, ...wcProducts];
+      totalPages = Number(response.totalPages) || 1;
+      page++;
+    } while (page <= totalPages);
+
+    return allProducts;
 
   } catch (error) {
     // console.error("Error fetching brand products:", error);

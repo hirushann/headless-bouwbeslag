@@ -95,7 +95,7 @@ export default async function BrandPage({ params, searchParams }: { params: Prom
     }
 
     // Fetch products for this brand using the specialized function to ensure correct filtering
-    const allProducts = await getProductsByBrand(brand.id, 100);
+    const allProducts = await getProductsByBrand(brand.id);
 
     // Extract categories from products
     const categoriesMap = new Map<string, { id: number, name: string, slug: string, count: number }>();
