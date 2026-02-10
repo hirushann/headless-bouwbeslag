@@ -49,6 +49,21 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
         description = `Bekijk het complete assortiment van ${brand.name} bij Bouwbeslag. ✅ Scherpe prijzen ✅ Snelle levering ✅ Deskundig advies.`;
     }
 
+    // Append category to description if filtered
+    if (categorySlug) {
+        try {
+            const { data: categories } = await api.get("products/categories", { slug: categorySlug });
+            if (categories && categories.length > 0) {
+                 const categoryName = categories[0].name;
+                 description = `Bekijk ons assortiment ${categoryName} van ${brand.name}. ${description}`; 
+                 // Ensure description isn't too long (google truncates ~160 chars, but better unique than short duplicate)
+                 if (description.length > 300) description = description.substring(0, 297) + "...";
+            }
+        } catch (e) {
+            // ignore
+        }
+    }
+
     // Construct Canonical URL (Self-referencing for filtered pages)
     const canonicalPath = categorySlug 
         ? `/merken/${slug}?category=${categorySlug}`
