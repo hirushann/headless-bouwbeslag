@@ -7,11 +7,8 @@ import CategoryClient from "@/components/CategoryClient";
 /* ----------------------------------------------------
  | Types
  ---------------------------------------------------- */
-// type PageProps = {
-//   params: Promise<{ slug: string[] }>;
-// };
 type PageProps = {
-  params: { slug: string[] };
+  params: Promise<{ slug: string[] }>;
 };
 
 interface Category {
@@ -155,6 +152,11 @@ async function getStandardTaxRate(): Promise<number> {
 }
 
 /* ----------------------------------------------------
+ | Helper Functions
+ ---------------------------------------------------- */
+const clean = (s: string | undefined) => s ? s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim() : "";
+
+/* ----------------------------------------------------
  | ✅ SEO METADATA (ACF-powered)
  ---------------------------------------------------- */
 export async function generateMetadata(
@@ -164,11 +166,12 @@ export async function generateMetadata(
   // Use the last segment of the slug array for lookup
   const currentSlug = slug[slug.length - 1];
   
-  // Parallel fetch for metadata optimization
   const [product, category] = await Promise.all([
     getProductBySlug(currentSlug),
     getCategoryBySlug(currentSlug)
   ]);
+
+  // console.log(`[DEBUG] generateMetadata for ${currentSlug}. Product: ${!!product}, Category: ${!!category}`);
 
   // 1. Try Product first
   if (product) {
@@ -176,27 +179,24 @@ export async function generateMetadata(
     
     // Dynamic Product Title
     // Priority: Custom Meta Title -> "Product Name | Bouwbeslag"
-    const customTitle = meta.find((m: any) => m.key === "description_meta_title")?.value;
-    const metaTitle = customTitle && customTitle.trim() !== "" 
-      ? customTitle 
-      : `${product.name} | Bouwbeslag`;
+    const acfTitle = meta.find((m: any) => m.key === "description_meta_title")?.value;
+    const metaTitle = clean(acfTitle) || `${clean(product.name)} | Bouwbeslag`;
 
     // Dynamic Product Description
     // Priority: Custom Meta Desc -> Short Desc -> Default Template
-    const customDesc = meta.find((m: any) => m.key === "description_meta_description")?.value;
+    const acfDesc = meta.find((m: any) => m.key === "description_meta_description")?.value;
     
-    let metaDescription = "";
-    if (customDesc && customDesc.trim() !== "") {
-        metaDescription = customDesc;
-    } else if (product.short_description && product.short_description.trim() !== "") {
-        metaDescription = product.short_description.replace(/<[^>]+>/g, "").slice(0, 160);
-    } else {
-        // Ultimate Fallback Template
+    let metaDescription = clean(acfDesc);
+    if (!metaDescription) {
+      if (product.short_description) {
+        metaDescription = clean(product.short_description).slice(0, 160);
+      } else {
         const skuText = product.sku ? `(SKU: ${product.sku})` : "";
-        metaDescription = `Koop ${product.name} ${skuText} bij Bouwbeslag.nl. ✅ Scherpe prijzen ✅ Snelle levering ✅ 30 dagen bedenktijd.`;
+        metaDescription = `Koop ${clean(product.name)} ${skuText} bij Bouwbeslag.nl. ✅ Scherpe prijzen ✅ Snelle levering ✅ 30 dagen bedenktijd.`;
+      }
     }
 
-    return {
+    const result = {
       title: metaTitle,
       description: metaDescription,
       alternates: {
@@ -217,6 +217,8 @@ export async function generateMetadata(
         follow: true,
       }
     };
+    // console.log(`[DEBUG] Product Metadata:`, JSON.stringify(result));
+    return result;
   }
 
   // 2. Try Category next
@@ -227,9 +229,8 @@ export async function generateMetadata(
     const canonicalPath = slug.map(s => encodeURIComponent(s)).join('/');
     const canonicalUrl = `${siteUrl}/${canonicalPath}`;
 
-    // Clean helper
-    const clean = (s: string | undefined) => s ? s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim() : "";
-
+    // Clean helper already defined above
+    
     // Dynamic Category Title
     const acfTitle = category.acf?.category_meta_title;
     let title = clean(acfTitle);
@@ -350,7 +351,7 @@ export default async function Page({ params }: PageProps) {
     const structuredData = generateStructuredData(product, taxRate);
 
     return (
-      <React.Fragment>
+      <main>
         {structuredData && (
           <script
             type="application/ld+json"
@@ -360,7 +361,7 @@ export default async function Page({ params }: PageProps) {
           />
         )}
         <ProductPageClient product={product} taxRate={taxRate} slug={slug} />
-      </React.Fragment>
+      </main>
     );
   }
 
@@ -375,21 +376,23 @@ export default async function Page({ params }: PageProps) {
     const subCategories = subCategoriesRes.data || [];
 
     return (
-      <React.Suspense fallback={<div className="flex items-center justify-center min-h-screen">Laden...</div>}>
-        <CategoryClient
-          category={category}
-          attributes={attributes}
-          subCategories={subCategories}
-          currentSlug={slug}
-        />
-      </React.Suspense>
+      <main>
+        <React.Suspense fallback={<div className="flex items-center justify-center min-h-screen">Laden...</div>}>
+          <CategoryClient
+            category={category}
+            attributes={attributes}
+            subCategories={subCategories}
+            currentSlug={slug}
+          />
+        </React.Suspense>
+      </main>
     );
   }
 
   // 3. Not Found
   return (
-    <div className="flex items-center justify-center min-h-[300px]">
+    <main className="flex items-center justify-center min-h-[300px]">
       <span>Product of categorie niet gevonden.</span>
-    </div>
+    </main>
   );
 }

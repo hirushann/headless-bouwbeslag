@@ -21,6 +21,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl"),
   title: "Bouwbeslag & Deurbeslag van A-Merken | Laagste Prijs Garantie",
   description: "Ontdek hoogwaardig bouw- en deurbeslag van topmerken. Groot assortiment, scherpe prijzen, snelle levering en deskundig advies. Bouwbeslag.nl – altijd A-kwaliteit.",
   icons: {
@@ -44,7 +45,8 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="light">
+    <html lang="nl" data-theme="light">
+      <head />
       <body className={`${dmsans.variable} ${geistMono.variable} font-sans antialiased overflow-visible`} >
         <Toaster position="top-right" />
         <UserProvider>

@@ -1199,11 +1199,12 @@ export default function NewCheckoutPage() {
                                     );
                                     
                                     // Determine color based on type
-                                    let colorClass = "text-green-600";
-                                    if (info.type === "BACKORDER" || info.type === "OUT_OF_STOCK") colorClass = "text-orange-600";
+                                    let colorClass = "text-[#03B955]";
+                                    if (info.type === "PARTIAL_STOCK") colorClass = "text-[#B28900]";
+                                    else if (info.type === "BACKORDER" || info.type === "OUT_OF_STOCK") colorClass = "text-[#FF5E00]";
 
                                     return (
-                                        <p className={`text-xs ${colorClass} mt-1 font-medium`}>
+                                        <p className={`text-xs ${colorClass} mt-1 font-semibold`}>
                                             {info.short}
                                         </p>
                                     );

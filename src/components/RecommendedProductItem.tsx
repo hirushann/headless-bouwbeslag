@@ -49,10 +49,15 @@ export default function RecommendedProductItem({ item, onAddToCart }: { item: an
     const leadTimeInStock = stockLeadRaw && !isNaN(parseInt(stockLeadRaw)) ? parseInt(stockLeadRaw) : 1;
     const leadTimeNoStock = noStockLeadRaw && !isNaN(parseInt(noStockLeadRaw)) ? parseInt(noStockLeadRaw) : 30;
 
+    const totalStockMeta = getMeta("crucial_data_total_stock");
+    const stockQty = totalStockMeta !== undefined && totalStockMeta !== null && totalStockMeta !== "" 
+      ? parseInt(totalStockMeta, 10) 
+      : (typeof item.stock_quantity === "number" ? item.stock_quantity : null);
+
     const deliveryInfo = getDeliveryInfo(
         item.stock_status || 'instock',
         quantity,
-        item.stock_quantity ?? null,
+        stockQty,
         leadTimeInStock,
         leadTimeNoStock
     );
@@ -153,13 +158,18 @@ export default function RecommendedProductItem({ item, onAddToCart }: { item: an
                     </div>
                     {/* Delivery Notice */}
                     <div className="text-xs w-full lg:w-auto mb-2 lg:mb-0 ml-1">
-                        {deliveryInfo.type === 'IN_STOCK' || deliveryInfo.type === 'PARTIAL_STOCK' ? (
-                            <span className="text-[#03B955] font-medium flex items-center gap-1">
+                        {deliveryInfo.type === 'IN_STOCK' ? (
+                            <span className="text-[#03B955] font-semibold flex items-center gap-1">
                                 <span className="w-2 h-2 rounded-full bg-[#03B955]"></span>
                                 {deliveryInfo.short}
                             </span>
+                        ) : deliveryInfo.type === 'PARTIAL_STOCK' ? (
+                            <span className="text-[#B28900] font-semibold flex items-center gap-1">
+                                <span className="w-2 h-2 rounded-full bg-[#B28900]"></span>
+                                {deliveryInfo.short}
+                            </span>
                         ) : (
-                             <span className="text-[#FF5E00] font-medium flex items-center gap-1">
+                             <span className="text-[#FF5E00] font-semibold flex items-center gap-1">
                                 <span className="w-2 h-2 rounded-full bg-[#FF5E00]"></span>
                                 {deliveryInfo.short}
                             </span>

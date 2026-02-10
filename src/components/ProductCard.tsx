@@ -138,6 +138,42 @@ export default function ProductCard({ product, userRole: propUserRole }: { produ
              </>
           )}
         </div>
+        
+        {(() => {
+          const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
+
+          // 1. Extract Lead Times (Defaults: 1 if stock, 30 if no stock)
+          const stockLeadRaw = getMeta("crucial_data_delivery_if_stock");
+          const noStockLeadRaw = getMeta("crucial_data_delivery_if_no_stock");
+          const leadTimeInStock = stockLeadRaw && !isNaN(parseInt(stockLeadRaw)) ? parseInt(stockLeadRaw) : 1;
+          const leadTimeNoStock = noStockLeadRaw && !isNaN(parseInt(noStockLeadRaw)) ? parseInt(noStockLeadRaw) : 30;
+
+          // 2. Extract Adjusted Total Stock (ACF Priority)
+          const totalStockMeta = getMeta("crucial_data_total_stock");
+          const stockQty = totalStockMeta !== undefined && totalStockMeta !== null && totalStockMeta !== "" 
+            ? parseInt(totalStockMeta, 10) 
+            : (typeof product.stock_quantity === "number" ? product.stock_quantity : null);
+
+          // 3. Get Delivery Info
+          const deliveryInfo = getDeliveryInfo(
+            product.stock_status, 
+            1, 
+            stockQty,
+            leadTimeInStock,
+            leadTimeNoStock
+          );
+
+          // Determine color based on type (matching ProductPage/Cart logic)
+          let colorClass = "text-[#03B955]"; // Green (In stock)
+          if (deliveryInfo.type === "PARTIAL_STOCK") colorClass = "text-[#B28900]"; // Amber
+          else if (deliveryInfo.type === "BACKORDER" || deliveryInfo.type === "OUT_OF_STOCK") colorClass = "text-[#FF5E00]"; // Orange/Red
+
+          return (
+            <p className={`${colorClass} text-xs font-semibold mb-3`}>
+              {deliveryInfo.short}
+            </p>
+          );
+        })()}
 
         {/* <span className="text-xs text-[#B7B7B7] mb-3 font-normal">
           {product.type?.toUpperCase() || "SET"}
