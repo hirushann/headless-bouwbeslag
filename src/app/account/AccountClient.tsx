@@ -675,7 +675,21 @@ function AccountContent() {
 
 export default function AccountPage() {
   return (
-    <Suspense fallback={<div className="p-10 text-gray-500 font-sans flex justify-center">Loading account...</div>}>
+    <Suspense fallback={
+      <main className="bg-[#F5F5F5] min-h-screen">
+        <div className="max-w-[1440px] mx-auto py-12 px-6 lg:px-12 font-sans">
+          <div className="mb-8">
+            <div className="text-sm text-gray-500 mb-6 flex items-center gap-2">
+              <span className="flex items-center gap-1">Home</span>
+              <span className="text-gray-300">/</span>
+              <span>Mijn Account</span>
+            </div>
+            <h1 className="font-bold text-4xl text-[#1C2530]">Mijn Account</h1>
+          </div>
+          <div className="p-10 text-gray-500 font-sans flex justify-center">Loading account...</div>
+        </div>
+      </main>
+    }>
       <AccountContent />
     </Suspense>
   );

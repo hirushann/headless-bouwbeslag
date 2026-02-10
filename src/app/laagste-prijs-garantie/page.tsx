@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/laagste-prijs-garantie',
   },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default async function GuaranteePage({

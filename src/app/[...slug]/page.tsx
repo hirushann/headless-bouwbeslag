@@ -1,6 +1,6 @@
 import React, { cache } from "react";
 import { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound, redirect, RedirectType } from "next/navigation";
 import api from "@/lib/woocommerce";
 import ProductPageClient from "./ProductPageClient";
 import CategoryClient from "@/components/CategoryClient";
@@ -131,7 +131,7 @@ const getCategoryByIdCached = cache(async (id: number) => {
 });
 
 const getPageMetadata = cache(async (slugArray: string[]) => {
-  const currentSlug = slugArray[slugArray.length - 1];
+  const currentSlug = decodeURIComponent(slugArray[slugArray.length - 1]);
   const product = await getProductMetadataCached(currentSlug);
   if (product) return { product, category: null };
   const category = await getCategoryMetadataCached(currentSlug);
@@ -139,7 +139,7 @@ const getPageMetadata = cache(async (slugArray: string[]) => {
 });
 
 const getPageData = cache(async (slugArray: string[]) => {
-  const currentSlug = slugArray[slugArray.length - 1];
+  const currentSlug = decodeURIComponent(slugArray[slugArray.length - 1]);
 
   // If multiple segments, it's very likely a category hierarchy.
   // We'll check for a product first just in case, then a category to redirect.
@@ -411,7 +411,7 @@ export default async function Page({ params, searchParams }: PageProps) {
       const sp = await searchParams;
       const query = sp ? new URLSearchParams(sp as any).toString() : "";
       const destination = `/${correctPath}${query ? `?${query}` : ""}`;
-      redirect(destination);
+      redirect(destination, RedirectType.Permanent);
     }
 
     return (
