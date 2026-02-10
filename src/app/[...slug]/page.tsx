@@ -1,6 +1,6 @@
 import React, { cache } from "react";
 import { Metadata } from "next";
-import { notFound, redirect, RedirectType } from "next/navigation";
+import { notFound, redirect, permanentRedirect } from "next/navigation";
 import api from "@/lib/woocommerce";
 import ProductPageClient from "./ProductPageClient";
 import CategoryClient from "@/components/CategoryClient";
@@ -411,7 +411,7 @@ export default async function Page({ params, searchParams }: PageProps) {
       const sp = await searchParams;
       const query = sp ? new URLSearchParams(sp as any).toString() : "";
       const destination = `/${correctPath}${query ? `?${query}` : ""}`;
-      redirect(destination, RedirectType.Permanent);
+      permanentRedirect(destination);
     }
 
     return (
