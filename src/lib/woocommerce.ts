@@ -169,7 +169,7 @@ export const getBrands = async (): Promise<Brand[]> => {
   try {
     // Fetch from product_brand taxonomy (wp/v2 namespace)
     const { data: brands } = await api.get("wp/v2/product_brand", {
-      params: { per_page: 100, hide_empty: true, _embed: true }
+      params: { per_page: 100, hide_empty: true, _embed: true, next: { revalidate: 60 } }
     });
 
     // Resolve images in parallel (careful with concurrency if many brands)

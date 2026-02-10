@@ -223,7 +223,7 @@ export default async function BrandPage({ params, searchParams }: { params: Prom
                             })
                         }}
                     />
-                    <div className="mt-16 max-w-3xl mx-auto border-t border-gray-100 pt-16">
+                    <div id="faq" className="mt-16 max-w-3xl mx-auto border-t border-gray-100 pt-16">
                         <h2 className="text-2xl font-bold mb-6 text-center">Veelgestelde vragen over {brand.name}</h2>
                         <div className="space-y-4">
                             {brand.acf.faq_section.map((item, index) => (
