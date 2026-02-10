@@ -6,7 +6,7 @@ import { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
 
-import api from "@/lib/woocommerce"; 
+
 
 export async function generateMetadata({ params, searchParams }: { params: Promise<{ slug: string }>, searchParams: Promise<{ category?: string }> }): Promise<Metadata> {
     const { slug } = await params;
