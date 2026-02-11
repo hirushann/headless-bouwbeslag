@@ -203,7 +203,7 @@ async function traverseCategoryPath(category: any): Promise<string> {
   const path = [category.slug];
   let currentParentId = category.parent;
   let depth = 0;
-
+  
   while (currentParentId && currentParentId !== 0 && depth < 10) {
     const parent = await getCategoryByIdCached(currentParentId);
     if (!parent) break;
@@ -221,7 +221,6 @@ export async function generateMetadata(
   { params }: PageProps
 ): Promise<Metadata> {
   const { slug } = await params;
-  const currentSlug = slug[slug.length - 1];
   
   const { product, category } = await getPageMetadata(slug);
 
@@ -269,7 +268,6 @@ export async function generateMetadata(
   if (category) {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl";
     const canonicalPath = slug.map(s => encodeURIComponent(s)).join('/');
-    const canonicalUrl = `${siteUrl}/${canonicalPath}`;
 
     // Dynamic Category Title
     const acfTitle = category.acf?.category_meta_title;
@@ -316,13 +314,7 @@ export async function generateMetadata(
 function generateStructuredData(product: any, taxRate: number) {
   if (!product) return null;
 
-  // Helper to safely get meta data
-  const getMeta = (key: string) =>
-    product.meta_data?.find((m: any) => m.key === key)?.value;
-
   // Price Calculation Logic
-  // We assume product.price is the definitive selling price (likely includes tax if B2C options are standard).
-  // Schema.org expects dot decimal.
   let price = product.price ? parseFloat(product.price) : 0;
   
   const currency = "EUR"; 
@@ -395,7 +387,6 @@ export default async function Page({ params, searchParams }: PageProps) {
 
   // 2. Check Category
   if (category) {
-    // Parallelize fetching attributes and subcategories
     const [attributes, subCategoriesRes] = await Promise.all([
         fetchAttributes(),
         api.get("products/categories", { parent: category.id })
@@ -403,7 +394,6 @@ export default async function Page({ params, searchParams }: PageProps) {
     
     const subCategories = subCategoriesRes.data || [];
 
-    // URL Validation & Redirection Logic
     const correctPath = await traverseCategoryPath(category);
     const currentPath = slug.join("/");
 
