@@ -129,7 +129,7 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods }: CartDra
                 <div key={item.id} className="flex gap-2 items-center justify-between p-3 mb-3 border border-[#DEDEDE] rounded-sm relative flex-col lg:flex-row">
                   <div className="flex items-center gap-4 justify-start w-full">
                     {item.slug ? (
-                      <Link className="w-1/3 flex items-center justify-start" href={`/${item.slug}`}>
+                      <Link className="w-1/3 flex items-center justify-start" href={`/${item.slug}`} onClick={() => setCartOpen(false)}>
                         {item.image ? (
                           <img src={item.image} alt={item.name} className="w-28 h-28 object-cover rounded bg-gray-100 cursor-pointer hover:opacity-80 transition" />
                         ) : (
@@ -151,7 +151,7 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods }: CartDra
                     )}
                     <div className="w-2/3">
                       {item.slug ? (
-                        <Link href={`/${item.slug}`} className="hover:text-blue-600 transition">
+                        <Link href={`/${item.slug}`} className="hover:text-blue-600 transition" onClick={() => setCartOpen(false)}>
                           <h3 className="font-semibold">{item.name}</h3>
                         </Link>
                       ) : (
