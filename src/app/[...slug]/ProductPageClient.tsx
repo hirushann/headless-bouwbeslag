@@ -1153,11 +1153,13 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
             <div className="flex items-center gap-4">
               {/* <Image src="/productcatlogo.png" className="w-auto h-auto" alt="Product Category Logo" width={50} height={50} /> */}
               {brandImageUrl && (
-                <img
-                  src={brandImageUrl}
-                  alt="Brand Logo"
-                  className="h-10 w-auto object-contain hidden lg:block"
-                />
+                <Link href={product?.brands?.[0]?.slug ? `/merken/${product.brands[0].slug}` : "#"}>
+                  <img
+                    src={brandImageUrl}
+                    alt="Brand Logo"
+                    className="h-10 w-auto object-contain hover:opacity-80 transition-opacity"
+                  />
+                </Link>
               )}
 
               {/* Review Summary */}
