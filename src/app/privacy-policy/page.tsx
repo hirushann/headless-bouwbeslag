@@ -35,7 +35,7 @@ export default function PrivacyPolicyPage() {
           Als u vragen heeft over ons privacybeleid kunt u contact opnemen met onze contactpersoon voor privacyzaken, u vindt de contactgegevens aan het einde van ons privacybeleid.
         </p>
 
-        <h2 className="text-2xl font-semibold mt-8 mb-4">Over de gegevensverwerking</h2>
+        <h3 className="text-2xl font-semibold mt-8 mb-4">Over de gegevensverwerking</h3>
         <p className="mb-4">
           Hieronder kan u lezen op welke wijze wij uw gegevens verwerken, waar wij deze (laten) opslaan, welke beveiligingstechnieken wij gebruiken en voor wie de gegevens inzichtelijk zijn.
         </p>
@@ -110,7 +110,7 @@ export default function PrivacyPolicyPage() {
         </p>
 
         
-        <h2 className="text-2xl font-semibold mt-8 mb-4">Doel van de gegevensverwerking</h2>
+        <h3 className="text-2xl font-semibold mt-8 mb-4">Doel van de gegevensverwerking</h3>
         <h3 className="text-xl font-semibold mt-6 mb-2">Algemeen doel van de verwerking</h3>
         <p className="mb-4">
           Wij gebruiken uw gegevens uitsluitend ten behoeve van onze dienstverlening. Dat wil zeggen dat het doel van de
@@ -149,7 +149,7 @@ export default function PrivacyPolicyPage() {
           uw opdracht hebben vervaardigd.
         </p>
 
-        <h2 className="text-2xl font-semibold mt-8 mb-4">Uw rechten</h2>
+        <h3 className="text-2xl font-semibold mt-8 mb-4">Uw rechten</h3>
         <p className="mb-4">
           Op grond van de geldende Nederlandse en Europese wetgeving heeft u als betrokkene bepaalde rechten met
           betrekking tot de persoonsgegevens die door of namens ons worden verwerkt. Wij leggen u hieronder uit welke
@@ -212,7 +212,7 @@ export default function PrivacyPolicyPage() {
           van mening dat dit wel zo is, neem dan contact op met onze contactpersoon voor privacyzaken.
         </p>
 
-        <h2 className="text-2xl font-semibold mt-8 mb-4">Cookies</h2>
+        <h3 className="text-2xl font-semibold mt-8 mb-4">Cookies</h3>
         <h3 className="text-xl font-semibold mt-6 mb-2">Google Analytics</h3>
         <p className="mb-4">
           Via onze website worden cookies geplaatst van het Amerikaanse bedrijf Google, als deel van de “Analytics”-dienst.
@@ -230,14 +230,14 @@ export default function PrivacyPolicyPage() {
           privacyverklaring.
         </p>
 
-        <h2 className="text-2xl font-semibold mt-8 mb-4">Wijzigingen in het privacybeleid</h2>
+        <h3 className="text-2xl font-semibold mt-8 mb-4">Wijzigingen in het privacybeleid</h3>
         <p className="mb-4">
           Wij behouden te allen tijde het recht ons privacybeleid te wijzigen. Op deze pagina vindt u echter altijd de meest
           recente versie. Als het nieuwe privacybeleid gevolgen heeft voor de wijze waarop wij reeds verzamelde gegevens
           met betrekking tot u verwerken, dan brengen wij u daarvan per e-mail op de hoogte.
         </p>
 
-        <h2 className="text-2xl font-semibold mt-8 mb-4">Contactgegevens</h2>
+        <h3 className="text-2xl font-semibold mt-8 mb-4">Contactgegevens</h3>
         <h3 className="text-xl font-semibold mt-6 mb-2">Dayz Solutions</h3>
         <p className="mb-4">
           Oenerweg 30 8181RJ Heerde Nederland T <a href="tel:0031578760508">0578-760508</a> E <a href="mailto:contact@bouwbeslag.nl">contact@bouwbeslag.nl</a>

@@ -20,7 +20,7 @@ export default function ContactPage() {
           {/* Contact Information */}
           <div className="lg:w-1/3 flex flex-col gap-8">
             <div className="bg-white p-8 rounded-lg shadow-sm">
-              <h2 className="text-2xl font-semibold text-[#1C2630] mb-6">Kom in contact</h2>
+              <h3 className="text-2xl font-semibold text-[#1C2630] mb-6">Kom in contact</h3>
               <p className="text-[#3D4752] mb-6">
                 Heeft u vragen over onze producten of heeft u hulp nodig? Wij zijn er om te helpen! Neem contact met ons op via een van de onderstaande kanalen.
               </p>
