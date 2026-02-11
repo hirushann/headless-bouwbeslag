@@ -55,4 +55,20 @@ export const COLOR_MAP: Record<string, string> = {
 
   "zwart antractiet": "#2F2F2F",
   anthracite: "#2F2F2F",
+
+  Messing: "#f3c31a",
+
+  Beige: "#cfbb9e",
+
+  Brons: "#925238",
+  Champagne: "#cbbe98",
+  Antraciet: "#4b4a4d",
+  Donkergroen: "#27352a",
+  Donkerbruin: "#584b45",
+  Grijs: "#adb5bd",
+  Grijsgroen: "#7f8274",
+  Lichtbruin: "#af917a",
+  Olijfgroen: "#6c7c59",
+  Roze: "#ed7093"
+
 };
