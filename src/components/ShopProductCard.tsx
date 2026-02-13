@@ -37,10 +37,11 @@ export default function ShopProductCard({ product }: { product: any }) {
   const { userRole } = useUserContext();
   const { openModal } = useProductAddedModal();
 
-  const calculatePrice = () => {
-    const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
-    const getMeta = (k: string) => product?.meta_data?.find((m: any) => m.key === k)?.value;
+  const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
 
+  // Unified pricing logic
+  const priceData = (() => {
+    const getMeta = (k: string) => product?.meta_data?.find((m: any) => m.key === k)?.value;
     const taxRate = 21;
     const taxMultiplier = 1 + (taxRate / 100);
 
@@ -62,12 +63,27 @@ export default function ShopProductCard({ product }: { product: any }) {
     }
 
     const finalPrice = isB2B ? sale : (sale ? sale * taxMultiplier : 0);
+    const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
+
+    const advisedRaw = getMeta("crucial_data_unit_price");
+    const advised = advisedRaw && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
+
+    let advisedDisplay: number | null = null;
+    if (advised) {
+      advisedDisplay = isB2B ? advised : advised * taxMultiplier;
+    }
+
+    const showStrikeThrough = advisedDisplay !== null && finalPrice < advisedDisplay;
 
     return {
       cartPrice: sale,
-      displayPrice: finalPrice
+      displayPrice: finalPrice,
+      finalPrice,
+      taxLabel,
+      advisedDisplay,
+      showStrikeThrough
     };
-  };
+  })();
 
   return (
     <div className="snap-start shrink-0 w-[100%] border border-[#E2E2E2] rounded-lg shadow-sm bg-[#F7F7F7] flex flex-col h-full">
@@ -88,70 +104,20 @@ export default function ShopProductCard({ product }: { product: any }) {
         </Link>
 
         <div className="flex flex-col mb-2">
-          {(() => {
-            // const userRole = useUserContext().userRole; // Using from parent scope
-            const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
-
-            // Helper
-            const getMeta = (k: string) => product?.meta_data?.find((m: any) => m.key === k)?.value;
-
-            // Logic from ProductPageClient
-            const taxRate = 21;
-            const taxMultiplier = 1 + (taxRate / 100);
-
-
-
-            let sale = 0;
-
-            if (isB2B) {
-              // B2B: Use regular_price (Ex-VAT) directly, ignoring sale price or ACF overrides if possible
-              if (product.regular_price) {
-                sale = parseFloat(product.regular_price);
-              } else if (product.price) {
-                sale = parseFloat(product.price);
-              }
-            } else {
-              // B2C: Standard logic (ACF or Price)
-              sale = product.price ? parseFloat(product.price) : 0;
-              const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
-              const acfPriceRaw = getMeta(b2cKey);
-              if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
-                sale = parseFloat(acfPriceRaw);
-              }
-            }
-
-            const advisedRaw = getMeta("crucial_data_unit_price");
-            const advised = advisedRaw && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
-
-            const finalPrice = isB2B ? sale : (sale ? sale * taxMultiplier : 0);
-            const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
-
-            // Calculate advised display price (if it exists)
-            let advisedDisplay: number | null = null;
-            if (advised) {
-              advisedDisplay = isB2B ? advised : advised * taxMultiplier;
-            }
-
-            // Fallback to standard WC regular/sale if ACF advised is missing but standard fields exist (optional, but good for safety)
-            // But strictly following ProductPage logic:
-            const showStrikeThrough = advisedDisplay !== null && finalPrice < advisedDisplay;
-
-            return (
-              <div className="flex flex-col items-start">
-                {/* {showStrikeThrough && advisedDisplay !== null && (
+          {/* Price Display */}
+          <div className="flex flex-col items-start">
+            {/* {priceData.showStrikeThrough && priceData.advisedDisplay !== null && (
                    <span className="text-gray-400 line-through text-xs font-normal">
-                      {new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(advisedDisplay)}
+                      {new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(priceData.advisedDisplay)}
                    </span>
                  )} */}
-                <div className="flex items-end gap-1 flex-wrap">
-                  <span className="text-xl font-bold text-[#1C2530]">
-                    {new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(finalPrice)}
-                  </span>
-                  <span className="text-[10px] text-gray-500 mb-1">{taxLabel}</span>
-                </div>
-              </div>
-            );
-          })()}
+            <div className="flex items-end gap-1 flex-wrap">
+              <span className="text-xl font-bold text-[#1C2530]">
+                {new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(priceData.finalPrice)}
+              </span>
+              <span className="text-[10px] text-gray-500 mb-1">{priceData.taxLabel}</span>
+            </div>
+          </div>
         </div>
 
         {(() => {
@@ -228,7 +194,7 @@ export default function ShopProductCard({ product }: { product: any }) {
               // 4. Success - Add to Cart
               const customTitle = product?.meta_data?.find((m: any) => m.key === "description_bouwbeslag_title")?.value || product.name;
 
-              const { cartPrice, displayPrice } = calculatePrice();
+              const { cartPrice, displayPrice } = priceData;
               const deliveryInfo = getDeliveryInfo(stockData.stock_status, 1, stockData.stock_quantity ?? null);
               console.log(stockData);
               const getMeta = (k: string) => product?.meta_data?.find((m: any) => m.key === k)?.value;
