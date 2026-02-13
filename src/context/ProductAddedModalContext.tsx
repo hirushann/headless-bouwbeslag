@@ -16,7 +16,6 @@ interface ModalData {
   blindtoiletroseKeys?: any[];
   deliveryText?: string;
   deliveryType?: string;
-  hasLengthFreight?: boolean;
 }
 
 interface ProductAddedModalContextType {
