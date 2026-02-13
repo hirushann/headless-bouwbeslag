@@ -3,10 +3,13 @@
 import client from "@/lib/elasticsearch";
 
 export interface SearchResult {
-  ID: number;
-  post_title: string;
-  post_name: string;
-  images: { src: string; alt: string }[];
+    ID: number;
+    post_title: string;
+    post_name: string;
+    images: { src: string; alt: string }[];
+    id: number;
+    name: string;
+    slug: string;
 }
 
 export type FilterState = {
@@ -37,7 +40,7 @@ export async function searchProducts(
         must.push({
             multi_match: {
                 query: query,
-                fields: ["post_title^3", "post_content", "meta.*.value", "meta._sku.value^2", ],
+                fields: ["post_title^3", "post_content", "meta.*.value", "meta._sku.value^2",],
                 type: "best_fields",
                 operator: "and" // Optional: helps with specific number searches
             },
@@ -46,13 +49,13 @@ export async function searchProducts(
 
     // Apply Filters
     const filterClauses: any[] = [];
-    
+
     // Helper to map UI filter keys to ES fields
     const filterMap: { [key: string]: string } = {
         category: "terms.product_cat.slug",
         brand: "terms.product_brand.slug",
         color: "terms.pa_color.slug" // Assuming pa_color exists similarly, checking dump... dump didn't show pa_color but standard WP uses it. 
-                                     // If not present, it won't break, just empty.
+        // If not present, it won't break, just empty.
     };
 
     Object.entries(filters).forEach(([key, values]) => {
@@ -96,33 +99,33 @@ export async function searchProducts(
         const result = await client.search(estQuery);
 
         const hits = result.hits.hits.map((hit: any) => {
-             const source = hit._source as any;
-             
-             // Transform ES meta object to WC-style meta_data array
-             const meta_data = source.meta ? Object.entries(source.meta).map(([key, value]: [string, any]) => {
-                 // Value in ES meta is typically an array of objects with 'value' property or just values?
-                 // Looking at dump: "_sku": [{"value":"123"}]
-                 // We want the primary value.
-                 const val = Array.isArray(value) && value.length > 0 ? value[0]?.value : value;
-                 return { key, value: val };
-             }) : [];
+            const source = hit._source as any;
 
-             // Map thumbnail to images array
-             const images = source.thumbnail ? [{ src: source.thumbnail.src, alt: source.thumbnail.alt || "" }] : [];
+            // Transform ES meta object to WC-style meta_data array
+            const meta_data = source.meta ? Object.entries(source.meta).map(([key, value]: [string, any]) => {
+                // Value in ES meta is typically an array of objects with 'value' property or just values?
+                // Looking at dump: "_sku": [{"value":"123"}]
+                // We want the primary value.
+                const val = Array.isArray(value) && value.length > 0 ? value[0]?.value : value;
+                return { key, value: val };
+            }) : [];
 
-             return {
-                 ...source,
-                 meta_data: meta_data,
-                 name: source.post_title,
-                 slug: source.post_name,
-                 id: source.ID,
-                 images: images
-             } as SearchResult;
+            // Map thumbnail to images array
+            const images = source.thumbnail ? [{ src: source.thumbnail.src, alt: source.thumbnail.alt || "" }] : [];
+
+            return {
+                ...source,
+                meta_data: meta_data,
+                name: source.post_title,
+                slug: source.post_name,
+                id: source.ID,
+                images: images
+            } as SearchResult;
         });
 
         // Process Facets
         const facets: Facet[] = [];
-        
+
         if (result.aggregations) {
             // Categories
             const catAgg = result.aggregations.categories as any;

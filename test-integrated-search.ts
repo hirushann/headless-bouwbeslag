@@ -1,5 +1,5 @@
 
-import { searchProducts } from './src/actions/search.ts';
+import { searchProducts } from './src/actions/search';
 
 async function test() {
     try {
