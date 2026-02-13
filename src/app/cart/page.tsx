@@ -12,6 +12,8 @@ interface CartItem {
   color?: string;
   brand?: string;
   model?: string;
+  isMaatwerk?: boolean;
+  hasLengthFreight?: boolean;
 }
 
 export default function CartPage() {
@@ -64,6 +66,12 @@ export default function CartPage() {
                       +
                     </button>
                   </div>
+                  {item.hasLengthFreight && (
+                    <p className="text-xs text-blue-600 font-semibold mt-2 flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.129-1.125V11.25c0-.447-.26-.847-.665-1.025l-3.375-1.5a1.125 1.125 0 0 0-1.025.047l-3.375 1.5a1.125 1.125 0 0 0-.665 1.025v3" /></svg>
+                      Lengtevracht toeslag van toepassing
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-4">

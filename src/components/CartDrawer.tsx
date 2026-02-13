@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCartStore } from "@/lib/cartStore";
+import { Truck } from "lucide-react";
 import { syncRemoveItem } from "@/lib/cartApi";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
 import { useEffect, useState } from "react";
@@ -201,6 +202,12 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods }: CartDra
                           <p className="text-xs text-amber-700 font-medium leading-tight">Let op: maatwerk product.</p>
                         </div>
                       )}
+                      {item.hasLengthFreight && (
+                        <div className="flex items-start gap-1 mt-1">
+                          <Truck className="w-3 h-3 text-blue-600 mt-0.5" />
+                          <p className="text-xs text-blue-700 font-medium leading-tight">Lengtevracht toeslag van toepassing.</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex w-full lg:w-auto flex-row-reverse lg:flex-col items-center lg:items-end gap-2">
@@ -227,8 +234,8 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods }: CartDra
                 <span>€{subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between mb-3 text-base font-medium text-[#3D4752]">
-                <span>Verzendkosten</span>
-                <span>{isFreeShipping ? "Gratis" : displayShipping === 0 ? "N.t.b." : `€${displayShipping.toFixed(2)}`}</span>
+                <span>{hasLengthFreight ? "Verzendkosten (Lengtevracht)" : "Verzendkosten"}</span>
+                <span>{(hasLengthFreight) ? `€${displayShipping.toFixed(2)}` : (isFreeShipping ? "Gratis" : displayShipping === 0 ? "N.t.b." : `€${displayShipping.toFixed(2)}`)}</span>
               </div>
               <div className="flex justify-between mb-4 text-base">
                 <p className="font-bold">Totaalbedrag<span className="font-normal text-xs ml-1.5">{taxLabel}</span></p>

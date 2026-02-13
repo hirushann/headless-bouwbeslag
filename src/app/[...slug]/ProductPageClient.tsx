@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, use } from 'react';
 import { useUserContext } from "@/context/UserContext";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
-import { checkStockAction, fetchProductByIdAction, fetchProductBySkuAction } from "@/app/actions";
+import { checkStockAction, fetchProductByIdAction, fetchProductBySkuAction, fetchProductBySkuOrIdAction, fetchProductsByIdentifiersAction } from "@/app/actions";
 import Link from "next/link";
 import Image from "next/image";
 import ProductCard from "@/components/ProductCard";
@@ -28,9 +28,6 @@ const formatSpecValue = (value: string | number | null | undefined): string => {
 };
 
 export default function ProductPageClient({ product, taxRate = 21, slug }: { product: any; taxRate?: number; slug?: string[] }) {
-  useEffect(() => {
-  }, [product]);
-
   const fadeInUp = {
     hidden: { opacity: 0, y: 20 },
     visible: {
@@ -399,7 +396,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
 
 
 
-  const resolveColor = (value: string): string => {
+  const resolveColor = React.useCallback((value: string): string => {
     if (!value) return "#D1D5DB";
 
     const key = value.trim().toLowerCase();
@@ -415,196 +412,202 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
     }
 
     return "#D1D5DB";
-  };
+  }, []);
 
-  // ✅ Restore Order Colors & Order Models from SSR product
+  // ✅ Initialize Order Colors & Order Models
+
+
+  // ✅ Initialize Order Colors & Order Models
   useEffect(() => {
     if (!product || !Array.isArray(product.meta_data)) return;
 
     /* ---------------------------
      | ORDER COLORS
      --------------------------- */
-    const orderColorKeys = [
-      "related_order_color_1",
-      "related_order_color_2",
-      "related_order_color_3",
-      "related_order_color_4",
-      "related_order_color_5",
-      "related_order_color_6",
-      "related_order_color_7",
-      "related_order_color_8",
-    ];
+    const colorIdentifiers = product.meta_data
+      .filter((m: MetaData) => (m.key.startsWith('related_order_color_') || m.key.startsWith('related_order_color')) && m.value && String(m.value).trim() !== '')
+      .sort((a: MetaData, b: MetaData) => {
+        const numA = parseInt(a.key.match(/\d+/)?.[0] || "0", 10);
+        const numB = parseInt(b.key.match(/\d+/)?.[0] || "0", 10);
+        return numA - numB;
+      })
+      .map((m: MetaData) => String(m.value).trim())
+      .map((val: string) => {
+        const parts = val.split(/\s+/);
+        return parts[parts.length - 1];
+      })
+      .filter((id: string) => id !== String(product.id) && id !== String(product.sku));
 
-    const colorSkus = orderColorKeys
-      .map((key) =>
-        product.meta_data.find((m: any) => m.key === key)?.value
-      )
-      .filter((sku) => sku && String(sku).trim() !== "");
+    if (colorIdentifiers.length > 0) {
+      // Bulk fetch all colors at once
+      fetchProductsByIdentifiersAction(colorIdentifiers, product.id).then((res) => {
+        if (res.success && Array.isArray(res.data)) {
+          const validColors = res.data.map((item: any) => item.product).map((linked: any) => {
+             let colorName = "";
+             const attrs = linked.attributes || [];
+             
+             // 1. Check variation option
+             if (linked.option) {
+               colorName = String(linked.option);
+             }
+             
+             // 2. Scan attributes
+             if (!colorName) {
+               const colorAttr = attrs.find((a: any) => 
+                 a.name?.toLowerCase().includes("kleur") || 
+                 a.name?.toLowerCase().includes("color") ||
+                 a.slug?.toLowerCase().includes("kleur") || 
+                 a.slug?.toLowerCase().includes("color")
+               );
+               if (colorAttr) {
+                 colorName = Array.isArray(colorAttr.options) ? colorAttr.options[0] : (colorAttr.option || "");
+               }
+             }
 
-    if (colorSkus.length > 0) {
-      Promise.all(
-        colorSkus.map(async (sku: string) => {
-          try {
-            const res = await fetchProductBySkuAction(sku);
-            const linked = res.data; // Already the product object or null
-            if (!linked) return null;
+             // 3. Fallback to Meta
+             if (!colorName && linked.meta_data) {
+               const m = linked.meta_data.find((m: any) => 
+                 m.key?.toLowerCase().includes("attribute_pa_kleur") || 
+                 m.key?.toLowerCase().includes("attribute_pa_color")
+               );
+               if (m?.value) colorName = String(m.value);
+             }
 
-            const colorAttr = linked.attributes?.find(
-              (attr: any) =>
-                attr.slug === "color" || attr.slug === "pa_color"
-            );
+             if (!colorName) return null;
 
-            const colorName = colorAttr?.options?.[0];
-            if (!colorName) return null;
-
-            return {
-              name: colorName,
-              color: resolveColor(colorName),
-              slug: linked.slug,
-            };
-          } catch {
-            return null;
-          }
-        })
-      ).then((results) => {
-        setOrderColors(
-          results.filter(
-            (c): c is OrderColor =>
-              !!c && typeof c.name === "string" && typeof c.color === "string" && typeof c.slug === "string"
-          )
-        );
+             return {
+               name: colorName,
+               color: resolveColor(colorName),
+               slug: linked.slug || String(linked.id),
+             };
+          }).filter((c: any): c is OrderColor => !!c && !!c.name && !!c.color);
+          
+          setOrderColors(validColors);
+        }
       });
     } else {
       setOrderColors([]);
     }
 
     /* ---------------------------
-     | ORDER MODELS (ACF ordered + text-safe)
+     | ORDER MODELS
      --------------------------- */
-    type OrderModelEntry = {
-      sku: string;
-      displayText: string | null;
-      position: number;
-    };
-
-    const modelEntries: OrderModelEntry[] = Array.from({ length: 8 }, (_, i) => {
-      const index = i + 1; // 1..8
-
-      const sku = product.meta_data.find(
-        (m: any) => m.key === `related_order_model_${index}`
-      )?.value;
-
-      const text = product.meta_data.find(
-        (m: any) => m.key === `related_other_model_text_${index}`
-      )?.value;
-
-      if (!sku || String(sku).trim() === "") return null;
-
-      return {
-        sku: String(sku).trim(),
-        displayText: text ? String(text) : null,
-        position: index,
-      };
-    })
-      .filter(Boolean) as OrderModelEntry[];
-
-    // Debug log to verify correct mapping between model positions and texts
-    // console.log("🟦 DEBUG order model entries (sku + text by position):", modelEntries);
+    const modelEntries = product.meta_data
+      .filter((m: MetaData) => (m.key.startsWith('related_order_model_') || m.key.startsWith('related_order_model')) && m.value && String(m.value).trim() !== '')
+      .sort((a: MetaData, b: MetaData) => {
+        const numA = parseInt(a.key.match(/\d+$/)?.[0] || "0", 10);
+        const numB = parseInt(b.key.match(/\d+$/)?.[0] || "0", 10);
+        return numA - numB;
+      })
+      .map((m: MetaData) => {
+        const index = parseInt(m.key.match(/\d+$/)?.[0] || "0", 10);
+        const textKey = `related_other_model_text_${index}`;
+        const alternateTextKey = `related_order_model_text_${index}`;
+        const text = product.meta_data.find((meta: MetaData) => meta.key === textKey || meta.key === alternateTextKey)?.value;
+        const val = String(m.value).trim();
+        const parts = val.split(/\s+/);
+        return {
+          identifier: parts[parts.length - 1],
+          displayText: text ? String(text) : null,
+        };
+      })
+      .filter((e: { identifier: string }) => e.identifier !== String(product.id) && e.identifier !== String(product.sku));
 
     if (modelEntries.length > 0) {
-      Promise.all(
-        modelEntries.map(async ({ sku, displayText }) => {
-          try {
-            const res = await fetchProductBySkuAction(sku);
-            const productModel = res.data;
-
-            if (!productModel) return null;
-
-            return {
-              ...productModel,
-              displayText,
-            };
-          } catch {
-            return null;
-          }
-        })
-      ).then((models) => {
-        setOrderModels(models.filter(Boolean));
+      const ids = modelEntries.map((e: any) => e.identifier);
+      fetchProductsByIdentifiersAction(ids, product.id).then((res) => {
+        if (res.success && Array.isArray(res.data)) {
+           // Direct mapping using the 'query' field returned by backend
+           const models = res.data.map((item: any) => {
+              const prod = item.product;
+              // Find the entry that matched this query
+              const entry = modelEntries.find((e: any) => e.identifier === item.query);
+              return { ...prod, displayText: entry?.displayText || null };
+           });
+           setOrderModels(models);
+        }
       });
     } else {
       setOrderModels([]);
     }
-  }, [product]);
+  }, [product, resolveColor]);
 
-  // --- Helper to fetch and set related products by meta key prefix ---
-  const fetchRelatedGroup = React.useCallback(async (prefix: string, setter: React.Dispatch<React.SetStateAction<any[]>>, limit: number = 8, fetchType: 'sku' | 'id' = 'sku') => {
+  const fetchRelatedGroup = React.useCallback(async (prefix: string, setter: React.Dispatch<React.SetStateAction<any[]>>) => {
     if (!product || !Array.isArray(product.meta_data)) return;
 
-    const identifiers: string[] = [];
-    for (let i = 1; i <= limit; i++) {
-      // Try exact match first
-      const val = product.meta_data.find((m: any) => m.key === `${prefix}${i}`)?.value;
-      if (val && (typeof val === 'string' || typeof val === 'number') && String(val).trim() !== '') {
-        identifiers.push(String(val).trim());
-      }
-    }
+    const identifiers = product.meta_data
+      .filter((m: MetaData) => m.key.startsWith(prefix) && m.value && String(m.value).trim() !== '')
+      .sort((a: MetaData, b: MetaData) => {
+        const numA = parseInt(a.key.match(/\d+$/)?.[0] || "0", 10);
+        const numB = parseInt(b.key.match(/\d+$/)?.[0] || "0", 10);
+        return numA - numB;
+      })
+      .map((m: MetaData) => {
+        const val = String(m.value).trim();
+        const parts = val.split(/\s+/);
+        return parts[parts.length - 1];
+      })
+      .filter((id: string) => id !== String(product.id) && id !== String(product.sku));
 
     if (identifiers.length === 0) {
       setter([]);
       return;
     }
 
-    // console.log(`🔍 Fetching related group for prefix "${prefix}": found items`, identifiers);
-
     try {
-      const results = await Promise.all(
-        identifiers.map(async (identifier) => {
-          try {
-            if (fetchType === 'id') {
-              const res = await fetchProductByIdAction(Number(identifier));
-              return res.data;
-            } else {
-              const res = await fetchProductBySkuAction(identifier);
-              return res.data;
-            }
-          } catch (e) {
-            // console.error(`Failed to fetch related product for ${prefix} (val: ${identifier})`, e);
-            return null;
-          }
-        })
-      );
-      setter(results.filter((item) => item !== null));
+      const res = await fetchProductsByIdentifiersAction(identifiers, product.id);
+      if (res.success && Array.isArray(res.data)) {
+        const resultItems = res.data;
+
+        // Sort the results to match the original identifier order if possible
+        const ordered = identifiers.map((id: string) => {
+            return resultItems.find((item: any) => item.query === id)?.product;
+        }).filter(Boolean);
+
+        const uniqueOrdered = Array.from(new Set(ordered.map((p: any) => p.id)))
+            .map(id => ordered.find((p: any) => p.id === id));
+
+        if (uniqueOrdered.length > 0) {
+            setter(uniqueOrdered);
+        } else {
+             const allProds = resultItems.map((i: any) => i.product);
+             const unique = Array.from(new Set(allProds.map((p: any) => p.id)))
+                .map(id => allProds.find((p: any) => p.id === id));
+            setter(unique);
+        }
+      } else {
+        setter([]);
+      }
     } catch (err) {
-      // console.error(`Error in fetchRelatedGroup for ${prefix}`, err);
+      setter([]);
     }
   }, [product]);
 
   // --- Fetch Related Accessories & Parts ---
   useEffect(() => {
-    // 1. Matching Accessories -> matchingProducts
+    // 1. Matching Accessories -> setMatchingProducts
     // Key found: related_matching_product_1
     fetchRelatedGroup('related_matching_product_', setMatchingProducts);
 
-    // 2. Matching Knob Roses -> matchingKnobroseKeys
+    // 2. Matching Knob Roses -> setMatchingKnobRoseProducts
     // Key found: related_matching_knobrose_1
     fetchRelatedGroup('related_matching_knobrose_', setMatchingKnobRoseProducts);
 
-    // 3. Matching Key Roses -> matchingRoseKeys
+    // 3. Matching Key Roses -> setMatchingRoseKeys
     // Key found: related_matching_keyrose_1
     fetchRelatedGroup('related_matching_keyrose_', setMatchingRoseKeys);
 
-    // 4. Matching PC Roses -> pcroseKeys
+    // 4. Matching PC Roses -> setPcRoseKeys
     // Key found: related_matching_pcrose_1
     fetchRelatedGroup('related_matching_pcrose_', setPcRoseKeys);
 
-    // 5. Matching Blind Toilet Roses -> blindtoiletroseKeys
+    // 5. Matching Blind Toilet Roses -> setblindtoiletroseKeys
     // Key found: related_matching_toiletrose_1
     fetchRelatedGroup('related_matching_toiletrose_', setblindtoiletroseKeys);
 
-    // 6. Must Have Products -> musthaveprodKeys
+    // 6. Must Have Products -> setMusthaveprodKeys
     // Key found: related_must_have_product_1
-    // User confirmed these are SKUs
-    fetchRelatedGroup('related_must_have_product_', setMusthaveprodKeys, 8, 'sku');
+    fetchRelatedGroup('related_must_have_product_', setMusthaveprodKeys);
 
   }, [fetchRelatedGroup]);
 
@@ -742,10 +745,11 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
   const packageLengthUnit = getMetaValue("dimensions_package_length_unit");
 
   const packageLength = packageLengthRaw && !isNaN(parseFloat(packageLengthRaw)) ? parseFloat(packageLengthRaw) : 0;
-  // Rule: > 100cm OR > 1600mm
+  // Rule: > 160cm OR > 1600mm
   const hasLengthFreight =
-    (packageLengthUnit === 'cm' && packageLength > 100) ||
-    (packageLengthUnit === 'mm' && packageLength > 1600);
+    (packageLengthUnit === 'cm' && packageLength > 160) ||
+    (packageLengthUnit === 'mm' && packageLength > 1600) ||
+    (packageLengthUnit === 'm' && packageLength > 1.6);
 
   const packingType = product?.attributes?.find((attr: any) => attr.slug === "pa_packing_type")?.options?.[0];
 
@@ -889,7 +893,8 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         blindtoiletroseKeys,
 
         deliveryText: deliveryInfo.short,
-        deliveryType: deliveryInfo.type
+        deliveryType: deliveryInfo.type,
+        hasLengthFreight
       });
 
       setTimeout(() => {
@@ -1066,7 +1071,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                       </div>
                       <div className="space-y-3">
                         {musthaveprodKeys.map((item, index) => (
-                          <RecommendedProductItem key={item.id || index} item={item} />
+                          <RecommendedProductItem key={item?.id || index} item={item} />
                         ))}
                       </div>
                     </div>
@@ -1080,7 +1085,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                       </div>
                       <div className="space-y-3">
                         {matchingProducts.map((item, index) => (
-                          <RecommendedProductItem key={item.id || index} item={item} />
+                          <RecommendedProductItem key={item?.id || index} item={item} />
                         ))}
                       </div>
                     </div>
@@ -1094,7 +1099,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                       </div>
                       <div className="space-y-3">
                         {matchingKnobroseKeys.map((item, index) => (
-                          <RecommendedProductItem key={item.id || index} item={item} />
+                          <RecommendedProductItem key={item?.id || index} item={item} />
                         ))}
                       </div>
                     </div>
@@ -1108,7 +1113,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                       </div>
                       <div className="space-y-3">
                         {matchingRoseKeys.map((item, index) => (
-                          <RecommendedProductItem key={item.id || index} item={item} />
+                          <RecommendedProductItem key={item?.id || index} item={item} />
                         ))}
                       </div>
                     </div>
@@ -1122,7 +1127,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                       </div>
                       <div className="space-y-3">
                         {pcroseKeys.map((item, index) => (
-                          <RecommendedProductItem key={item.id || index} item={item} />
+                          <RecommendedProductItem key={item?.id || index} item={item} />
                         ))}
                       </div>
                     </div>
@@ -1136,7 +1141,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                       </div>
                       <div className="space-y-3">
                         {blindtoiletroseKeys.map((item, index) => (
-                          <RecommendedProductItem key={item.id || index} item={item} />
+                          <RecommendedProductItem key={item?.id || index} item={item} />
                         ))}
                       </div>
                     </div>
@@ -1647,7 +1652,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                     </div>
                     <div className="space-y-3">
                       {musthaveprodKeys.map((item, index) => (
-                        <RecommendedProductItem key={item.id || index} item={item} />
+                        <RecommendedProductItem key={item?.id || index} item={item} />
                       ))}
                     </div>
                   </div>
@@ -1661,7 +1666,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                     </div>
                     <div className="space-y-3">
                       {matchingProducts.map((item, index) => (
-                        <RecommendedProductItem key={item.id || index} item={item} />
+                        <RecommendedProductItem key={item?.id || index} item={item} />
                       ))}
                     </div>
                   </div>
@@ -1675,7 +1680,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                     </div>
                     <div className="space-y-3">
                       {matchingKnobroseKeys.map((item, index) => (
-                        <RecommendedProductItem key={item.id || index} item={item} />
+                        <RecommendedProductItem key={item?.id || index} item={item} />
                       ))}
                     </div>
                   </div>
@@ -1689,7 +1694,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                     </div>
                     <div className="space-y-3">
                       {matchingRoseKeys.map((item, index) => (
-                        <RecommendedProductItem key={item.id || index} item={item} />
+                        <RecommendedProductItem key={item?.id || index} item={item} />
                       ))}
                     </div>
                   </div>
@@ -1703,7 +1708,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                     </div>
                     <div className="space-y-3">
                       {pcroseKeys.map((item, index) => (
-                        <RecommendedProductItem key={item.id || index} item={item} />
+                        <RecommendedProductItem key={item?.id || index} item={item} />
                       ))}
                     </div>
                   </div>
@@ -1717,7 +1722,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                     </div>
                     <div className="space-y-3">
                       {blindtoiletroseKeys.map((item, index) => (
-                        <RecommendedProductItem key={item.id || index} item={item} />
+                        <RecommendedProductItem key={item?.id || index} item={item} />
                       ))}
                     </div>
                   </div>
@@ -1785,6 +1790,17 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                                 </tr>
                               )}
 
+                              {(() => {
+                                const ean = product?.meta_data?.find((m: any) => m.key === "crucial_data_product_ean_code")?.value;
+                                if (!ean) return null;
+                                return (
+                                  <tr className="bg-[#F3F8FF]">
+                                    <td className="px-6 py-3 font-medium text-gray-900">EAN</td>
+                                    <td className="px-6 py-3">{formatSpecValue(ean)}</td>
+                                  </tr>
+                                );
+                              })()}
+
                               {productWidth && (
                                 <tr>
                                   <td className="px-6 py-3 font-medium text-gray-900">Breedte</td>
@@ -1838,8 +1854,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                                   .filter((attr: any) => !attr.name.toLowerCase().endsWith(" unit"))
                                   .map((attr: any, idx: number) => {
                                     const isEven = (idx % 2 === 0);
-                                    // Find corresponding unit attribute (e.g. "Values" -> "Values Unit")
-                                    // Helper to find case-insensitive match
                                     const unitAttrName = `${attr.name} Unit`;
                                     const unitAttr = product.attributes.find(
                                       (a: any) => a.name.toLowerCase() === unitAttrName.toLowerCase()

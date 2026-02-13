@@ -16,7 +16,13 @@ export default function ReturnPolicyPage() {
       
       <div className="prose max-w-none text-[#1C2630] space-y-6">
         <p className="text-lg leading-relaxed">
-          Terugsturen mag binnen <strong>60 dagen</strong> na ontvangst van de goederen. Uitgezonderd zijn maatwerk artikelen, indien hier sprake van is wordt dit is altijd duidelijk aangegeven op de productpagina, in de winkelwagen, op de afrekenpagina, in de bevestigingsmail en op de pakbon.
+          Terugsturen mag binnen <strong>60 dagen</strong> na ontvangst van de goederen zonder opgave van reden. Uitgezonderd zijn maatwerk artikelen, indien hier sprake van is wordt dit is altijd duidelijk aangegeven op de productpagina, in de winkelwagen, op de afrekenpagina, in de bevestigingsmail en op de pakbon.
+        </p>
+        <p>
+          Indien u gebruik maakt van uw herroepingsrecht, zal het product met alle geleverde toebehoren en – indien redelijkerwijze mogelijk – in de originele staat en verpakking aan de ondernemer geretourneerd worden. Mocht het product beschadigd of de verpakking meer beschadigd zijn dan nodig is om het product te verkopen, dan kunnen we deze waardevermindering van het product aan u doorberekenen. Behandel het product dus met zorg en zorg ervoor dat deze bij een retour goed verpakt is.
+        </p>
+        <p>
+          Indien het product onbeschadigd bij ons arriveert  krijgt u het volledige orderbedrag inclusief verzendkosten gecrediteerd. Enkel de kosten voor retour van u thuis naar ons zijn voor eigen rekening. Deze kosten bedragen circa 7,25 per pakket, raadpleeg voor de exacte tarieven de website van uw vervoerder. Na ontvangst retour storten wij uw betaling binnen 5 werkdagen terug.
         </p>
 
         <div className="bg-gray-50 p-6 rounded-sm border border-gray-100">

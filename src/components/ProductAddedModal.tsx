@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useCartStore } from "@/lib/cartStore";
 import RecommendedProductItem from "@/components/RecommendedProductItem";
 import { useProductAddedModal } from "@/context/ProductAddedModalContext";
+import { Truck } from "lucide-react";
 
 export default function ProductAddedModal() {
   const { isOpen, closeModal, modalData } = useProductAddedModal();
@@ -61,7 +62,7 @@ export default function ProductAddedModal() {
                   <h3 className="font-bold text-base lg:text-base text-[#1C2530] leading-tight">{modalData.product?.name}</h3>
                   <div className="flex flex-col md:flex-row items-center gap-2 justify-center md:justify-start mt-2">
                      <span className="bg-blue-100 text-[#0066FF] px-2 py-0.5 rounded text-[10px] lg:text-xs font-bold uppercase tracking-wider">Aantal: {modalData.quantity}</span>
-                      <div className="text-[10px] lg:text-xs">
+                      <div className="text-[10px] lg:text-xs flex flex-col items-center md:items-start gap-1">
                         {modalData.deliveryText && (
                             <span className={`font-bold ${
                               modalData.deliveryType === 'IN_STOCK' ? 'text-[#03B955]' : 
@@ -70,6 +71,12 @@ export default function ProductAddedModal() {
                             }`}>
                               {modalData.deliveryText}
                             </span>
+                        )}
+                        {modalData.hasLengthFreight && (
+                          <span className="text-[#0066FF] font-bold flex items-center gap-1">
+                            <Truck className="w-3 h-3 text-blue-600 mt-0.5" />
+                            Lengtevracht toeslag van toepassing
+                          </span>
                         )}
                       </div>
                   </div>

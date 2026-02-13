@@ -231,6 +231,14 @@ export default function ShopProductCard({ product }: { product: any }) {
               const { cartPrice, displayPrice } = calculatePrice();
               const deliveryInfo = getDeliveryInfo(stockData.stock_status, 1, stockData.stock_quantity ?? null);
               console.log(stockData);
+              const getMeta = (k: string) => product?.meta_data?.find((m: any) => m.key === k)?.value;
+              const packageLengthRaw = getMeta("dimensions_package_length");
+              const packageLengthUnit = getMeta("dimensions_package_length_unit");
+              const packageLength = packageLengthRaw && !isNaN(parseFloat(packageLengthRaw)) ? parseFloat(packageLengthRaw) : 0;
+              const hasLengthFreight =
+                (packageLengthUnit === 'cm' && packageLength > 160) ||
+                (packageLengthUnit === 'mm' && packageLength > 1600);
+
               addItem({
                 id: product.id,
                 name: customTitle,
@@ -239,6 +247,7 @@ export default function ShopProductCard({ product }: { product: any }) {
                 image: product.images?.[0]?.src,
                 deliveryText: deliveryInfo.short,
                 deliveryType: deliveryInfo.type,
+                hasLengthFreight
               });
 
               openModal({
@@ -254,7 +263,8 @@ export default function ShopProductCard({ product }: { product: any }) {
                 pcroseKeys: [],
                 blindtoiletroseKeys: [],
                 deliveryText: deliveryInfo.short,
-                deliveryType: deliveryInfo.type
+                deliveryType: deliveryInfo.type,
+                hasLengthFreight
               });
 
             } catch (err) {

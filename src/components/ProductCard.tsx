@@ -217,6 +217,13 @@ export default function ProductCard({ product, userRole: propUserRole }: { produ
                // 4. Success - Add to Cart
                const deliveryInfo = getDeliveryInfo(product.stock_status, 1, product.stock_quantity ?? null);
 
+               const packageLengthRaw = getMeta("dimensions_package_length");
+               const packageLengthUnit = getMeta("dimensions_package_length_unit");
+               const packageLength = packageLengthRaw && !isNaN(parseFloat(packageLengthRaw)) ? parseFloat(packageLengthRaw) : 0;
+               const hasLengthFreight =
+                 (packageLengthUnit === 'cm' && packageLength > 160) ||
+                 (packageLengthUnit === 'mm' && packageLength > 1600);
+
                addItem({
                   id: product.id,
                   name: product.name,
@@ -226,6 +233,7 @@ export default function ProductCard({ product, userRole: propUserRole }: { produ
                   deliveryText: deliveryInfo.short,
                   deliveryType: deliveryInfo.type,
                   slug: product.slug,
+                  hasLengthFreight
                });
                
                openModal({
@@ -241,7 +249,8 @@ export default function ProductCard({ product, userRole: propUserRole }: { produ
                     pcroseKeys: [],
                     blindtoiletroseKeys: [],
                     deliveryText: deliveryInfo.short,
-                    deliveryType: deliveryInfo.type
+                    deliveryType: deliveryInfo.type,
+                    hasLengthFreight
                });
 
             } catch (err) {
