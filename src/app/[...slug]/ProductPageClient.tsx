@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, use } from 'react';
 import { useUserContext } from "@/context/UserContext";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
-import { checkStockAction, fetchProductByIdAction, fetchProductBySkuAction } from "@/app/actions";
+import { checkStockAction, fetchProductByIdAction, fetchProductBySkuAction, fetchProductBySkuOrIdAction } from "@/app/actions";
 import Link from "next/link";
 import Image from "next/image";
 import ProductCard from "@/components/ProductCard";
@@ -515,7 +515,8 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
       Promise.all(
         modelEntries.map(async ({ sku, displayText }) => {
           try {
-            const res = await fetchProductBySkuAction(sku);
+            // Updated to support EAN/SKU/ID lookup
+            const res = await fetchProductBySkuOrIdAction(sku);
             const productModel = res.data;
 
             if (!productModel) return null;
