@@ -17,6 +17,7 @@ import ReviewsSection from "@/components/ReviewsSection";
 import PhotoSwipeLightbox from 'photoswipe/lightbox';
 import 'photoswipe/dist/photoswipe.css';
 import { useProductAddedModal } from "@/context/ProductAddedModalContext";
+import { useProductIndexStore } from "@/lib/productIndexStore";
 
 const formatSpecValue = (value: string | number | null | undefined): string => {
   if (value === null || value === undefined) return "";
@@ -57,12 +58,18 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
   const [mounted, setMounted] = useState(false);
 
 
+  const { userRole, isLoading } = useUserContext();
+  const { initializeIndex, isInitialized, index: productIndex, findProduct } = useProductIndexStore();
+
+  useEffect(() => {
+    // Fire and forget initialization
+    initializeIndex();
+  }, []);
+
   useEffect(() => {
     setCurrentUrl(window.location.href);
     setMounted(true);
   }, []); // Run once on mount
-
-  const { userRole, isLoading } = useUserContext();
 
   useEffect(() => {
     // console.log("💰 VAT Rate (from Server):", taxRate);
@@ -509,43 +516,69 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
       .filter(Boolean) as OrderModelEntry[];
 
     // Debug log to verify correct mapping between model positions and texts
-    console.log("🟦 DEBUG: Finding Order Models for product:", product.name);
-    console.log("🟦 DEBUG: Raw entries found in meta (SKU/EAN + Text):", modelEntries);
+    // console.log("🟦 DEBUG: Finding Order Models for product:", product.name);
+    // console.log("🟦 DEBUG: Raw entries found in meta (SKU/EAN + Text):", modelEntries);
 
     if (modelEntries.length > 0) {
-      Promise.all(
-        modelEntries.map(async ({ sku, displayText }) => {
-          try {
-            console.log(`🟦 DEBUG: Fetching model for identifier: "${sku}"...`);
-            // Updated to support EAN/SKU/ID lookup, excluding current product
-            const res = await fetchProductBySkuOrIdAction(sku, product.id);
-            
-            if (res.success && res.data) {
-                console.log(`✅ DEBUG: Found model for "${sku}" -> ID: ${res.data.id} (${res.data.name})`);
-                const productModel = res.data;
-                return {
-                  ...productModel,
-                  displayText,
-                };
-            } else {
-                console.warn(`❌ DEBUG: Failed to find model for "${sku}"`);
+        
+        // If we have the index loaded, use it for instant, accurate lookup without API calls
+        if (isInitialized && productIndex.length > 0) {
+             const models = modelEntries.map(entry => {
+                const match = findProduct(entry.sku);
+                
+                // Exclude current product from results
+                if (match && String(match.id) === String(product.id)) {
+                    // console.warn(`Skipping self-reference for ${entry.sku}`);
+                    return null;
+                }
+
+                if (match) {
+                    // We found a match in the index! 
+                    // However, we only have basic info (id, name, sku) in the index.
+                    // To get the full product object (slug, image, price) needed for display, 
+                    // we might still need to fetch it by ID if we don't store enough in index.
+                    // But waiting for fetch might be slow. 
+                    // Let's assume we fetch the FULL product by ID now that we know the ID.
+                    return { ...entry, resolvedId: match.id, name: match.name };
+                }
                 return null;
-            }
-          } catch (error) {
-            console.error(`❌ DEBUG: Error looking up "${sku}":`, error);
-            return null;
-          }
-        })
-      ).then((models) => {
-        const validModels = models.filter(Boolean);
-        console.log("🟦 DEBUG: Final Order Models list:", validModels.map((m: any) => `${m.id}: ${m.name} (Text: ${m.displayText})`));
-        setOrderModels(validModels);
-      });
+             }).filter(Boolean);
+
+             // Now fetch full details for the resolved IDs efficiently
+             Promise.all(models.map(async (m: any) => {
+                 const res = await fetchProductByIdAction(m.resolvedId);
+                 if (res.success && res.data) {
+                     return { ...res.data, displayText: m.displayText };
+                 }
+                 return null;
+             })).then(fullModels => {
+                 setOrderModels(fullModels.filter(Boolean));
+             });
+
+        } else {
+            // Fallback to server actions if index not ready
+            Promise.all(
+                modelEntries.map(async ({ sku, displayText }) => {
+                try {
+                   // console.log(`🟦 DEBUG: Fetching model for identifier: "${sku}"...`);
+                    const res = await fetchProductBySkuOrIdAction(sku, product.id);
+                    if (res.success && res.data) {
+                        return { ...res.data, displayText };
+                    } 
+                    return null;
+                } catch (error) {
+                    return null;
+                }
+                })
+            ).then((models) => {
+                setOrderModels(models.filter(Boolean));
+            });
+        }
     } else {
-      console.log("🟦 DEBUG: No order models configured for this product.");
+      // console.log("🟦 DEBUG: No order models configured for this product.");
       setOrderModels([]);
     }
-  }, [product]);
+  }, [product, isInitialized, productIndex]);
 
   // --- Helper to fetch and set related products by meta key prefix ---
   const fetchRelatedGroup = React.useCallback(async (prefix: string, setter: React.Dispatch<React.SetStateAction<any[]>>, limit: number = 8, fetchType: 'sku' | 'id' = 'sku') => {

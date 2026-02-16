@@ -336,4 +336,36 @@ export const getProductsByBrand = async (brandId: number): Promise<any[]> => {
     }
 };
 
+
+export const fetchAllWoo = async (endpoint: string, extraParams: any = {}) => {
+    let page = 1;
+    const allItems: any[] = [];
+
+    while (true) {
+        try {
+            const res = await api.get(endpoint, {
+                params: {
+                    per_page: 100,
+                    page,
+                    ...extraParams,
+                },
+            });
+
+            const data = Array.isArray(res?.data) ? res.data : [];
+            if (!data.length) break;
+
+            allItems.push(...data);
+            page++;
+
+            // Safety break to prevent infinite loops (max 5000 items)
+            if (page > 50) break;
+        } catch (e: any) {
+            // console.error(`Error fetching page ${page} of ${endpoint}:`, e.message);
+            break;
+        }
+    }
+
+    return allItems;
+};
+
 export default api;

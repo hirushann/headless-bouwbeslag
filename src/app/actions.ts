@@ -1,6 +1,68 @@
 "use server";
 
-import api from "@/lib/woocommerce";
+
+import api, { fetchAllWoo } from "@/lib/woocommerce";
+
+export async function fetchProductIndexAction() {
+    try {
+        // Fetch ALL products lightweight
+        // We select fields: id, name, slug, sku, meta_data (to get EANs)
+        // Note: fetchAllWoo handles pagination
+        const allProducts = await fetchAllWoo("products", {
+            status: "publish",
+            _fields: "id,name,slug,sku,meta_data"
+        });
+
+        const targetMetaKeys = [
+            "crucial_data_product_ean_code",
+            "_sku",
+            "crucial_data_product_factory_sku",
+            "ean_code",
+            "ean",
+            "_global_unique_id",
+            "global_unique_id",
+            "gtin",
+            "upc",
+            "isbn",
+            "_wpm_gtin_code",
+            "_wpm_gtin",
+            "_gtin",
+            "_ean"
+        ];
+
+        // Transform to minimal index
+        const index = allProducts.map((p: any) => {
+            const identifiers = new Set<string>();
+
+            // Add SKU
+            if (p.sku) identifiers.add(String(p.sku).trim().toLowerCase());
+            // Add ID
+            identifiers.add(String(p.id));
+
+            // Extract EANs/Identifiers from meta
+            if (Array.isArray(p.meta_data)) {
+                p.meta_data.forEach((m: any) => {
+                    if (targetMetaKeys.includes(m.key) && m.value) {
+                        identifiers.add(String(m.value).trim().toLowerCase());
+                    }
+                });
+            }
+
+            return {
+                id: p.id,
+                name: p.name,
+                sku: p.sku,
+                identifiers: Array.from(identifiers)
+            };
+        });
+
+        return { success: true, data: index };
+    } catch (error: any) {
+        console.error("Failed to build product index:", error?.message);
+        return { success: false, error: error?.message || "Failed to fetch index" };
+    }
+}
+
 
 
 export async function checkStockAction(productId: number) {
