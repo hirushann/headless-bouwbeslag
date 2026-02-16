@@ -516,30 +516,28 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
       .filter(Boolean) as OrderModelEntry[];
 
     // Debug log to verify correct mapping between model positions and texts
-    // console.log("🟦 DEBUG: Finding Order Models for product:", product.name);
-    // console.log("🟦 DEBUG: Raw entries found in meta (SKU/EAN + Text):", modelEntries);
+    console.log("🟦 DEBUG: Finding Order Models for product:", product.name);
+    console.log("🟦 DEBUG: Raw entries found in meta (SKU/EAN + Text):", modelEntries);
 
     if (modelEntries.length > 0) {
         
         // If we have the index loaded, use it for instant, accurate lookup without API calls
         if (isInitialized && productIndex.length > 0) {
+             console.log("🟦 DEBUG: Using Client-Side Index Store for lookup");
              const models = modelEntries.map(entry => {
                 const match = findProduct(entry.sku);
                 
                 // Exclude current product from results
                 if (match && String(match.id) === String(product.id)) {
-                    // console.warn(`Skipping self-reference for ${entry.sku}`);
+                    console.warn(`⚠️ DEBUG: Skipping self-reference for ${entry.sku} (Found ID: ${match.id})`);
                     return null;
                 }
 
                 if (match) {
-                    // We found a match in the index! 
-                    // However, we only have basic info (id, name, sku) in the index.
-                    // To get the full product object (slug, image, price) needed for display, 
-                    // we might still need to fetch it by ID if we don't store enough in index.
-                    // But waiting for fetch might be slow. 
-                    // Let's assume we fetch the FULL product by ID now that we know the ID.
+                    console.log(`✅ DEBUG: Index Match for "${entry.sku}" -> ID: ${match.id} (${match.name})`);
                     return { ...entry, resolvedId: match.id, name: match.name };
+                } else {
+                    console.warn(`❌ DEBUG: No Index Match for "${entry.sku}"`);
                 }
                 return null;
              }).filter(Boolean);
@@ -556,15 +554,19 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
              });
 
         } else {
+            console.log("🟧 DEBUG: Index not ready, using Server Action Fallback");
             // Fallback to server actions if index not ready
             Promise.all(
                 modelEntries.map(async ({ sku, displayText }) => {
                 try {
-                   // console.log(`🟦 DEBUG: Fetching model for identifier: "${sku}"...`);
+                    console.log(`🟧 DEBUG: Fetching model (Server) for: "${sku}"...`);
                     const res = await fetchProductBySkuOrIdAction(sku, product.id);
                     if (res.success && res.data) {
+                        console.log(`✅ DEBUG: Server Match for "${sku}" -> ID: ${res.data.id}`);
                         return { ...res.data, displayText };
-                    } 
+                    } else {
+                        console.warn(`❌ DEBUG: Server Fail for "${sku}"`);
+                    }
                     return null;
                 } catch (error) {
                     return null;
@@ -575,7 +577,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
             });
         }
     } else {
-      // console.log("🟦 DEBUG: No order models configured for this product.");
+      console.log("🟦 DEBUG: No order models configured for this product.");
       setOrderModels([]);
     }
   }, [product, isInitialized, productIndex]);
