@@ -83,7 +83,18 @@ export const calculateDeliveryDate = (leadTimeDays: number = 1): Date => {
     // Delivery = Shipping Date + Lead Time
     // Then ensure Delivery Date is valid (not Sun/Mon/Holiday)
 
-    let deliveryDate = addDays(shippingDate, leadTimeDays);
+    // 2. Calculate Delivery Date
+    // Delivery = Shipping Date + Lead Time (Business Days)
+    // We add days one by one, skipping weekends (Sat/Sun).
+    let deliveryDate = new Date(shippingDate);
+    let daysAdded = 0;
+    while (daysAdded < leadTimeDays) {
+        deliveryDate = addDays(deliveryDate, 1);
+        // Count only if Mon-Fri (Standard Working Day)
+        if (!isWeekend(deliveryDate)) {
+            daysAdded++;
+        }
+    }
 
     // Skip blocked dates (Sun, Mon, Holidays)
     safety = 0;
