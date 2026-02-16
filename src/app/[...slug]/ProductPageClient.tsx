@@ -517,8 +517,8 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         modelEntries.map(async ({ sku, displayText }) => {
           try {
             console.log(`🟦 DEBUG: Fetching model for identifier: "${sku}"...`);
-            // Updated to support EAN/SKU/ID lookup
-            const res = await fetchProductBySkuOrIdAction(sku);
+            // Updated to support EAN/SKU/ID lookup, excluding current product
+            const res = await fetchProductBySkuOrIdAction(sku, product.id);
             
             if (res.success && res.data) {
                 console.log(`✅ DEBUG: Found model for "${sku}" -> ID: ${res.data.id} (${res.data.name})`);
