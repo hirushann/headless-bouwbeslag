@@ -102,9 +102,7 @@ export default function RecommendedProductItem({ item, onAddToCart }: { item: an
                 stockQuantity: stock_quantity ?? null,
                 leadTimeInStock,
                 leadTimeNoStock,
-                isMaatwerk: getMeta("crucial_data_maatwerk") === "1",
-                hasLengthFreight: (getMeta("dimensions_package_length_unit") === 'cm' && parseFloat(getMeta("dimensions_package_length")) > 160) ||
-                                 (getMeta("dimensions_package_length_unit") === 'mm' && parseFloat(getMeta("dimensions_package_length")) > 1600)
+                isMaatwerk: getMeta("crucial_data_maatwerk") === "1"
             });
             toast.success("Product toegevoegd aan winkelwagen!");
             if (onAddToCart) {

@@ -73,8 +73,10 @@ export const calculateDeliveryDate = (leadTimeDays: number = 1): Date => {
     }
 
     // Skip weekends for SHIPPING (assuming warehouse closed Sat/Sun)
-    while (shippingDate.getDay() === 0 || shippingDate.getDay() === 6) {
+    let safety = 0;
+    while ((shippingDate.getDay() === 0 || shippingDate.getDay() === 6) && safety < 30) {
         shippingDate = addDays(shippingDate, 1);
+        safety++;
     }
 
     // 2. Calculate Delivery Date
@@ -84,8 +86,10 @@ export const calculateDeliveryDate = (leadTimeDays: number = 1): Date => {
     let deliveryDate = addDays(shippingDate, leadTimeDays);
 
     // Skip blocked dates (Sun, Mon, Holidays)
-    while (isBlockedDate(deliveryDate)) {
+    safety = 0;
+    while (isBlockedDate(deliveryDate) && safety < 365) {
         deliveryDate = addDays(deliveryDate, 1);
+        safety++;
     }
 
     return deliveryDate;

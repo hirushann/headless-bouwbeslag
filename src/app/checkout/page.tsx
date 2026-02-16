@@ -248,11 +248,12 @@ export default function NewCheckoutPage() {
 
   const validMethods = React.useMemo(() => {
     if (hasLengthFreight) {
+        // Prioritize backend method if available
         const realMethod = availableMethods.find(m => m.title.toLowerCase().includes('lengtevracht'));
         if (realMethod) return [realMethod];
 
         return [{
-            id: 9999,
+            id: 9999, // distinct ID
             methodId: 'length_freight',
             title: 'Lengtevracht toeslag',
             // cost: lengthFreightCost / 1.21,
@@ -262,6 +263,7 @@ export default function NewCheckoutPage() {
     }
 
     return availableMethods.filter(method => {
+       // Filter out Lengtevracht if not applicable (since hasLengthFreight is false here)
        if (method.title && method.title.toLowerCase().includes('lengtevracht')) {
            return false;
        }
@@ -285,9 +287,10 @@ export default function NewCheckoutPage() {
         const currentValid = validMethods.find(m => m.id === selectedMethodId);
         if (!selectedMethodId || !currentValid) {
             setSelectedMethodId(validMethods[0].id);
-            return;
+            return; // Effect will re-run with new ID
         }
     } else {
+        // No valid methods? Deselect
         if (selectedMethodId) setSelectedMethodId(null);
     }
     
