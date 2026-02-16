@@ -86,12 +86,40 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = normalizeBaseUrl(process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl");
   const now = new Date();
 
-  // 1) Categories (Deep Hierarchy)
-  // Optimize: Only fetch fields needed for path building + lastModified
-  const allCategories = await fetchAllWoo("products/categories", {
-    hide_empty: false,
-    _fields: "id,slug,parent,date_modified"
-  });
+  // Parallel fetch of all data sources
+  const [categoriesRes, productsRes, postsRes, brandsRes] = await Promise.allSettled([
+    // 1) Categories
+    fetchAllWoo("products/categories", {
+      hide_empty: false, // Adjusted to match original logic or intended logic
+      _fields: "id,slug,parent,date_modified"
+    }),
+    // 2) Products
+    fetchAllWoo("products", {
+      status: "publish",
+      _fields: "id,slug,date_modified,status,catalog_visibility,meta_data"
+    }),
+    // 3) Blog posts
+    fetchAllWp("wp/v2/posts", {
+      status: "publish",
+      _fields: "slug,modified"
+    }),
+    // 4) Brands
+    fetchAllWp("wp/v2/product_brand", {
+      hide_empty: true,
+      _fields: "slug,modified"
+    })
+  ]);
+
+  const allCategories = categoriesRes.status === "fulfilled" ? categoriesRes.value : [];
+  const allProducts = productsRes.status === "fulfilled" ? productsRes.value : [];
+  const allPosts = postsRes.status === "fulfilled" ? postsRes.value : [];
+  const allBrands = brandsRes.status === "fulfilled" ? brandsRes.value : [];
+
+  // Log errors if any
+  if (categoriesRes.status === "rejected") console.error("Sitemap: Failed to fetch categories", categoriesRes.reason);
+  if (productsRes.status === "rejected") console.error("Sitemap: Failed to fetch products", productsRes.reason);
+  if (postsRes.status === "rejected") console.error("Sitemap: Failed to fetch posts", postsRes.reason);
+  if (brandsRes.status === "rejected") console.error("Sitemap: Failed to fetch brands", brandsRes.reason);
 
   // Build a map for fast parent lookup
   const catMap = new Map();
@@ -119,14 +147,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: cat?.date_modified ? new Date(cat.date_modified) : now,
     }));
 
-  // 2) Products (Woo)
-  // Optimize: Select strictly needed fields. 
-  // We need: slug, date_modified, status, catalog_visibility, meta_data (for custom slug)
-  const allProducts = await fetchAllWoo("products", {
-    status: "publish",
-    _fields: "id,slug,date_modified,status,catalog_visibility,meta_data"
-  });
-
   const products: MetadataRoute.Sitemap = allProducts
     .filter((p: any) => p?.slug && p?.status === "publish")
     .filter((p: any) => p?.catalog_visibility !== "hidden")
@@ -139,24 +159,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       };
     });
 
-  // 3) Blog posts (WordPress)
-  const allPosts = await fetchAllWp("wp/v2/posts", {
-    status: "publish",
-    _fields: "slug,modified"
-  });
-
   const posts: MetadataRoute.Sitemap = allPosts
     .filter((p: any) => p?.slug && p?.status === "publish") // status checked by API but consistent here
     .map((post: any) => ({
       url: normalizeUrl(`${baseUrl}/kennisbank/${post.slug}`),
       lastModified: post?.modified ? new Date(post.modified) : now,
     }));
-
-  // 4) Brands (WordPress)
-  const allBrands = await fetchAllWp("wp/v2/product_brand", {
-    hide_empty: true,
-    _fields: "slug,modified"
-  });
 
   const brands: MetadataRoute.Sitemap = allBrands
     .filter((b: any) => b?.slug)
