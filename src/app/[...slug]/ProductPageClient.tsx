@@ -509,30 +509,40 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
       .filter(Boolean) as OrderModelEntry[];
 
     // Debug log to verify correct mapping between model positions and texts
-    // console.log("🟦 DEBUG order model entries (sku + text by position):", modelEntries);
+    console.log("🟦 DEBUG: Finding Order Models for product:", product.name);
+    console.log("🟦 DEBUG: Raw entries found in meta (SKU/EAN + Text):", modelEntries);
 
     if (modelEntries.length > 0) {
       Promise.all(
         modelEntries.map(async ({ sku, displayText }) => {
           try {
+            console.log(`🟦 DEBUG: Fetching model for identifier: "${sku}"...`);
             // Updated to support EAN/SKU/ID lookup
             const res = await fetchProductBySkuOrIdAction(sku);
-            const productModel = res.data;
-
-            if (!productModel) return null;
-
-            return {
-              ...productModel,
-              displayText,
-            };
-          } catch {
+            
+            if (res.success && res.data) {
+                console.log(`✅ DEBUG: Found model for "${sku}" -> ID: ${res.data.id} (${res.data.name})`);
+                const productModel = res.data;
+                return {
+                  ...productModel,
+                  displayText,
+                };
+            } else {
+                console.warn(`❌ DEBUG: Failed to find model for "${sku}"`);
+                return null;
+            }
+          } catch (error) {
+            console.error(`❌ DEBUG: Error looking up "${sku}":`, error);
             return null;
           }
         })
       ).then((models) => {
-        setOrderModels(models.filter(Boolean));
+        const validModels = models.filter(Boolean);
+        console.log("🟦 DEBUG: Final Order Models list:", validModels.map((m: any) => `${m.id}: ${m.name} (Text: ${m.displayText})`));
+        setOrderModels(validModels);
       });
     } else {
+      console.log("🟦 DEBUG: No order models configured for this product.");
       setOrderModels([]);
     }
   }, [product]);
