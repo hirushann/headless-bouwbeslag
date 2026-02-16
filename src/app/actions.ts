@@ -1,7 +1,7 @@
 "use server";
 
 import api from "@/lib/woocommerce";
-import client from "@/lib/elasticsearch";
+
 
 export async function checkStockAction(productId: number) {
     try {
@@ -51,54 +51,7 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
             }
         }
 
-        // 2. Elasticsearch
-        try {
-            const esIndex = process.env.ELASTICSEARCH_INDEX || process.env.SEARCH_INDEX || 'appbouwbeslagnl-post-1';
-            const esQuery: any = {
-                index: esIndex,
-                body: {
-                    query: {
-                        bool: {
-                            must: [
-                                { terms: { post_type: ["product", "product_variation", "variation"] } }
-                            ],
-                            should: [
-                                { term: { "meta._sku.value.keyword": { value: idStr, boost: 50 } } },
-                                { term: { "meta.crucial_data_product_ean_code.value.keyword": { value: idStr, boost: 40 } } },
-                                { term: { "meta.crucial_data_product_factory_sku.value.keyword": { value: idStr, boost: 40 } } },
-                                { term: { "meta.crucial_data_product_bol_ean_code.value.keyword": { value: idStr, boost: 30 } } },
-                                { term: { "meta.ean_code.value.keyword": { value: idStr, boost: 30 } } },
-                                { term: { "meta.ean.value.keyword": { value: idStr, boost: 30 } } },
-                                { term: { "meta._ean.value.keyword": { value: idStr, boost: 30 } } },
-                                { term: { "meta.gtin.value.keyword": { value: idStr, boost: 30 } } },
-                                { term: { "meta._gtin.value.keyword": { value: idStr, boost: 30 } } },
-                                { term: { "meta.upc.value.keyword": { value: idStr, boost: 30 } } },
-                                { term: { "meta.isbn.value.keyword": { value: idStr, boost: 30 } } },
-                                { term: { "meta._wpm_gtin_code.value.keyword": { value: idStr, boost: 30 } } },
-                                { term: { "meta.global_unique_id.value.keyword": { value: idStr, boost: 30 } } },
-                                { term: { "meta._global_unique_id.value.keyword": { value: idStr, boost: 30 } } }
-                            ],
-                            minimum_should_match: 1
-                        }
-                    },
-                    size: 5
-                }
-            };
 
-            const esRes: any = await client.search(esQuery);
-            if (esRes.hits?.hits?.length > 0) {
-                const bestHit = esRes.hits.hits.find((h: any) => Number(h._source?.ID) !== numericExcludeId);
-                const targetId = bestHit?._source?.ID;
-
-                if (targetId && Number(targetId) !== numericExcludeId) {
-                    const finalRes = await api.get(`products/${targetId}`, { cache: "no-store" });
-                    if (finalRes.data && finalRes.data.id) {
-                        console.log(`[LOOKUP] ✅ Match ES: ${finalRes.data.id}`);
-                        return { success: true, data: finalRes.data };
-                    }
-                }
-            }
-        } catch (err) { }
 
         // 3. Parallel WP Meta Query
         const targetMetaKeys = [
