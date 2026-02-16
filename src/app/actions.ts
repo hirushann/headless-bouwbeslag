@@ -64,11 +64,11 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
             "ean_code",
             "ean",
             "_global_unique_id",
+            "global_unique_id", // Added this based on user feedback
             "gtin",
             "upc",
             "isbn",
             "_wpm_gtin_code",
-            "global_unique_id",
             "_wpm_gtin",
             "_gtin",
             "_ean"
