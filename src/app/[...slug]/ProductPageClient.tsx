@@ -396,6 +396,10 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
 
       if (!sku || String(sku).trim() === "") return null;
 
+      return {
+        sku: String(sku).trim(),
+        displayText: text ? String(text) : null,
+        position: index,
       };
     }).filter(Boolean) as OrderModelEntry[];
 
