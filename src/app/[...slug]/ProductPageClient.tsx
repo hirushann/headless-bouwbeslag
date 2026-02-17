@@ -462,6 +462,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         setIsOrderModelsLoading(true);
 
         Promise.all(
+            modelEntries.map(async ({ sku, displayText }) => {
                 try {
                     console.log(`🟧 DEBUG: Fetching model for SKU/EAN: "${sku}"`);
                     const res = await fetchProductBySkuOrIdAction(sku, product.id);
@@ -480,6 +481,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                     console.error(`🚨 DEBUG: Error fetching model "${sku}":`, error);
                     return null;
                 }
+            })
         ).then((models) => {
             setOrderModels(models.filter(Boolean));
             setIsOrderModelsLoading(false);
