@@ -1,13 +1,13 @@
 "use client";
-import axios from 'axios';
+// import axios from 'axios';
 import React, { useState, useRef, useEffect, use } from 'react';
 import { useUserContext } from "@/context/UserContext";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { checkStockAction, fetchProductByIdAction, fetchProductBySkuAction, fetchProductBySkuOrIdAction } from "@/app/actions";
 import Link from "next/link";
-import Image from "next/image";
-import ProductCard from "@/components/ProductCard";
+// import Image from "next/image";
+// import ProductCard from "@/components/ProductCard";
 import RecommendedProductItem from "@/components/RecommendedProductItem";
 import { useCartStore } from "@/lib/cartStore";
 import { fetchMedia } from "@/lib/wordpress";
@@ -58,13 +58,8 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
   const [mounted, setMounted] = useState(false);
 
 
-  const { userRole, isLoading } = useUserContext();
-  const { initializeIndex, isInitialized, index: productIndex, findProduct } = useProductIndexStore();
 
-  useEffect(() => {
-    // Fire and forget initialization
-    initializeIndex();
-  }, []);
+  const { userRole, isLoading } = useUserContext();
 
   useEffect(() => {
     setCurrentUrl(window.location.href);
@@ -94,7 +89,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
       );
     }
   }, [product]);
-
   useEffect(() => {
     let lightbox = new PhotoSwipeLightbox({
       gallery: '.pswp-gallery',
@@ -108,6 +102,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
       lightbox = null as any;
     };
   }, []);
+
   const [thumbIndex, setThumbIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [selectedDiscount, setSelectedDiscount] = useState<number | null>(null);
@@ -336,87 +331,40 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
       setIsOrderColorsLoading(true);
       
       const fetchColors = async () => {
-          // 1. Try Client-Side Index first if ready
-          if (isInitialized && productIndex.length > 0) {
-
-               const resolvedColors = colorSkus.map(sku => {
-                  const match = findProduct(sku);
-                   if (match && String(match.id) !== String(product.id)) {
-                       return { sku, resolvedId: match.id };
-                   }
-                   return { sku, resolvedId: null };
-               });
-
-
-
-               const results = await Promise.all(resolvedColors.map(async (item) => {
-                   try {
-                       let linked: any = null;
-                       if (item.resolvedId) {
-                           const res = await fetchProductByIdAction(item.resolvedId);
-                           if (res.success) linked = res.data;
-                       } else {
-                           // Fallback
-                           const res = await fetchProductBySkuOrIdAction(item.sku, product.id);
-                           if (res.success) linked = res.data;
-                       }
-
-                       if (!linked) return null;
-
-                       const colorAttr = linked.attributes?.find(
-                           (attr: any) =>
-                               attr.slug === "color" || attr.slug === "pa_color"
-                       );
-
-                       const colorName = colorAttr?.options?.[0];
-                       if (!colorName) return null;
-
-                       return {
-                           name: colorName,
-                           color: resolveColor(colorName),
-                           slug: linked.slug,
-                       };
-                   } catch { return null; }
-               }));
-               setOrderColors(results.filter(Boolean) as OrderColor[]);
-               setIsOrderColorsLoading(false);
-
-          } else {
-               // Fallback if index not ready
-              Promise.all(
-                colorSkus.map(async (sku: string) => {
-                  try {
-                    const res = await fetchProductBySkuOrIdAction(sku, product.id);
-                    const linked = res.data; 
-                    if (!linked) return null;
-        
-                    const colorAttr = linked.attributes?.find(
-                      (attr: any) =>
-                        attr.slug === "color" || attr.slug === "pa_color"
-                    );
-        
-                    const colorName = colorAttr?.options?.[0];
-                    if (!colorName) return null;
-        
-                    return {
-                      name: colorName,
-                      color: resolveColor(colorName),
-                      slug: linked.slug,
-                    };
-                  } catch {
-                    return null;
-                  }
-                })
-              ).then((results) => {
-                setOrderColors(
-                  results.filter(
-                    (c): c is OrderColor =>
-                      !!c && typeof c.name === "string" && typeof c.color === "string" && typeof c.slug === "string"
-                  )
+          // Use Server Action directly (Index removed)
+          Promise.all(
+            colorSkus.map(async (sku: string) => {
+              try {
+                const res = await fetchProductBySkuOrIdAction(sku, product.id);
+                const linked = res.data; 
+                if (!linked) return null;
+    
+                const colorAttr = linked.attributes?.find(
+                  (attr: any) =>
+                    attr.slug === "color" || attr.slug === "pa_color"
                 );
-                setIsOrderColorsLoading(false);
-              });
-          }
+    
+                const colorName = colorAttr?.options?.[0];
+                if (!colorName) return null;
+    
+                return {
+                  name: colorName,
+                  color: resolveColor(colorName),
+                  slug: linked.slug,
+                };
+              } catch {
+                return null;
+              }
+            })
+          ).then((results) => {
+            setOrderColors(
+              results.filter(
+                (c): c is OrderColor =>
+                  !!c && typeof c.name === "string" && typeof c.color === "string" && typeof c.slug === "string"
+              )
+            );
+            setIsOrderColorsLoading(false);
+          });
       };
       fetchColors();
 
@@ -621,163 +569,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
     return "#D1D5DB";
   };
 
-  // ✅ Restore Order Colors & Order Models from SSR product
-  useEffect(() => {
-    if (!product || !Array.isArray(product.meta_data)) return;
 
-    /* ---------------------------
-     | ORDER COLORS
-     --------------------------- */
-    const orderColorKeys = [
-      "related_order_color_1",
-      "related_order_color_2",
-      "related_order_color_3",
-      "related_order_color_4",
-      "related_order_color_5",
-      "related_order_color_6",
-      "related_order_color_7",
-      "related_order_color_8",
-    ];
-
-    const colorSkus = orderColorKeys
-      .map((key) =>
-        product.meta_data.find((m: any) => m.key === key)?.value
-      )
-      .filter((sku) => sku && String(sku).trim() !== "");
-
-    if (colorSkus.length > 0) {
-      Promise.all(
-        colorSkus.map(async (sku: string) => {
-          try {
-            const res = await fetchProductBySkuAction(sku);
-            const linked = res.data; // Already the product object or null
-            if (!linked) return null;
-
-            const colorAttr = linked.attributes?.find(
-              (attr: any) =>
-                attr.slug === "color" || attr.slug === "pa_color"
-            );
-
-            const colorName = colorAttr?.options?.[0];
-            if (!colorName) return null;
-
-            return {
-              name: colorName,
-              color: resolveColor(colorName),
-              slug: linked.slug,
-            };
-          } catch {
-            return null;
-          }
-        })
-      ).then((results) => {
-        setOrderColors(
-          results.filter(
-            (c): c is OrderColor =>
-              !!c && typeof c.name === "string" && typeof c.color === "string" && typeof c.slug === "string"
-          )
-        );
-      });
-    } else {
-      setOrderColors([]);
-    }
-
-    /* ---------------------------
-     | ORDER MODELS (ACF ordered + text-safe)
-     --------------------------- */
-    type OrderModelEntry = {
-      sku: string;
-      displayText: string | null;
-      position: number;
-    };
-
-    const modelEntries: OrderModelEntry[] = Array.from({ length: 8 }, (_, i) => {
-      const index = i + 1; // 1..8
-
-      const sku = product.meta_data.find(
-        (m: any) => m.key === `related_order_model_${index}`
-      )?.value;
-
-      const text = product.meta_data.find(
-        (m: any) => m.key === `related_other_model_text_${index}`
-      )?.value;
-
-      if (!sku || String(sku).trim() === "") return null;
-
-      return {
-        sku: String(sku).trim(),
-        displayText: text ? String(text) : null,
-        position: index,
-      };
-    })
-      .filter(Boolean) as OrderModelEntry[];
-
-    // Debug log to verify correct mapping between model positions and texts
-    console.log("🟦 DEBUG: Finding Order Models for product:", product.name);
-    console.log("🟦 DEBUG: Raw entries found in meta (SKU/EAN + Text):", modelEntries);
-
-    if (modelEntries.length > 0) {
-        
-        // If we have the index loaded, use it for instant, accurate lookup without API calls
-        if (isInitialized && productIndex.length > 0) {
-             console.log("🟦 DEBUG: Using Client-Side Index Store for lookup");
-             const models = modelEntries.map(entry => {
-                const match = findProduct(entry.sku);
-                
-                // Exclude current product from results
-                if (match && String(match.id) === String(product.id)) {
-                    console.warn(`⚠️ DEBUG: Skipping self-reference for ${entry.sku} (Found ID: ${match.id})`);
-                    return null;
-                }
-
-                if (match) {
-                    console.log(`✅ DEBUG 2: Index Match for "${entry.sku}" -> ID: ${match.id} (${match.name})`);
-                    return { ...entry, resolvedId: match.id, name: match.name };
-                } else {
-                    console.warn(`❌ DEBUG: No Index Match for "${entry.sku}"`);
-                }
-                return null;
-             }).filter(Boolean);
-
-             // Now fetch full details for the resolved IDs efficiently
-             Promise.all(models.map(async (m: any) => {
-                 const res = await fetchProductByIdAction(m.resolvedId);
-                 if (res.success && res.data) {
-                     return { ...res.data, displayText: m.displayText };
-                 }
-                 return null;
-             })).then(fullModels => {
-                 setOrderModels(fullModels.filter(Boolean));
-             });
-
-        } else {
-            console.log("🟧 DEBUG: Index not ready, using Server Action Fallback");
-            // Fallback to server actions if index not ready
-            Promise.all(
-                modelEntries.map(async ({ sku, displayText }) => {
-                try {
-                    console.log(`🟧 DEBUG: Fetching model (Server) for: "${sku}"...`);
-                    const res = await fetchProductBySkuOrIdAction(sku, product.id);
-                    if (res.success && res.data) {
-                        console.log(`✅ DEBUG: Server Match for "${sku}" -> ID: ${res.data.id}`);
-                        return { ...res.data, displayText };
-                    } else {
-                        console.warn(`❌ DEBUG: Server Fail for "${sku}"`);
-                    }
-                    return null;
-                } catch (error) {
-                    return null;
-                }
-                })
-            ).then((models) => {
-                setOrderModels(models.filter(Boolean));
-            });
-        }
-    } else {
-      console.log("🟦 DEBUG: No order models configured for this product.");
-      setOrderModels([]);
-    }
-  }, [product, isInitialized, productIndex]);
 
   // --- Helper to fetch and set related products by meta key prefix ---
   const fetchRelatedGroup = React.useCallback(async (prefix: string, setter: React.Dispatch<React.SetStateAction<any[]>>, limit: number = 8, fetchType: 'sku' | 'id' = 'sku') => {
