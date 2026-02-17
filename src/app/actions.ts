@@ -5,12 +5,15 @@ import api, { fetchAllWoo } from "@/lib/woocommerce";
 
 export async function fetchProductIndexAction() {
     try {
+        console.log("[INDEX] Building/Fetching Full Product Index (Cached)...");
         // Fetch ALL products lightweight
         // We select fields: id, name, slug, sku, meta_data (to get EANs)
-        // Note: fetchAllWoo handles pagination
+        // INCREASED CACHE: Revalidates every 1 hour (3600s) to be super fast. 
+        // This is acceptable for related products which don't change often.
         const allProducts = await fetchAllWoo("products", {
             status: "publish",
-            _fields: "id,name,slug,sku,meta_data"
+            _fields: "id,name,slug,sku,meta_data",
+            next: { revalidate: 3600 }
         });
 
         const targetMetaKeys = [
@@ -42,6 +45,7 @@ export async function fetchProductIndexAction() {
             // Extract EANs/Identifiers from meta
             if (Array.isArray(p.meta_data)) {
                 p.meta_data.forEach((m: any) => {
+                    // Check strict key match
                     if (targetMetaKeys.includes(m.key) && m.value) {
                         identifiers.add(String(m.value).trim().toLowerCase());
                     }
@@ -51,11 +55,19 @@ export async function fetchProductIndexAction() {
             return {
                 id: p.id,
                 name: p.name,
+                slug: p.slug, // Needed for links
                 sku: p.sku,
-                identifiers: Array.from(identifiers)
+                identifiers: Array.from(identifiers),
+                // We keep enough data to render the link without another fetch
+                images: p.images || [], // If available in restricted fields? No, need to ask for images
+                attributes: p.attributes || [], // Order Colors needs this?
+                // Actually, for Order Colors we need attributes. 
+                // FETCHING full attributes for 5000 products might be heavy but let's try just ID first.
+                // For now, let's keep it lightweight. The caller can fetch full product if needed.
             };
         });
 
+        console.log(`[INDEX] Built index with ${index.length} products.`);
         return { success: true, data: index };
     } catch (error: any) {
         console.error("Failed to build product index:", error?.message);
@@ -247,6 +259,28 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
             // If no exact match found, warn but don't return fuzzy
             console.warn(`[LOOKUP] ❌ Search found ${validMatches.length} results but no exact SKU/Meta match for "${idStr}"`);
         }
+
+        // 6. LAST RESORT: Server-Side Index Fallback
+        // Because WP API meta filtering is often broken/unauthorized for guest requests,
+        // and search doesn't index meta, we must check our own "All Product" index.
+        console.warn(`[LOOKUP] ⚠️ Direct lookups failed for "${idStr}". Attempting Server-Side Product Index fallback...`);
+        const indexRes = await fetchProductIndexAction();
+        if (indexRes.success && Array.isArray(indexRes.data)) {
+            // Find in index
+            const indexMatch = indexRes.data.find((p: any) =>
+                p.identifiers && p.identifiers.includes(idStr.toLowerCase()) && p.id !== numericExcludeId
+            );
+
+            if (indexMatch) {
+                console.log(`[LOOKUP] ✅ Match Index Fallback: ${indexMatch.id} (${indexMatch.name})`);
+                // Fetch full product now that we have the ID to be safe
+                const finalRes = await api.get(`products/${indexMatch.id}`, { cache: "no-store" });
+                return { success: true, data: finalRes.data };
+            }
+        } else {
+            console.error("[LOOKUP] Index fetch failed or returned invalid data.");
+        }
+
         return { success: true, data: null };
     } catch (error: any) {
         console.error(`[LOOKUP] 🚨 ERROR: ${idStr}`, error.message);
