@@ -315,6 +315,109 @@ export async function fetchProductsByIdentifiersAction(identifiers: string[], ex
     }
 }
 
+/**
+ * Highly optimized batch fetch for related products (Order Models/Colors)
+ * Uses the Server-Side Index FIRST to avoid 100+ API calls for meta lookups.
+ */
+export async function fetchRelatedProductsBatchAction(identifiers: string[], excludeId?: number) {
+    if (!identifiers || identifiers.length === 0) return { success: true, data: [] };
+
+    console.log(`[BATCH] Starting optimized batch fetch for ${identifiers.length} items...`);
+    const cleanIds = identifiers.map(id => String(id).trim().toLowerCase());
+    const foundMap = new Map<string, any>(); // Map original query -> product
+
+    try {
+        // 1. Fetch Index (Fastest, Cached)
+        const indexRes = await fetchProductIndexAction();
+
+        if (indexRes.success && Array.isArray(indexRes.data)) {
+            const index = indexRes.data;
+
+            cleanIds.forEach((queryId, originalIndex) => {
+                const originalQuery = identifiers[originalIndex];
+
+                // Find in index
+                const match = index.find((p: any) =>
+                    p.identifiers && p.identifiers.includes(queryId) && p.id !== excludeId
+                );
+
+                if (match) {
+                    // Match found in index! 
+                    // We only have light data (id, name, slug, sku, images, attributes).
+                    // If we need FULL data (price, stock), we might need to fetch individually later.
+                    // BUT for basic display (Image + Link + Name), this is enough?
+                    // The client expects full product object usually. 
+                    // Let's settle for returning the ID and letting client fetch full if critical, 
+                    // OR do a bulk fetch by ID (much faster than meta search).
+                    foundMap.set(originalQuery, { id: match.id, ...match });
+                }
+            });
+        }
+
+        // 2. Resolve missing items via slow lookup (Parallel)
+        const missingQueries = identifiers.filter(q => !foundMap.has(q));
+        if (missingQueries.length > 0) {
+            console.log(`[BATCH] ${missingQueries.length} items not in index. Falling back to slow lookup...`);
+            const fallbackResults = await Promise.all(
+                missingQueries.map(id => fetchProductBySkuOrIdAction(id, excludeId))
+            );
+
+            fallbackResults.forEach((res, i) => {
+                if (res.success && res.data) {
+                    foundMap.set(missingQueries[i], res.data);
+                }
+            });
+        }
+
+        // 3. Hydrate Full Products for Index Matches (to get images, prices etc)
+        // We have IDs from index, but missing full data.
+        // Let's fetch them in one "include" query.
+        const indexFoundIDs = Array.from(foundMap.values())
+            .filter(p => p.id && !p.price_html) // Assume if no price_html, it's from index
+            .map(p => p.id);
+
+        if (indexFoundIDs.length > 0) {
+            console.log(`[BATCH] Hydrating ${indexFoundIDs.length} products from ID...`);
+            try {
+                // Fetch full objects for these IDs
+                const hydrationRes = await api.get("products", {
+                    include: indexFoundIDs,
+                    per_page: 50,
+                    _fields: "id,name,slug,permalink,price_html,images,attributes,stock_status", // Optimize fields?
+                    cache: "no-store"
+                });
+
+                if (Array.isArray(hydrationRes.data)) {
+                    hydrationRes.data.forEach((fullP: any) => {
+                        // Update the map entries that have this ID
+                        for (const [key, val] of foundMap.entries()) {
+                            if (val.id === fullP.id) {
+                                foundMap.set(key, fullP);
+                            }
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error("[BATCH] Hydration failed", e);
+            }
+        }
+
+        // 4. Return sorted results
+        // Return array of objects matching the input order? Or just list?
+        // Let's return mapped result to preserve caller's ability to map back to slots
+        const finalResults = identifiers.map(id => {
+            const match = foundMap.get(id);
+            return match ? { query: id, product: match } : null;
+        }).filter(Boolean);
+
+        return { success: true, data: finalResults };
+
+    } catch (e: any) {
+        console.error("[BATCH] Error:", e);
+        return { success: false, error: e.message };
+    }
+}
+
 
 export async function refreshCartStockAction(productIds: number[]) {
     try {
