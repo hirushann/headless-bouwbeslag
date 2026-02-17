@@ -456,8 +456,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         displayText: text ? String(text) : null,
         position: index,
       };
-    })
-      .filter(Boolean) as OrderModelEntry[];
+    }).filter(Boolean) as OrderModelEntry[];
 
     // Debug log to verify correct mapping between model positions and texts
     console.log("🟦 DEBUG: Finding Order Models for product:", product.name);
@@ -479,7 +478,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                 }
 
                 if (match) {
-                    // console.log(`✅ DEBUG: Index Match for "${entry.sku}" -> ID: ${match.id} (${match.name})`);
+                    console.log(`✅ DEBUG 1: Index Match for "${entry.sku}" -> ID: ${match.id} (${match.name})`);
                     return { ...entry, resolvedId: match.id, name: match.name };
                 } else {
                     console.warn(`❌ DEBUG: No Index Match for "${entry.sku}"`);
@@ -761,7 +760,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                 }
 
                 if (match) {
-                    console.log(`✅ DEBUG: Index Match for "${entry.sku}" -> ID: ${match.id} (${match.name})`);
+                    console.log(`✅ DEBUG 2: Index Match for "${entry.sku}" -> ID: ${match.id} (${match.name})`);
                     return { ...entry, resolvedId: match.id, name: match.name };
                 } else {
                     console.warn(`❌ DEBUG: No Index Match for "${entry.sku}"`);
@@ -2363,6 +2362,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
               )}
 
               {/* third row right accordion */}
+              {product?.meta_data?.find((m: any) => m.key === "crucial_data_guarantee_period")?.value && (
               <div className="bg-white rounded-lg border border-white">
                 <details className="group">
                   <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
@@ -2400,6 +2400,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                   </div>
                 </details>
               </div>
+              )}
 
               {/* fourth row right accordion - FAQ Accordion */}
               {(() => {

@@ -121,15 +121,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (postsRes.status === "rejected") console.error("Sitemap: Failed to fetch posts", postsRes.reason);
   if (brandsRes.status === "rejected") console.error("Sitemap: Failed to fetch brands", brandsRes.reason);
 
-  // Build a map for fast parent lookup
+
   const catMap = new Map();
   allCategories.forEach((cat: any) => catMap.set(cat.id, cat));
 
-  // Recursive function to build path: parent/child/grandchild
+
   const getCategoryPath = (catId: number): string => {
     let path = "";
     let currentId = catId;
-    const visited = new Set(); // Prevent infinite loops
+    const visited = new Set();
 
     while (currentId !== 0 && catMap.has(currentId) && !visited.has(currentId)) {
       visited.add(currentId);
