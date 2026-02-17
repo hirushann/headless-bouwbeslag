@@ -305,9 +305,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
   const [isOrderColorsLoading, setIsOrderColorsLoading] = useState(true);
   const [isOrderModelsLoading, setIsOrderModelsLoading] = useState(true);
 
-  // ... (existing code)
-
-  // ✅ Restore Order Colors & Order Models from SSR product
   useEffect(() => {
     if (!product || !Array.isArray(product.meta_data)) {
         setIsOrderColorsLoading(false);
@@ -318,115 +315,115 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
     /* ---------------------------
      | ORDER COLORS
      --------------------------- */
-    const orderColorKeys = [
-      "related_order_color_1",
-      "related_order_color_2",
-      "related_order_color_3",
-      "related_order_color_4",
-      "related_order_color_5",
-      "related_order_color_6",
-      "related_order_color_7",
-      "related_order_color_8",
-    ];
+    // const orderColorKeys = [
+    //   "related_order_color_1",
+    //   "related_order_color_2",
+    //   "related_order_color_3",
+    //   "related_order_color_4",
+    //   "related_order_color_5",
+    //   "related_order_color_6",
+    //   "related_order_color_7",
+    //   "related_order_color_8",
+    // ];
 
-    const colorSkus = orderColorKeys
-      .map((key) =>
-        product.meta_data.find((m: any) => m.key === key)?.value
-      )
-      .filter((sku) => sku && String(sku).trim() !== "");
+    // const colorSkus = orderColorKeys
+    //   .map((key) =>
+    //     product.meta_data.find((m: any) => m.key === key)?.value
+    //   )
+    //   .filter((sku) => sku && String(sku).trim() !== "");
 
-    if (colorSkus.length > 0) {
-      setIsOrderColorsLoading(true);
+    // if (colorSkus.length > 0) {
+    //   setIsOrderColorsLoading(true);
       
-      const fetchColors = async () => {
-          // 1. Try Client-Side Index first if ready
-          if (isInitialized && productIndex.length > 0) {
+    //   const fetchColors = async () => {
+    //       // 1. Try Client-Side Index first if ready
+    //       if (isInitialized && productIndex.length > 0) {
 
-               const resolvedColors = colorSkus.map(sku => {
-                  const match = findProduct(sku);
-                   if (match && String(match.id) !== String(product.id)) {
-                       return { sku, resolvedId: match.id };
-                   }
-                   return { sku, resolvedId: null };
-               });
+    //            const resolvedColors = colorSkus.map(sku => {
+    //               const match = findProduct(sku);
+    //                if (match && String(match.id) !== String(product.id)) {
+    //                    return { sku, resolvedId: match.id };
+    //                }
+    //                return { sku, resolvedId: null };
+    //            });
 
 
 
-               const results = await Promise.all(resolvedColors.map(async (item) => {
-                   try {
-                       let linked: any = null;
-                       if (item.resolvedId) {
-                           const res = await fetchProductByIdAction(item.resolvedId);
-                           if (res.success) linked = res.data;
-                       } else {
-                           // Fallback
-                           const res = await fetchProductBySkuOrIdAction(item.sku, product.id);
-                           if (res.success) linked = res.data;
-                       }
+    //            const results = await Promise.all(resolvedColors.map(async (item) => {
+    //                try {
+    //                    let linked: any = null;
+    //                    if (item.resolvedId) {
+    //                        const res = await fetchProductByIdAction(item.resolvedId);
+    //                        if (res.success) linked = res.data;
+    //                    } else {
+    //                        // Fallback
+    //                        const res = await fetchProductBySkuOrIdAction(item.sku, product.id);
+    //                        if (res.success) linked = res.data;
+    //                    }
 
-                       if (!linked) return null;
+    //                    if (!linked) return null;
 
-                       const colorAttr = linked.attributes?.find(
-                           (attr: any) =>
-                               attr.slug === "color" || attr.slug === "pa_color"
-                       );
+    //                    const colorAttr = linked.attributes?.find(
+    //                        (attr: any) =>
+    //                            attr.slug === "color" || attr.slug === "pa_color"
+    //                    );
 
-                       const colorName = colorAttr?.options?.[0];
-                       if (!colorName) return null;
+    //                    const colorName = colorAttr?.options?.[0];
+    //                    if (!colorName) return null;
 
-                       return {
-                           name: colorName,
-                           color: resolveColor(colorName),
-                           slug: linked.slug,
-                       };
-                   } catch { return null; }
-               }));
-               setOrderColors(results.filter(Boolean) as OrderColor[]);
-               setIsOrderColorsLoading(false);
+    //                    return {
+    //                        name: colorName,
+    //                        color: resolveColor(colorName),
+    //                        slug: linked.slug,
+    //                    };
+    //                } catch { return null; }
+    //            }));
+    //            setOrderColors(results.filter(Boolean) as OrderColor[]);
+    //            setIsOrderColorsLoading(false);
 
-          } else {
-               // Fallback if index not ready
-              Promise.all(
-                colorSkus.map(async (sku: string) => {
-                  try {
-                    const res = await fetchProductBySkuOrIdAction(sku, product.id);
-                    const linked = res.data; 
-                    if (!linked) return null;
+    //       } else {
+    //            // Fallback if index not ready
+    //           Promise.all(
+    //             colorSkus.map(async (sku: string) => {
+    //               try {
+    //                 const res = await fetchProductBySkuOrIdAction(sku, product.id);
+    //                 const linked = res.data; 
+    //                 if (!linked) return null;
         
-                    const colorAttr = linked.attributes?.find(
-                      (attr: any) =>
-                        attr.slug === "color" || attr.slug === "pa_color"
-                    );
+    //                 const colorAttr = linked.attributes?.find(
+    //                   (attr: any) =>
+    //                     attr.slug === "color" || attr.slug === "pa_color"
+    //                 );
         
-                    const colorName = colorAttr?.options?.[0];
-                    if (!colorName) return null;
+    //                 const colorName = colorAttr?.options?.[0];
+    //                 if (!colorName) return null;
         
-                    return {
-                      name: colorName,
-                      color: resolveColor(colorName),
-                      slug: linked.slug,
-                    };
-                  } catch {
-                    return null;
-                  }
-                })
-              ).then((results) => {
-                setOrderColors(
-                  results.filter(
-                    (c): c is OrderColor =>
-                      !!c && typeof c.name === "string" && typeof c.color === "string" && typeof c.slug === "string"
-                  )
-                );
-                setIsOrderColorsLoading(false);
-              });
-          }
-      };
-      fetchColors();
+    //                 return {
+    //                   name: colorName,
+    //                   color: resolveColor(colorName),
+    //                   slug: linked.slug,
+    //                 };
+    //               } catch {
+    //                 return null;
+    //               }
+    //             })
+    //           ).then((results) => {
+    //             setOrderColors(
+    //               results.filter(
+    //                 (c): c is OrderColor =>
+    //                   !!c && typeof c.name === "string" && typeof c.color === "string" && typeof c.slug === "string"
+    //               )
+    //             );
+    //             setIsOrderColorsLoading(false);
+    //           });
+    //       }
+    //   };
+    //   fetchColors();
 
-    } else {
-      setOrderColors([]);
-      setIsOrderColorsLoading(false);
-    }
+    // } else {
+    //   setOrderColors([]);
+    //   setIsOrderColorsLoading(false);
+    // }
 
 
     /* ---------------------------
@@ -458,53 +455,17 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
       };
     }).filter(Boolean) as OrderModelEntry[];
 
-    // Debug log to verify correct mapping between model positions and texts
     console.log("🟦 DEBUG: Finding Order Models for product:", product.name);
     console.log("🟦 DEBUG: Raw entries found in meta (SKU/EAN + Text):", modelEntries);
 
     if (modelEntries.length > 0) {
         setIsOrderModelsLoading(true);
-        
-        // If we have the index loaded, use it for instant, accurate lookup without API calls
-        if (isInitialized && productIndex.length > 0) {
-             console.log("🟦 DEBUG: Using Client-Side Index Store for lookup");
-             const models = modelEntries.map(entry => {
-                const match = findProduct(entry.sku);
-                
-                // Exclude current product from results
-                if (match && String(match.id) === String(product.id)) {
-                    console.warn(`⚠️ DEBUG: Skipping self-reference for ${entry.sku} (Found ID: ${match.id})`);
-                    return null;
-                }
 
-                if (match) {
-                    console.log(`✅ DEBUG 1: Index Match for "${entry.sku}" -> ID: ${match.id} (${match.name})`);
-                    return { ...entry, resolvedId: match.id, name: match.name };
-                } else {
-                    console.warn(`❌ DEBUG: No Index Match for "${entry.sku}"`);
-                }
-                return null;
-             }).filter(Boolean);
-
-             // Now fetch full details for the resolved IDs efficiently
-             Promise.all(models.map(async (m: any) => {
-                 const res = await fetchProductByIdAction(m.resolvedId);
-                 if (res.success && res.data) {
-                     return { ...res.data, displayText: m.displayText };
-                 }
-                 return null;
-             })).then(fullModels => {
-                 setOrderModels(fullModels.filter(Boolean));
-                 setIsOrderModelsLoading(false);
-             });
-
-        } else {
-            console.log("🟧 DEBUG: Index not ready, using Server Action Fallback");
-            // Fallback to server actions if index not ready
-            Promise.all(
-                modelEntries.map(async ({ sku, displayText }) => {
+        Promise.all(
+            modelEntries.map(async ({ sku, displayText }) => {
                 try {
                     // console.log(`🟧 DEBUG: Fetching model (Server) for: "${sku}"...`);
+                    // Use the server action which now guarantees EXACT match or NULL
                     const res = await fetchProductBySkuOrIdAction(sku, product.id);
                     if (res.success && res.data) {
                         // console.log(`✅ DEBUG: Server Match for "${sku}" -> ID: ${res.data.id}`);
@@ -516,18 +477,21 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                 } catch (error) {
                     return null;
                 }
-                })
-            ).then((models) => {
-                setOrderModels(models.filter(Boolean));
-                setIsOrderModelsLoading(false);
-            });
-        }
+            })
+        ).then((models) => {
+            setOrderModels(models.filter(Boolean));
+            setIsOrderModelsLoading(false);
+        });
     } else {
       console.log("🟦 DEBUG: No order models configured for this product.");
       setOrderModels([]);
       setIsOrderModelsLoading(false);
     }
-  }, [product, isInitialized, productIndex]);
+  }, [product]);
+
+    /* ---------------------------
+     | Available Stock
+     --------------------------- */
   const [availableStock, setAvailableStock] = useState<number | null>(() => {
     // Initial state from SSR product prop
     if (!product) return null;
@@ -540,10 +504,13 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
     if (totalStock !== null && !isNaN(totalStock)) return totalStock;
     return null;
   });
+
+
   const [backordersAllowed, setBackordersAllowed] = useState(() => {
     if (!product) return false;
     return product.backorders === "yes" || product.backorders === "notify" || product.backorders_allowed === true;
   });
+
   const [addCartSuccess, setAddCartSuccess] = useState(false);
   const [addCartError, setAddCartError] = useState(false);
   const { openModal } = useProductAddedModal();
