@@ -142,7 +142,7 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
 
             const metaResults = await Promise.all(targetMetaKeys.map(async (key) => {
                 try {
-                    const wpRes = await api.get("wp/v2/product", {
+                    const wpRes = await api.get("wp/v2/products", {
                         meta_key: key,
                         meta_value: idStr,
                         _fields: "id",
@@ -164,8 +164,20 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
             if (foundMatch) {
                 const finalRes = await api.get(`products/${foundMatch.id}`, { cache: "no-store" });
                 if (finalRes.data && finalRes.data.id) {
-                    console.log(`[LOOKUP] ✅ Match WP Meta (${foundMatch.key}): ${finalRes.data.id}`);
-                    return { success: true, data: finalRes.data };
+                    // VERIFY the match! WP API might return random products if meta_key is ignored.
+                    const p = finalRes.data;
+                    const metaValid = p.meta_data && Array.isArray(p.meta_data) && p.meta_data.some((m: any) =>
+                        String(m.value).trim().toLowerCase() === idStr.toLowerCase()
+                    );
+                    // Also check SKU just in case
+                    const skuValid = String(p.sku).trim().toLowerCase() === idStr.toLowerCase();
+
+                    if (metaValid || skuValid) {
+                        console.log(`[LOOKUP] ✅ Verified Match WP Meta/SKU (${foundMatch.key}): ${finalRes.data.id}`);
+                        return { success: true, data: finalRes.data };
+                    } else {
+                        console.warn(`[LOOKUP] ⚠️ False positive from WP API for "${idStr}" -> Product ${p.id} does not match.`);
+                    }
                 }
             }
         } catch (err) { }
@@ -193,18 +205,30 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
             // Explicit filter
             const validMatches = wcSearchRes.data.filter((p: any) => Number(p.id) !== numericExcludeId);
 
-            // Prefer exact SKU match if possible
-            const exactSku = validMatches.find((p: any) => String(p.sku).trim().toLowerCase() === idStr.toLowerCase());
+            // Check for EXACT match in SKU or Any Meta Field (EAN)
+            const exactMatch = validMatches.find((p: any) => {
+                // 1. Check SKU
+                if (p.sku && String(p.sku).trim().toLowerCase() === idStr.toLowerCase()) return true;
 
-            // ONLY return if we found an EXACT SKU match in this search results
-            // If we just pick validMatches[0], it's a fuzzy match which is wrong for related products
-            if (exactSku) {
-                console.log(`[LOOKUP] ✅ Match Search (Exact SKU): ${exactSku.id}`);
-                return { success: true, data: exactSku };
+                // 2. Check Meta Data (EANs)
+                if (p.meta_data && Array.isArray(p.meta_data)) {
+                    // Check if ANY meta value is exactly the search string
+                    const foundMeta = p.meta_data.find((m: any) =>
+                        m.value && String(m.value).trim().toLowerCase() === idStr.toLowerCase()
+                    );
+                    if (foundMeta) return true;
+                }
+
+                return false;
+            });
+
+            if (exactMatch) {
+                console.log(`[LOOKUP] ✅ Match Search (Exact SKU/Meta): ${exactMatch.id}`);
+                return { success: true, data: exactMatch };
             }
 
-            // If no exact SKU match, do NOT return random fuzzy results.
-            console.warn(`[LOOKUP] ❌ Search found results but no exact SKU match for "${idStr}"`);
+            // If no exact match found, warn but don't return fuzzy
+            console.warn(`[LOOKUP] ❌ Search found ${validMatches.length} results but no exact SKU/Meta match for "${idStr}"`);
         }
         return { success: true, data: null };
     } catch (error: any) {
