@@ -345,10 +345,11 @@ export const fetchAllWoo = async (endpoint: string, extraParams: any = {}) => {
         try {
             const res = await api.get(endpoint, {
                 params: {
-                    per_page: 100,
+                    per_page: 50, // Reduced from 100 to avoid cache limits
                     page,
+                    cache: "no-store", // Disable cache to prevent 2MB warnings
                     ...extraParams,
-                },
+                }
             });
 
             const data = Array.isArray(res?.data) ? res.data : [];
