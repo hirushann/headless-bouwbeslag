@@ -315,115 +315,115 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
     /* ---------------------------
      | ORDER COLORS
      --------------------------- */
-    // const orderColorKeys = [
-    //   "related_order_color_1",
-    //   "related_order_color_2",
-    //   "related_order_color_3",
-    //   "related_order_color_4",
-    //   "related_order_color_5",
-    //   "related_order_color_6",
-    //   "related_order_color_7",
-    //   "related_order_color_8",
-    // ];
+    const orderColorKeys = [
+      "related_order_color_1",
+      "related_order_color_2",
+      "related_order_color_3",
+      "related_order_color_4",
+      "related_order_color_5",
+      "related_order_color_6",
+      "related_order_color_7",
+      "related_order_color_8",
+    ];
 
-    // const colorSkus = orderColorKeys
-    //   .map((key) =>
-    //     product.meta_data.find((m: any) => m.key === key)?.value
-    //   )
-    //   .filter((sku) => sku && String(sku).trim() !== "");
+    const colorSkus = orderColorKeys
+      .map((key) =>
+        product.meta_data.find((m: any) => m.key === key)?.value
+      )
+      .filter((sku) => sku && String(sku).trim() !== "");
 
-    // if (colorSkus.length > 0) {
-    //   setIsOrderColorsLoading(true);
+    if (colorSkus.length > 0) {
+      setIsOrderColorsLoading(true);
       
-    //   const fetchColors = async () => {
-    //       // 1. Try Client-Side Index first if ready
-    //       if (isInitialized && productIndex.length > 0) {
+      const fetchColors = async () => {
+          // 1. Try Client-Side Index first if ready
+          if (isInitialized && productIndex.length > 0) {
 
-    //            const resolvedColors = colorSkus.map(sku => {
-    //               const match = findProduct(sku);
-    //                if (match && String(match.id) !== String(product.id)) {
-    //                    return { sku, resolvedId: match.id };
-    //                }
-    //                return { sku, resolvedId: null };
-    //            });
+               const resolvedColors = colorSkus.map(sku => {
+                  const match = findProduct(sku);
+                   if (match && String(match.id) !== String(product.id)) {
+                       return { sku, resolvedId: match.id };
+                   }
+                   return { sku, resolvedId: null };
+               });
 
 
 
-    //            const results = await Promise.all(resolvedColors.map(async (item) => {
-    //                try {
-    //                    let linked: any = null;
-    //                    if (item.resolvedId) {
-    //                        const res = await fetchProductByIdAction(item.resolvedId);
-    //                        if (res.success) linked = res.data;
-    //                    } else {
-    //                        // Fallback
-    //                        const res = await fetchProductBySkuOrIdAction(item.sku, product.id);
-    //                        if (res.success) linked = res.data;
-    //                    }
+               const results = await Promise.all(resolvedColors.map(async (item) => {
+                   try {
+                       let linked: any = null;
+                       if (item.resolvedId) {
+                           const res = await fetchProductByIdAction(item.resolvedId);
+                           if (res.success) linked = res.data;
+                       } else {
+                           // Fallback
+                           const res = await fetchProductBySkuOrIdAction(item.sku, product.id);
+                           if (res.success) linked = res.data;
+                       }
 
-    //                    if (!linked) return null;
+                       if (!linked) return null;
 
-    //                    const colorAttr = linked.attributes?.find(
-    //                        (attr: any) =>
-    //                            attr.slug === "color" || attr.slug === "pa_color"
-    //                    );
+                       const colorAttr = linked.attributes?.find(
+                           (attr: any) =>
+                               attr.slug === "color" || attr.slug === "pa_color"
+                       );
 
-    //                    const colorName = colorAttr?.options?.[0];
-    //                    if (!colorName) return null;
+                       const colorName = colorAttr?.options?.[0];
+                       if (!colorName) return null;
 
-    //                    return {
-    //                        name: colorName,
-    //                        color: resolveColor(colorName),
-    //                        slug: linked.slug,
-    //                    };
-    //                } catch { return null; }
-    //            }));
-    //            setOrderColors(results.filter(Boolean) as OrderColor[]);
-    //            setIsOrderColorsLoading(false);
+                       return {
+                           name: colorName,
+                           color: resolveColor(colorName),
+                           slug: linked.slug,
+                       };
+                   } catch { return null; }
+               }));
+               setOrderColors(results.filter(Boolean) as OrderColor[]);
+               setIsOrderColorsLoading(false);
 
-    //       } else {
-    //            // Fallback if index not ready
-    //           Promise.all(
-    //             colorSkus.map(async (sku: string) => {
-    //               try {
-    //                 const res = await fetchProductBySkuOrIdAction(sku, product.id);
-    //                 const linked = res.data; 
-    //                 if (!linked) return null;
+          } else {
+               // Fallback if index not ready
+              Promise.all(
+                colorSkus.map(async (sku: string) => {
+                  try {
+                    const res = await fetchProductBySkuOrIdAction(sku, product.id);
+                    const linked = res.data; 
+                    if (!linked) return null;
         
-    //                 const colorAttr = linked.attributes?.find(
-    //                   (attr: any) =>
-    //                     attr.slug === "color" || attr.slug === "pa_color"
-    //                 );
+                    const colorAttr = linked.attributes?.find(
+                      (attr: any) =>
+                        attr.slug === "color" || attr.slug === "pa_color"
+                    );
         
-    //                 const colorName = colorAttr?.options?.[0];
-    //                 if (!colorName) return null;
+                    const colorName = colorAttr?.options?.[0];
+                    if (!colorName) return null;
         
-    //                 return {
-    //                   name: colorName,
-    //                   color: resolveColor(colorName),
-    //                   slug: linked.slug,
-    //                 };
-    //               } catch {
-    //                 return null;
-    //               }
-    //             })
-    //           ).then((results) => {
-    //             setOrderColors(
-    //               results.filter(
-    //                 (c): c is OrderColor =>
-    //                   !!c && typeof c.name === "string" && typeof c.color === "string" && typeof c.slug === "string"
-    //               )
-    //             );
-    //             setIsOrderColorsLoading(false);
-    //           });
-    //       }
-    //   };
-    //   fetchColors();
+                    return {
+                      name: colorName,
+                      color: resolveColor(colorName),
+                      slug: linked.slug,
+                    };
+                  } catch {
+                    return null;
+                  }
+                })
+              ).then((results) => {
+                setOrderColors(
+                  results.filter(
+                    (c): c is OrderColor =>
+                      !!c && typeof c.name === "string" && typeof c.color === "string" && typeof c.slug === "string"
+                  )
+                );
+                setIsOrderColorsLoading(false);
+              });
+          }
+      };
+      fetchColors();
 
-    // } else {
-    //   setOrderColors([]);
-    //   setIsOrderColorsLoading(false);
-    // }
+    } else {
+      setOrderColors([]);
+      setIsOrderColorsLoading(false);
+    }
 
 
     /* ---------------------------
@@ -462,22 +462,24 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         setIsOrderModelsLoading(true);
 
         Promise.all(
-            modelEntries.map(async ({ sku, displayText }) => {
                 try {
-                    // console.log(`🟧 DEBUG: Fetching model (Server) for: "${sku}"...`);
-                    // Use the server action which now guarantees EXACT match or NULL
+                    console.log(`🟧 DEBUG: Fetching model for SKU/EAN: "${sku}"`);
                     const res = await fetchProductBySkuOrIdAction(sku, product.id);
                     if (res.success && res.data) {
-                        // console.log(`✅ DEBUG: Server Match for "${sku}" -> ID: ${res.data.id}`);
+                         console.log(`✅ DEBUG: MATCH FOUND for "${sku}" -> ID: ${res.data.id}, Name: ${res.data.name}`);
+                         if (String(res.data.id) === String(product.id)) {
+                             console.warn("⚠️ DEBUG: Ignored self-reference.");
+                             return null;
+                         }
                         return { ...res.data, displayText };
                     } else {
-                        // console.warn(`❌ DEBUG: Server Fail for "${sku}"`);
+                        console.warn(`❌ DEBUG: No match for "${sku}"`);
                     }
                     return null;
                 } catch (error) {
+                    console.error(`🚨 DEBUG: Error fetching model "${sku}":`, error);
                     return null;
                 }
-            })
         ).then((models) => {
             setOrderModels(models.filter(Boolean));
             setIsOrderModelsLoading(false);
