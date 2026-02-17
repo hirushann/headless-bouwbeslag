@@ -137,49 +137,62 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
         ];
 
         try {
-            // We'll trust the first valid hit
-            let foundMatch: { id: number; key: string } | null = null;
+            // We'll trust the first valid hit that we can VERIFY
+            let verifiedMatch: any = null;
 
-            const metaResults = await Promise.all(targetMetaKeys.map(async (key) => {
+            // Run all meta queries in parallel
+            const metaQueryResults = await Promise.all(targetMetaKeys.map(async (key) => {
                 try {
                     const wpRes = await api.get("wp/v2/products", {
                         meta_key: key,
                         meta_value: idStr,
                         _fields: "id",
-                        per_page: 1,
+                        per_page: 5, // Fetch a few to increase chance of finding the right one if duplicates or near-matches exist
                         cache: "no-store"
                     });
                     if (Array.isArray(wpRes.data) && wpRes.data.length > 0) {
-                        const hit = wpRes.data[0];
-                        if (hit.id && Number(hit.id) !== numericExcludeId) {
-                            return { id: Number(hit.id), key: key };
+                        return wpRes.data.map((hit: any) => ({ id: Number(hit.id), key }));
+                    }
+                } catch (e) { }
+                return [];
+            }));
+
+            // Flatten results: [{id: 123, key: 'ean'}, {id: 456, key: 'ean'}]
+            const candidates = metaQueryResults.flat();
+
+            // Remove duplicates and exclude self
+            const uniqueCandidates = Array.from(new Set(candidates.map(c => c.id)))
+                .filter(id => id !== numericExcludeId)
+                .map(id => candidates.find(c => c.id === id)!);
+
+            // Verify each candidate until we find a match
+            for (const candidate of uniqueCandidates) {
+                try {
+                    const finalRes = await api.get(`products/${candidate.id}`, { cache: "no-store" });
+                    if (finalRes.data && finalRes.data.id) {
+                        const p = finalRes.data;
+
+                        // Strict Verification
+                        const metaValid = p.meta_data && Array.isArray(p.meta_data) && p.meta_data.some((m: any) =>
+                            String(m.value).trim().toLowerCase() === idStr.toLowerCase()
+                        );
+                        const skuValid = String(p.sku).trim().toLowerCase() === idStr.toLowerCase();
+
+                        if (metaValid || skuValid) {
+                            console.log(`[LOOKUP] ✅ Verified Match WP Meta/SKU (${candidate.key}): ${finalRes.data.id}`);
+                            verifiedMatch = finalRes.data;
+                            break; // Stop after first verified match
+                        } else {
+                            console.warn(`[LOOKUP] ⚠️ False positive from WP API for "${idStr}" -> Product ${p.id} does not match.`);
                         }
                     }
                 } catch (e) { }
-                return null;
-            }));
-
-            foundMatch = metaResults.find(m => m !== null) || null;
-
-            if (foundMatch) {
-                const finalRes = await api.get(`products/${foundMatch.id}`, { cache: "no-store" });
-                if (finalRes.data && finalRes.data.id) {
-                    // VERIFY the match! WP API might return random products if meta_key is ignored.
-                    const p = finalRes.data;
-                    const metaValid = p.meta_data && Array.isArray(p.meta_data) && p.meta_data.some((m: any) =>
-                        String(m.value).trim().toLowerCase() === idStr.toLowerCase()
-                    );
-                    // Also check SKU just in case
-                    const skuValid = String(p.sku).trim().toLowerCase() === idStr.toLowerCase();
-
-                    if (metaValid || skuValid) {
-                        console.log(`[LOOKUP] ✅ Verified Match WP Meta/SKU (${foundMatch.key}): ${finalRes.data.id}`);
-                        return { success: true, data: finalRes.data };
-                    } else {
-                        console.warn(`[LOOKUP] ⚠️ False positive from WP API for "${idStr}" -> Product ${p.id} does not match.`);
-                    }
-                }
             }
+
+            if (verifiedMatch) {
+                return { success: true, data: verifiedMatch };
+            }
+
         } catch (err) { }
 
         // 4. Precise ID Lookup
