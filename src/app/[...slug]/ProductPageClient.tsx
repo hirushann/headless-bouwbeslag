@@ -299,7 +299,30 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
   const [isOutOfStock, setIsOutOfStock] = useState(false);
   const [isOrderColorsLoading, setIsOrderColorsLoading] = useState(true);
   const [isOrderModelsLoading, setIsOrderModelsLoading] = useState(true);
+  /* ---------------------------
+   | COLOR RESOLVER HELPER
+   --------------------------- */
+  const resolveColor = (value: string): string => {
+    if (!value) return "#D1D5DB";
 
+    const key = value.trim().toLowerCase();
+
+    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(key)) return key;
+
+    if (COLOR_MAP[key]) return COLOR_MAP[key];
+
+    for (const mapKey of Object.keys(COLOR_MAP)) {
+      if (key.includes(mapKey)) {
+        return COLOR_MAP[mapKey];
+      }
+    }
+
+    return "#D1D5DB";
+  };
+  /* ---------------------------
+   | UNIFIED BATCH FETCH
+   | Fetch all related products/colors/models in one go for max speed.
+   --------------------------- */
   useEffect(() => {
     if (!product || !Array.isArray(product.meta_data)) {
         setIsOrderColorsLoading(false);
@@ -307,162 +330,151 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         return;
     }
 
-    /* ---------------------------
-     | ORDER COLORS
-     --------------------------- */
-    const orderColorKeys = [
-      "related_order_color_1",
-      "related_order_color_2",
-      "related_order_color_3",
-      "related_order_color_4",
-      "related_order_color_5",
-      "related_order_color_6",
-      "related_order_color_7",
-      "related_order_color_8",
+    setIsOrderColorsLoading(true);
+    setIsOrderModelsLoading(true);
+
+    // Definitions of what we are looking for
+    // Type: 'color' | 'model' | 'simple'
+    const groups = [
+        { key: 'colors', prefix: 'related_order_color_', type: 'color', setter: setOrderColors },
+        { key: 'models', prefix: 'related_order_model_', type: 'model', textPrefix: 'related_other_model_text_', setter: setOrderModels },
+        { key: 'matching', prefix: 'related_matching_product_', type: 'simple', setter: setMatchingProducts },
+        { key: 'knobrose', prefix: 'related_matching_knobrose_', type: 'simple', setter: setMatchingKnobRoseProducts },
+        { key: 'keyrose', prefix: 'related_matching_keyrose_', type: 'simple', setter: setMatchingRoseKeys },
+        { key: 'pcrose', prefix: 'related_matching_pcrose_', type: 'simple', setter: setPcRoseKeys },
+        { key: 'toiletrose', prefix: 'related_matching_toiletrose_', type: 'simple', setter: setblindtoiletroseKeys },
+        { key: 'musthave', prefix: 'related_must_have_product_', type: 'simple', setter: setMusthaveprodKeys },
     ];
 
-    const colorSkus = orderColorKeys
-      .map((key) =>
-        product.meta_data.find((m: any) => m.key === key)?.value
-      )
-      .filter((sku) => sku && String(sku).trim() !== "");
+    // 1. Collect all identifiers needed
+    const allIdentifiers = new Set<string>();
+    const requestMap: Record<string, any[]> = {}; // Map identifier -> list of consumers
 
-    if (colorSkus.length > 0) {
-      setIsOrderColorsLoading(true);
-      
-      const fetchColors = async () => {
-          // Use Server Action directly (Index removed)
-          Promise.all(
-            colorSkus.map(async (sku: string) => {
-              try {
-                const res = await fetchProductBySkuOrIdAction(sku, product.id);
-                const linked = res.data; 
-                if (!linked) return null;
-    
-                const colorAttr = linked.attributes?.find(
-                  (attr: any) =>
-                    attr.slug === "color" || attr.slug === "pa_color"
-                );
-    
-                const colorName = colorAttr?.options?.[0];
-                if (!colorName) return null;
-    
-                return {
-                  name: colorName,
-                  color: resolveColor(colorName),
-                  slug: linked.slug,
-                };
-              } catch {
-                return null;
-              }
-            })
-          ).then((results) => {
-            setOrderColors(
-              results.filter(
-                (c): c is OrderColor =>
-                  !!c && typeof c.name === "string" && typeof c.color === "string" && typeof c.slug === "string"
-              )
-            );
-            setIsOrderColorsLoading(false);
-          });
-      };
-      fetchColors();
-
-    } else {
-      setOrderColors([]);
-      setIsOrderColorsLoading(false);
-    }
-
-
-    /* ---------------------------
-     | ORDER MODELS (ACF ordered + text-safe)
-     --------------------------- */
-    type OrderModelEntry = {
-      sku: string;
-      displayText: string | null;
-      position: number;
-    };
-
-    const modelEntries: OrderModelEntry[] = Array.from({ length: 8 }, (_, i) => {
-      const index = i + 1; // 1..8
-
-      const sku = product.meta_data.find(
-        (m: any) => m.key === `related_order_model_${index}`
-      )?.value;
-
-      const text = product.meta_data.find(
-        (m: any) => m.key === `related_other_model_text_${index}`
-      )?.value;
-
-      if (!sku || String(sku).trim() === "") return null;
-
-      return {
-        sku: String(sku).trim(),
-        displayText: text ? String(text) : null,
-        position: index,
-      };
-    }).filter(Boolean) as OrderModelEntry[];
-
-    console.log("🟦 DEBUG: Finding Order Models for product:", product.name);
-    console.log("🟦 DEBUG: Raw entries found in meta (SKU/EAN + Text):", modelEntries);
-
-    if (modelEntries.length > 0) {
-        setIsOrderModelsLoading(true);
-
-        const skusToFetch = modelEntries.map(e => e.sku);
-        console.log(`🟧 DEBUG: Batch Fetching models for:`, skusToFetch);
-
-        fetchRelatedProductsBatchAction(skusToFetch, product.id)
-            .then((res) => {
-                if (res.success && Array.isArray(res.data)) {
-                    // res.data is [{query: 'ean', product: {...}}]
-                    // We need to map it back to our modelEntries (which has displayText)
-                    const resolvedModels = res.data.map((item: any) => {
-                        // Find the original entry that requested this
-                        const entry = modelEntries.find(e => 
-                            String(e.sku).trim().toLowerCase() === String(item.query).trim().toLowerCase()
-                        );
-                        
-                        if (!entry) return null;
-                        if (!item.product) return null;
-                        
-                        if (String(item.product.id) === String(product.id)) {
-                             console.warn("⚠️ DEBUG: Ignored self-reference in batch result.");
-                             return null;
-                        }
-
-                        console.log(`✅ DEBUG: MATCH FOUND for "${item.query}" -> ID: ${item.product.id}, Name: ${item.product.name}`);
-                        
-                        return {
-                            ...item.product,
-                            displayText: entry.displayText
-                        };
-                    }).filter(Boolean);
-
-                    console.log("🟦 DEBUG: Final Order Models set (Batch):", resolvedModels);
-                    setOrderModels(resolvedModels);
-                } else {
-                     console.warn("❌ DEBUG: Batch fetch returned no success or empty data.");
-                     setOrderModels([]);
+    groups.forEach(group => {
+        for (let i = 1; i <= 8; i++) {
+            const metaKey = `${group.prefix}${i}`;
+            const val = product.meta_data.find((m: any) => m.key === metaKey)?.value;
+            
+            if (val && String(val).trim() !== "") {
+                const idStr = String(val).trim();
+                allIdentifiers.add(idStr);
+                
+                if (!requestMap[idStr]) requestMap[idStr] = [];
+                
+                // For models, we also need the display text
+                let extraData: any = {};
+                if (group.type === 'model' && group.textPrefix) {
+                    const textVal = product.meta_data.find((m: any) => m.key === `${group.textPrefix}${i}`)?.value;
+                    extraData.displayText = textVal;
                 }
-            })
-            .catch(err => {
-                console.error("🚨 DEBUG: Batch fetch error:", err);
-                setOrderModels([]);
-            })
-            .finally(() => {
-                setIsOrderModelsLoading(false);
-            });
-    } else {
-      console.log("🟦 DEBUG: No order models configured for this product.");
-      setOrderModels([]);
-      setIsOrderModelsLoading(false);
+                
+                requestMap[idStr].push({ 
+                    groupKey: group.key, 
+                    position: i, 
+                    type: group.type,
+                    extraData 
+                });
+            }
+        }
+    });
+
+    const idsToFetch = Array.from(allIdentifiers);
+
+    if (idsToFetch.length === 0) {
+        setIsOrderColorsLoading(false);
+        setIsOrderModelsLoading(false);
+        return;
     }
+
+    console.log(`🚀 [BATCH] Super-Batch Fetching ${idsToFetch.length} items for ALL groups.`);
+
+    // 2. Perform ONE Fetch
+    fetchRelatedProductsBatchAction(idsToFetch, product.id)
+        .then(res => {
+            if (res.success && Array.isArray(res.data)) {
+                
+                // Temporary buckets for results
+                const bucket_colors: any[] = [];
+                const bucket_models: any[] = [];
+                const bucket_matching: any[] = [];
+                const bucket_knobrose: any[] = [];
+                const bucket_keyrose: any[] = [];
+                const bucket_pcrose: any[] = [];
+                const bucket_toiletrose: any[] = [];
+                const bucket_musthave: any[] = [];
+
+                // 3. Distribute results
+                res.data.forEach((item: any) => {
+                    const consumers = requestMap[item.query] || [];
+                    consumers.forEach(consumer => {
+                        const productData = item.product;
+                        
+                        // Self-reference check
+                        if (String(productData.id) === String(product.id)) return;
+
+                        if (consumer.type === 'simple') {
+                             if (consumer.groupKey === 'matching') bucket_matching.push(productData);
+                             if (consumer.groupKey === 'knobrose') bucket_knobrose.push(productData);
+                             if (consumer.groupKey === 'keyrose') bucket_keyrose.push(productData);
+                             if (consumer.groupKey === 'pcrose') bucket_pcrose.push(productData);
+                             if (consumer.groupKey === 'toiletrose') bucket_toiletrose.push(productData);
+                             if (consumer.groupKey === 'musthave') bucket_musthave.push(productData);
+                        }
+                        else if (consumer.type === 'model') {
+                            const modelEntry = {
+                                ...productData,
+                                displayText: consumer.extraData?.displayText || null,
+                                // sort position? we can just push, array order is roughly preserved 
+                                // or we can sort/dedupe later if needed.
+                                _pos: consumer.position
+                            };
+                            bucket_models.push(modelEntry);
+                        }
+                        else if (consumer.type === 'color') {
+                             const colorAttr = productData.attributes?.find(
+                                (attr: any) => attr.slug === "color" || attr.slug === "pa_color"
+                             );
+                             const colorName = colorAttr?.options?.[0];
+                             
+                             if (colorName) {
+                                 bucket_colors.push({
+                                     name: colorName,
+                                     color: resolveColor(colorName),
+                                     slug: productData.slug,
+                                     _pos: consumer.position
+                                 });
+                             }
+                        }
+                    });
+                });
+
+                // Sort models/colors by position if needed (simple sort)
+                bucket_models.sort((a, b) => a._pos - b._pos);
+                bucket_colors.sort((a, b) => a._pos - b._pos);
+
+                // Set States
+                setOrderColors(bucket_colors);
+                setOrderModels(bucket_models);
+                setMatchingProducts(bucket_matching);
+                setMatchingKnobRoseProducts(bucket_knobrose);
+                setMatchingRoseKeys(bucket_keyrose);
+                setPcRoseKeys(bucket_pcrose);
+                setblindtoiletroseKeys(bucket_toiletrose);
+                setMusthaveprodKeys(bucket_musthave);
+
+            }
+        })
+        .finally(() => {
+            setIsOrderColorsLoading(false);
+            setIsOrderModelsLoading(false);
+        });
+
   }, [product]);
 
-    /* ---------------------------
-     | Available Stock
-     --------------------------- */
+
+  /* ---------------------------
+   | RESTORED STOCK & UI LOGIC
+   --------------------------- */
   const [availableStock, setAvailableStock] = useState<number | null>(() => {
     // Initial state from SSR product prop
     if (!product) return null;
@@ -476,7 +488,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
     return null;
   });
 
-
   const [backordersAllowed, setBackordersAllowed] = useState(() => {
     if (!product) return false;
     return product.backorders === "yes" || product.backorders === "notify" || product.backorders_allowed === true;
@@ -485,18 +496,22 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
   const [addCartSuccess, setAddCartSuccess] = useState(false);
   const [addCartError, setAddCartError] = useState(false);
   const { openModal } = useProductAddedModal();
+
   // Derived state: is quantity input exceeding available stock
   const isQuantityInvalid =
     availableStock !== null &&
     !backordersAllowed && // Only block if backorders DISABLED
     quantity > availableStock;
+  
   // Cart-aware: quantity of this product already in cart
   const cartItemQuantity =
     items?.find((item: any) => item.id === product?.id)?.quantity ?? 0;
+  
   const isStockLimitReached =
     availableStock !== null &&
     !backordersAllowed && // Only block if backorders DISABLED
     cartItemQuantity >= availableStock;
+
   // UX-grade stock check on page load
   useEffect(() => {
     if (!product?.id) return;
@@ -548,7 +563,8 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
   const scrollRef = useRef<HTMLDivElement>(null);
   const thumbsRef = useRef<HTMLDivElement>(null);
 
-  const [matchingRoses, setMatchingRoses] = useState<any[]>([]);
+  // Note: matchingRoses logic seems unused or duplicate of keys, but keeping if it was used for UI refs
+  // const [matchingRoses, setMatchingRoses] = useState<any[]>([]); 
   const vergelijkRef = useRef<HTMLDetailsElement>(null);
 
   const scrollBy = (offset: number) => {
@@ -556,86 +572,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
       scrollRef.current.scrollBy({ left: offset, behavior: 'smooth' });
     }
   };
-
-
-
-  const resolveColor = (value: string): string => {
-    if (!value) return "#D1D5DB";
-
-    const key = value.trim().toLowerCase();
-
-    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(key)) return key;
-
-    if (COLOR_MAP[key]) return COLOR_MAP[key];
-
-    for (const mapKey of Object.keys(COLOR_MAP)) {
-      if (key.includes(mapKey)) {
-        return COLOR_MAP[mapKey];
-      }
-    }
-
-    return "#D1D5DB";
-  };
-
-
-
-  // --- Helper to fetch and set related products by meta key prefix ---
-  const fetchRelatedGroup = React.useCallback(async (prefix: string, setter: React.Dispatch<React.SetStateAction<any[]>>, limit: number = 8) => {
-    if (!product || !Array.isArray(product.meta_data)) return;
-
-    const identifiers: string[] = [];
-    for (let i = 1; i <= limit; i++) {
-      // Try exact match first
-      const val = product.meta_data.find((m: any) => m.key === `${prefix}${i}`)?.value;
-      if (val && (typeof val === 'string' || typeof val === 'number') && String(val).trim() !== '') {
-        identifiers.push(String(val).trim());
-      }
-    }
-
-    if (identifiers.length === 0) {
-      setter([]);
-      return;
-    }
-
-    try {
-      // Use the new optimized batch action
-      // It handles EANs, SKUs, and IDs via Index Fallback
-      const res = await fetchRelatedProductsBatchAction(identifiers, product.id);
-      
-      if (res.success && Array.isArray(res.data)) {
-         // Map back to just products array
-         const products = res.data.map((item: any) => item.product).filter(Boolean);
-         setter(products);
-      } else {
-         setter([]);
-      }
-    } catch (err) {
-      console.error(`Error in fetchRelatedGroup for ${prefix}`, err);
-      setter([]);
-    }
-  }, [product]);
-
-  // --- Fetch Related Accessories & Parts ---
-  useEffect(() => {
-    // 1. Matching Accessories -> matchingProducts
-    fetchRelatedGroup('related_matching_product_', setMatchingProducts);
-
-    // 2. Matching Knob Roses -> matchingKnobroseKeys
-    fetchRelatedGroup('related_matching_knobrose_', setMatchingKnobRoseProducts);
-
-    // 3. Matching Key Roses -> matchingRoseKeys
-    fetchRelatedGroup('related_matching_keyrose_', setMatchingRoseKeys);
-
-    // 4. Matching PC Roses -> pcroseKeys
-    fetchRelatedGroup('related_matching_pcrose_', setPcRoseKeys);
-
-    // 5. Matching Blind Toilet Roses -> blindtoiletroseKeys
-    fetchRelatedGroup('related_matching_toiletrose_', setblindtoiletroseKeys);
-
-    // 6. Must Have Products -> musthaveprodKeys
-    fetchRelatedGroup('related_must_have_product_', setMusthaveprodKeys, 8);
-
-  }, [fetchRelatedGroup]);
 
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
