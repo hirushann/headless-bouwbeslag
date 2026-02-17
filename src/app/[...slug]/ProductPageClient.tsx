@@ -396,10 +396,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
 
       if (!sku || String(sku).trim() === "") return null;
 
-      return {
-        sku: String(sku).trim(),
-        displayText: text ? String(text) : null,
-        position: index,
       };
     }).filter(Boolean) as OrderModelEntry[];
 
@@ -431,6 +427,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                 }
             })
         ).then((models) => {
+            console.log("🟦 DEBUG: Final Order Models set:", models);
             setOrderModels(models.filter(Boolean));
             setIsOrderModelsLoading(false);
         });
@@ -488,13 +485,9 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         if (!res.success || !res.data) return;
         const wcProduct = res.data;
 
-        console.log("🟦 ProductPageClient Stock Check Response:", wcProduct);
-
-        // Check if backorders are allowed (yes or notify)
         const isBackorder = wcProduct.backorders === "yes" || wcProduct.backorders === "notify" || wcProduct.backorders_allowed === true;
         setBackordersAllowed(isBackorder);
 
-        // Extract Total Stock from ACF
         const totalStockMeta = wcProduct.meta_data?.find((m: any) => m.key === "crucial_data_total_stock")?.value;
         const totalStock = totalStockMeta !== undefined && totalStockMeta !== null && totalStockMeta !== "" 
           ? parseInt(totalStockMeta, 10) 
@@ -502,19 +495,12 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
 
         if (wcProduct.stock_status !== "instock" && !isBackorder) {
           setIsOutOfStock(true);
-          // If explicitly out of stock status, we might still want to show 0 stock? 
-          // But strict Woo logic usually trusts status. 
-          // However for total_stock logic, often quantity is the truth. 
-          // Staying consistent with existing logic:
           return;
         }
 
         if (totalStock !== null) {
           setAvailableStock(totalStock);
           if (totalStock <= 0 && !isBackorder) {
-             // If status says instock but total_stock is 0, we treat it as out of stock?
-             // Or rely on status? Existing code relied on stock_quantity logic:
-             // if (wcProduct.stock_quantity <= 0 && !isBackorder) setIsOutOfStock(true);
              setIsOutOfStock(true);
           }
         }
@@ -589,8 +575,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
       return;
     }
 
-    // console.log(`🔍 Fetching related group for prefix "${prefix}": found items`, identifiers);
-
     try {
       const results = await Promise.all(
         identifiers.map(async (identifier) => {
@@ -603,7 +587,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
               return res.data;
             }
           } catch (e) {
-            // console.error(`Failed to fetch related product for ${prefix} (val: ${identifier})`, e);
             return null;
           }
         })
@@ -672,8 +655,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         ? ambianceMeta.value
         : [];
 
-      // console.log("🔍 DEBUG: Ambiance image IDs:", ambianceImageIds);
-
       const fetchAmbianceImages = async () => {
         if (ambianceImageIds.length === 0) {
           setAmbianceImages([]);
@@ -690,8 +671,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
               }
             })
           );
-
-          // console.log("🔍 DEBUG: Ambiance media objects:", responses);
 
           setAmbianceImages(
             responses
@@ -741,15 +720,10 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
     }
 
     const techDrawMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_technical_drawing");
-    // console.log("🔍 DEBUG: Tech Drawing Meta:", techDrawMeta);
     if (techDrawMeta?.value) {
-      // console.log("🔍 DEBUG: Fetching Tech Drawing for ID:", techDrawMeta.value);
       fetchMedia(techDrawMeta.value).then(media => {
-        // console.log("🔍 DEBUG: Tech Drawing Media Result for ID " + techDrawMeta.value + ":", media);
         setTechnicalDrawingUrl(media?.source_url || null);
       });
-    } else {
-      // console.log("❌ DEBUG: No assets_technical_drawing meta key found in product:", product?.name);
     }
   }, [product]);
 
@@ -811,8 +785,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         ? parseInt(totalStockMeta, 10)
         : (typeof wcProduct.stock_quantity === "number" ? wcProduct.stock_quantity : null);
 
-      console.log("🟦 [checkStockBeforeAdd] Resolved Total Stock:", totalStock, "Original Stock Qty:", wcProduct.stock_quantity);
-
       // --- CRITICAL: Update local state with fresh data so popup uses it ---
       setAvailableStock(totalStock);
       setBackordersAllowed(backordersAllowed);
@@ -836,7 +808,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
 
       return { success: true, totalStock, backordersAllowed };
     } catch (err) {
-      // console.error("❌ Stock check failed:", err);
       toast.error("Voorraadcontrole mislukt. Probeer opnieuw.");
       return { success: false };
     }
@@ -874,14 +845,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
       const leadTimeInStock = stockLeadRaw && !isNaN(parseInt(stockLeadRaw)) ? parseInt(stockLeadRaw) : 1;
       const leadTimeNoStock = noStockLeadRaw && !isNaN(parseInt(noStockLeadRaw)) ? parseInt(noStockLeadRaw) : 30;
 
-      console.log("🟦 [handleAddToCart] Delivery Params:", {
-         stockStatus: product.stock_status,
-         quantity,
-         availableStock: freshAvailableStock,
-         leadTimeInStock,
-         leadTimeNoStock
-      });
-
       const deliveryInfo = getDeliveryInfo(
         product.stock_status,
         quantity + cartItemQuantity,
@@ -889,8 +852,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         leadTimeInStock,
         leadTimeNoStock
       );
-      
-      console.log("🟦 [handleAddToCart] Calculated Delivery Info:", deliveryInfo);
 
       await addItem({
         id: product.id,
