@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, use } from 'react';
 import { useUserContext } from "@/context/UserContext";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
-import { checkStockAction, fetchProductByIdAction, fetchProductBySkuAction, fetchProductBySkuOrIdAction } from "@/app/actions";
+import { checkStockAction, fetchProductByIdAction, fetchProductBySkuAction, fetchProductBySkuOrIdAction, fetchRelatedProductsBatchAction } from "@/app/actions";
 import Link from "next/link";
 // import Image from "next/image";
 // import ProductCard from "@/components/ProductCard";
@@ -409,32 +409,50 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
     if (modelEntries.length > 0) {
         setIsOrderModelsLoading(true);
 
-        Promise.all(
-            modelEntries.map(async ({ sku, displayText }) => {
-                try {
-                    console.log(`🟧 DEBUG: Fetching model for SKU/EAN: "${sku}"`);
-                    const res = await fetchProductBySkuOrIdAction(sku, product.id);
-                    if (res.success && res.data) {
-                         console.log(`✅ DEBUG: MATCH FOUND for "${sku}" -> ID: ${res.data.id}, Name: ${res.data.name}`);
-                         if (String(res.data.id) === String(product.id)) {
-                             console.warn("⚠️ DEBUG: Ignored self-reference.");
+        const skusToFetch = modelEntries.map(e => e.sku);
+        console.log(`🟧 DEBUG: Batch Fetching models for:`, skusToFetch);
+
+        fetchRelatedProductsBatchAction(skusToFetch, product.id)
+            .then((res) => {
+                if (res.success && Array.isArray(res.data)) {
+                    // res.data is [{query: 'ean', product: {...}}]
+                    // We need to map it back to our modelEntries (which has displayText)
+                    const resolvedModels = res.data.map((item: any) => {
+                        // Find the original entry that requested this
+                        const entry = modelEntries.find(e => 
+                            String(e.sku).trim().toLowerCase() === String(item.query).trim().toLowerCase()
+                        );
+                        
+                        if (!entry) return null;
+                        if (!item.product) return null;
+                        
+                        if (String(item.product.id) === String(product.id)) {
+                             console.warn("⚠️ DEBUG: Ignored self-reference in batch result.");
                              return null;
-                         }
-                        return { ...res.data, displayText };
-                    } else {
-                        console.warn(`❌ DEBUG: No match for "${sku}"`);
-                    }
-                    return null;
-                } catch (error) {
-                    console.error(`🚨 DEBUG: Error fetching model "${sku}":`, error);
-                    return null;
+                        }
+
+                        console.log(`✅ DEBUG: MATCH FOUND for "${item.query}" -> ID: ${item.product.id}, Name: ${item.product.name}`);
+                        
+                        return {
+                            ...item.product,
+                            displayText: entry.displayText
+                        };
+                    }).filter(Boolean);
+
+                    console.log("🟦 DEBUG: Final Order Models set (Batch):", resolvedModels);
+                    setOrderModels(resolvedModels);
+                } else {
+                     console.warn("❌ DEBUG: Batch fetch returned no success or empty data.");
+                     setOrderModels([]);
                 }
             })
-        ).then((models) => {
-            console.log("🟦 DEBUG: Final Order Models set:", models);
-            setOrderModels(models.filter(Boolean));
-            setIsOrderModelsLoading(false);
-        });
+            .catch(err => {
+                console.error("🚨 DEBUG: Batch fetch error:", err);
+                setOrderModels([]);
+            })
+            .finally(() => {
+                setIsOrderModelsLoading(false);
+            });
     } else {
       console.log("🟦 DEBUG: No order models configured for this product.");
       setOrderModels([]);
