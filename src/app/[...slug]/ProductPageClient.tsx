@@ -580,7 +580,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
 
 
   // --- Helper to fetch and set related products by meta key prefix ---
-  const fetchRelatedGroup = React.useCallback(async (prefix: string, setter: React.Dispatch<React.SetStateAction<any[]>>, limit: number = 8, fetchType: 'sku' | 'id' = 'sku') => {
+  const fetchRelatedGroup = React.useCallback(async (prefix: string, setter: React.Dispatch<React.SetStateAction<any[]>>, limit: number = 8) => {
     if (!product || !Array.isArray(product.meta_data)) return;
 
     const identifiers: string[] = [];
@@ -598,53 +598,42 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
     }
 
     try {
-      const results = await Promise.all(
-        identifiers.map(async (identifier) => {
-          try {
-            if (fetchType === 'id') {
-              const res = await fetchProductByIdAction(Number(identifier));
-              return res.data;
-            } else {
-              const res = await fetchProductBySkuAction(identifier);
-              return res.data;
-            }
-          } catch (e) {
-            return null;
-          }
-        })
-      );
-      setter(results.filter((item) => item !== null));
+      // Use the new optimized batch action
+      // It handles EANs, SKUs, and IDs via Index Fallback
+      const res = await fetchRelatedProductsBatchAction(identifiers, product.id);
+      
+      if (res.success && Array.isArray(res.data)) {
+         // Map back to just products array
+         const products = res.data.map((item: any) => item.product).filter(Boolean);
+         setter(products);
+      } else {
+         setter([]);
+      }
     } catch (err) {
-      // console.error(`Error in fetchRelatedGroup for ${prefix}`, err);
+      console.error(`Error in fetchRelatedGroup for ${prefix}`, err);
+      setter([]);
     }
   }, [product]);
 
   // --- Fetch Related Accessories & Parts ---
   useEffect(() => {
     // 1. Matching Accessories -> matchingProducts
-    // Key found: related_matching_product_1
     fetchRelatedGroup('related_matching_product_', setMatchingProducts);
 
     // 2. Matching Knob Roses -> matchingKnobroseKeys
-    // Key found: related_matching_knobrose_1
     fetchRelatedGroup('related_matching_knobrose_', setMatchingKnobRoseProducts);
 
     // 3. Matching Key Roses -> matchingRoseKeys
-    // Key found: related_matching_keyrose_1
     fetchRelatedGroup('related_matching_keyrose_', setMatchingRoseKeys);
 
     // 4. Matching PC Roses -> pcroseKeys
-    // Key found: related_matching_pcrose_1
     fetchRelatedGroup('related_matching_pcrose_', setPcRoseKeys);
 
     // 5. Matching Blind Toilet Roses -> blindtoiletroseKeys
-    // Key found: related_matching_toiletrose_1
     fetchRelatedGroup('related_matching_toiletrose_', setblindtoiletroseKeys);
 
     // 6. Must Have Products -> musthaveprodKeys
-    // Key found: related_must_have_product_1
-    // User confirmed these are SKUs
-    fetchRelatedGroup('related_must_have_product_', setMusthaveprodKeys, 8, 'sku');
+    fetchRelatedGroup('related_must_have_product_', setMusthaveprodKeys, 8);
 
   }, [fetchRelatedGroup]);
 
