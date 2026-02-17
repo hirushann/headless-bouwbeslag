@@ -196,15 +196,16 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
             // Prefer exact SKU match if possible
             const exactSku = validMatches.find((p: any) => String(p.sku).trim().toLowerCase() === idStr.toLowerCase());
 
-            const match = exactSku || validMatches[0];
-
-            if (match) {
-                console.log(`[LOOKUP] ✅ Match WC Search: ${match.id}`);
-                return { success: true, data: match };
+            // ONLY return if we found an EXACT SKU match in this search results
+            // If we just pick validMatches[0], it's a fuzzy match which is wrong for related products
+            if (exactSku) {
+                console.log(`[LOOKUP] ✅ Match Search (Exact SKU): ${exactSku.id}`);
+                return { success: true, data: exactSku };
             }
-        }
 
-        console.log(`[LOOKUP] ❌ NO RESULTS for "${idStr}"`);
+            // If no exact SKU match, do NOT return random fuzzy results.
+            console.warn(`[LOOKUP] ❌ Search found results but no exact SKU match for "${idStr}"`);
+        }
         return { success: true, data: null };
     } catch (error: any) {
         console.error(`[LOOKUP] 🚨 ERROR: ${idStr}`, error.message);
