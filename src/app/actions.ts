@@ -349,7 +349,7 @@ export async function fetchRelatedProductsBatchAction(identifiers: string[], exc
                     // The client expects full product object usually. 
                     // Let's settle for returning the ID and letting client fetch full if critical, 
                     // OR do a bulk fetch by ID (much faster than meta search).
-                    foundMap.set(originalQuery, { id: match.id, ...match });
+                    foundMap.set(originalQuery, { ...match });
                 }
             });
         }
