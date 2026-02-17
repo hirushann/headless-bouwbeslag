@@ -116,8 +116,6 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
             }
         }
 
-
-
         // 3. Parallel WP Meta Query
         const targetMetaKeys = [
             "crucial_data_product_ean_code",
@@ -208,10 +206,16 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
         }
 
         // 5. Broad Search (Filtered)
+        /* 
+           If WP Meta queries failed, use standard Woo search.
+           Woo search checks Title, SKU, and Description.
+           It does NOT reliably check meta data unless plugins like 'Advanced Woo Search' are active.
+        */
         const wcSearchRes = await api.get("products", {
             search: idStr,
             per_page: 10,
-            cache: "no-store"
+            cache: "no-store",
+            status: "publish"
         });
 
         if (Array.isArray(wcSearchRes.data) && wcSearchRes.data.length > 0) {
