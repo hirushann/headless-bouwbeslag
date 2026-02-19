@@ -330,9 +330,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         return;
     }
 
-    setIsOrderColorsLoading(true);
-    setIsOrderModelsLoading(true);
-
     // Definitions of what we are looking for
     // Type: 'color' | 'model' | 'simple'
     const groups = [
@@ -350,6 +347,9 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
     const allIdentifiers = new Set<string>();
     const requestMap: Record<string, any[]> = {}; // Map identifier -> list of consumers
 
+    let hasColors = false;
+    let hasModels = false;
+
     groups.forEach(group => {
         for (let i = 1; i <= 8; i++) {
             const metaKey = `${group.prefix}${i}`;
@@ -358,6 +358,9 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
             if (val && String(val).trim() !== "") {
                 const idStr = String(val).trim();
                 allIdentifiers.add(idStr);
+                
+                if (group.type === 'color') hasColors = true;
+                if (group.type === 'model') hasModels = true;
                 
                 if (!requestMap[idStr]) requestMap[idStr] = [];
                 
@@ -377,6 +380,9 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
             }
         }
     });
+
+    setIsOrderColorsLoading(hasColors);
+    setIsOrderModelsLoading(hasModels);
 
     const idsToFetch = Array.from(allIdentifiers);
 

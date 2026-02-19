@@ -383,7 +383,7 @@ export async function fetchRelatedProductsBatchAction(identifiers: string[], exc
                 const hydrationRes = await api.get("products", {
                     include: indexFoundIDs,
                     per_page: 50,
-                    _fields: "id,name,slug,permalink,price_html,images,attributes,stock_status", // Optimize fields?
+                    _fields: "id,name,slug,permalink,price,regular_price,price_html,images,attributes,stock_status,meta_data,stock_quantity,manage_stock,backorders,backorders_allowed",
                     cache: "no-store"
                 });
 
