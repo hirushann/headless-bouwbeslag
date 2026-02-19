@@ -240,7 +240,7 @@ export async function generateMetadata(
       }
     }
 
-    const imageUrl = product.images?.[0]?.src || "https://bouwbeslag.nl/logo.webp";
+    const imageUrl = product.images?.[0]?.src || "https://bouwbeslag.nl/ogimg-new.png";
 
     const result = {
       title: metaTitle,

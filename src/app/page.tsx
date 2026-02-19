@@ -26,6 +26,20 @@ export const metadata: Metadata = {
     description: 'Bouwbeslag.nl is dé specialist in deurbeslag en bouwbeslag van A-merken. Ontdek ons ruime assortiment deurklinken, scharnieren, sloten en meer voor de beste prijs.',
     type: "website",
     url: "/",
+    images: [
+      {
+        url: "https://bouwbeslag.nl/ogimg-new.png",
+        width: 1200,
+        height: 630,
+        alt: "Bouwbeslag.nl",
+      }
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: 'Bouwbeslag.nl | Deurbeslag & Bouwbeslag van A-merken',
+    description: 'Bouwbeslag.nl is dé specialist in deurbeslag en bouwbeslag van A-merken. Ontdek ons ruime assortiment deurklinken, scharnieren, sloten en meer voor de beste prijs.',
+    images: ["https://bouwbeslag.nl/ogimg-new.png"],
   }
 };
 
