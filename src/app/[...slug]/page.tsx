@@ -43,7 +43,7 @@ const getProductMetadataCached = cache(async (slug: string) => {
   try {
     const res = await api.get("products", { 
       slug, 
-      _fields: "id,name,slug,meta_data,short_description,sku"
+      _fields: "id,name,slug,meta_data,short_description,sku,images"
     });
     if (!Array.isArray(res.data) || !res.data[0]) return null;
     return res.data[0];
@@ -56,7 +56,7 @@ const getCategoryMetadataCached = cache(async (slug: string) => {
   try {
     const res = await api.get("products/categories", { 
       slug, 
-      _fields: "id,name,slug,description,acf,parent"
+      _fields: "id,name,slug,description,acf,parent,image"
     });
     if (!res.data || res.data.length === 0) return null;
     return res.data[0];
