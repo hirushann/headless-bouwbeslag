@@ -93,8 +93,14 @@ export default function CategoryClient({
   // Sync state with URL when page changes
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    params.set("page", page.toString());
-    const newPathname = window.location.pathname + "?" + params.toString();
+    if (page > 1) {
+      params.set("page", page.toString());
+    } else {
+      params.delete("page");
+    }
+    
+    const queryString = params.toString();
+    const newPathname = window.location.pathname + (queryString ? "?" + queryString : "");
     // Use replace to avoid bloating history
     router.replace(newPathname, { scroll: false });
   }, [page, router]);
