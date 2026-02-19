@@ -2,8 +2,6 @@
 import { ImageResponse } from 'next/og';
 import api from '@/lib/woocommerce';
 
-export const runtime = 'edge';
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const slug = searchParams.get('slug');
@@ -137,6 +135,10 @@ export async function GET(request: Request) {
     {
       width: 1200,
       height: 630,
+      // Add headers to prevent persistent caching of broken images during dev
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      },
     }
   );
 }
