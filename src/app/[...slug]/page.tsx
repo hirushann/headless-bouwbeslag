@@ -240,8 +240,6 @@ export async function generateMetadata(
       }
     }
 
-    const imageUrl = product.images?.[0]?.src || "https://bouwbeslag.nl/logo.webp";
-
     const result = {
       title: metaTitle,
       description: metaDescription,
@@ -252,20 +250,11 @@ export async function generateMetadata(
         title: metaTitle,
         description: metaDescription,
         type: "website",
-        images: [
-          {
-            url: imageUrl,
-            width: 1200,
-            height: 630,
-            alt: metaTitle,
-          },
-        ],
       },
       twitter: {
         card: "summary_large_image",
         title: metaTitle,
         description: metaDescription,
-        images: [imageUrl],
       },
       robots: {
         index: true,
@@ -296,9 +285,6 @@ export async function generateMetadata(
     }
 
     const correctPath = await traverseCategoryPath(category);
-    
-    // Category Image Logic
-    const catImageUrl = category.image?.src || "https://bouwbeslag.nl/logo.webp";
 
     return {
       title,
@@ -311,20 +297,11 @@ export async function generateMetadata(
         description,
         url: `/${correctPath}`,
         type: "website",
-        images: [
-          {
-            url: catImageUrl,
-            width: 1200,
-            height: 630,
-            alt: title,
-          },
-        ],
       },
       twitter: {
         card: "summary_large_image",
         title: title,
         description: description,
-        images: [catImageUrl],
       },
       robots: {
         index: true,
