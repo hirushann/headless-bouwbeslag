@@ -240,6 +240,10 @@ export async function generateMetadata(
       }
     }
 
+    const currentSlug = decodeURIComponent(slug[slug.length - 1]);
+    const ogUrl = new URL(`${process.env.NEXT_PUBLIC_SITE_URL}/api/og`);
+    ogUrl.searchParams.set("slug", currentSlug);
+
     const result = {
       title: metaTitle,
       description: metaDescription,
@@ -250,11 +254,20 @@ export async function generateMetadata(
         title: metaTitle,
         description: metaDescription,
         type: "website",
+        images: [
+          {
+            url: ogUrl.toString(),
+            width: 1200,
+            height: 630,
+            alt: metaTitle,
+          },
+        ],
       },
       twitter: {
         card: "summary_large_image",
         title: metaTitle,
         description: metaDescription,
+        images: [ogUrl.toString()],
       },
       robots: {
         index: true,
@@ -268,6 +281,10 @@ export async function generateMetadata(
   if (category) {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl";
     const canonicalPath = slug.map(s => encodeURIComponent(s)).join('/');
+    const currentSlug = decodeURIComponent(slug[slug.length - 1]);
+
+    const ogUrl = new URL(`${siteUrl}/api/og`);
+    ogUrl.searchParams.set("slug", currentSlug);
 
     // Dynamic Category Title
     const acfTitle = category.acf?.category_meta_title;
@@ -297,11 +314,20 @@ export async function generateMetadata(
         description,
         url: `/${correctPath}`,
         type: "website",
+        images: [
+          {
+            url: ogUrl.toString(),
+            width: 1200,
+            height: 630,
+            alt: title,
+          },
+        ],
       },
       twitter: {
         card: "summary_large_image",
         title: title,
         description: description,
+        images: [ogUrl.toString()],
       },
       robots: {
         index: true,

@@ -2,22 +2,12 @@
 import { ImageResponse } from 'next/og';
 import api from '@/lib/woocommerce';
 
-// Route segment config
 export const runtime = 'edge';
 
-// Image metadata
-export const alt = 'Bouwbeslag';
-export const size = {
-  width: 1200,
-  height: 630,
-};
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const slug = searchParams.get('slug');
 
-export const contentType = 'image/png';
-
-export default async function Image({ params }: { params: Promise<{ slug: string[] }> }) {
-  const { slug } = await params;
-  const currentSlug = decodeURIComponent(slug[slug.length - 1]);
-  
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://bouwbeslag.nl';
   const logoUrl = `${siteUrl}/logo.webp`;
 
@@ -25,38 +15,42 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   let imageUrl = logoUrl;
   let label = 'Bekijk nu';
 
-  try {
-     // 1. Try Product
-     const pRes = await api.get("products", {
-        slug: currentSlug,
-        _fields: "id,name,images,price,regular_price,sale_price"
-     });
+  if (slug) {
+    try {
+        const currentSlug = decodeURIComponent(slug);
 
-     if (pRes.data && pRes.data.length > 0) {
-         const product = pRes.data[0];
-         title = product.name;
-         if (product.images && product.images.length > 0) {
-             imageUrl = product.images[0].src;
-         }
-         label = 'Bestel direct';
-     } else {
-         // 2. Try Category
-         const cRes = await api.get("products/categories", {
-              slug: currentSlug,
-              _fields: "id,name,image"
-         });
+        // 1. Try Product
+        const pRes = await api.get("products", {
+            slug: currentSlug,
+            _fields: "id,name,images,price,regular_price,sale_price"
+        });
 
-         if (cRes.data && cRes.data.length > 0) {
-             const category = cRes.data[0];
-             title = category.name;
-             if (category.image && category.image.src) {
-                 imageUrl = category.image.src;
-             }
-             label = 'Bekijk assortiment';
-         }
-     }
-  } catch(e) {
-      console.error("OG Image Error:", e);
+        if (pRes.data && pRes.data.length > 0) {
+            const product = pRes.data[0];
+            title = product.name;
+            if (product.images && product.images.length > 0) {
+                imageUrl = product.images[0].src;
+            }
+            label = 'Bestel direct';
+        } else {
+            // 2. Try Category
+            const cRes = await api.get("products/categories", {
+                slug: currentSlug,
+                _fields: "id,name,image"
+            });
+
+            if (cRes.data && cRes.data.length > 0) {
+                const category = cRes.data[0];
+                title = category.name;
+                if (category.image && category.image.src) {
+                    imageUrl = category.image.src;
+                }
+                label = 'Bekijk assortiment';
+            }
+        }
+    } catch(e) {
+        console.error("OG Image Error:", e);
+    }
   }
 
   return new ImageResponse(
@@ -141,7 +135,8 @@ export default async function Image({ params }: { params: Promise<{ slug: string
       </div>
     ),
     {
-      ...size,
+      width: 1200,
+      height: 630,
     }
   );
 }
