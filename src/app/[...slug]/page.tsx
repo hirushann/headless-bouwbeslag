@@ -240,10 +240,7 @@ export async function generateMetadata(
       }
     }
 
-    const currentSlug = decodeURIComponent(slug[slug.length - 1]);
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl";
-    const ogUrl = new URL(`${siteUrl}/api/og`);
-    ogUrl.searchParams.set("slug", currentSlug);
+    const imageUrl = product.images?.[0]?.src || "https://bouwbeslag.nl/logo.webp";
 
     const result = {
       title: metaTitle,
@@ -257,9 +254,7 @@ export async function generateMetadata(
         type: "website",
         images: [
           {
-            url: ogUrl.toString(),
-            width: 1200,
-            height: 630,
+            url: imageUrl,
             alt: metaTitle,
           },
         ],
@@ -268,7 +263,7 @@ export async function generateMetadata(
         card: "summary_large_image",
         title: metaTitle,
         description: metaDescription,
-        images: [ogUrl.toString()],
+        images: [imageUrl],
       },
       robots: {
         index: true,
@@ -282,11 +277,7 @@ export async function generateMetadata(
   if (category) {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl";
     const canonicalPath = slug.map(s => encodeURIComponent(s)).join('/');
-    const currentSlug = decodeURIComponent(slug[slug.length - 1]);
-
-    const ogUrl = new URL(`${siteUrl}/api/og`);
-    ogUrl.searchParams.set("slug", currentSlug);
-
+    
     // Dynamic Category Title
     const acfTitle = category.acf?.category_meta_title;
     let title = clean(acfTitle) || `${clean(category.name)} | Bouwbeslag`;
@@ -303,6 +294,7 @@ export async function generateMetadata(
     }
 
     const correctPath = await traverseCategoryPath(category);
+    const catImageUrl = category.image?.src || "https://bouwbeslag.nl/logo.webp";
 
     return {
       title,
@@ -317,9 +309,7 @@ export async function generateMetadata(
         type: "website",
         images: [
           {
-            url: ogUrl.toString(),
-            width: 1200,
-            height: 630,
+            url: catImageUrl,
             alt: title,
           },
         ],
@@ -328,7 +318,7 @@ export async function generateMetadata(
         card: "summary_large_image",
         title: title,
         description: description,
-        images: [ogUrl.toString()],
+        images: [catImageUrl], // Corrected to use catImageUrl
       },
       robots: {
         index: true,
