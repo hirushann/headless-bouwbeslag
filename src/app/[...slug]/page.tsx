@@ -241,7 +241,8 @@ export async function generateMetadata(
     }
 
     const currentSlug = decodeURIComponent(slug[slug.length - 1]);
-    const ogUrl = new URL(`${process.env.NEXT_PUBLIC_SITE_URL}/api/og`);
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl";
+    const ogUrl = new URL(`${siteUrl}/api/og`);
     ogUrl.searchParams.set("slug", currentSlug);
 
     const result = {
