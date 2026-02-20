@@ -24,18 +24,24 @@ export async function POST(req: Request) {
         const body = await req.json();
 
         // Validate input
-        if (!body || !Array.isArray(body.dates)) {
+        if (!body || typeof body !== 'object') {
             return NextResponse.json(
-                { error: 'Invalid payload. Expected { dates: string[] }' },
+                { error: 'Invalid payload. Expected { shipping?: string[], delivery?: string[] }' },
                 { status: 400 }
             );
         }
 
+        // Helper to handle PHP arrays that might serialize into objects { "0": "...", "1": "..." }
+        const getArray = (val: any) => Array.isArray(val) ? val : (val && typeof val === 'object' ? Object.values(val) : []);
+        const rawShipping = getArray(body.shipping);
+        const rawDelivery = getArray(body.delivery);
+
         // Basic date format validation (YYYY-MM-DD)
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-        const validDates = body.dates.filter((d: any) => typeof d === 'string' && dateRegex.test(d));
+        const validShipping = rawShipping.filter((d: any) => typeof d === 'string' && dateRegex.test(d as string));
+        const validDelivery = rawDelivery.filter((d: any) => typeof d === 'string' && dateRegex.test(d as string));
 
-        if (validDates.length !== body.dates.length) {
+        if (validShipping.length !== rawShipping.length || validDelivery.length !== rawDelivery.length) {
             return NextResponse.json(
                 { error: 'Invalid date format found. Use YYYY-MM-DD.' },
                 { status: 400 }
@@ -51,13 +57,19 @@ export async function POST(req: Request) {
             fs.mkdirSync(dataDir, { recursive: true });
         }
 
-        fs.writeFileSync(filePath, JSON.stringify({ dates: validDates }, null, 2), 'utf-8');
+        const newData = {
+            shipping: validShipping,
+            delivery: validDelivery
+        };
+
+        fs.writeFileSync(filePath, JSON.stringify(newData, null, 2), 'utf-8');
 
         return NextResponse.json({
             success: true,
             message: 'Holidays updated successfully',
-            count: validDates.length,
-            dates: validDates
+            shippingCount: validShipping.length,
+            deliveryCount: validDelivery.length,
+            data: newData
         });
 
     } catch (error) {
@@ -77,7 +89,7 @@ export async function GET() {
             const data = JSON.parse(fileContent);
             return NextResponse.json(data);
         } else {
-            return NextResponse.json({ dates: [] });
+            return NextResponse.json({ shipping: [], delivery: [] });
         }
     } catch (error) {
         return NextResponse.json({ error: 'Failed to read holidays' }, { status: 500 });
