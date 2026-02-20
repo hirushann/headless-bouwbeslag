@@ -43,7 +43,7 @@ const getProductMetadataCached = cache(async (slug: string) => {
   try {
     const res = await api.get("products", { 
       slug, 
-      _fields: "id,name,slug,meta_data,short_description,sku"
+      _fields: "id,name,slug,meta_data,short_description,sku,images"
     });
     if (!Array.isArray(res.data) || !res.data[0]) return null;
     return res.data[0];
@@ -56,7 +56,7 @@ const getCategoryMetadataCached = cache(async (slug: string) => {
   try {
     const res = await api.get("products/categories", { 
       slug, 
-      _fields: "id,name,slug,description,acf,parent"
+      _fields: "id,name,slug,description,acf,parent,image"
     });
     if (!res.data || res.data.length === 0) return null;
     return res.data[0];
@@ -240,6 +240,8 @@ export async function generateMetadata(
       }
     }
 
+    const imageUrl = product.images?.[0]?.src || "https://bouwbeslag.nl/ogimg-new.png";
+
     const result = {
       title: metaTitle,
       description: metaDescription,
@@ -250,11 +252,18 @@ export async function generateMetadata(
         title: metaTitle,
         description: metaDescription,
         type: "website",
+        images: [
+          {
+            url: imageUrl,
+            alt: metaTitle,
+          },
+        ],
       },
       twitter: {
         card: "summary_large_image",
         title: metaTitle,
         description: metaDescription,
+        images: [imageUrl],
       },
       robots: {
         index: true,
@@ -268,7 +277,7 @@ export async function generateMetadata(
   if (category) {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl";
     const canonicalPath = slug.map(s => encodeURIComponent(s)).join('/');
-
+    
     // Dynamic Category Title
     const acfTitle = category.acf?.category_meta_title;
     let title = clean(acfTitle) || `${clean(category.name)} | Bouwbeslag`;
@@ -285,6 +294,7 @@ export async function generateMetadata(
     }
 
     const correctPath = await traverseCategoryPath(category);
+    const catImageUrl = category.image?.src || "https://bouwbeslag.nl/logo.webp";
 
     return {
       title,
@@ -297,6 +307,18 @@ export async function generateMetadata(
         description,
         url: `/${correctPath}`,
         type: "website",
+        images: [
+          {
+            url: catImageUrl,
+            alt: title,
+          },
+        ],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: title,
+        description: description,
+        images: [catImageUrl], // Corrected to use catImageUrl
       },
       robots: {
         index: true,

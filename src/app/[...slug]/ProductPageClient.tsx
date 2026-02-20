@@ -1,13 +1,13 @@
 "use client";
-import axios from 'axios';
+// import axios from 'axios';
 import React, { useState, useRef, useEffect, use } from 'react';
 import { useUserContext } from "@/context/UserContext";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
-import { checkStockAction, fetchProductByIdAction, fetchProductBySkuAction } from "@/app/actions";
+import { checkStockAction, fetchProductByIdAction, fetchProductBySkuAction, fetchProductBySkuOrIdAction, fetchRelatedProductsBatchAction } from "@/app/actions";
 import Link from "next/link";
-import Image from "next/image";
-import ProductCard from "@/components/ProductCard";
+// import Image from "next/image";
+// import ProductCard from "@/components/ProductCard";
 import RecommendedProductItem from "@/components/RecommendedProductItem";
 import { useCartStore } from "@/lib/cartStore";
 import { fetchMedia } from "@/lib/wordpress";
@@ -17,6 +17,7 @@ import ReviewsSection from "@/components/ReviewsSection";
 import PhotoSwipeLightbox from 'photoswipe/lightbox';
 import 'photoswipe/dist/photoswipe.css';
 import { useProductAddedModal } from "@/context/ProductAddedModalContext";
+import { useProductIndexStore } from "@/lib/productIndexStore";
 
 const formatSpecValue = (value: string | number | null | undefined): string => {
   if (value === null || value === undefined) return "";
@@ -57,12 +58,13 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
   const [mounted, setMounted] = useState(false);
 
 
+
+  const { userRole, isLoading } = useUserContext();
+
   useEffect(() => {
     setCurrentUrl(window.location.href);
     setMounted(true);
   }, []); // Run once on mount
-
-  const { userRole, isLoading } = useUserContext();
 
   useEffect(() => {
     // console.log("💰 VAT Rate (from Server):", taxRate);
@@ -87,7 +89,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
       );
     }
   }, [product]);
-
   useEffect(() => {
     let lightbox = new PhotoSwipeLightbox({
       gallery: '.pswp-gallery',
@@ -101,6 +102,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
       lightbox = null as any;
     };
   }, []);
+
   const [thumbIndex, setThumbIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [selectedDiscount, setSelectedDiscount] = useState<number | null>(null);
@@ -295,6 +297,190 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
 
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isOutOfStock, setIsOutOfStock] = useState(false);
+  const [isOrderColorsLoading, setIsOrderColorsLoading] = useState(true);
+  const [isOrderModelsLoading, setIsOrderModelsLoading] = useState(true);
+  /* ---------------------------
+   | COLOR RESOLVER HELPER
+   --------------------------- */
+  const resolveColor = (value: string): string => {
+    if (!value) return "#D1D5DB";
+
+    const key = value.trim().toLowerCase();
+
+    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(key)) return key;
+
+    if (COLOR_MAP[key]) return COLOR_MAP[key];
+
+    for (const mapKey of Object.keys(COLOR_MAP)) {
+      if (key.includes(mapKey)) {
+        return COLOR_MAP[mapKey];
+      }
+    }
+
+    return "#D1D5DB";
+  };
+  /* ---------------------------
+   | UNIFIED BATCH FETCH
+   | Fetch all related products/colors/models in one go for max speed.
+   --------------------------- */
+  useEffect(() => {
+    if (!product || !Array.isArray(product.meta_data)) {
+        setIsOrderColorsLoading(false);
+        setIsOrderModelsLoading(false);
+        return;
+    }
+
+    // Definitions of what we are looking for
+    // Type: 'color' | 'model' | 'simple'
+    const groups = [
+        { key: 'colors', prefix: 'related_order_color_', type: 'color', setter: setOrderColors },
+        { key: 'models', prefix: 'related_order_model_', type: 'model', textPrefix: 'related_other_model_text_', setter: setOrderModels },
+        { key: 'matching', prefix: 'related_matching_product_', type: 'simple', setter: setMatchingProducts },
+        { key: 'knobrose', prefix: 'related_matching_knobrose_', type: 'simple', setter: setMatchingKnobRoseProducts },
+        { key: 'keyrose', prefix: 'related_matching_keyrose_', type: 'simple', setter: setMatchingRoseKeys },
+        { key: 'pcrose', prefix: 'related_matching_pcrose_', type: 'simple', setter: setPcRoseKeys },
+        { key: 'toiletrose', prefix: 'related_matching_toiletrose_', type: 'simple', setter: setblindtoiletroseKeys },
+        { key: 'musthave', prefix: 'related_must_have_product_', type: 'simple', setter: setMusthaveprodKeys },
+    ];
+
+    // 1. Collect all identifiers needed
+    const allIdentifiers = new Set<string>();
+    const requestMap: Record<string, any[]> = {}; // Map identifier -> list of consumers
+
+    let hasColors = false;
+    let hasModels = false;
+
+    groups.forEach(group => {
+        for (let i = 1; i <= 8; i++) {
+            const metaKey = `${group.prefix}${i}`;
+            const val = product.meta_data.find((m: any) => m.key === metaKey)?.value;
+            
+            if (val && String(val).trim() !== "") {
+                const idStr = String(val).trim();
+                allIdentifiers.add(idStr);
+                
+                if (group.type === 'color') hasColors = true;
+                if (group.type === 'model') hasModels = true;
+                
+                if (!requestMap[idStr]) requestMap[idStr] = [];
+                
+                // For models, we also need the display text
+                let extraData: any = {};
+                if (group.type === 'model' && group.textPrefix) {
+                    const textVal = product.meta_data.find((m: any) => m.key === `${group.textPrefix}${i}`)?.value;
+                    extraData.displayText = textVal;
+                }
+                
+                requestMap[idStr].push({ 
+                    groupKey: group.key, 
+                    position: i, 
+                    type: group.type,
+                    extraData 
+                });
+            }
+        }
+    });
+
+    setIsOrderColorsLoading(hasColors);
+    setIsOrderModelsLoading(hasModels);
+
+    const idsToFetch = Array.from(allIdentifiers);
+
+    if (idsToFetch.length === 0) {
+        setIsOrderColorsLoading(false);
+        setIsOrderModelsLoading(false);
+        return;
+    }
+
+    console.log(`🚀 [BATCH] Super-Batch Fetching ${idsToFetch.length} items for ALL groups.`);
+
+    // 2. Perform ONE Fetch
+    fetchRelatedProductsBatchAction(idsToFetch, product.id)
+        .then(res => {
+            if (res.success && Array.isArray(res.data)) {
+                
+                // Temporary buckets for results
+                const bucket_colors: any[] = [];
+                const bucket_models: any[] = [];
+                const bucket_matching: any[] = [];
+                const bucket_knobrose: any[] = [];
+                const bucket_keyrose: any[] = [];
+                const bucket_pcrose: any[] = [];
+                const bucket_toiletrose: any[] = [];
+                const bucket_musthave: any[] = [];
+
+                // 3. Distribute results
+                res.data.forEach((item: any) => {
+                    const consumers = requestMap[item.query] || [];
+                    consumers.forEach(consumer => {
+                        const productData = item.product;
+                        
+                        // Self-reference check
+                        if (String(productData.id) === String(product.id)) return;
+
+                        if (consumer.type === 'simple') {
+                             if (consumer.groupKey === 'matching') bucket_matching.push(productData);
+                             if (consumer.groupKey === 'knobrose') bucket_knobrose.push(productData);
+                             if (consumer.groupKey === 'keyrose') bucket_keyrose.push(productData);
+                             if (consumer.groupKey === 'pcrose') bucket_pcrose.push(productData);
+                             if (consumer.groupKey === 'toiletrose') bucket_toiletrose.push(productData);
+                             if (consumer.groupKey === 'musthave') bucket_musthave.push(productData);
+                        }
+                        else if (consumer.type === 'model') {
+                            const modelEntry = {
+                                ...productData,
+                                displayText: consumer.extraData?.displayText || null,
+                                // sort position? we can just push, array order is roughly preserved 
+                                // or we can sort/dedupe later if needed.
+                                _pos: consumer.position
+                            };
+                            bucket_models.push(modelEntry);
+                        }
+                        else if (consumer.type === 'color') {
+                             const colorAttr = productData.attributes?.find(
+                                (attr: any) => attr.slug === "color" || attr.slug === "pa_color"
+                             );
+                             const colorName = colorAttr?.options?.[0];
+                             
+                             if (colorName) {
+                                 bucket_colors.push({
+                                     name: colorName,
+                                     color: resolveColor(colorName),
+                                     slug: productData.slug,
+                                     _pos: consumer.position
+                                 });
+                             }
+                        }
+                    });
+                });
+
+                // Sort models/colors by position if needed (simple sort)
+                bucket_models.sort((a, b) => a._pos - b._pos);
+                bucket_colors.sort((a, b) => a._pos - b._pos);
+
+                // Set States
+                setOrderColors(bucket_colors);
+                setOrderModels(bucket_models);
+                setMatchingProducts(bucket_matching);
+                setMatchingKnobRoseProducts(bucket_knobrose);
+                setMatchingRoseKeys(bucket_keyrose);
+                setPcRoseKeys(bucket_pcrose);
+                setblindtoiletroseKeys(bucket_toiletrose);
+                setMusthaveprodKeys(bucket_musthave);
+
+            }
+        })
+        .finally(() => {
+            setIsOrderColorsLoading(false);
+            setIsOrderModelsLoading(false);
+        });
+
+  }, [product]);
+
+
+  /* ---------------------------
+   | RESTORED STOCK & UI LOGIC
+   --------------------------- */
   const [availableStock, setAvailableStock] = useState<number | null>(() => {
     // Initial state from SSR product prop
     if (!product) return null;
@@ -307,25 +493,31 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
     if (totalStock !== null && !isNaN(totalStock)) return totalStock;
     return null;
   });
+
   const [backordersAllowed, setBackordersAllowed] = useState(() => {
     if (!product) return false;
     return product.backorders === "yes" || product.backorders === "notify" || product.backorders_allowed === true;
   });
+
   const [addCartSuccess, setAddCartSuccess] = useState(false);
   const [addCartError, setAddCartError] = useState(false);
   const { openModal } = useProductAddedModal();
+
   // Derived state: is quantity input exceeding available stock
   const isQuantityInvalid =
     availableStock !== null &&
     !backordersAllowed && // Only block if backorders DISABLED
     quantity > availableStock;
+  
   // Cart-aware: quantity of this product already in cart
   const cartItemQuantity =
     items?.find((item: any) => item.id === product?.id)?.quantity ?? 0;
+  
   const isStockLimitReached =
     availableStock !== null &&
     !backordersAllowed && // Only block if backorders DISABLED
     cartItemQuantity >= availableStock;
+
   // UX-grade stock check on page load
   useEffect(() => {
     if (!product?.id) return;
@@ -336,13 +528,9 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         if (!res.success || !res.data) return;
         const wcProduct = res.data;
 
-        console.log("🟦 ProductPageClient Stock Check Response:", wcProduct);
-
-        // Check if backorders are allowed (yes or notify)
         const isBackorder = wcProduct.backorders === "yes" || wcProduct.backorders === "notify" || wcProduct.backorders_allowed === true;
         setBackordersAllowed(isBackorder);
 
-        // Extract Total Stock from ACF
         const totalStockMeta = wcProduct.meta_data?.find((m: any) => m.key === "crucial_data_total_stock")?.value;
         const totalStock = totalStockMeta !== undefined && totalStockMeta !== null && totalStockMeta !== "" 
           ? parseInt(totalStockMeta, 10) 
@@ -350,19 +538,12 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
 
         if (wcProduct.stock_status !== "instock" && !isBackorder) {
           setIsOutOfStock(true);
-          // If explicitly out of stock status, we might still want to show 0 stock? 
-          // But strict Woo logic usually trusts status. 
-          // However for total_stock logic, often quantity is the truth. 
-          // Staying consistent with existing logic:
           return;
         }
 
         if (totalStock !== null) {
           setAvailableStock(totalStock);
           if (totalStock <= 0 && !isBackorder) {
-             // If status says instock but total_stock is 0, we treat it as out of stock?
-             // Or rely on status? Existing code relied on stock_quantity logic:
-             // if (wcProduct.stock_quantity <= 0 && !isBackorder) setIsOutOfStock(true);
              setIsOutOfStock(true);
           }
         }
@@ -388,7 +569,8 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
   const scrollRef = useRef<HTMLDivElement>(null);
   const thumbsRef = useRef<HTMLDivElement>(null);
 
-  const [matchingRoses, setMatchingRoses] = useState<any[]>([]);
+  // Note: matchingRoses logic seems unused or duplicate of keys, but keeping if it was used for UI refs
+  // const [matchingRoses, setMatchingRoses] = useState<any[]>([]); 
   const vergelijkRef = useRef<HTMLDetailsElement>(null);
 
   const scrollBy = (offset: number) => {
@@ -396,217 +578,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
       scrollRef.current.scrollBy({ left: offset, behavior: 'smooth' });
     }
   };
-
-
-
-  const resolveColor = (value: string): string => {
-    if (!value) return "#D1D5DB";
-
-    const key = value.trim().toLowerCase();
-
-    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(key)) return key;
-
-    if (COLOR_MAP[key]) return COLOR_MAP[key];
-
-    for (const mapKey of Object.keys(COLOR_MAP)) {
-      if (key.includes(mapKey)) {
-        return COLOR_MAP[mapKey];
-      }
-    }
-
-    return "#D1D5DB";
-  };
-
-  // ✅ Restore Order Colors & Order Models from SSR product
-  useEffect(() => {
-    if (!product || !Array.isArray(product.meta_data)) return;
-
-    /* ---------------------------
-     | ORDER COLORS
-     --------------------------- */
-    const orderColorKeys = [
-      "related_order_color_1",
-      "related_order_color_2",
-      "related_order_color_3",
-      "related_order_color_4",
-      "related_order_color_5",
-      "related_order_color_6",
-      "related_order_color_7",
-      "related_order_color_8",
-    ];
-
-    const colorSkus = orderColorKeys
-      .map((key) =>
-        product.meta_data.find((m: any) => m.key === key)?.value
-      )
-      .filter((sku) => sku && String(sku).trim() !== "");
-
-    if (colorSkus.length > 0) {
-      Promise.all(
-        colorSkus.map(async (sku: string) => {
-          try {
-            const res = await fetchProductBySkuAction(sku);
-            const linked = res.data; // Already the product object or null
-            if (!linked) return null;
-
-            const colorAttr = linked.attributes?.find(
-              (attr: any) =>
-                attr.slug === "color" || attr.slug === "pa_color"
-            );
-
-            const colorName = colorAttr?.options?.[0];
-            if (!colorName) return null;
-
-            return {
-              name: colorName,
-              color: resolveColor(colorName),
-              slug: linked.slug,
-            };
-          } catch {
-            return null;
-          }
-        })
-      ).then((results) => {
-        setOrderColors(
-          results.filter(
-            (c): c is OrderColor =>
-              !!c && typeof c.name === "string" && typeof c.color === "string" && typeof c.slug === "string"
-          )
-        );
-      });
-    } else {
-      setOrderColors([]);
-    }
-
-    /* ---------------------------
-     | ORDER MODELS (ACF ordered + text-safe)
-     --------------------------- */
-    type OrderModelEntry = {
-      sku: string;
-      displayText: string | null;
-      position: number;
-    };
-
-    const modelEntries: OrderModelEntry[] = Array.from({ length: 8 }, (_, i) => {
-      const index = i + 1; // 1..8
-
-      const sku = product.meta_data.find(
-        (m: any) => m.key === `related_order_model_${index}`
-      )?.value;
-
-      const text = product.meta_data.find(
-        (m: any) => m.key === `related_other_model_text_${index}`
-      )?.value;
-
-      if (!sku || String(sku).trim() === "") return null;
-
-      return {
-        sku: String(sku).trim(),
-        displayText: text ? String(text) : null,
-        position: index,
-      };
-    })
-      .filter(Boolean) as OrderModelEntry[];
-
-    // Debug log to verify correct mapping between model positions and texts
-    // console.log("🟦 DEBUG order model entries (sku + text by position):", modelEntries);
-
-    if (modelEntries.length > 0) {
-      Promise.all(
-        modelEntries.map(async ({ sku, displayText }) => {
-          try {
-            const res = await fetchProductBySkuAction(sku);
-            const productModel = res.data;
-
-            if (!productModel) return null;
-
-            return {
-              ...productModel,
-              displayText,
-            };
-          } catch {
-            return null;
-          }
-        })
-      ).then((models) => {
-        setOrderModels(models.filter(Boolean));
-      });
-    } else {
-      setOrderModels([]);
-    }
-  }, [product]);
-
-  // --- Helper to fetch and set related products by meta key prefix ---
-  const fetchRelatedGroup = React.useCallback(async (prefix: string, setter: React.Dispatch<React.SetStateAction<any[]>>, limit: number = 8, fetchType: 'sku' | 'id' = 'sku') => {
-    if (!product || !Array.isArray(product.meta_data)) return;
-
-    const identifiers: string[] = [];
-    for (let i = 1; i <= limit; i++) {
-      // Try exact match first
-      const val = product.meta_data.find((m: any) => m.key === `${prefix}${i}`)?.value;
-      if (val && (typeof val === 'string' || typeof val === 'number') && String(val).trim() !== '') {
-        identifiers.push(String(val).trim());
-      }
-    }
-
-    if (identifiers.length === 0) {
-      setter([]);
-      return;
-    }
-
-    // console.log(`🔍 Fetching related group for prefix "${prefix}": found items`, identifiers);
-
-    try {
-      const results = await Promise.all(
-        identifiers.map(async (identifier) => {
-          try {
-            if (fetchType === 'id') {
-              const res = await fetchProductByIdAction(Number(identifier));
-              return res.data;
-            } else {
-              const res = await fetchProductBySkuAction(identifier);
-              return res.data;
-            }
-          } catch (e) {
-            // console.error(`Failed to fetch related product for ${prefix} (val: ${identifier})`, e);
-            return null;
-          }
-        })
-      );
-      setter(results.filter((item) => item !== null));
-    } catch (err) {
-      // console.error(`Error in fetchRelatedGroup for ${prefix}`, err);
-    }
-  }, [product]);
-
-  // --- Fetch Related Accessories & Parts ---
-  useEffect(() => {
-    // 1. Matching Accessories -> matchingProducts
-    // Key found: related_matching_product_1
-    fetchRelatedGroup('related_matching_product_', setMatchingProducts);
-
-    // 2. Matching Knob Roses -> matchingKnobroseKeys
-    // Key found: related_matching_knobrose_1
-    fetchRelatedGroup('related_matching_knobrose_', setMatchingKnobRoseProducts);
-
-    // 3. Matching Key Roses -> matchingRoseKeys
-    // Key found: related_matching_keyrose_1
-    fetchRelatedGroup('related_matching_keyrose_', setMatchingRoseKeys);
-
-    // 4. Matching PC Roses -> pcroseKeys
-    // Key found: related_matching_pcrose_1
-    fetchRelatedGroup('related_matching_pcrose_', setPcRoseKeys);
-
-    // 5. Matching Blind Toilet Roses -> blindtoiletroseKeys
-    // Key found: related_matching_toiletrose_1
-    fetchRelatedGroup('related_matching_toiletrose_', setblindtoiletroseKeys);
-
-    // 6. Must Have Products -> musthaveprodKeys
-    // Key found: related_must_have_product_1
-    // User confirmed these are SKUs
-    fetchRelatedGroup('related_must_have_product_', setMusthaveprodKeys, 8, 'sku');
-
-  }, [fetchRelatedGroup]);
 
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
@@ -637,8 +608,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         ? ambianceMeta.value
         : [];
 
-      // console.log("🔍 DEBUG: Ambiance image IDs:", ambianceImageIds);
-
       const fetchAmbianceImages = async () => {
         if (ambianceImageIds.length === 0) {
           setAmbianceImages([]);
@@ -655,8 +624,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
               }
             })
           );
-
-          // console.log("🔍 DEBUG: Ambiance media objects:", responses);
 
           setAmbianceImages(
             responses
@@ -706,15 +673,10 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
     }
 
     const techDrawMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_technical_drawing");
-    // console.log("🔍 DEBUG: Tech Drawing Meta:", techDrawMeta);
     if (techDrawMeta?.value) {
-      // console.log("🔍 DEBUG: Fetching Tech Drawing for ID:", techDrawMeta.value);
       fetchMedia(techDrawMeta.value).then(media => {
-        // console.log("🔍 DEBUG: Tech Drawing Media Result for ID " + techDrawMeta.value + ":", media);
         setTechnicalDrawingUrl(media?.source_url || null);
       });
-    } else {
-      // console.log("❌ DEBUG: No assets_technical_drawing meta key found in product:", product?.name);
     }
   }, [product]);
 
@@ -776,8 +738,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         ? parseInt(totalStockMeta, 10)
         : (typeof wcProduct.stock_quantity === "number" ? wcProduct.stock_quantity : null);
 
-      console.log("🟦 [checkStockBeforeAdd] Resolved Total Stock:", totalStock, "Original Stock Qty:", wcProduct.stock_quantity);
-
       // --- CRITICAL: Update local state with fresh data so popup uses it ---
       setAvailableStock(totalStock);
       setBackordersAllowed(backordersAllowed);
@@ -801,7 +761,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
 
       return { success: true, totalStock, backordersAllowed };
     } catch (err) {
-      // console.error("❌ Stock check failed:", err);
       toast.error("Voorraadcontrole mislukt. Probeer opnieuw.");
       return { success: false };
     }
@@ -839,14 +798,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
       const leadTimeInStock = stockLeadRaw && !isNaN(parseInt(stockLeadRaw)) ? parseInt(stockLeadRaw) : 1;
       const leadTimeNoStock = noStockLeadRaw && !isNaN(parseInt(noStockLeadRaw)) ? parseInt(noStockLeadRaw) : 30;
 
-      console.log("🟦 [handleAddToCart] Delivery Params:", {
-         stockStatus: product.stock_status,
-         quantity,
-         availableStock: freshAvailableStock,
-         leadTimeInStock,
-         leadTimeNoStock
-      });
-
       const deliveryInfo = getDeliveryInfo(
         product.stock_status,
         quantity + cartItemQuantity,
@@ -854,8 +805,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         leadTimeInStock,
         leadTimeNoStock
       );
-      
-      console.log("🟦 [handleAddToCart] Calculated Delivery Info:", deliveryInfo);
 
       await addItem({
         id: product.id,
@@ -1336,29 +1285,37 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
               );
             })()}
 
-            {/* Dynamic Order Colours */}
-            {orderColors.length > 0 && (
-              <div className="flex gap-2 items-center">
-                <p className="font-semibold text-base lg:text-lg lg:mb-2">
-                  Andere kleuren van dit product:
-                </p>
-
-                <div className="flex gap-3">
-                  {orderColors.map((colour: { name: string; color: string; slug?: string }) => (
-                    <Link key={colour.slug} href={colour.slug ? `/${colour.slug}` : "#"}>
-                      <button className="w-8 h-8 rounded-full border border-gray-300 cursor-pointer hover:ring-2 hover:ring-blue-500" style={{ backgroundColor: colour.color }} aria-label={colour.name} title={colour.name} />
-                    </Link>
-                  ))}
+            {/* Dynamic Order Colors */}
+            {(orderColors.length > 0 || isOrderColorsLoading) && (
+              <div className="mb-4">
+                <p className="font-semibold text-base lg:text-lg mb-2">Andere kleuren van dit product:</p>
+                <div className="flex flex-wrap gap-2">
+                  {isOrderColorsLoading ? (
+                      // Skeleton for Order Colors
+                      Array.from({ length: 4 }).map((_, i) => (
+                          <div key={i} className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
+                      ))
+                  ) : (
+                      orderColors.map((colorItem, index) => (
+                        <Link
+                          key={index}
+                          href={`/${colorItem.slug}`}
+                          title={colorItem.name}
+                          className="w-8 h-8 rounded-full border border-gray-300 shadow-sm cursor-pointer hover:scale-110 transition-transform block"
+                          style={{ backgroundColor: colorItem.color }}
+                        />
+                      ))
+                  )}
                 </div>
               </div>
             )}
 
             {/* Dynamic Order Models Carousel */}
-            {orderModels.length > 0 && (
+            {(orderModels.length > 0 || isOrderModelsLoading) && (
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <p className="font-semibold text-base lg:text-lg">Zoek je soms een ander model?</p>
-                  {orderModels.length > 5 && (
+                  {!isOrderModelsLoading && orderModels.length > 5 && (
                     <div className="flex gap-2">
                       <button
                         type="button"
@@ -1389,26 +1346,36 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                   ref={scrollRef}
                   className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 scroll-smooth"
                 >
-                  {orderModels.map((model: any, index: number) => (
-                    <Link
-                      href={`/${model.slug}`}
-                      key={`${model.id}-${index}`}
-                      className="flex-shrink-0 w-32 flex flex-col items-center gap-2"
-                    >
-                      <div className="h-32 w-full border border-[#E8E1DC] rounded-sm bg-white flex items-center justify-center">
-                        <img
-                          src={model?.images?.[0]?.src || "/afbeelding.webp"}
-                          alt={model?.name || "Model"}
-                          className="max-h-full max-w-full object-contain"
-                        />
-                      </div>
-                      {model.displayText && (
-                        <p className="text-xs text-center text-[#3D4752] leading-tight">
-                          {model.displayText}
-                        </p>
-                      )}
-                    </Link>
-                  ))}
+                  {isOrderModelsLoading ? (
+                      // Skeleton for Order Models
+                      Array.from({ length: 4 }).map((_, i) => (
+                          <div key={i} className="flex-shrink-0 w-32 flex flex-col items-center gap-2 animate-pulse">
+                              <div className="h-32 w-full bg-gray-200 rounded-sm"></div>
+                              <div className="h-4 w-20 bg-gray-200 rounded"></div>
+                          </div>
+                      ))
+                  ) : (
+                      orderModels.map((model: any, index: number) => (
+                        <Link
+                          href={`/${model.slug}`}
+                          key={`${model.id}-${index}`}
+                          className="flex-shrink-0 w-32 flex flex-col items-center gap-2"
+                        >
+                          <div className="h-32 w-full border border-[#E8E1DC] rounded-sm bg-white flex items-center justify-center">
+                            <img
+                              src={model?.images?.[0]?.src || "/afbeelding.webp"}
+                              alt={model?.name || "Model"}
+                              className="max-h-full max-w-full object-contain"
+                            />
+                          </div>
+                          {model.displayText && (
+                            <p className="text-xs text-center text-[#3D4752] leading-tight">
+                              {model.displayText}
+                            </p>
+                          )}
+                        </Link>
+                      ))
+                  )}
                 </div>
               </div>
             )}
@@ -2072,6 +2039,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
               )}
 
               {/* third row right accordion */}
+              {product?.meta_data?.find((m: any) => m.key === "crucial_data_guarantee_period")?.value && (
               <div className="bg-white rounded-lg border border-white">
                 <details className="group">
                   <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
@@ -2109,6 +2077,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                   </div>
                 </details>
               </div>
+              )}
 
               {/* fourth row right accordion - FAQ Accordion */}
               {(() => {
