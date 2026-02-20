@@ -1,4 +1,4 @@
-import { addDays, format, isAfter, isBefore, isSameDay, isWeekend, nextMonday, setHours, setMinutes, startOfDay } from "date-fns";
+import { addDays, format, isAfter, isBefore, isSameDay, nextMonday, setHours, setMinutes, startOfDay } from "date-fns";
 import { nl } from "date-fns/locale";
 import holidayData from "@/data/holidays.json";
 
@@ -56,6 +56,8 @@ const isBlockedDate = (date: Date): boolean => {
  */
 export const calculateDeliveryDate = (leadTimeDays: number = 1): Date => {
     const now = new Date();
+
+    console.log("now", now);
     // 1. Determine Shipping Date
     // If today is a shipping day (Mon-Fri) AND before cutoff, ship today.
     // Else, ship next valid shipping day.
@@ -84,14 +86,14 @@ export const calculateDeliveryDate = (leadTimeDays: number = 1): Date => {
     // Then ensure Delivery Date is valid (not Sun/Mon/Holiday)
 
     // 2. Calculate Delivery Date
-    // Delivery = Shipping Date + Lead Time (Business Days)
-    // We add days one by one, skipping weekends (Sat/Sun).
+    // Delivery = Shipping Date + Lead Time (Delivery Days)
+    // We add days one by one, counting only valid delivery days (e.g., Tue-Sat in NL).
     let deliveryDate = new Date(shippingDate);
     let daysAdded = 0;
     while (daysAdded < leadTimeDays) {
         deliveryDate = addDays(deliveryDate, 1);
-        // Count only if Mon-Fri (Standard Working Day)
-        if (!isWeekend(deliveryDate)) {
+        // Count only if it is a valid delivery day
+        if (!isBlockedDate(deliveryDate)) {
             daysAdded++;
         }
     }
@@ -117,6 +119,10 @@ export const formatDeliveryMessage = (deliveryDate: Date): string => {
     const now = new Date();
     const today = startOfDay(now);
     const target = startOfDay(deliveryDate);
+
+    console.log("now", now);
+    console.log("today", today);
+    console.log("target", target);
 
     // Difference in days (approx)
     const diffTime = target.getTime() - today.getTime();
