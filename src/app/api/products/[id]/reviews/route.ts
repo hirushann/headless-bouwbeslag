@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import api from "@/lib/woocommerce";
 import { sendMail } from "@/lib/mail";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         const { id: productId } = await params;

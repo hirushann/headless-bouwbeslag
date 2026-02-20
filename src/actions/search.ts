@@ -24,11 +24,15 @@ export interface Facet {
 export interface SearchResponse {
     products: SearchResult[];
     facets: Facet[];
+    totalItems: number;
+    totalPages: number;
 }
 
 export async function searchProducts(
     query: string,
-    filters: FilterState = {}
+    filters: FilterState = {},
+    page: number = 1,
+    limit: number = 24
 ): Promise<SearchResponse> {
     // if (!query.trim()) return { products: [], facets: [] };
 
@@ -77,7 +81,8 @@ export async function searchProducts(
                         filter: filterClauses
                     },
                 },
-                size: 20, // Check how many we want
+                size: limit,
+                from: (page - 1) * limit,
                 _source: ["post_title", "post_name", "ID", "meta", "terms", "thumbnail", "images"], // Need terms for potential display
                 aggs: {
                     categories: {
@@ -97,6 +102,9 @@ export async function searchProducts(
         };
 
         const result = await client.search(estQuery);
+
+        const totalItems = typeof result.hits.total === 'object' ? result.hits.total.value : (result.hits.total || 0);
+        const totalPages = Math.ceil(totalItems / limit);
 
         const hits = result.hits.hits.map((hit: any) => {
             const source = hit._source as any;
@@ -150,9 +158,9 @@ export async function searchProducts(
             }
         }
 
-        return { products: hits, facets };
+        return { products: hits, facets, totalItems, totalPages };
     } catch (error) {
         // console.error("Elasticsearch server action error:", error);
-        return { products: [], facets: [] };
+        return { products: [], facets: [], totalItems: 0, totalPages: 0 };
     }
 }

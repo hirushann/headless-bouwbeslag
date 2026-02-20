@@ -27,7 +27,7 @@ function FilterGroup({
                 className="flex items-center justify-between w-full group"
             >
                 <h3 className="font-semibold text-base capitalize text-gray-800">
-                    {facet.name === "product_cat" ? "Categorieën" : facet.name}
+                    {facet.name === "category" ? "Categorieën" : facet.name === 'brand' ? 'Merk' : facet.name === 'color' ? 'Kleur' : facet.name === 'size' ? 'Grootte' : facet.name === 'material' ? 'Material' : facet.name === 'finish' ? 'Finish' : facet.name}
                 </h3>
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -91,6 +91,11 @@ export default function SearchAutosuggest({
     const [facets, setFacets] = useState<Facet[]>([]);
     const [filters, setFilters] = useState<FilterState>({});
 
+    // Pagination States
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+
     // UI States
     const [isExpanded, setIsExpanded] = useState(false);
     const [showFiltersMobile, setShowFiltersMobile] = useState(false);
@@ -99,6 +104,7 @@ export default function SearchAutosuggest({
     const router = useRouter();
     const containerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     // Prevent scrolling when expanded
     useEffect(() => {
@@ -116,6 +122,11 @@ export default function SearchAutosuggest({
         };
     }, [isExpanded]);
 
+    // Reset page to 1 when query or filters change
+    useEffect(() => {
+        setPage(1);
+    }, [query, filters]);
+
     // Search Logic
     useEffect(() => {
         const delayDebounceFn = setTimeout(async () => {
@@ -123,27 +134,27 @@ export default function SearchAutosuggest({
             if (query.trim().length === 0 || query.trim().length >= 2) {
                 setLoading(true);
                 try {
-                    const response = await searchProducts(query, filters);
-                    console.log(response);
+                    const response = await searchProducts(query, filters, page, 24);
+                    // console.log(response);
                     setResults(response.products);
                     setFacets(response.facets);
+                    setTotalItems(response.totalItems);
+                    setTotalPages(response.totalPages);
                 } catch (error) {
                     // console.error("Search error:", error);
                 } finally {
                     setLoading(false);
                 }
             } else {
-                // Clear if 1 char? Or simpler: just let it search if > 0 too? 
-                // Let's stick to '0 or >=2' to avoid 1-char noise, 
-                // but ensure we clear results if it falls into the '1 char' hole?
-                // Actually if query is 1 char, we might WANT to clear.
                 setResults([]);
                 setFacets([]);
+                setTotalItems(0);
+                setTotalPages(1);
             }
         }, 300);
 
         return () => clearTimeout(delayDebounceFn);
-    }, [query, filters]);
+    }, [query, filters, page]);
 
     const handleFilterChange = (facetName: string, value: string) => {
         setFilters(prev => {
@@ -259,7 +270,7 @@ export default function SearchAutosuggest({
                         </div>
 
                         {/* Main Content */}
-                        <div className="flex-1 overflow-y-auto px-4 py-6">
+                        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-6">
                             <div className="max-w-[1440px] mx-auto flex flex-col lg:flex-row gap-8 pb-10">
 
                                 {/* Filters Sidebar */}
@@ -337,7 +348,7 @@ export default function SearchAutosuggest({
                                         </div>
                                     ) : results.length > 0 ? (
                                         <>
-                                            <p className="text-sm text-gray-500 mb-4">{results.length} resultaten gevonden</p>
+                                            <p className="text-sm text-gray-500 mb-4">{totalItems} resultaten gevonden</p>
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                                 {results.map((result) => (
                                                     <div
@@ -355,6 +366,57 @@ export default function SearchAutosuggest({
                                                     </div>
                                                 ))}
                                             </div>
+
+                                            {/* Pagination Controls */}
+                                            {totalPages > 1 && (
+                                                <div className="flex justify-center items-center gap-2 mt-8">
+                                                    <button
+                                                        onClick={() => {
+                                                            setPage(p => Math.max(1, p - 1));
+                                                            scrollContainerRef.current?.scrollTo(0, 0);
+                                                        }}
+                                                        disabled={page === 1}
+                                                        className="btn btn-sm btn-outline disabled:opacity-50"
+                                                    >
+                                                        Vorige
+                                                    </button>
+
+                                                    <div className="join">
+                                                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                                            let pageNum = i + 1;
+                                                            if (totalPages > 5 && page > 3) {
+                                                                pageNum = page - 2 + i;
+                                                                if (pageNum > totalPages) {
+                                                                    pageNum = totalPages - (4 - i);
+                                                                }
+                                                            }
+                                                            return (
+                                                                <button
+                                                                    key={pageNum}
+                                                                    onClick={() => {
+                                                                        setPage(pageNum);
+                                                                        scrollContainerRef.current?.scrollTo(0, 0);
+                                                                    }}
+                                                                    className={`join-item btn btn-sm ${page === pageNum ? 'btn-active' : ''}`}
+                                                                >
+                                                                    {pageNum}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+
+                                                    <button
+                                                        onClick={() => {
+                                                            setPage(p => Math.min(totalPages, p + 1));
+                                                            scrollContainerRef.current?.scrollTo(0, 0);
+                                                        }}
+                                                        disabled={page === totalPages}
+                                                        className="btn btn-sm btn-outline disabled:opacity-50"
+                                                    >
+                                                        Volgende
+                                                    </button>
+                                                </div>
+                                            )}
                                         </>
                                     ) : (
                                         <div className="text-center py-20">
