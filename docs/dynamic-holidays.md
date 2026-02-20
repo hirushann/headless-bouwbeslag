@@ -12,11 +12,12 @@ We have created an endpoint to update the list of "Blocked Dates" (holidays) sto
 **Payload Example:**
 ```json
 {
-  "dates": [
-    "2025-12-25",
-    "2025-12-26",
-    "2025-01-01",
-    "2025-04-27"
+  "shipping": [
+    "2024-05-01",
+    "2025-12-23"
+  ],
+  "delivery": [
+    "2026-02-19"
   ]
 }
 ```
@@ -24,8 +25,12 @@ We have created an endpoint to update the list of "Blocked Dates" (holidays) sto
 **Curl Example:**
 ```bash
 curl -X POST http://localhost:3000/api/webhooks/holidays \
+  -H "Authorization: Bearer 2d93eb85ca303b730d46050b33e801f1" \
   -H "Content-Type: application/json" \
-  -d '{ "dates": ["2025-12-25", "2025-12-26"] }'
+  -d '{ 
+        "shipping": ["2024-05-01", "2025-12-23"],
+        "delivery": ["2026-02-19"]
+      }'
 ```
 
 ---
@@ -58,3 +63,4 @@ If the data updates frequently and you need the client to be fresh without rebui
 Since `ProductPageClient` is a Client Component, but holidays don't change *that* often:
 1.  Stick with **Option A** (import JSON).
 2.  When the webhook updates the JSON file, the Next.js dev server (or a rebuild in prod) will pick up the changes.
+

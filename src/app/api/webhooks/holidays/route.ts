@@ -23,18 +23,29 @@ export async function POST(req: Request) {
 
         const body = await req.json();
 
-        // Validate input
+        // Let's log exactly what the payload looks like so we can see it in terminal!
+        console.log("\n================ [WEBHOOK PAYLOAD] ================\n", JSON.stringify(body, null, 2), "\n============================================\n");
+
         if (!body || typeof body !== 'object') {
             return NextResponse.json(
-                { error: 'Invalid payload. Expected { shipping?: string[], delivery?: string[] }' },
+                { error: 'Invalid payload. Expected an object containing JSON properties for shipping and delivery arrays' },
                 { status: 400 }
             );
         }
 
+        // It's common the data might be wrapped in `{ dates: { shipping: [], delivery: [] } }`
+        // or just placed directly in the body `{ shipping: [], delivery: [] }`
+        const extractData = (key: string) => {
+            if (body[key]) return body[key];
+            if (body.dates && body.dates[key]) return body.dates[key];
+            if (body.data && body.data[key]) return body.data[key];
+            return undefined;
+        };
+
         // Helper to handle PHP arrays that might serialize into objects { "0": "...", "1": "..." }
         const getArray = (val: any) => Array.isArray(val) ? val : (val && typeof val === 'object' ? Object.values(val) : []);
-        const rawShipping = getArray(body.shipping);
-        const rawDelivery = getArray(body.delivery);
+        const rawShipping = getArray(extractData('shipping'));
+        const rawDelivery = getArray(extractData('delivery'));
 
         // Basic date format validation (YYYY-MM-DD)
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -43,7 +54,7 @@ export async function POST(req: Request) {
 
         if (validShipping.length !== rawShipping.length || validDelivery.length !== rawDelivery.length) {
             return NextResponse.json(
-                { error: 'Invalid date format found. Use YYYY-MM-DD.' },
+                { error: 'Invalid date format found. Use YYYY-MM-DD.', receivedPayload: body },
                 { status: 400 }
             );
         }
