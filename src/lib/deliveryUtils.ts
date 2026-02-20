@@ -21,8 +21,11 @@ const CUTOFF_MINUTE = 0;
 // So we will block SUNDAY and MONDAY by default logic or hardcode them here.
 // For robustness, I will add a helper to check if a date is blocked.
 
-const SHIPPING_HOLIDAYS: string[] = holidayData.shipping || [];
-const DELIVERY_HOLIDAYS: string[] = holidayData.delivery || [];
+// Cast holidayData to a flexible type so TS compilation doesn't fail on old JSON structures
+const parsedHolidayData = holidayData as { shipping?: string[]; delivery?: string[]; dates?: string[] };
+
+const SHIPPING_HOLIDAYS: string[] = parsedHolidayData.shipping || parsedHolidayData.dates || [];
+const DELIVERY_HOLIDAYS: string[] = parsedHolidayData.delivery || parsedHolidayData.dates || [];
 
 // Helper to check if a specific date string (YYYY-MM-DD) is in our blocked list
 const isBlockedDeliveryDate = (date: Date): boolean => {
