@@ -58,6 +58,7 @@ export async function searchProducts(
     const filterMap: { [key: string]: string } = {
         category: "terms.product_cat.slug",
         brand: "terms.product_brand.slug",
+        stock: "meta._stock_status.raw",
         color: "terms.pa_color.slug" // Assuming pa_color exists similarly, checking dump... dump didn't show pa_color but standard WP uses it. 
         // If not present, it won't break, just empty.
     };
@@ -96,6 +97,9 @@ export async function searchProducts(
                         aggs: {
                             names: { terms: { field: "terms.product_brand.name.keyword", size: 1 } }
                         }
+                    },
+                    stock: {
+                        terms: { field: "meta._stock_status.raw", size: 5 }
                     }
                 }
             },
@@ -155,6 +159,17 @@ export async function searchProducts(
                     label: b.names?.buckets?.[0]?.key || b.key
                 }));
                 if (brands.length > 0) facets.push({ name: "brand", buckets: brands });
+            }
+
+            // Stock
+            const stockAgg = result.aggregations.stock as any;
+            if (stockAgg && stockAgg.buckets) {
+                const stocks = stockAgg.buckets.map((b: any) => ({
+                    key: b.key,
+                    doc_count: b.doc_count,
+                    label: b.key === "instock" ? "Op voorraad" : b.key === "outofstock" ? "Niet op voorraad" : b.key
+                }));
+                if (stocks.length > 0) facets.push({ name: "stock", buckets: stocks });
             }
         }
 

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import CategoryBreadcrumbs from "@/components/CategoryBreadcrumbs";
+import DualRangeSlider from "@/components/DualRangeSlider";
 
 const container = {
   hidden: { opacity: 0 },
@@ -79,6 +80,8 @@ export default function CategoryClient({
   const [sortBy, setSortBy] = useState<string>("");
   // const [activeSubCategories, setActiveSubCategories] = useState<Set<number>>(new Set()); // nested url change
   const [showFilters, setShowFilters] = useState(false);
+  const [afdichtingsspleetRange, setAfdichtingsspleetRange] = useState<[number, number] | null>(null);
+  const [groefbreedteRange, setGroefbreedteRange] = useState<[number, number] | null>(null);
   
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -163,27 +166,76 @@ export default function CategoryClient({
         
         const totalPagesHeader = res.headers.get('x-wp-totalpages');
         const totalItemsHeader = res.headers.get('x-wp-total');
-        if (totalPagesHeader) setTotalPages(parseInt(totalPagesHeader));
-        if (totalItemsHeader) setTotalProducts(parseInt(totalItemsHeader));
-
+        
         const data = await res.json();
         setRawProducts(data);
         let prods = data;
 
-        if (Object.keys(selectedFilters).length > 0) {
-          prods = prods.filter((product: any) =>
-            Object.entries(selectedFilters).every(([attrIdStr, termSet]) => {
-              const attrId = Number(attrIdStr);
-              const productAttr = product.attributes?.find((a: any) => a.id === attrId);
-              if (!productAttr) return false;
+        if (Object.keys(selectedFilters).length > 0 || afdichtingsspleetRange || groefbreedteRange) {
+          prods = prods.filter((product: any) => {
+            if (Object.keys(selectedFilters).length > 0) {
+              const matchesFilters = Object.entries(selectedFilters).every(([attrIdStr, termSet]) => {
+                const attrId = Number(attrIdStr);
+                const productAttr = product.attributes?.find((a: any) => a.id === attrId);
+                if (!productAttr) return false;
 
-              return productAttr.options.some((opt: string) => {
-                const attr = attributes.find((a) => a.id === attrId);
-                const term = attr?.terms.find((t: any) => t.name === opt);
-                return termSet.has(term?.id);
+                return productAttr.options.some((opt: string) => {
+                  const attr = attributes.find((a) => a.id === attrId);
+                  const term = attr?.terms.find((t: any) => t.name === opt);
+                  return termSet.has(term?.id);
+                });
               });
-            })
-          );
+              if (!matchesFilters) return false;
+            }
+
+            if (afdichtingsspleetRange) {
+              const pVanAttr = product.attributes?.find((a: any) => a.name === "Afdichtingsspleet Van");
+              const pTotAttr = product.attributes?.find((a: any) => a.name === "Afdichtingsspleet Tot");
+
+              if (pVanAttr || pTotAttr) {
+                const pVanVals = pVanAttr ? pVanAttr.options.map((o: string) => parseFloat(o)).filter((n: number) => !isNaN(n)) : [];
+                const pTotVals = pTotAttr ? pTotAttr.options.map((o: string) => parseFloat(o)).filter((n: number) => !isNaN(n)) : [];
+
+                const pVan = pVanVals.length > 0 ? Math.min(...pVanVals) : 0;
+                const pTot = pTotVals.length > 0 ? Math.max(...pTotVals) : 9999;
+
+                if (!(pVan <= afdichtingsspleetRange[1] && pTot >= afdichtingsspleetRange[0])) {
+                  return false;
+                }
+              } else {
+                 return false;
+              }
+            }
+
+            if (groefbreedteRange) {
+              const pVanAttr = product.attributes?.find((a: any) => a.name === "Groefbreedte Van");
+              const pTotAttr = product.attributes?.find((a: any) => a.name === "Groefbreedte Tot");
+
+              if (pVanAttr || pTotAttr) {
+                const pVanVals = pVanAttr ? pVanAttr.options.map((o: string) => parseFloat(o)).filter((n: number) => !isNaN(n)) : [];
+                const pTotVals = pTotAttr ? pTotAttr.options.map((o: string) => parseFloat(o)).filter((n: number) => !isNaN(n)) : [];
+
+                const pVan = pVanVals.length > 0 ? Math.min(...pVanVals) : 0;
+                const pTot = pTotVals.length > 0 ? Math.max(...pTotVals) : 9999;
+
+                if (!(pVan <= groefbreedteRange[1] && pTot >= groefbreedteRange[0])) {
+                  return false;
+                }
+              } else {
+                 return false;
+              }
+            }
+
+            return true;
+          });
+
+          // Override pagination because filtering is done client-side on the fetched batch
+          setTotalProducts(prods.length);
+          setTotalPages(Math.ceil(prods.length / 20));
+        } else {
+          // Use real backend pagination if no filters are active
+          if (totalPagesHeader) setTotalPages(parseInt(totalPagesHeader));
+          if (totalItemsHeader) setTotalProducts(parseInt(totalItemsHeader));
         }
 
         if (prods.length === 0 && data.length > 0) {
@@ -200,7 +252,7 @@ export default function CategoryClient({
     }
 
     loadProducts();
-  }, [category, selectedFilters, sortBy, page]);
+  }, [category, selectedFilters, afdichtingsspleetRange, groefbreedteRange, sortBy, page]);
 
   // Reset page when category OR filters OR sorting changes
   useEffect(() => {
@@ -211,7 +263,7 @@ export default function CategoryClient({
     } else if (page !== 1) {
        setPage(1);
     }
-  }, [category, selectedFilters, sortBy]);
+  }, [category, selectedFilters, afdichtingsspleetRange, groefbreedteRange, sortBy]);
 
   const toggleFilter = (attrId: number, termId: number) => {
     // Auto-close on mobile when selecting an item
@@ -239,6 +291,12 @@ export default function CategoryClient({
 
       return newFilters;
     });
+  };
+
+  const resetFilters = () => {
+    setSelectedFilters({});
+    setAfdichtingsspleetRange(null);
+    setGroefbreedteRange(null);
   };
 
   // ------------------------------------------------------------------
@@ -340,6 +398,74 @@ export default function CategoryClient({
     (attr) => attr.name.toLowerCase() !== "color"
   );
 
+  const afdichtVanAttr = otherAttributes.find(a => a.name === "Afdichtingsspleet Van");
+  const afdichtTotAttr = otherAttributes.find(a => a.name === "Afdichtingsspleet Tot");
+
+  const afdichtspleetBounds = useMemo(() => {
+    if (!afdichtVanAttr && !afdichtTotAttr) return null;
+    
+    let min = Infinity;
+    let max = -Infinity;
+
+    if (afdichtVanAttr) {
+      afdichtVanAttr.terms.forEach(t => {
+        const val = parseFloat(t.name);
+        if (!isNaN(val)) {
+          if (val < min) min = val;
+          if (val > max) max = val;
+        }
+      });
+    }
+    
+    if (afdichtTotAttr) {
+      afdichtTotAttr.terms.forEach(t => {
+        const val = parseFloat(t.name);
+        if (!isNaN(val)) {
+          if (val < min) min = val;
+          if (val > max) max = val;
+        }
+      });
+    }
+
+    if (min === Infinity || max === -Infinity) return null;
+    return { min, max };
+  }, [afdichtVanAttr, afdichtTotAttr]);
+
+  const groefVanAttr = otherAttributes.find(a => a.name === "Groefbreedte Van");
+  const groefTotAttr = otherAttributes.find(a => a.name === "Groefbreedte Tot");
+
+  const groefbreedteBounds = useMemo(() => {
+    if (!groefVanAttr && !groefTotAttr) return null;
+    
+    let min = Infinity;
+    let max = -Infinity;
+
+    if (groefVanAttr) {
+      groefVanAttr.terms.forEach(t => {
+        const val = parseFloat(t.name);
+        if (!isNaN(val)) {
+          if (val < min) min = val;
+          if (val > max) max = val;
+        }
+      });
+    }
+    
+    if (groefTotAttr) {
+      groefTotAttr.terms.forEach(t => {
+        const val = parseFloat(t.name);
+        if (!isNaN(val)) {
+          if (val < min) min = val;
+          if (val > max) max = val;
+        }
+      });
+    }
+
+    if (min === Infinity || max === -Infinity) return null;
+    return { min, max };
+  }, [groefVanAttr, groefTotAttr]);
+
+  const regularAttributes = otherAttributes.filter(a => a.name !== "Afdichtingsspleet Van" && a.name !== "Afdichtingsspleet Tot" && a.name !== "Groefbreedte Van" && a.name !== "Groefbreedte Tot");
+
   return (
     <div className="bg-[#F7F7F7] min-h-screen">
       <div className="max-w-[1440px] mx-auto py-8 px-5 lg:px-0">
@@ -405,8 +531,40 @@ export default function CategoryClient({
                     </div>
                   )}
 
+                  {/* Afdichtingsspleet Range Slider */}
+                  {afdichtspleetBounds && (
+                    <div className="mb-8">
+                      <h3 className="font-medium mb-3 text-[#212121] text-lg">Afdichtingsspleet (mm)</h3>
+                      <div className="px-1">
+                        <DualRangeSlider 
+                          min={afdichtspleetBounds.min}
+                          max={afdichtspleetBounds.max}
+                          step={0.1}
+                          value={afdichtingsspleetRange || [afdichtspleetBounds.min, afdichtspleetBounds.max]}
+                          onChange={(val: [number, number]) => setAfdichtingsspleetRange(val)}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Groefbreedte Range Slider */}
+                  {groefbreedteBounds && (
+                    <div className="mb-8">
+                      <h3 className="font-medium mb-3 text-[#212121] text-lg">Groefbreedte (mm)</h3>
+                      <div className="px-1">
+                        <DualRangeSlider 
+                          min={groefbreedteBounds.min}
+                          max={groefbreedteBounds.max}
+                          step={0.1}
+                          value={groefbreedteRange || [groefbreedteBounds.min, groefbreedteBounds.max]}
+                          onChange={(val: [number, number]) => setGroefbreedteRange(val)}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   {/* Other Attributes */}
-                  {otherAttributes.map(attr => (
+                  {regularAttributes.map(attr => (
                     <div key={attr.id} className="mb-8">
                       <h3 className="font-medium mb-3 text-[#212121] text-lg">{attr.name}</h3>
                       <div className="flex flex-col gap-2 text-sm text-gray-700">
@@ -420,13 +578,15 @@ export default function CategoryClient({
                                 onChange={() => toggleFilter(attr.id, term.id)}
                                 />
                             </div>
-                            {term.name}
+                            {term.name === "1" ? "Ja" : term.name === "0" ? "Nee" : term.name}
                           </label>
                         ))}
                       </div>
                     </div>
                   ))}
-                  <button onClick={() => setSelectedFilters({})} className="text-sm text-red-500 hover:underline mb-4">Filters wissen</button>
+                  {(Object.keys(selectedFilters).length > 0 || afdichtingsspleetRange || groefbreedteRange) && (
+                    <button onClick={resetFilters} className="text-sm text-red-500 hover:underline mb-4">Filters wissen</button>
+                  )}
                 </>
               )}
             </div>
@@ -443,7 +603,7 @@ export default function CategoryClient({
                   <option disabled={true} value="">Sorteer op</option>
                   <option value="popularity">Populariteit</option>
                   <option value="rating">Beoordeling</option>
-                  <option value="latest">Nieuwste</option>
+                  {/* <option value="latest">Nieuwste</option> */}
                   <option value="price-low-high">Prijs: Laag naar Hoog</option>
                   <option value="price-high-low">Prijs: Hoog naar Laag</option>
                 </select>

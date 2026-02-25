@@ -99,7 +99,7 @@ export default function ShopProductCard({ product }: { product: any }) {
       </Link>
 
       <div className="p-2 lg:p-4 flex flex-col flex-1">
-        <Link href={`/${product.slug}`} className="text-base lg:text-lg font-medium mb-1 line-clamp-3 text-[#1C2530] min-h-[60px]">
+        <Link href={`/${product.slug}`} className="text-base lg:text-lg font-medium mb-1 line-clamp-3 text-[#1C2530] min-h-[85px]">
           {productTitle}
         </Link>
 

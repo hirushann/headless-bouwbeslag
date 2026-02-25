@@ -27,7 +27,7 @@ function FilterGroup({
                 className="flex items-center justify-between w-full group"
             >
                 <h3 className="font-semibold text-base capitalize text-gray-800">
-                    {facet.name === "category" ? "Categorieën" : facet.name === 'brand' ? 'Merk' : facet.name === 'color' ? 'Kleur' : facet.name === 'size' ? 'Grootte' : facet.name === 'material' ? 'Material' : facet.name === 'finish' ? 'Finish' : facet.name}
+                    {facet.name === "category" ? "Categorieën" : facet.name === 'brand' ? 'Merk' : facet.name === 'color' ? 'Kleur' : facet.name === 'size' ? 'Grootte' : facet.name === 'material' ? 'Material' : facet.name === 'finish' ? 'Finish' : facet.name === 'stock' ? 'Voorraad' : facet.name}
                 </h3>
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
