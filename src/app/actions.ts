@@ -2,84 +2,74 @@
 
 
 import api, { fetchAllWoo } from "@/lib/woocommerce";
-import { unstable_cache } from "next/cache";
-
-let memoryCacheIndex: any[] | null = null;
-let memoryCacheTime: number = 0;
-let isBuildingIndex = false;
-
-async function buildProductIndex() {
-    // console.log("[INDEX] Building Full Product Index from Woo...");
-    const allProducts = await fetchAllWoo("products", {
-        status: "publish",
-        _fields: "id,name,slug,sku,meta_data",
-    });
-
-    const targetMetaKeys = [
-        "crucial_data_product_ean_code",
-        "_sku",
-        "crucial_data_product_factory_sku",
-        "ean_code",
-        "ean",
-        "_global_unique_id",
-        "global_unique_id",
-        "gtin",
-        "upc",
-        "isbn",
-        "_wpm_gtin_code",
-        "_wpm_gtin",
-        "_gtin",
-        "_ean"
-    ];
-
-    return allProducts.map((p: any) => {
-        const identifiers = new Set<string>();
-
-        if (p.sku) identifiers.add(String(p.sku).trim().toLowerCase());
-        identifiers.add(String(p.id));
-
-        if (Array.isArray(p.meta_data)) {
-            p.meta_data.forEach((m: any) => {
-                if (targetMetaKeys.includes(m.key) && m.value) {
-                    identifiers.add(String(m.value).trim().toLowerCase());
-                }
-            });
-        }
-
-        return {
-            id: p.id,
-            name: p.name,
-            slug: p.slug,
-            sku: p.sku,
-            identifiers: Array.from(identifiers),
-            images: p.images || [],
-            attributes: p.attributes || [],
-        };
-    });
-}
 
 export async function fetchProductIndexAction() {
     try {
-        if (memoryCacheIndex && (Date.now() - memoryCacheTime < 3600 * 1000)) {
-            return { success: true, data: memoryCacheIndex };
-        }
+        // console.log("[INDEX] Building/Fetching Full Product Index (Cached)...");
+        // Fetch ALL products lightweight
+        // We select fields: id, name, slug, sku, meta_data (to get EANs)
+        // INCREASED CACHE: Revalidates every 1 hour (3600s) to be super fast. 
+        // This is acceptable for related products which don't change often.
+        const allProducts = await fetchAllWoo("products", {
+            status: "publish",
+            _fields: "id,name,slug,sku,meta_data",
+            next: { revalidate: 3600 }
+        });
 
-        // Let only one concurrent request build the index if cache is cold
-        if (isBuildingIndex) {
-            // Return extremely basic empty index instead of hanging all concurrent requests
-            // They will fall back to standard woo queries.
-            return { success: false, error: "Index is currently being built" };
-        }
+        const targetMetaKeys = [
+            "crucial_data_product_ean_code",
+            "_sku",
+            "crucial_data_product_factory_sku",
+            "ean_code",
+            "ean",
+            "_global_unique_id",
+            "global_unique_id",
+            "gtin",
+            "upc",
+            "isbn",
+            "_wpm_gtin_code",
+            "_wpm_gtin",
+            "_gtin",
+            "_ean"
+        ];
 
-        isBuildingIndex = true;
-        const index = await buildProductIndex();
-        memoryCacheIndex = index;
-        memoryCacheTime = Date.now();
-        isBuildingIndex = false;
+        // Transform to minimal index
+        const index = allProducts.map((p: any) => {
+            const identifiers = new Set<string>();
 
-        return { success: true, data: memoryCacheIndex };
+            // Add SKU
+            if (p.sku) identifiers.add(String(p.sku).trim().toLowerCase());
+            // Add ID
+            identifiers.add(String(p.id));
+
+            // Extract EANs/Identifiers from meta
+            if (Array.isArray(p.meta_data)) {
+                p.meta_data.forEach((m: any) => {
+                    // Check strict key match
+                    if (targetMetaKeys.includes(m.key) && m.value) {
+                        identifiers.add(String(m.value).trim().toLowerCase());
+                    }
+                });
+            }
+
+            return {
+                id: p.id,
+                name: p.name,
+                slug: p.slug, // Needed for links
+                sku: p.sku,
+                identifiers: Array.from(identifiers),
+                // We keep enough data to render the link without another fetch
+                images: p.images || [], // If available in restricted fields? No, need to ask for images
+                attributes: p.attributes || [], // Order Colors needs this?
+                // Actually, for Order Colors we need attributes. 
+                // FETCHING full attributes for 5000 products might be heavy but let's try just ID first.
+                // For now, let's keep it lightweight. The caller can fetch full product if needed.
+            };
+        });
+
+        // console.log(`[INDEX] Built index with ${index.length} products.`);
+        return { success: true, data: index };
     } catch (error: any) {
-        isBuildingIndex = false;
         // console.error("Failed to build product index:", error?.message);
         return { success: false, error: error?.message || "Failed to fetch index" };
     }
