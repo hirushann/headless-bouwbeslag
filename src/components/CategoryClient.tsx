@@ -27,6 +27,7 @@ const item = {
 type AttributeTerm = {
   id: number;
   name: string;
+  count?: number;
 };
 
 type Attribute = {
@@ -63,6 +64,58 @@ type CategoryClientProps = {
   attributes: any[];
   currentSlug: string[];
 };
+
+function FilterAttributeGroup({
+  attr,
+  selectedFilters,
+  toggleFilter
+}: {
+  attr: Attribute;
+  selectedFilters: { [key: number]: Set<number> };
+  toggleFilter: (attrId: number, termId: number) => void;
+}) {
+  const [showAll, setShowAll] = useState(false);
+
+  // If there's only 1 option, CategoryClient already filters it out, but let's be safe.
+  if (attr.terms.length <= 1) return null;
+
+  const visibleTerms = showAll ? attr.terms : attr.terms.slice(0, 5);
+
+  return (
+    <div className="mb-8">
+      <h3 className="font-medium mb-3 text-[#212121] text-lg">{attr.name}</h3>
+      <div className="flex flex-col gap-2 text-sm text-gray-700">
+        {visibleTerms.map((term: AttributeTerm) => (
+          <label key={term.id} className="flex items-start gap-1 cursor-pointer">
+            <div className="w-5">
+              <input
+                type="checkbox"
+                className="mr-2 w-5 h-5 rounded-sm border border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0"
+                checked={selectedFilters[attr.id]?.has(term.id) || false}
+                onChange={() => toggleFilter(attr.id, term.id)}
+              />
+            </div>
+            <span className="flex-1">
+              {term.name === "1" ? "Ja" : term.name === "0" ? "Nee" : term.name}
+            </span>
+            {term.count !== undefined && (
+              <span className="text-xs text-gray-400 tabular-nums">({term.count})</span>
+            )}
+          </label>
+        ))}
+        {attr.terms.length > 5 && (
+          <button
+            type="button"
+            className="mt-2 text-left text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
+            onClick={() => setShowAll((prev) => !prev)}
+          >
+            {showAll ? "Toon minder" : `Toon meer (${attr.terms.length - 5})`}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function CategoryClient({
   category,
@@ -312,16 +365,18 @@ export default function CategoryClient({
     if (!sourceProducts || sourceProducts.length === 0) return [];
 
     // 1. Collect all "Option Names" present for each Attribute ID
-    const presentOptions = new Map<number, Set<string>>();
+    const presentOptions = new Map<number, Map<string, number>>();
 
     sourceProducts.forEach((p) => {
       if (!Array.isArray(p.attributes)) return;
       p.attributes.forEach((pAttr: any) => {
         if (!presentOptions.has(pAttr.id)) {
-          presentOptions.set(pAttr.id, new Set());
+          presentOptions.set(pAttr.id, new Map());
         }
-        const set = presentOptions.get(pAttr.id)!;
-        pAttr.options.forEach((opt: string) => set.add(opt));
+        const countsMap = presentOptions.get(pAttr.id)!;
+        pAttr.options.forEach((opt: string) => {
+          countsMap.set(opt, (countsMap.get(opt) || 0) + 1);
+        });
       });
     });
 
@@ -365,18 +420,23 @@ export default function CategoryClient({
             }
         }
 
-        const presentSet = presentOptions.get(attr.id);
+        const presentMap = presentOptions.get(attr.id);
 
-        if (!presentSet) {
+        if (!presentMap) {
              return null; 
         }
 
         // (WooCommerce API matches terms by Name in the product.attributes.options array)
         // Normalize for comparison
-        const validTerms = attr.terms.filter((term: AttributeTerm) => {
-            const match = Array.from(presentSet).some(pOpt => pOpt.trim().toLowerCase() === term.name.trim().toLowerCase());
-            return match;
-        });
+        const validTerms = attr.terms.map((term: AttributeTerm) => {
+            let totalCount = 0;
+            const match = Array.from(presentMap.keys()).some(pOpt => {
+                const isMatch = pOpt.trim().toLowerCase() === term.name.trim().toLowerCase();
+                if (isMatch) totalCount += presentMap.get(pOpt) || 0;
+                return isMatch;
+            });
+            return match ? { ...term, count: totalCount } : null;
+        }).filter(Boolean) as AttributeTerm[];
 
         if (validTerms.length === 0) return null;
 
@@ -466,11 +526,16 @@ export default function CategoryClient({
 
   const regularAttributes = otherAttributes.filter(a => a.name !== "Afdichtingsspleet Van" && a.name !== "Afdichtingsspleet Tot" && a.name !== "Groefbreedte Van" && a.name !== "Groefbreedte Tot");
 
+  const validRegularAttributes = regularAttributes.filter(attr => attr.terms.length > 1);
+  const hasValidColorAttribute = colorAttribute && colorAttribute.terms.length > 1;
+  const hasValidFilters = hasValidColorAttribute || afdichtspleetBounds || groefbreedteBounds || validRegularAttributes.length > 0;
+
   return (
     <div className="bg-[#F7F7F7] min-h-screen">
       <div className="max-w-[1440px] mx-auto py-8 px-5 lg:px-0">
         <div className="flex flex-col lg:flex-row gap-2 lg:gap-8">
           
+          {hasValidFilters && (
           <aside className="w-full lg:w-1/4 relative">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -498,11 +563,11 @@ export default function CategoryClient({
               ) : (
                 <>
                   {/* Color Filter First */}
-                  {colorAttribute && (
+                  {hasValidColorAttribute && (
                     <div key={colorAttribute.id} className="mb-6">
                       <h3 className="font-medium mb-3 text-[#212121] text-lg">{colorAttribute.name}</h3>
                       <div className="grid grid-cols-5 gap-4">
-                        {(showAllColors ? colorAttribute.terms : colorAttribute.terms.slice(0, 10)).map(
+                        {(showAllColors ? colorAttribute.terms : colorAttribute.terms.slice(0, 5)).map(
                           (term: AttributeTerm) => {
                           const isSelected = selectedFilters[colorAttribute.id]?.has(term.id) || false;
                           return (
@@ -514,18 +579,21 @@ export default function CategoryClient({
                                 onClick={() => toggleFilter(colorAttribute.id, term.id)}
                                 aria-label={term.name}
                               />
-                              <span className="mt-1 text-xs text-center text-gray-700">{term.name}</span>
+                              <span className="mt-1 text-xs text-center text-gray-700">
+                                {term.name}
+                                {term.count !== undefined && <span className="block text-[10px] text-gray-400">({term.count})</span>}
+                              </span>
                             </div>
                           );
                         })}
                       </div>
-                      {colorAttribute.terms.length > 10 && !showAllColors && (
+                      {colorAttribute.terms.length > 5 && (
                         <button
                           type="button"
                           className="mt-4 w-full py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm font-medium"
-                          onClick={() => setShowAllColors(true)}
+                          onClick={() => setShowAllColors(prev => !prev)}
                         >
-                          Bekijk alle kleuren
+                          {showAllColors ? "Toon minder" : `Toon meer (${colorAttribute.terms.length - 5})`}
                         </button>
                       )}
                     </div>
@@ -564,25 +632,13 @@ export default function CategoryClient({
                   )}
 
                   {/* Other Attributes */}
-                  {regularAttributes.map(attr => (
-                    <div key={attr.id} className="mb-8">
-                      <h3 className="font-medium mb-3 text-[#212121] text-lg">{attr.name}</h3>
-                      <div className="flex flex-col gap-2 text-sm text-gray-700">
-                        {attr.terms.map((term: AttributeTerm) => (
-                          <label key={term.id} className="flex items-start gap-1">
-                            <div className="w-5">
-                                <input
-                                type="checkbox"
-                                className="mr-2 w-5 h-5 rounded-sm border border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0"
-                                checked={selectedFilters[attr.id]?.has(term.id) || false}
-                                onChange={() => toggleFilter(attr.id, term.id)}
-                                />
-                            </div>
-                            {term.name === "1" ? "Ja" : term.name === "0" ? "Nee" : term.name}
-                          </label>
-                        ))}
-                      </div>
-                    </div>
+                  {validRegularAttributes.map(attr => (
+                    <FilterAttributeGroup
+                      key={attr.id}
+                      attr={attr}
+                      selectedFilters={selectedFilters}
+                      toggleFilter={toggleFilter}
+                    />
                   ))}
                   {(Object.keys(selectedFilters).length > 0 || afdichtingsspleetRange || groefbreedteRange) && (
                     <button onClick={resetFilters} className="text-sm text-red-500 hover:underline mb-4">Filters wissen</button>
@@ -592,6 +648,7 @@ export default function CategoryClient({
             </div>
             </motion.div>
           </aside>
+          )}
 
           {/* Main Content */}
           <main className="flex-1">
@@ -607,17 +664,19 @@ export default function CategoryClient({
                   <option value="price-low-high">Prijs: Laag naar Hoog</option>
                   <option value="price-high-low">Prijs: Hoog naar Laag</option>
                 </select>
-                <button type="button" className="lg:hidden px-2 py-1 w-auto text-left bg-white border border-gray-300 rounded-md font-medium" onClick={() => setShowFilters(!showFilters)} aria-expanded={showFilters} aria-controls="filters-section">
-                  {showFilters ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                    </svg>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
-                    </svg>
-                  )}
-                </button>
+                {hasValidFilters && (
+                  <button type="button" className="lg:hidden px-2 py-1 w-auto text-left bg-white border border-gray-300 rounded-md font-medium" onClick={() => setShowFilters(!showFilters)} aria-expanded={showFilters} aria-controls="filters-section">
+                    {showFilters ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+                      </svg>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
 

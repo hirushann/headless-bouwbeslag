@@ -19,6 +19,11 @@ function FilterGroup({
     onFilterChange: (facetName: string, value: string) => void;
 }) {
     const [isOpen, setIsOpen] = useState(true);
+    const [showAll, setShowAll] = useState(false);
+
+    if (!facet.buckets || facet.buckets.length <= 1) return null;
+
+    const visibleBuckets = showAll ? facet.buckets : facet.buckets.slice(0, 5);
 
     return (
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
@@ -47,7 +52,7 @@ function FilterGroup({
 
             {isOpen && (
                 <div className="mt-3 space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
-                    {facet.buckets.map((bucket) => {
+                    {visibleBuckets.map((bucket) => {
                         const isChecked = filters[facet.name]?.includes(bucket.key) || false;
                         return (
                             <label
@@ -72,6 +77,15 @@ function FilterGroup({
                             </label>
                         );
                     })}
+                    {facet.buckets.length > 5 && (
+                        <button
+                            type="button"
+                            onClick={() => setShowAll((prev) => !prev)}
+                            className="mt-2 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                        >
+                            {showAll ? "Toon minder" : `Toon meer (${facet.buckets.length - 5})`}
+                        </button>
+                    )}
                 </div>
             )}
         </div>
