@@ -1,13 +1,21 @@
 export function fixImageSrc(src: string | undefined | null): string {
-    if (!src) return "/default-fallback-image.webp";
+    if (!src || typeof src !== "string" || src.trim() === "") return "/default-fallback-image.webp";
 
-    // If it's the staging domain, leave it as is (user says it works on /categories)
-    if (src.includes("staging-plugin-test.test")) {
-        return src;
+    let finalSrc = src.trim();
+
+    // Fix protocol-relative URLs
+    if (finalSrc.startsWith("//")) {
+        finalSrc = `https:${finalSrc}`;
     }
 
-    // Replace the incorrect staging domain with the production domain if it was missed
-    // and ensure HTTPS for production
-    return src.replace("staging-plugin-test.test", "bouwbeslag.nl")
-        .replace("http://bouwbeslag.nl", "https://bouwbeslag.nl");
+    // Replace staging domains
+    if (!finalSrc.includes("staging-plugin-test.test")) {
+        finalSrc = finalSrc.replace("http://bouwbeslag.nl", "https://bouwbeslag.nl");
+    }
+
+    if (!finalSrc.startsWith("/") && !finalSrc.startsWith("http")) {
+        return "/default-fallback-image.webp";
+    }
+
+    return finalSrc;
 }

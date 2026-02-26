@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCartStore } from "@/lib/cartStore";
@@ -25,6 +25,8 @@ function normalizeImageUrl(url?: string): string {
 
 import { useUserContext } from "@/context/UserContext";
 import { useProductAddedModal } from "@/context/ProductAddedModalContext";
+
+const globalMediaCache: Record<string, string> = {};
 
 export default function ProductCard({ product, userRole: propUserRole }: { product: any; userRole?: string[] | null }) {
   const { userRole: contextUserRole, isLoading } = useUserContext();
@@ -82,15 +84,51 @@ export default function ProductCard({ product, userRole: propUserRole }: { produ
 
   const addItem = useCartStore((state) => state.addItem);
 
-  // console.log("Rendering ProductCard:", product.name, "ID:", product.id);
-
-  const rawImg: string | undefined = product.images?.[0]?.src;
-  const imgSrc = normalizeImageUrl(rawImg);
+  console.log("ProductCard loaded product data:", product);
 
   const [isAdding, setIsAdding] = useState(false);
+  const [targetImgSrc, setTargetImgSrc] = useState<string | undefined>(product.images?.[0]?.src);
 
   // Title logic
   const productTitle = product?.meta_data?.find((m: any) => m.key === "description_bouwbeslag_title")?.value || product?.name || "Untitled Product";
+
+  useEffect(() => {
+    const catImgMeta = product?.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value;
+    console.log(`[ProductCard] ${productTitle} - catImgMeta:`, catImgMeta);
+    if (catImgMeta) {
+      if (/^\d+$/.test(catImgMeta)) {
+        if (globalMediaCache[catImgMeta]) {
+          console.log(`[ProductCard] ${productTitle} - using cache:`, globalMediaCache[catImgMeta]);
+          setTargetImgSrc(globalMediaCache[catImgMeta]);
+        } else {
+          const WP_BASE_URL = process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "https://app.bouwbeslag.nl";
+          console.log(`[ProductCard] ${productTitle} - fetching from:`, `${WP_BASE_URL}/wp-json/wp/v2/media/${catImgMeta}`);
+          fetch(`${WP_BASE_URL}/wp-json/wp/v2/media/${catImgMeta}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data && data.source_url) {
+                console.log(`[ProductCard] ${productTitle} - fetched media URL:`, data.source_url);
+                globalMediaCache[catImgMeta] = data.source_url;
+                setTargetImgSrc(data.source_url);
+              } else {
+                console.log(`[ProductCard] ${productTitle} - fetch succeeded but no source_url found in data:`, data);
+              }
+            })
+            .catch((err) => {
+              console.log(`[ProductCard] ${productTitle} - fetch failed:`, err);
+            });
+        }
+      } else if (typeof catImgMeta === "string" && catImgMeta.trim() !== "") {
+        console.log(`[ProductCard] ${productTitle} - resolving directly from string:`, catImgMeta);
+        setTargetImgSrc(catImgMeta);
+      }
+    }
+  }, [product, productTitle]);
+
+  const imgSrc = normalizeImageUrl(targetImgSrc);
+
+  const debugCatImageMeta = product?.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value;
+  console.log(`[ProductCard Render] ID: ${product.id} | Title: "${productTitle}" | CatImageID: "${debugCatImageMeta}" | URL: "${targetImgSrc}"`);
 
   return (
     <div className="snap-start shrink-0 w-[100%] border border-[#E2E2E2] rounded-sm shadow-sm bg-[#F7F7F7] flex flex-col h-full">

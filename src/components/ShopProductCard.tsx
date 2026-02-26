@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCartStore } from "@/lib/cartStore";
@@ -10,6 +10,8 @@ import toast from "react-hot-toast";
 
 import { useProductAddedModal } from "@/context/ProductAddedModalContext";
 import { fixImageSrc } from "@/lib/image-utils";
+
+const globalMediaCache: Record<string, string> = {};
 
 export default function ShopProductCard({ product }: { product: any }) {
   // Format price safely (remove weird HTML entities)
@@ -28,12 +30,47 @@ export default function ShopProductCard({ product }: { product: any }) {
 
   const addItem = useCartStore((state) => state.addItem);
 
-  // console.log("Rendering ProductCard:", product.name, "ID:", product.id);
+  console.log("ShopProductCard loaded product data:", product);
 
   // Title logic
   const productTitle = product?.meta_data?.find((m: any) => m.key === "description_bouwbeslag_title")?.value || product?.name || "Untitled Product";
 
   const [isAdding, setIsAdding] = useState(false);
+  const [targetImgSrc, setTargetImgSrc] = useState<string | undefined>(product.images?.[0]?.src);
+
+  useEffect(() => {
+    const catImgMeta = product?.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value;
+    console.log(`[ShopProductCard] ${productTitle} - catImgMeta:`, catImgMeta);
+    if (catImgMeta) {
+      if (/^\d+$/.test(catImgMeta)) {
+        if (globalMediaCache[catImgMeta]) {
+          console.log(`[ShopProductCard] ${productTitle} - using cache:`, globalMediaCache[catImgMeta]);
+          setTargetImgSrc(globalMediaCache[catImgMeta]);
+        } else {
+          const WP_BASE = process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "https://app.bouwbeslag.nl";
+          console.log(`[ShopProductCard] ${productTitle} - fetching from:`, `${WP_BASE}/wp-json/wp/v2/media/${catImgMeta}`);
+          fetch(`${WP_BASE}/wp-json/wp/v2/media/${catImgMeta}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data && data.source_url) {
+                console.log(`[ShopProductCard] ${productTitle} - fetched media URL:`, data.source_url);
+                globalMediaCache[catImgMeta] = data.source_url;
+                setTargetImgSrc(data.source_url);
+              } else {
+                console.log(`[ShopProductCard] ${productTitle} - fetch succeeded but no source_url found in data:`, data);
+              }
+            })
+            .catch((err) => {
+              console.log(`[ShopProductCard] ${productTitle} - fetch failed:`, err);
+            });
+        }
+      } else if (typeof catImgMeta === "string" && catImgMeta.trim() !== "") {
+        console.log(`[ShopProductCard] ${productTitle} - resolving directly from string:`, catImgMeta);
+        setTargetImgSrc(catImgMeta);
+      }
+    }
+  }, [product, productTitle]);
+
   const { userRole } = useUserContext();
   const { openModal } = useProductAddedModal();
 
@@ -85,10 +122,13 @@ export default function ShopProductCard({ product }: { product: any }) {
     };
   })();
 
+  const debugCatImageMeta = product?.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value;
+  console.log(`[ShopProductCard Render] ID: ${product.id} | Title: "${productTitle}" | CatImageID: "${debugCatImageMeta}" | URL: "${targetImgSrc}"`);
+
   return (
     <div className="snap-start shrink-0 w-[100%] border border-[#E2E2E2] rounded-lg shadow-sm bg-[#F7F7F7] flex flex-col h-full">
       <Link href={`/${product.slug}`} className="relative h-32 lg:h-48 bg-white rounded-tl-lg rounded-tr-lg overflow-hidden">
-        <Image src={fixImageSrc(product.images?.[0]?.src)} alt={productTitle} fill className="object-contain" />
+        <Image src={fixImageSrc(targetImgSrc)} alt={productTitle} fill className="object-contain" />
 
         {/* Dynamic stock badge */}
         {/* {product.stock_status === "instock" ? (
