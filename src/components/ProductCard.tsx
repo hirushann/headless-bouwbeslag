@@ -87,53 +87,60 @@ export default function ProductCard({ product, userRole: propUserRole }: { produ
   console.log("ProductCard loaded product data:", product);
 
   const [isAdding, setIsAdding] = useState(false);
-  const [targetImgSrc, setTargetImgSrc] = useState<string | undefined>(product.images?.[0]?.src);
 
-  // Title logic
-  const productTitle = product?.meta_data?.find((m: any) => m.key === "description_bouwbeslag_title")?.value || product?.name || "Untitled Product";
+  // Pre-calculate image state to avoid flash
+  const catImgMeta = product?.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value;
+  const isNumericCatImg = typeof catImgMeta === "string" && /^\d+$/.test(catImgMeta);
+  const isCached = isNumericCatImg && !!globalMediaCache[catImgMeta];
+  
+  const initialImgSrc = catImgMeta && catImgMeta.trim() !== ""
+      ? (isNumericCatImg ? (isCached ? globalMediaCache[catImgMeta] : undefined) : catImgMeta)
+      : product.images?.[0]?.src;
+
+  const [targetImgSrc, setTargetImgSrc] = useState<string | undefined>(initialImgSrc);
+  const [isFetchingImg, setIsFetchingImg] = useState<boolean>(isNumericCatImg && !isCached);
 
   useEffect(() => {
-    const catImgMeta = product?.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value;
-    console.log(`[ProductCard] ${productTitle} - catImgMeta:`, catImgMeta);
-    if (catImgMeta) {
-      if (/^\d+$/.test(catImgMeta)) {
-        if (globalMediaCache[catImgMeta]) {
-          console.log(`[ProductCard] ${productTitle} - using cache:`, globalMediaCache[catImgMeta]);
-          setTargetImgSrc(globalMediaCache[catImgMeta]);
-        } else {
-          const WP_BASE_URL = process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "https://app.bouwbeslag.nl";
-          console.log(`[ProductCard] ${productTitle} - fetching from:`, `${WP_BASE_URL}/wp-json/wp/v2/media/${catImgMeta}`);
-          fetch(`${WP_BASE_URL}/wp-json/wp/v2/media/${catImgMeta}`)
-            .then(res => res.json())
-            .then(data => {
-              if (data && data.source_url) {
-                console.log(`[ProductCard] ${productTitle} - fetched media URL:`, data.source_url);
-                globalMediaCache[catImgMeta] = data.source_url;
-                setTargetImgSrc(data.source_url);
-              } else {
-                console.log(`[ProductCard] ${productTitle} - fetch succeeded but no source_url found in data:`, data);
-              }
-            })
-            .catch((err) => {
-              console.log(`[ProductCard] ${productTitle} - fetch failed:`, err);
-            });
-        }
-      } else if (typeof catImgMeta === "string" && catImgMeta.trim() !== "") {
-        console.log(`[ProductCard] ${productTitle} - resolving directly from string:`, catImgMeta);
-        setTargetImgSrc(catImgMeta);
-      }
+    // Reset state if product identity changes
+    setTargetImgSrc(initialImgSrc);
+    setIsFetchingImg(isNumericCatImg && !isCached);
+
+    if (isNumericCatImg && !isCached) {
+      const WP_BASE_URL = process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "https://app.bouwbeslag.nl";
+      fetch(`${WP_BASE_URL}/wp-json/wp/v2/media/${catImgMeta}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.source_url) {
+            globalMediaCache[catImgMeta] = data.source_url;
+            setTargetImgSrc(data.source_url);
+          } else {
+            setTargetImgSrc(product.images?.[0]?.src);
+          }
+        })
+        .catch(() => {
+          setTargetImgSrc(product.images?.[0]?.src);
+        })
+        .finally(() => {
+          setIsFetchingImg(false);
+        });
     }
-  }, [product, productTitle]);
+  }, [product?.id, catImgMeta, initialImgSrc, isNumericCatImg, isCached]);
 
   const imgSrc = normalizeImageUrl(targetImgSrc);
+
+  const productTitle = product?.meta_data?.find((m: any) => m.key === "description_bouwbeslag_title")?.value || product?.name || "Untitled Product";
 
   const debugCatImageMeta = product?.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value;
   console.log(`[ProductCard Render] ID: ${product.id} | Title: "${productTitle}" | CatImageID: "${debugCatImageMeta}" | URL: "${targetImgSrc}"`);
 
   return (
     <div className="snap-start shrink-0 w-[100%] border border-[#E2E2E2] rounded-sm shadow-sm bg-[#F7F7F7] flex flex-col h-full">
-      <Link href={`/${product.slug}`} className="relative h-32 lg:h-48 bg-white rounded-tl-lg rounded-tr-lg overflow-hidden">
-        <Image src={imgSrc} alt={productTitle} fill className="object-contain"/>
+      <Link href={`/${product.slug}`} className="relative h-32 lg:h-48 bg-white rounded-tl-lg rounded-tr-lg overflow-hidden flex items-center justify-center">
+        {isFetchingImg ? (
+          <div className="w-full h-full bg-gray-100 animate-pulse" />
+        ) : (
+          <Image src={imgSrc} alt={productTitle} fill className="object-contain" />
+        )}
 
         {/* Dynamic stock badge */}
         {/* {product.stock_status === "instock" ? (

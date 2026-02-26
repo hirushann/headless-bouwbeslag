@@ -36,40 +36,44 @@ export default function ShopProductCard({ product }: { product: any }) {
   const productTitle = product?.meta_data?.find((m: any) => m.key === "description_bouwbeslag_title")?.value || product?.name || "Untitled Product";
 
   const [isAdding, setIsAdding] = useState(false);
-  const [targetImgSrc, setTargetImgSrc] = useState<string | undefined>(product.images?.[0]?.src);
+
+  // Pre-calculate image state to avoid flash
+  const catImgMeta = product?.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value;
+  const isNumericCatImg = typeof catImgMeta === "string" && /^\d+$/.test(catImgMeta);
+  const isCached = isNumericCatImg && !!globalMediaCache[catImgMeta];
+  
+  const initialImgSrc = catImgMeta && catImgMeta.trim() !== ""
+      ? (isNumericCatImg ? (isCached ? globalMediaCache[catImgMeta] : undefined) : catImgMeta)
+      : product.images?.[0]?.src;
+
+  const [targetImgSrc, setTargetImgSrc] = useState<string | undefined>(initialImgSrc);
+  const [isFetchingImg, setIsFetchingImg] = useState<boolean>(isNumericCatImg && !isCached);
 
   useEffect(() => {
-    const catImgMeta = product?.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value;
-    console.log(`[ShopProductCard] ${productTitle} - catImgMeta:`, catImgMeta);
-    if (catImgMeta) {
-      if (/^\d+$/.test(catImgMeta)) {
-        if (globalMediaCache[catImgMeta]) {
-          console.log(`[ShopProductCard] ${productTitle} - using cache:`, globalMediaCache[catImgMeta]);
-          setTargetImgSrc(globalMediaCache[catImgMeta]);
-        } else {
-          const WP_BASE = process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "https://app.bouwbeslag.nl";
-          console.log(`[ShopProductCard] ${productTitle} - fetching from:`, `${WP_BASE}/wp-json/wp/v2/media/${catImgMeta}`);
-          fetch(`${WP_BASE}/wp-json/wp/v2/media/${catImgMeta}`)
-            .then(res => res.json())
-            .then(data => {
-              if (data && data.source_url) {
-                console.log(`[ShopProductCard] ${productTitle} - fetched media URL:`, data.source_url);
-                globalMediaCache[catImgMeta] = data.source_url;
-                setTargetImgSrc(data.source_url);
-              } else {
-                console.log(`[ShopProductCard] ${productTitle} - fetch succeeded but no source_url found in data:`, data);
-              }
-            })
-            .catch((err) => {
-              console.log(`[ShopProductCard] ${productTitle} - fetch failed:`, err);
-            });
-        }
-      } else if (typeof catImgMeta === "string" && catImgMeta.trim() !== "") {
-        console.log(`[ShopProductCard] ${productTitle} - resolving directly from string:`, catImgMeta);
-        setTargetImgSrc(catImgMeta);
-      }
+    // Reset state if product identity changes
+    setTargetImgSrc(initialImgSrc);
+    setIsFetchingImg(isNumericCatImg && !isCached);
+
+    if (isNumericCatImg && !isCached) {
+      const WP_BASE = process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "https://app.bouwbeslag.nl";
+      fetch(`${WP_BASE}/wp-json/wp/v2/media/${catImgMeta}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.source_url) {
+            globalMediaCache[catImgMeta] = data.source_url;
+            setTargetImgSrc(data.source_url);
+          } else {
+            setTargetImgSrc(product.images?.[0]?.src);
+          }
+        })
+        .catch(() => {
+          setTargetImgSrc(product.images?.[0]?.src);
+        })
+        .finally(() => {
+          setIsFetchingImg(false);
+        });
     }
-  }, [product, productTitle]);
+  }, [product?.id, catImgMeta, initialImgSrc, isNumericCatImg, isCached]);
 
   const { userRole } = useUserContext();
   const { openModal } = useProductAddedModal();
@@ -127,8 +131,12 @@ export default function ShopProductCard({ product }: { product: any }) {
 
   return (
     <div className="snap-start shrink-0 w-[100%] border border-[#E2E2E2] rounded-lg shadow-sm bg-[#F7F7F7] flex flex-col h-full">
-      <Link href={`/${product.slug}`} className="relative h-32 lg:h-48 bg-white rounded-tl-lg rounded-tr-lg overflow-hidden">
-        <Image src={fixImageSrc(targetImgSrc)} alt={productTitle} fill className="object-contain" />
+      <Link href={`/${product.slug}`} className="relative h-32 lg:h-48 bg-white rounded-tl-lg rounded-tr-lg overflow-hidden flex items-center justify-center">
+        {isFetchingImg ? (
+          <div className="w-full h-full bg-gray-100 animate-pulse" />
+        ) : (
+          <Image src={fixImageSrc(targetImgSrc)} alt={productTitle} fill className="object-contain" />
+        )}
 
         {/* Dynamic stock badge */}
         {/* {product.stock_status === "instock" ? (
