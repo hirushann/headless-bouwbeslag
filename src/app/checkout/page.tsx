@@ -781,33 +781,35 @@ export default function NewCheckoutPage() {
                       {formErrors.email && <p className="text-red-500 text-sm mt-1">{formErrors.email}</p>}
                     </div>
 
-                    <div className="form-control">
-                        <label className={labelParams}>BTW nummer (optioneel)</label>
-                        <div className="relative">
-                            <input 
-                                type="text" 
-                                className={`${inputParams} ${vatValidationState === 'invalid' ? 'border-red-500 ring-1 ring-red-500' : ''} ${vatValidationState === 'valid' ? 'border-green-500 ring-1 ring-green-500' : ''}`} 
-                                value={formData.vatNumber} 
-                                onChange={(e) => {
-                                    handleInputChange("vatNumber", e.target.value);
-                                    if (vatValidationState !== 'idle') setVatValidationState('idle'); // Reset state on type
-                                }} 
-                                onBlur={handleVatBlur}
-                                placeholder="NL123456789B01"
-                            />
-                            {vatValidationState === 'validating' && (
-                                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-                                </div>
-                            )}
-                             {vatValidationState === 'valid' && (
-                                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                                    <Check className="w-5 h-5 text-green-500" />
-                                </div>
-                            )}
-                        </div>
-                        {formErrors.vatNumber && <p className="text-red-500 text-sm mt-1">{formErrors.vatNumber}</p>}
-                    </div>
+                    {(formData.companyName.trim() !== '' && formData.country !== 'Netherlands') && (
+                      <div className="form-control">
+                          <label className={labelParams}>BTW nummer (optioneel)</label>
+                          <div className="relative">
+                              <input 
+                                  type="text" 
+                                  className={`${inputParams} ${vatValidationState === 'invalid' ? 'border-red-500 ring-1 ring-red-500' : ''} ${vatValidationState === 'valid' ? 'border-green-500 ring-1 ring-green-500' : ''}`} 
+                                  value={formData.vatNumber} 
+                                  onChange={(e) => {
+                                      handleInputChange("vatNumber", e.target.value);
+                                      if (vatValidationState !== 'idle') setVatValidationState('idle'); // Reset state on type
+                                  }} 
+                                  onBlur={handleVatBlur}
+                                  placeholder="NL123456789B01"
+                              />
+                              {vatValidationState === 'validating' && (
+                                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                      <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                                  </div>
+                              )}
+                               {vatValidationState === 'valid' && (
+                                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                      <Check className="w-5 h-5 text-green-500" />
+                                  </div>
+                              )}
+                          </div>
+                          {formErrors.vatNumber && <p className="text-red-500 text-sm mt-1">{formErrors.vatNumber}</p>}
+                      </div>
+                    )}
                   </div>
                   
                   {/* Shipping Address Toggle */}
@@ -1089,7 +1091,7 @@ export default function NewCheckoutPage() {
                                     className="w-5 h-5 text-amber-600 border-gray-300 rounded focus:ring-amber-500 cursor-pointer mt-0.5"
                                 />
                                 <label htmlFor="maatwerk-terms" className="ml-3 text-sm text-gray-700 cursor-pointer select-none">
-                                    Ik begrijp dat mijn winkelwagen maatwerk producten bevat dit zijn uitgesloten van retourrecht.
+                                    Ik begrijp dat mijn winkelwagen maatwerk producten bevat die zijn uitgesloten van retourrecht.
                                 </label>
                              </div>
                         ) : null;
@@ -1210,7 +1212,7 @@ export default function NewCheckoutPage() {
                                     );
                                 })()}
                                 {item.isMaatwerk && (
-                                    <p className="text-xs text-amber-600 mt-1 font-medium">Let op: maatwerk product.</p>
+                                    <p className="text-xs text-amber-600 mt-1 font-medium">Let op: maatwerk product. Uitgesloten van retourrecht</p>
                                 )}
                                 {item.hasLengthFreight && (
                                      <div className="flex items-start gap-1 mt-1">

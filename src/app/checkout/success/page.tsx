@@ -7,6 +7,8 @@ import { useSearchParams } from "next/navigation";
 
 import { checkOrderStatusAction } from "@/app/checkout/actions";
 import { useRouter } from "next/navigation";
+import Lottie from "lottie-react";
+import successAnimation from "../../../../public/Done.json";
 
 function SuccessContent() {
   const clearCart = useCartStore((state) => state.clearCart);
@@ -108,25 +110,41 @@ function SuccessContent() {
   }
 
   return (
-    <div className="min-h-[60vh] flex flex-col items-center justify-center p-4 text-center">
-      <div className="bg-green-100 p-6 rounded-full mb-6">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-16 h-16 text-green-600">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-        </svg>
+    <div className="min-h-[75vh] flex flex-col items-center justify-center p-4 text-center bg-[url('/thankyoubg.png')] bg-cover bg-center-top bg-no-repeat w-full">
+      <div className="w-48 h-48 mb-6 pointer-events-none">
+         <Lottie 
+            animationData={successAnimation} 
+            loop={true} 
+            autoplay={true} 
+         />
       </div>
 
-      <h1 className="text-3xl font-bold mb-2">Bedankt voor je bestelling!</h1>
-      {orderId && <p className="text-gray-600 mb-6">Order nummer: #{orderId}</p>}
+      <h1 className="text-4xl md:text-5xl font-extrabold text-[#1C2530] mb-4 tracking-tight">
+        Hoera, je bestelling is gelukt! 🎉
+      </h1>
       
-      <p className="max-w-md text-gray-500 mb-8">
-        We hebben je bestelling in goede orde ontvangen. Je ontvangt binnen enkele minuten een bevestiging per e-mail.
+      <p className="text-lg md:text-xl text-gray-700 font-medium mb-3">
+        Bedankt voor het vertrouwen in ons. We gaan direct voor je aan de slag!
+      </p>
+      
+      {orderId && (
+        <div className="bg-white/80 backdrop-blur-sm border border-gray-100 px-6 py-3 rounded-xl shadow-sm mb-6 inline-block">
+          <p className="text-gray-600 font-medium">
+            Jouw ordernummer is <span className="text-[#0066FF] font-bold text-lg inline-block ml-1">#{orderId}</span>
+          </p>
+        </div>
+      )}
+      
+      <p className="max-w-lg text-gray-500 text-center mb-10 leading-relaxed">
+        Binnen enkele minuten ontvang je van ons een bevestigingsmail met alle details. 
+        Zodra we je pakketje meegeven aan de bezorger, hoor je weer van ons.
       </p>
 
-      <div className="flex gap-4">
-        <Link href="/" className="bg-[#0066FF] text-white font-bold px-6 py-3 rounded-md hover:bg-blue-700 transition">
-          Terug naar Home
+      <div className="flex flex-col sm:flex-row gap-4">
+        <Link href="/" className="bg-[#0066FF] text-white font-bold px-8 py-3.5 rounded-xl hover:bg-blue-700 hover:scale-[1.02] transform transition-all shadow-md flex items-center justify-center gap-2">
+          Verder winkelen
         </Link>
-        <Link href="/account?tab=orders" className="border border-gray-300 text-gray-700 font-bold px-6 py-3 rounded-md hover:bg-gray-50 transition">
+        <Link href="/account?tab=orders" className="bg-white border border-gray-200 shadow-sm text-gray-700 font-bold px-8 py-3.5 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center justify-center gap-2">
           Bekijk bestelling
         </Link>
       </div>

@@ -198,7 +198,7 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods }: CartDra
                       {item.isMaatwerk && (
                         <div className="flex items-start gap-1 mt-1">
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4 text-amber-600 flex-shrink-0 mt-0.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>
-                          <p className="text-xs text-amber-700 font-medium leading-tight">Let op: maatwerk product.</p>
+                          <p className="text-xs text-amber-700 font-medium leading-tight">Let op: maatwerk product. Uitgesloten van retourrecht</p>
                         </div>
                       )}
                     </div>

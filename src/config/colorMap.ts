@@ -5,6 +5,7 @@ export const COLOR_MAP: Record<string, string> = {
   "swart": "#000000",
   "blue": "#2563EB",
   "chrome": "#D9D9D9",
+  "chroom": "#D9D9D9",
   "darkbrown": "#4B2E19",
   "dark brown": "#4B2E19",
   "gold": "#D4AF37",

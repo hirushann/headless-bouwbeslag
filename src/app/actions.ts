@@ -2,18 +2,16 @@
 
 
 import api, { fetchAllWoo } from "@/lib/woocommerce";
+import { unstable_cache } from "next/cache";
 
-export async function fetchProductIndexAction() {
-    try {
-        console.log("[INDEX] Building/Fetching Full Product Index (Cached)...");
+const getCachedProductIndex = unstable_cache(
+    async () => {
+        console.log("[INDEX] Building Full Product Index from Woo (This should happen very rarely)...");
         // Fetch ALL products lightweight
         // We select fields: id, name, slug, sku, meta_data (to get EANs)
-        // INCREASED CACHE: Revalidates every 1 hour (3600s) to be super fast. 
-        // This is acceptable for related products which don't change often.
         const allProducts = await fetchAllWoo("products", {
             status: "publish",
             _fields: "id,name,slug,sku,meta_data",
-            next: { revalidate: 3600 }
         });
 
         const targetMetaKeys = [
@@ -58,16 +56,21 @@ export async function fetchProductIndexAction() {
                 slug: p.slug, // Needed for links
                 sku: p.sku,
                 identifiers: Array.from(identifiers),
-                // We keep enough data to render the link without another fetch
-                images: p.images || [], // If available in restricted fields? No, need to ask for images
-                attributes: p.attributes || [], // Order Colors needs this?
-                // Actually, for Order Colors we need attributes. 
-                // FETCHING full attributes for 5000 products might be heavy but let's try just ID first.
-                // For now, let's keep it lightweight. The caller can fetch full product if needed.
+                images: p.images || [],
+                attributes: p.attributes || [],
             };
         });
 
-        console.log(`[INDEX] Built index with ${index.length} products.`);
+        console.log(`[INDEX] Built and cached index with ${index.length} products.`);
+        return index;
+    },
+    ['global-product-index-v1'], // Cache key
+    { revalidate: 3600 * 24 } // Cache for 24 hours
+);
+
+export async function fetchProductIndexAction() {
+    try {
+        const index = await getCachedProductIndex();
         return { success: true, data: index };
     } catch (error: any) {
         console.error("Failed to build product index:", error?.message);
@@ -119,7 +122,7 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
 
     try {
         // 1. Precise SKU Lookup
-        const skuRes = await api.get("products", { sku: idStr, per_page: 1, cache: "no-store", status: "publish" });
+        const skuRes = await api.get("products", { sku: idStr, per_page: 1, next: { revalidate: 3600 }, status: "publish" });
         if (Array.isArray(skuRes.data) && skuRes.data.length > 0) {
             const match = skuRes.data[0];
             if (match && Number(match.id) !== numericExcludeId) {
@@ -158,7 +161,7 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
                         meta_value: idStr,
                         _fields: "id",
                         per_page: 5, // Fetch a few to increase chance of finding the right one if duplicates or near-matches exist
-                        cache: "no-store"
+                        next: { revalidate: 3600 }
                     });
                     if (Array.isArray(wpRes.data) && wpRes.data.length > 0) {
                         return wpRes.data.map((hit: any) => ({ id: Number(hit.id), key }));
@@ -178,7 +181,7 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
             // Verify each candidate until we find a match
             for (const candidate of uniqueCandidates) {
                 try {
-                    const finalRes = await api.get(`products/${candidate.id}`, { cache: "no-store" });
+                    const finalRes = await api.get(`products/${candidate.id}`, { next: { revalidate: 3600 } });
                     if (finalRes.data && finalRes.data.id) {
                         const p = finalRes.data;
 
@@ -209,7 +212,7 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
         const numericId = Number(idStr);
         if (!isNaN(numericId) && /^\d+$/.test(idStr) && idStr.length < 9 && numericId !== numericExcludeId) {
             try {
-                const idRes = await api.get(`products/${numericId}`, { cache: "no-store" });
+                const idRes = await api.get(`products/${numericId}`, { next: { revalidate: 3600 } });
                 if (idRes.data && idRes.data.id) {
                     console.log(`[LOOKUP] ✅ Match ID: ${idRes.data.id}`);
                     return { success: true, data: idRes.data };
@@ -226,7 +229,7 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
         const wcSearchRes = await api.get("products", {
             search: idStr,
             per_page: 10,
-            cache: "no-store",
+            next: { revalidate: 3600 },
             status: "publish"
         });
 
@@ -274,7 +277,7 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
             if (indexMatch) {
                 console.log(`[LOOKUP] ✅ Match Index Fallback: ${indexMatch.id} (${indexMatch.name})`);
                 // Fetch full product now that we have the ID to be safe
-                const finalRes = await api.get(`products/${indexMatch.id}`, { cache: "no-store" });
+                const finalRes = await api.get(`products/${indexMatch.id}`, { next: { revalidate: 3600 } });
                 return { success: true, data: finalRes.data };
             }
         } else {
@@ -384,7 +387,7 @@ export async function fetchRelatedProductsBatchAction(identifiers: string[], exc
                     include: indexFoundIDs,
                     per_page: 50,
                     _fields: "id,name,slug,permalink,price,regular_price,price_html,images,attributes,stock_status,meta_data,stock_quantity,manage_stock,backorders,backorders_allowed",
-                    cache: "no-store"
+                    next: { revalidate: 3600 }
                 });
 
                 if (Array.isArray(hydrationRes.data)) {

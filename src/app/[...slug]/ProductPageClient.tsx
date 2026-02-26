@@ -1289,7 +1289,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
             {(orderColors.length > 0 || isOrderColorsLoading) && (
               <div className="mb-4">
                 <p className="font-semibold text-base lg:text-lg mb-2">Andere kleuren van dit product:</p>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 scroll-smooth">
                   {isOrderColorsLoading ? (
                       // Skeleton for Order Colors
                       Array.from({ length: 4 }).map((_, i) => (
