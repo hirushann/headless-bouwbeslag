@@ -34,12 +34,14 @@ export class WooCommerceClient {
         const config: any = {
             method,
             headers,
-            next: { revalidate }
         };
 
-        if (cache) {
+        if (params?.next) {
+            config.next = params.next;
+        } else if (cache) {
             config.cache = cache;
-            delete config.next; // cache and next.revalidate are mutually exclusive in fetch
+        } else {
+            config.next = { revalidate: 60 };
         }
 
         if (isGet) {
