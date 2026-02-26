@@ -8,10 +8,10 @@ function simulateBody(body: any) {
   const validShipping = rawShipping.filter((d: any) => typeof d === 'string' && dateRegex.test(d as string));
   const validDelivery = rawDelivery.filter((d: any) => typeof d === 'string' && dateRegex.test(d as string));
 
-  console.log("rawShipping:", rawShipping);
-  console.log("validShipping:", validShipping);
-  console.log("rawDelivery:", rawDelivery);
-  console.log("validDelivery:", validDelivery);
+  // console.log("rawShipping:", rawShipping);
+  // console.log("validShipping:", validShipping);
+  // console.log("rawDelivery:", rawDelivery);
+  // console.log("validDelivery:", validDelivery);
 }
 
 const payload1 = {
@@ -19,7 +19,7 @@ const payload1 = {
   delivery: ["2026-02-19"]
 };
 
-console.log("Payload 1");
+// console.log("Payload 1");
 simulateBody(payload1);
 
 const payload2 = {
@@ -27,5 +27,5 @@ const payload2 = {
   delivery: { "0": "2026-02-19" }
 };
 
-console.log("Payload 2");
+// console.log("Payload 2");
 simulateBody(payload2);

@@ -6,7 +6,7 @@ import { unstable_cache } from "next/cache";
 
 const getCachedProductIndex = unstable_cache(
     async () => {
-        console.log("[INDEX] Building Full Product Index from Woo (This should happen very rarely)...");
+        // console.log("[INDEX] Building Full Product Index from Woo (This should happen very rarely)...");
         // Fetch ALL products lightweight
         // We select fields: id, name, slug, sku, meta_data (to get EANs)
         const allProducts = await fetchAllWoo("products", {
@@ -61,7 +61,7 @@ const getCachedProductIndex = unstable_cache(
             };
         });
 
-        console.log(`[INDEX] Built and cached index with ${index.length} products.`);
+        // console.log(`[INDEX] Built and cached index with ${index.length} products.`);
         return index;
     },
     ['global-product-index-v1'], // Cache key
@@ -126,7 +126,7 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
         if (Array.isArray(skuRes.data) && skuRes.data.length > 0) {
             const match = skuRes.data[0];
             if (match && Number(match.id) !== numericExcludeId) {
-                console.log(`[LOOKUP] ✅ Match SKU (Woo): ${match.id}`);
+                // console.log(`[LOOKUP] ✅ Match SKU (Woo): ${match.id}`);
                 return { success: true, data: match };
             }
         }
@@ -192,11 +192,11 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
                         const skuValid = String(p.sku).trim().toLowerCase() === idStr.toLowerCase();
 
                         if (metaValid || skuValid) {
-                            console.log(`[LOOKUP] ✅ Verified Match WP Meta/SKU (${candidate.key}): ${finalRes.data.id}`);
+                            // console.log(`[LOOKUP] ✅ Verified Match WP Meta/SKU (${candidate.key}): ${finalRes.data.id}`);
                             verifiedMatch = finalRes.data;
                             break; // Stop after first verified match
                         } else {
-                            console.warn(`[LOOKUP] ⚠️ False positive from WP API for "${idStr}" -> Product ${p.id} does not match.`);
+                            // console.warn(`[LOOKUP] ⚠️ False positive from WP API for "${idStr}" -> Product ${p.id} does not match.`);
                         }
                     }
                 } catch (e) { }
@@ -214,7 +214,7 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
             try {
                 const idRes = await api.get(`products/${numericId}`, { next: { revalidate: 3600 } });
                 if (idRes.data && idRes.data.id) {
-                    console.log(`[LOOKUP] ✅ Match ID: ${idRes.data.id}`);
+                    // console.log(`[LOOKUP] ✅ Match ID: ${idRes.data.id}`);
                     return { success: true, data: idRes.data };
                 }
             } catch (e) { }
@@ -255,18 +255,18 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
             });
 
             if (exactMatch) {
-                console.log(`[LOOKUP] ✅ Match Search (Exact SKU/Meta): ${exactMatch.id}`);
+                // console.log(`[LOOKUP] ✅ Match Search (Exact SKU/Meta): ${exactMatch.id}`);
                 return { success: true, data: exactMatch };
             }
 
             // If no exact match found, warn but don't return fuzzy
-            console.warn(`[LOOKUP] ❌ Search found ${validMatches.length} results but no exact SKU/Meta match for "${idStr}"`);
+            // console.warn(`[LOOKUP] ❌ Search found ${validMatches.length} results but no exact SKU/Meta match for "${idStr}"`);
         }
 
         // 6. LAST RESORT: Server-Side Index Fallback
         // Because WP API meta filtering is often broken/unauthorized for guest requests,
         // and search doesn't index meta, we must check our own "All Product" index.
-        console.warn(`[LOOKUP] ⚠️ Direct lookups failed for "${idStr}". Attempting Server-Side Product Index fallback...`);
+        // console.warn(`[LOOKUP] ⚠️ Direct lookups failed for "${idStr}". Attempting Server-Side Product Index fallback...`);
         const indexRes = await fetchProductIndexAction();
         if (indexRes.success && Array.isArray(indexRes.data)) {
             // Find in index
@@ -275,18 +275,18 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
             );
 
             if (indexMatch) {
-                console.log(`[LOOKUP] ✅ Match Index Fallback: ${indexMatch.id} (${indexMatch.name})`);
+                // console.log(`[LOOKUP] ✅ Match Index Fallback: ${indexMatch.id} (${indexMatch.name})`);
                 // Fetch full product now that we have the ID to be safe
                 const finalRes = await api.get(`products/${indexMatch.id}`, { next: { revalidate: 3600 } });
                 return { success: true, data: finalRes.data };
             }
         } else {
-            console.error("[LOOKUP] Index fetch failed or returned invalid data.");
+            // console.error("[LOOKUP] Index fetch failed or returned invalid data.");
         }
 
         return { success: true, data: null };
     } catch (error: any) {
-        console.error(`[LOOKUP] 🚨 ERROR: ${idStr}`, error.message);
+        // console.error(`[LOOKUP] 🚨 ERROR: ${idStr}`, error.message);
         return { success: false, error: error?.message || "Internal server error" };
     }
 }
@@ -325,7 +325,7 @@ export async function fetchProductsByIdentifiersAction(identifiers: string[], ex
 export async function fetchRelatedProductsBatchAction(identifiers: string[], excludeId?: number) {
     if (!identifiers || identifiers.length === 0) return { success: true, data: [] };
 
-    console.log(`[BATCH] Starting optimized batch fetch for ${identifiers.length} items...`);
+    // console.log(`[BATCH] Starting optimized batch fetch for ${identifiers.length} items...`);
     const cleanIds = identifiers.map(id => String(id).trim().toLowerCase());
     const foundMap = new Map<string, any>(); // Map original query -> product
 
@@ -360,7 +360,7 @@ export async function fetchRelatedProductsBatchAction(identifiers: string[], exc
         // 2. Resolve missing items via slow lookup (Parallel)
         const missingQueries = identifiers.filter(q => !foundMap.has(q));
         if (missingQueries.length > 0) {
-            console.log(`[BATCH] ${missingQueries.length} items not in index. Falling back to slow lookup...`);
+            // console.log(`[BATCH] ${missingQueries.length} items not in index. Falling back to slow lookup...`);
             const fallbackResults = await Promise.all(
                 missingQueries.map(id => fetchProductBySkuOrIdAction(id, excludeId))
             );
@@ -380,7 +380,7 @@ export async function fetchRelatedProductsBatchAction(identifiers: string[], exc
             .map(p => p.id);
 
         if (indexFoundIDs.length > 0) {
-            console.log(`[BATCH] Hydrating ${indexFoundIDs.length} products from ID...`);
+            // console.log(`[BATCH] Hydrating ${indexFoundIDs.length} products from ID...`);
             try {
                 // Fetch full objects for these IDs
                 const hydrationRes = await api.get("products", {

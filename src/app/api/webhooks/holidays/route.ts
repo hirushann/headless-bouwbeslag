@@ -24,7 +24,7 @@ export async function POST(req: Request) {
         const body = await req.json();
 
         // Let's log exactly what the payload looks like so we can see it in terminal!
-        console.log("\n================ [WEBHOOK PAYLOAD] ================\n", JSON.stringify(body, null, 2), "\n============================================\n");
+        // console.log("\n================ [WEBHOOK PAYLOAD] ================\n", JSON.stringify(body, null, 2), "\n============================================\n");
 
         if (!body || typeof body !== 'object') {
             return NextResponse.json(

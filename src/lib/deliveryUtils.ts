@@ -129,10 +129,6 @@ export const formatDeliveryMessage = (deliveryDate: Date): string => {
     const today = startOfDay(now);
     const target = startOfDay(deliveryDate);
 
-    console.log("now", now);
-    console.log("today", today);
-    console.log("target", target);
-
     // Difference in days (approx)
     const diffTime = target.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
