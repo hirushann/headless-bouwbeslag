@@ -108,6 +108,49 @@ export async function fetchProductBySkuAction(sku: string) {
     }
 }
 
+export async function fetchBrandImageUrlAction(brandId: number) {
+    try {
+        console.log(`[BRAND] Fetching WooCommerce brand details for ID: ${brandId}`);
+        const brandRes = await api.get(`products/brands/${brandId}`, { next: { revalidate: 3600 } });
+        const brandData = brandRes.data;
+
+        // WooCommerce brand object format -> image: { src: "..." }
+        if (brandData?.image?.src) {
+            console.log(`[BRAND] Found WC native brand image:`, brandData.image.src);
+            return { success: true, data: brandData.image.src };
+        }
+
+        // Fallback to ACF if for some reason native WC image is missing
+        if (brandData?.acf?.brand_logo) {
+            let logoUrl = null;
+            const logoData = brandData.acf.brand_logo;
+            console.log(`[BRAND] Native WC image missing, checking ACF data:`, logoData);
+
+            if (typeof logoData === 'number' || !isNaN(Number(logoData))) {
+                try {
+                    const mediaRes = await api.get(`wp/v2/media/${logoData}`, { next: { revalidate: 3600 } });
+                    logoUrl = mediaRes.data?.source_url || null;
+                } catch (e: any) {
+                    console.error(`[BRAND] Error fetching ACF media:`, e.message);
+                }
+            } else if (typeof logoData === 'string') {
+                logoUrl = logoData;
+            } else if (logoData?.url) {
+                logoUrl = logoData.url;
+            }
+            if (logoUrl) {
+                return { success: true, data: logoUrl };
+            }
+        }
+
+        console.log(`[BRAND] No brand image found for brand ID: ${brandId}`);
+        return { success: true, data: null };
+    } catch (error: any) {
+        console.error(`[BRAND] Action Error:`, error.message);
+        return { success: false, error: error?.message || "Failed to fetch brand image" };
+    }
+}
+
 export async function fetchProductBySkuOrIdAction(identifier: string | number, excludeId?: number) {
     const idStr = String(identifier).trim();
     if (!idStr) return { success: true, data: null };

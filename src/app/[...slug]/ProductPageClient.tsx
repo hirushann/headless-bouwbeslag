@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, use } from 'react';
 import { useUserContext } from "@/context/UserContext";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
-import { checkStockAction, fetchProductByIdAction, fetchProductBySkuAction, fetchProductBySkuOrIdAction, fetchRelatedProductsBatchAction } from "@/app/actions";
+import { checkStockAction, fetchProductByIdAction, fetchProductBySkuAction, fetchProductBySkuOrIdAction, fetchRelatedProductsBatchAction, fetchBrandImageUrlAction } from "@/app/actions";
 import Link from "next/link";
 // import Image from "next/image";
 // import ProductCard from "@/components/ProductCard";
@@ -30,6 +30,7 @@ const formatSpecValue = (value: string | number | null | undefined): string => {
 
 export default function ProductPageClient({ product, taxRate = 21, slug }: { product: any; taxRate?: number; slug?: string[] }) {
   useEffect(() => {
+    console.log("Single Product Response:", product);
   }, [product]);
 
   const fadeInUp = {
@@ -194,8 +195,21 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
   const [brandImageUrl, setBrandImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    // Use the logoUrl that was fetched server-side in page.tsx
-    setBrandImageUrl(product?.brands?.[0]?.logoUrl || null);
+    // If we already have injected logoUrl, use it. Otherwise, fetch it.
+    if (product?.brands?.[0]?.logoUrl) {
+      setBrandImageUrl(product.brands[0].logoUrl);
+      return;
+    }
+    
+    // Fetch directly from our new server action if we have the brand details
+    const brandId = product?.brands?.[0]?.id;
+    if (brandId) {
+      fetchBrandImageUrlAction(brandId).then((res) => {
+        if (res.success && res.data) {
+          setBrandImageUrl(res.data);
+        }
+      });
+    }
   }, [product]);
 
 
