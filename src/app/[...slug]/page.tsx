@@ -67,10 +67,10 @@ const getCategoryMetadataCached = cache(async (slug: string) => {
 
 const getProductBySlugCached = cache(async (slug: string) => {
   try {
-    const res = await api.get("products", { slug, cache: "no-store" });
+    const res = await api.get("products", { slug, next: { revalidate: 3600 } });
     if (!Array.isArray(res.data) || !res.data[0]) return null;
 
-    const full = await api.get(`products/${res.data[0].id}`, { cache: "no-store" });
+    const full = await api.get(`products/${res.data[0].id}`, { next: { revalidate: 3600 } });
     const product = full?.data ?? null;
     if (!product) return null;
 
@@ -109,7 +109,7 @@ const getCategoryBySlugCached = cache(async (slug: string): Promise<Category | n
   try {
     const res = await api.get("products/categories", { 
       slug, 
-      cache: "no-store",
+      next: { revalidate: 3600 },
       _fields: "id,name,slug,description,acf,parent"
     });
     if (!res.data || res.data.length === 0) return null;

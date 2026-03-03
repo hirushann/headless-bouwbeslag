@@ -119,7 +119,7 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
 
     try {
         // 1. Precise SKU Lookup
-        const skuRes = await api.get("products", { sku: idStr, per_page: 1, cache: "no-store", status: "publish" });
+        const skuRes = await api.get("products", { sku: idStr, per_page: 1, next: { revalidate: 3600 }, status: "publish" });
         if (Array.isArray(skuRes.data) && skuRes.data.length > 0) {
             const match = skuRes.data[0];
             if (match && Number(match.id) !== numericExcludeId) {
@@ -158,7 +158,7 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
                         meta_value: idStr,
                         _fields: "id",
                         per_page: 5, // Fetch a few to increase chance of finding the right one if duplicates or near-matches exist
-                        cache: "no-store"
+                        next: { revalidate: 3600 }
                     });
                     if (Array.isArray(wpRes.data) && wpRes.data.length > 0) {
                         return wpRes.data.map((hit: any) => ({ id: Number(hit.id), key }));
@@ -178,7 +178,7 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
             // Verify each candidate until we find a match
             for (const candidate of uniqueCandidates) {
                 try {
-                    const finalRes = await api.get(`products/${candidate.id}`, { cache: "no-store" });
+                    const finalRes = await api.get(`products/${candidate.id}`, { next: { revalidate: 3600 } });
                     if (finalRes.data && finalRes.data.id) {
                         const p = finalRes.data;
 
@@ -209,7 +209,7 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
         const numericId = Number(idStr);
         if (!isNaN(numericId) && /^\d+$/.test(idStr) && idStr.length < 9 && numericId !== numericExcludeId) {
             try {
-                const idRes = await api.get(`products/${numericId}`, { cache: "no-store" });
+                const idRes = await api.get(`products/${numericId}`, { next: { revalidate: 3600 } });
                 if (idRes.data && idRes.data.id) {
                     // console.log(`[LOOKUP] ✅ Match ID: ${idRes.data.id}`);
                     return { success: true, data: idRes.data };
@@ -226,7 +226,7 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
         const wcSearchRes = await api.get("products", {
             search: idStr,
             per_page: 10,
-            cache: "no-store",
+            next: { revalidate: 3600 },
             status: "publish"
         });
 
@@ -274,7 +274,7 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
             if (indexMatch) {
                 // console.log(`[LOOKUP] ✅ Match Index Fallback: ${indexMatch.id} (${indexMatch.name})`);
                 // Fetch full product now that we have the ID to be safe
-                const finalRes = await api.get(`products/${indexMatch.id}`, { cache: "no-store" });
+                const finalRes = await api.get(`products/${indexMatch.id}`, { next: { revalidate: 3600 } });
                 return { success: true, data: finalRes.data };
             }
         } else {
@@ -384,7 +384,7 @@ export async function fetchRelatedProductsBatchAction(identifiers: string[], exc
                     include: indexFoundIDs,
                     per_page: 50,
                     _fields: "id,name,slug,permalink,price,regular_price,price_html,images,attributes,stock_status,meta_data,stock_quantity,manage_stock,backorders,backorders_allowed",
-                    cache: "no-store"
+                    next: { revalidate: 3600 }
                 });
 
                 if (Array.isArray(hydrationRes.data)) {

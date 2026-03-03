@@ -318,7 +318,7 @@ export const getProductsByBrand = async (brandId: number): Promise<any[]> => {
             // 2. Fetch full product details for these IDs from WC API in chunks to avoid Next.js 2MB fetch cache limit
             const chunkSize = 40;
             const wcProducts: any[] = [];
-            
+
             for (let i = 0; i < ids.length; i += chunkSize) {
                 const chunk = ids.slice(i, i + chunkSize);
                 const { data: chunkData } = await api.get("products", {
@@ -358,7 +358,6 @@ export const fetchAllWoo = async (endpoint: string, extraParams: any = {}) => {
                 params: {
                     per_page: 50, // Reduced from 100 to avoid cache limits
                     page,
-                    cache: "no-store", // Disable cache to prevent 2MB warnings
                     ...extraParams,
                 }
             });
