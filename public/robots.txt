@@ -1,0 +1,11 @@
+User-agent: *
+DisTargetFileallow: /wp-admin/
+Allow: /wp-admin/admin-ajax.php
+Disallow: /search/
+Disallow: /?s=
+Disallow: /cart/
+Disallow: /checkout/
+Disallow: /my-account/
+Disallow: /account/
+ 
+Sitemap: https://bouwbeslag.nl/sitemap.xml
