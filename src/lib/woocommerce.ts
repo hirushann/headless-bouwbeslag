@@ -124,15 +124,29 @@ export const fetchMedia = async (id: number | string) => {
     return res.data;
 };
 
-// Helper to resolve brand logo if it's an ID
+// Helper to resolve brand logo if it's an ID or native WC
 const resolveBrandLogin = async (brand: Brand): Promise<Brand> => {
+    // 1. Check native WooCommerce Brand image first (Most reliable)
+    try {
+        const wcBrandRes = await api.get(`products/brands/${brand.id}`, { next: { revalidate: 3600 } });
+        if (wcBrandRes.data?.image?.src) {
+            if (!brand.acf) brand.acf = {};
+            brand.acf.brand_logo = wcBrandRes.data.image.src;
+            return brand;
+        }
+    } catch (e) {
+        // Fallback to ACF
+    }
+
+    // 2. Fallback to ACF if native WC image is missing
     if (brand.acf?.brand_logo) {
         const logoId = Number(brand.acf.brand_logo);
         if (!isNaN(logoId) && logoId > 0) {
             try {
-                const media = await fetchMedia(logoId);
-                if (media?.source_url) {
-                    brand.acf.brand_logo = media.source_url;
+                // Add caching to media lookup
+                const mediaRes = await api.get(`wp/v2/media/${logoId}`, { next: { revalidate: 3600 } });
+                if (mediaRes.data?.source_url) {
+                    brand.acf.brand_logo = mediaRes.data.source_url;
                 }
             } catch (e) {
                 // console.error(`Failed to resolve media for brand ${brand.name}`, e);
