@@ -315,15 +315,24 @@ export const getProductsByBrand = async (brandId: number): Promise<any[]> => {
 
             const ids = wpProducts.map((p: any) => p.id);
 
-            // 2. Fetch full product details for these IDs from WC API
-            const { data: wcProducts } = await api.get("products", {
-                params: {
-                    include: ids.join(','),
-                    per_page: 100,
-                    status: 'publish',
-                    next: { revalidate: 60 }
+            // 2. Fetch full product details for these IDs from WC API in chunks to avoid Next.js 2MB fetch cache limit
+            const chunkSize = 40;
+            const wcProducts: any[] = [];
+            
+            for (let i = 0; i < ids.length; i += chunkSize) {
+                const chunk = ids.slice(i, i + chunkSize);
+                const { data: chunkData } = await api.get("products", {
+                    params: {
+                        include: chunk.join(','),
+                        per_page: chunkSize,
+                        status: 'publish',
+                        next: { revalidate: 60 }
+                    }
+                });
+                if (Array.isArray(chunkData)) {
+                    wcProducts.push(...chunkData);
                 }
-            });
+            }
 
             allProducts = [...allProducts, ...wcProducts];
             totalPages = Number(response.totalPages) || 1;
