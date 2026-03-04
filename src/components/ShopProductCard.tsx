@@ -30,8 +30,6 @@ export default function ShopProductCard({ product }: { product: any }) {
 
   const addItem = useCartStore((state) => state.addItem);
 
-  console.log("ShopProductCard loaded product data:", product);
-
   // Title logic
   const productTitle = product?.meta_data?.find((m: any) => m.key === "description_bouwbeslag_title")?.value || product?.name || "Untitled Product";
 
@@ -118,9 +116,6 @@ export default function ShopProductCard({ product }: { product: any }) {
       showStrikeThrough
     };
   })();
-
-  const debugCatImageMeta = product?.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value;
-  console.log(`[ShopProductCard Render] ID: ${product.id} | Title: "${productTitle}" | CatImageID: "${debugCatImageMeta}" | URL: "${targetImgSrc}"`);
 
   return (
     <div className="snap-start shrink-0 w-[100%] border border-[#E2E2E2] rounded-lg shadow-sm bg-[#F7F7F7] flex flex-col h-full">
@@ -237,7 +232,6 @@ export default function ShopProductCard({ product }: { product: any }) {
 
               const { cartPrice, displayPrice } = priceData;
               const deliveryInfo = getDeliveryInfo(stockData.stock_status, 1, stockData.stock_quantity ?? null);
-              console.log(stockData);
               addItem({
                 id: product.id,
                 name: customTitle,

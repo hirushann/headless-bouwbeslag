@@ -5,7 +5,6 @@ import api, { fetchAllWoo } from "@/lib/woocommerce";
 
 export async function fetchProductIndexAction() {
     try {
-        // console.log("[INDEX] Building/Fetching Full Product Index (Cached)...");
         // Fetch ALL products lightweight
         // We select fields: id, name, slug, sku, meta_data (to get EANs)
         // INCREASED CACHE: Revalidates every 1 hour (3600s) to be super fast. 
@@ -67,10 +66,8 @@ export async function fetchProductIndexAction() {
             };
         });
 
-        // console.log(`[INDEX] Built index with ${index.length} products.`);
         return { success: true, data: index };
     } catch (error: any) {
-        // console.error("Failed to build product index:", error?.message);
         return { success: false, error: error?.message || "Failed to fetch index" };
     }
 }
@@ -110,13 +107,11 @@ export async function fetchProductBySkuAction(sku: string) {
 
 export async function fetchBrandImageUrlAction(brandId: number) {
     try {
-        console.log(`[BRAND] Fetching WooCommerce brand details for ID: ${brandId}`);
         const brandRes = await api.get(`products/brands/${brandId}`, { next: { revalidate: 3600 } });
         const brandData = brandRes.data;
 
         // WooCommerce brand object format -> image: { src: "..." }
         if (brandData?.image?.src) {
-            console.log(`[BRAND] Found WC native brand image:`, brandData.image.src);
             return { success: true, data: brandData.image.src };
         }
 
@@ -124,7 +119,6 @@ export async function fetchBrandImageUrlAction(brandId: number) {
         if (brandData?.acf?.brand_logo) {
             let logoUrl = null;
             const logoData = brandData.acf.brand_logo;
-            console.log(`[BRAND] Native WC image missing, checking ACF data:`, logoData);
 
             if (typeof logoData === 'number' || !isNaN(Number(logoData))) {
                 try {
@@ -143,7 +137,6 @@ export async function fetchBrandImageUrlAction(brandId: number) {
             }
         }
 
-        console.log(`[BRAND] No brand image found for brand ID: ${brandId}`);
         return { success: true, data: null };
     } catch (error: any) {
         console.error(`[BRAND] Action Error:`, error.message);

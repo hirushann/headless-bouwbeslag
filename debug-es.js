@@ -12,13 +12,12 @@ const client = new Client({
 async function run() {
   try {
     const result = await client.search({
-      index: process.env.ELASTICSEARCH_INDEX || 'products', // guess index or use env
+      index: process.env.ELASTICSEARCH_INDEX || 'products', 
       body: {
         size: 1,
         query: { match_all: {} }
       }
     });
-    // console.log(JSON.stringify(result.hits.hits[0], null, 2));
   } catch (err) {
     console.error(err);
   }
@@ -26,5 +25,4 @@ async function run() {
 
 // Check for env vars, if not present we might fail, but usually they are in .env.lcoal
 // Since I can't load .env easily with node directly without dotenv, I'll rely on the app running it or just try to run it with run_command and hope for the best or inspect .env
-// console.log("Starting...");
 // run(); 

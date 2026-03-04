@@ -84,8 +84,6 @@ export default function ProductCard({ product, userRole: propUserRole }: { produ
 
   const addItem = useCartStore((state) => state.addItem);
 
-  console.log("ProductCard loaded product data:", product);
-
   const [isAdding, setIsAdding] = useState(false);
 
   // Pre-calculate image state to avoid flash
@@ -129,9 +127,6 @@ export default function ProductCard({ product, userRole: propUserRole }: { produ
   const imgSrc = normalizeImageUrl(targetImgSrc);
 
   const productTitle = product?.meta_data?.find((m: any) => m.key === "description_bouwbeslag_title")?.value || product?.name || "Untitled Product";
-
-  const debugCatImageMeta = product?.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value;
-  console.log(`[ProductCard Render] ID: ${product.id} | Title: "${productTitle}" | CatImageID: "${debugCatImageMeta}" | URL: "${targetImgSrc}"`);
 
   return (
     <div className="snap-start shrink-0 w-[100%] border border-[#E2E2E2] rounded-sm shadow-sm bg-[#F7F7F7] flex flex-col h-full">

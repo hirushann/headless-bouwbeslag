@@ -66,7 +66,6 @@ const isBlockedShippingDate = (date: Date): boolean => {
 export const calculateDeliveryDate = (leadTimeDays: number = 1): Date => {
     const now = new Date();
 
-    console.log("now", now);
     // 1. Determine Shipping Date
     // If today is a shipping day (Mon-Fri) AND before cutoff, ship today.
     // Else, ship next valid shipping day.

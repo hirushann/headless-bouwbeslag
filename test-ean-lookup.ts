@@ -49,8 +49,6 @@ class WooCommerceClient {
             config.body = JSON.stringify(data);
         }
 
-        // console.log(`Requesting: ${requestUrl.toString()}`);
-
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
@@ -95,12 +93,10 @@ async function findProductWithEan() {
     }
 
     try {
-        // console.log("Fetching products to find an EAN...");
         // Fetch 20 products and look for one with meta_data containing 'ean' or similar keys
         const res = await api.get("products", { per_page: 20 });
 
         if (!res.data || res.data.length === 0) {
-            // console.log("No products found.");
             return;
         }
 
@@ -139,13 +135,8 @@ async function findProductWithEan() {
         }
 
         if (foundProduct) {
-            // console.log(`Found Product: ${foundProduct.name} (ID: ${foundProduct.id})`);
-            // console.log(`EAN Key: ${foundKey}`);
-            // console.log(`EAN Value: ${foundEan}`);
-            // console.log("---------------------------------------------------");
             return { ean: foundEan, id: foundProduct.id };
         } else {
-            // console.log("Could not find a product with a visible EAN in the first 20 items.");
             return null;
         }
     } catch (error: any) {
@@ -155,7 +146,6 @@ async function findProductWithEan() {
 }
 
 async function testLookup(ean: string, expectedId: number) {
-    // console.log(`Testing lookup for EAN: "${ean}"...`);
 
     // Simulating the logic from actions.ts locally since we can't import server actions easily in this raw script
     // We will copy the core logic of fetchProductBySkuOrIdAction here for the test
@@ -181,10 +171,8 @@ async function testLookup(ean: string, expectedId: number) {
         // 1. Precise SKU Lookup (skip for EAN test unless EAN==SKU)
 
         // 2. Parallel WP Meta Query
-        // console.log("Starting parallel meta query...");
         const metaResults = await Promise.all(targetMetaKeys.map(async (key) => {
             try {
-                // console.log(`Checking key: ${key}`);
                 const wpRes = await api.get("wp/v2/product", {
                     meta_key: key,
                     meta_value: ean,
@@ -194,27 +182,14 @@ async function testLookup(ean: string, expectedId: number) {
                 });
                 if (Array.isArray(wpRes.data) && wpRes.data.length > 0) {
                     const hit = wpRes.data[0];
-                    // console.log(`[MATCH] Found match on key '${key}' -> ID: ${hit.id}`);
                     return { id: Number(hit.id), key: key };
                 }
             } catch (e: any) {
-                // console.log(`Error on key ${key}: ${e.message}`);
             }
             return null;
         }));
 
         const foundMatch = metaResults.find(m => m !== null);
-
-        if (foundMatch) {
-            // console.log(`✅ SUCCESS: Found product ID ${foundMatch.id} using EAN "${ean}" via key "${foundMatch.key}"`);
-            if (foundMatch.id === expectedId) {
-                // console.log("✅ ID matches expected ID.");
-            } else {
-                // console.log(`⚠️ ID mismatch! Expected ${expectedId}, got ${foundMatch.id}`);
-            }
-        } else {
-            // console.log(`❌ FAILED: Could not find product using EAN "${ean}" via any meta key.`);
-        }
 
     } catch (error: any) {
         // console.error("Test failed with error:", error.message);

@@ -30,7 +30,6 @@ const formatSpecValue = (value: string | number | null | undefined): string => {
 
 export default function ProductPageClient({ product, taxRate = 21, slug }: { product: any; taxRate?: number; slug?: string[] }) {
   useEffect(() => {
-    console.log("Single Product Response:", product);
   }, [product]);
 
   const fadeInUp = {
@@ -405,8 +404,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         setIsOrderModelsLoading(false);
         return;
     }
-
-    console.log(`🚀 [BATCH] Super-Batch Fetching ${idsToFetch.length} items for ALL groups.`);
 
     // 2. Perform ONE Fetch
     fetchRelatedProductsBatchAction(idsToFetch, product.id)
