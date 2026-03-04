@@ -277,36 +277,36 @@ export default function Header({
           <MobileMenu />
           <div className="max-w-[1440px] relative mx-auto hidden lg:flex justify-between items-center">
             <div className="flex justify-start items-center">
-              <a href="/categories">
+              <Link prefetch={true} href="/categories">
                 <div className="bg-[#0066FF] flex gap-1 py-4 px-5 w-max items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="25" height="25" fill="#ffffff"><path d="M96 96C113.7 96 128 110.3 128 128L128 464C128 472.8 135.2 480 144 480L544 480C561.7 480 576 494.3 576 512C576 529.7 561.7 544 544 544L144 544C99.8 544 64 508.2 64 464L64 128C64 110.3 78.3 96 96 96zM192 160C192 142.3 206.3 128 224 128L416 128C433.7 128 448 142.3 448 160C448 177.7 433.7 192 416 192L224 192C206.3 192 192 177.7 192 160zM224 240L352 240C369.7 240 384 254.3 384 272C384 289.7 369.7 304 352 304L224 304C206.3 304 192 289.7 192 272C192 254.3 206.3 240 224 240zM224 352L480 352C497.7 352 512 366.3 512 384C512 401.7 497.7 416 480 416L224 416C206.3 416 192 401.7 192 384C192 366.3 206.3 352 224 352z" /></svg>
                   <span className="text-white font-normal text-sm">
                     Categorieën
                   </span>
                 </div>
-              </a>
+              </Link>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <Link href="/deurbeslag/deurklink">
+                <Link prefetch={true} href="/deurbeslag/deurklink">
                   <span className="text-white font-normal text-sm">Deurklink</span>
                 </Link>
               </div>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <Link href="/deurbeslag/cilinders">
+                <Link prefetch={true} href="/deurbeslag/cilinders">
                   <span className="text-white font-normal text-sm">Cilinder</span>
                 </Link>
               </div>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <Link href="/deurbeslag/tochtstrip">
+                <Link prefetch={true} href="/deurbeslag/tochtstrip">
                   <span className="text-white font-normal text-sm">Tochtstrip</span>
                 </Link>
               </div>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <Link href="/deurbeslag/deurstoppers">
+                <Link prefetch={true} href="/deurbeslag/deurstoppers">
                   <span className="text-white font-normal text-sm">Deurstopper</span>
                 </Link>
               </div>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <Link href="/deurbeslag">
+                <Link prefetch={true} href="/deurbeslag">
                   <span className="text-white font-normal text-sm">Deurbeslag</span>
                 </Link>
               </div>

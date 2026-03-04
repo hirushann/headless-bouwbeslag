@@ -50,6 +50,8 @@ export default async function Categories() {
       const res = await api.get("products/categories", {
         per_page: 100,
         page: page,
+        parent: 0,
+        hide_empty: true,
       });
       
       const data = res.data || [];

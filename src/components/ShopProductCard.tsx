@@ -43,16 +43,14 @@ export default function ShopProductCard({ product }: { product: any }) {
   const isCached = isNumericCatImg && !!globalMediaCache[catImgMeta];
   
   const initialImgSrc = catImgMeta && catImgMeta.trim() !== ""
-      ? (isNumericCatImg ? (isCached ? globalMediaCache[catImgMeta] : undefined) : catImgMeta)
+      ? (isNumericCatImg ? (isCached ? globalMediaCache[catImgMeta] : product.images?.[0]?.src) : catImgMeta)
       : product.images?.[0]?.src;
 
   const [targetImgSrc, setTargetImgSrc] = useState<string | undefined>(initialImgSrc);
-  const [isFetchingImg, setIsFetchingImg] = useState<boolean>(isNumericCatImg && !isCached);
 
   useEffect(() => {
     // Reset state if product identity changes
     setTargetImgSrc(initialImgSrc);
-    setIsFetchingImg(isNumericCatImg && !isCached);
 
     if (isNumericCatImg && !isCached) {
       const WP_BASE = process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "https://app.bouwbeslag.nl";
@@ -62,15 +60,10 @@ export default function ShopProductCard({ product }: { product: any }) {
           if (data && data.source_url) {
             globalMediaCache[catImgMeta] = data.source_url;
             setTargetImgSrc(data.source_url);
-          } else {
-            setTargetImgSrc(product.images?.[0]?.src);
           }
         })
         .catch(() => {
-          setTargetImgSrc(product.images?.[0]?.src);
-        })
-        .finally(() => {
-          setIsFetchingImg(false);
+          // Keep current fallback silently
         });
     }
   }, [product?.id, catImgMeta, initialImgSrc, isNumericCatImg, isCached]);
@@ -132,10 +125,10 @@ export default function ShopProductCard({ product }: { product: any }) {
   return (
     <div className="snap-start shrink-0 w-[100%] border border-[#E2E2E2] rounded-lg shadow-sm bg-[#F7F7F7] flex flex-col h-full">
       <Link href={`/${product.slug}`} className="relative h-32 lg:h-48 bg-white rounded-tl-lg rounded-tr-lg overflow-hidden flex items-center justify-center">
-        {isFetchingImg ? (
-          <div className="w-full h-full bg-gray-100 animate-pulse" />
+        {targetImgSrc ? (
+          <Image sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw" src={fixImageSrc(targetImgSrc)} alt={productTitle} fill className="object-contain" />
         ) : (
-          <Image src={fixImageSrc(targetImgSrc)} alt={productTitle} fill className="object-contain" />
+          <div className="w-full h-full bg-gray-100 animate-pulse" />
         )}
 
         {/* Dynamic stock badge */}

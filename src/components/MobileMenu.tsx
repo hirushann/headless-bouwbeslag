@@ -1,6 +1,7 @@
 "use client";
 
 import SearchAutosuggest from "./SearchAutosuggest";
+import Link from "next/link";
 
 export default function MobileMenu() {
   return (
@@ -13,11 +14,11 @@ export default function MobileMenu() {
             </svg>
           </div>
           <ul tabIndex={0} className="menu menu-lg dropdown-content bg-[#1C2530] z-1 mt-4.5 w-75 p-2 shadow text-white">
-            <li><a href="/categories">Categorieën</a></li>
-            <li><a href="/deurbeslag/deurklink">Deurklink</a></li>
-            <li><a href="/deurbeslag/cilinders">Cilinder</a></li>
-            <li><a href="/deurbeslag/tochtstrip">Tochtstrip</a></li>
-            <li><a href="/deurbeslag/deurstoppers">Deurstopper</a></li>
+            <li><Link prefetch={true} href="/categories">Categorieën</Link></li>
+            <li><Link prefetch={true} href="/deurbeslag/deurklink">Deurklink</Link></li>
+            <li><Link prefetch={true} href="/deurbeslag/cilinders">Cilinder</Link></li>
+            <li><Link prefetch={true} href="/deurbeslag/tochtstrip">Tochtstrip</Link></li>
+            <li><Link prefetch={true} href="/deurbeslag/deurstoppers">Deurstopper</Link></li>
           </ul>
         </div>
       </div>

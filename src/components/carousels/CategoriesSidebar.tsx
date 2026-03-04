@@ -35,6 +35,7 @@ const CategoryItem = ({ category, allCategories, parentPath = "" }: { category: 
         <input type="checkbox" className="min-h-0 py-0" />
         <div className="collapse-title font-normal text-sm text-[#3D4752] py-3 min-h-0 flex items-center pr-4">
             <Link 
+              prefetch={true}
               href={href} 
               className="hover:text-[#0066FF] hover:underline z-10 relative"
               onClick={(e) => e.stopPropagation()} 
@@ -55,6 +56,7 @@ const CategoryItem = ({ category, allCategories, parentPath = "" }: { category: 
 
   return (
     <Link
+      prefetch={true}
       href={href}
       className="block font-normal text-sm text-[#3D4752] py-3 px-4 hover:text-[#0066FF]"
     >

@@ -409,18 +409,25 @@ export default async function Page({ params, searchParams }: PageProps) {
 
   // 2. Check Category
   if (category) {
-    const [attributes, subCategoriesRes] = await Promise.all([
+    const sp = await searchParams;
+    const initialPage = parseInt((sp?.page as string) || "1");
+
+    const [attributes, subCategoriesRes, productsRes] = await Promise.all([
         fetchAttributes(),
-        api.get("products/categories", { parent: category.id })
+        api.get("products/categories", { parent: category.id }),
+        api.get("products", { per_page: 20, page: initialPage, category: category.id })
     ]);
     
     const subCategories = subCategoriesRes.data || [];
+    const initialFilterBaseProducts: any[] = [];
+    const initialProducts = productsRes.data || [];
+    const initialTotalPages = parseInt(productsRes.totalPages || '1');
+    const initialTotalProducts = parseInt(productsRes.total || '0');
 
     const correctPath = await traverseCategoryPath(category);
     const currentPath = slug.join("/");
 
     if (currentPath !== correctPath) {
-      const sp = await searchParams;
       const query = sp ? new URLSearchParams(sp as any).toString() : "";
       const destination = `/${correctPath}${query ? `?${query}` : ""}`;
       permanentRedirect(destination);
@@ -430,10 +437,15 @@ export default async function Page({ params, searchParams }: PageProps) {
       <main>
         <React.Suspense fallback={<div className="flex items-center justify-center min-h-screen">Laden...</div>}>
           <CategoryClient
+            key={category.id}
             category={category}
             attributes={attributes}
             subCategories={subCategories}
             currentSlug={slug}
+            initialProducts={initialProducts}
+            initialTotalPages={initialTotalPages}
+            initialTotalProducts={initialTotalProducts}
+            initialFilterBaseProducts={initialFilterBaseProducts}
           />
         </React.Suspense>
       </main>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import api from "@/lib/woocommerce";
 import ShopProductCard from "@/components/ShopProductCard";
 import Link from "next/link";
@@ -63,6 +63,10 @@ type CategoryClientProps = {
   subCategories: any[];
   attributes: any[];
   currentSlug: string[];
+  initialProducts?: any[];
+  initialTotalPages?: number;
+  initialTotalProducts?: number;
+  initialFilterBaseProducts?: any[];
 };
 
 function FilterAttributeGroup({
@@ -122,10 +126,14 @@ export default function CategoryClient({
   subCategories,
   attributes,
   currentSlug,
+  initialProducts = [],
+  initialTotalPages = 1,
+  initialTotalProducts = 0,
+  initialFilterBaseProducts = [],
 }: CategoryClientProps) {
   // console.log("CategoryClient received category:", category);
-  const [products, setProducts] = useState<any[]>([]);
-  const [rawProducts, setRawProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>(initialProducts);
+  const [rawProducts, setRawProducts] = useState<any[]>(initialProducts);
   const [selectedFilters, setSelectedFilters] = useState<{ [key: number]: Set<number> }>({});
   const [productsLoading, setProductsLoading] = useState<boolean>(false);
   const [filtersLoading, setFiltersLoading] = useState<boolean>(false);
@@ -135,6 +143,7 @@ export default function CategoryClient({
   const [showFilters, setShowFilters] = useState(false);
   const [afdichtingsspleetRange, setAfdichtingsspleetRange] = useState<[number, number] | null>(null);
   const [groefbreedteRange, setGroefbreedteRange] = useState<[number, number] | null>(null);
+  const isInitialMount = useRef(true);
   
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -142,9 +151,9 @@ export default function CategoryClient({
   // Initialize page from URL
   const initialPage = parseInt(searchParams.get("page") || "1");
   const [page, setPage] = useState<number>(initialPage);
-  const [totalPages, setTotalPages] = useState<number>(1);
-  const [totalProducts, setTotalProducts] = useState<number>(0);
-  const [allCategoryProductsForFilters, setAllCategoryProductsForFilters] = useState<any[]>([]);
+  const [totalPages, setTotalPages] = useState<number>(initialTotalPages);
+  const [totalProducts, setTotalProducts] = useState<number>(initialTotalProducts);
+  const [allCategoryProductsForFilters, setAllCategoryProductsForFilters] = useState<any[]>(initialFilterBaseProducts);
 
   // Sync state with URL when page changes
   useEffect(() => {
@@ -164,6 +173,7 @@ export default function CategoryClient({
   useEffect(() => {
     async function fetchFilterBase() {
       if (!category) return;
+      if (allCategoryProductsForFilters.length > 0) return;
       setFiltersLoading(true);
       try {
         // Fetch a larger batch (max 100) exactly once per category to determine available filters
@@ -186,6 +196,13 @@ export default function CategoryClient({
   useEffect(() => {
     async function loadProducts() {
       if (!category) return;
+
+      if (isInitialMount.current) {
+         isInitialMount.current = false;
+         if (Object.keys(selectedFilters).length === 0 && !afdichtingsspleetRange && !groefbreedteRange && !sortBy) {
+             return;
+         }
+      }
       
       // console.log(`📦 Loading page ${page} for category ${category.name} (ID: ${category.id})`);
       setProductsLoading(true);
