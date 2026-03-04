@@ -296,26 +296,9 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
             // console.warn(`[LOOKUP] ❌ Search found ${validMatches.length} results but no exact SKU/Meta match for "${idStr}"`);
         }
 
-        // 6. LAST RESORT: Server-Side Index Fallback
-        // Because WP API meta filtering is often broken/unauthorized for guest requests,
-        // and search doesn't index meta, we must check our own "All Product" index.
-        // console.warn(`[LOOKUP] ⚠️ Direct lookups failed for "${idStr}". Attempting Server-Side Product Index fallback...`);
-        const indexRes = await fetchProductIndexAction();
-        if (indexRes.success && Array.isArray(indexRes.data)) {
-            // Find in index
-            const indexMatch = indexRes.data.find((p: any) =>
-                p.identifiers && p.identifiers.includes(idStr.toLowerCase()) && p.id !== numericExcludeId
-            );
-
-            if (indexMatch) {
-                // console.log(`[LOOKUP] ✅ Match Index Fallback: ${indexMatch.id} (${indexMatch.name})`);
-                // Fetch full product now that we have the ID to be safe
-                const finalRes = await api.get(`products/${indexMatch.id}`, { next: { revalidate: 3600 } });
-                return { success: true, data: finalRes.data };
-            }
-        } else {
-            // console.error("[LOOKUP] Index fetch failed or returned invalid data.");
-        }
+        // 6. LAST RESORT: Database has no exact match.
+        // Do not use fetchProductIndexAction here as it hangs the server fetching 5000 products.
+        // If it's not in Woo search or exact meta match, we return null.
 
         return { success: true, data: null };
     } catch (error: any) {
@@ -358,89 +341,49 @@ export async function fetchProductsByIdentifiersAction(identifiers: string[], ex
 export async function fetchRelatedProductsBatchAction(identifiers: string[], excludeId?: number) {
     if (!identifiers || identifiers.length === 0) return { success: true, data: [] };
 
-    // console.log(`[BATCH] Starting optimized batch fetch for ${identifiers.length} items...`);
     const cleanIds = identifiers.map(id => String(id).trim().toLowerCase());
     const foundMap = new Map<string, any>(); // Map original query -> product
 
     try {
-        // 1. Fetch Index (Fastest, Cached)
-        const indexRes = await fetchProductIndexAction();
+        // 1. FAST FETCH: Try fetching via WooCommerce API using comma-separated SKUs
+        // WC API supports `sku` with multiple values separated by commas, making this insanely fast!
+        const skuString = cleanIds.join(",");
+        const skuRes = await api.get("products", {
+            sku: skuString,
+            per_page: 100,
+            status: "publish",
+            next: { revalidate: 3600 }
+        });
 
-        if (indexRes.success && Array.isArray(indexRes.data)) {
-            const index = indexRes.data;
-
-            cleanIds.forEach((queryId, originalIndex) => {
-                const originalQuery = identifiers[originalIndex];
-
-                // Find in index
-                const match = index.find((p: any) =>
-                    p.identifiers && p.identifiers.includes(queryId) && p.id !== excludeId
-                );
-
-                if (match) {
-                    // Match found in index! 
-                    // We only have light data (id, name, slug, sku, images, attributes).
-                    // If we need FULL data (price, stock), we might need to fetch individually later.
-                    // BUT for basic display (Image + Link + Name), this is enough?
-                    // The client expects full product object usually. 
-                    // Let's settle for returning the ID and letting client fetch full if critical, 
-                    // OR do a bulk fetch by ID (much faster than meta search).
-                    foundMap.set(originalQuery, { ...match });
+        if (Array.isArray(skuRes.data)) {
+            skuRes.data.forEach((p: any) => {
+                if (p.sku && p.id !== excludeId) {
+                    const skuLower = String(p.sku).trim().toLowerCase();
+                    // Map back to original query based on EXACT SKU match
+                    identifiers.forEach(id => {
+                        if (String(id).trim().toLowerCase() === skuLower) {
+                            foundMap.set(id, p);
+                        }
+                    });
                 }
             });
         }
 
-        // 2. Resolve missing items via slow lookup (Parallel)
+        // 2. SLOW FETCH: Resolve missing items via fallback (WP Meta / IDs)
         const missingQueries = identifiers.filter(q => !foundMap.has(q));
         if (missingQueries.length > 0) {
-            // console.log(`[BATCH] ${missingQueries.length} items not in index. Falling back to slow lookup...`);
             const fallbackResults = await Promise.all(
                 missingQueries.map(id => fetchProductBySkuOrIdAction(id, excludeId))
             );
 
             fallbackResults.forEach((res, i) => {
-                if (res.success && res.data) {
+                if (res.success && res.data && res.data.id !== excludeId) {
                     foundMap.set(missingQueries[i], res.data);
                 }
             });
         }
 
-        // 3. Hydrate Full Products for Index Matches (to get images, prices etc)
-        // We have IDs from index, but missing full data.
-        // Let's fetch them in one "include" query.
-        const indexFoundIDs = Array.from(foundMap.values())
-            .filter(p => p.id && !p.price_html) // Assume if no price_html, it's from index
-            .map(p => p.id);
-
-        if (indexFoundIDs.length > 0) {
-            // console.log(`[BATCH] Hydrating ${indexFoundIDs.length} products from ID...`);
-            try {
-                // Fetch full objects for these IDs
-                const hydrationRes = await api.get("products", {
-                    include: indexFoundIDs,
-                    per_page: 50,
-                    _fields: "id,name,slug,permalink,price,regular_price,price_html,images,attributes,stock_status,meta_data,stock_quantity,manage_stock,backorders,backorders_allowed",
-                    next: { revalidate: 3600 }
-                });
-
-                if (Array.isArray(hydrationRes.data)) {
-                    hydrationRes.data.forEach((fullP: any) => {
-                        // Update the map entries that have this ID
-                        for (const [key, val] of foundMap.entries()) {
-                            if (val.id === fullP.id) {
-                                foundMap.set(key, fullP);
-                            }
-                        }
-                    });
-                }
-            } catch (e) {
-                console.error("[BATCH] Hydration failed", e);
-            }
-        }
-
-        // 4. Return sorted results
-        // Return array of objects matching the input order? Or just list?
-        // Let's return mapped result to preserve caller's ability to map back to slots
+        // 3. Return mapped results in original identifiers order (to slot correctly)
         const finalResults = identifiers.map(id => {
             const match = foundMap.get(id);
             return match ? { query: id, product: match } : null;
