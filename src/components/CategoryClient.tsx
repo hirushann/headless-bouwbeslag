@@ -131,6 +131,9 @@ export default function CategoryClient({
   initialTotalProducts = 0,
   initialFilterBaseProducts = [],
 }: CategoryClientProps) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   // console.log("CategoryClient received category:", category);
   const [products, setProducts] = useState<any[]>(initialProducts);
   const [rawProducts, setRawProducts] = useState<any[]>(initialProducts);
@@ -138,15 +141,14 @@ export default function CategoryClient({
   const [productsLoading, setProductsLoading] = useState<boolean>(false);
   const [filtersLoading, setFiltersLoading] = useState<boolean>(false);
   const [showAllColors, setShowAllColors] = useState(false);
-  const [sortBy, setSortBy] = useState<string>("");
+  const [sortBy, setSortBy] = useState<string>(() => {
+    return searchParams.get("sort") || "";
+  });
   // const [activeSubCategories, setActiveSubCategories] = useState<Set<number>>(new Set()); // nested url change
   const [showFilters, setShowFilters] = useState(false);
   const [afdichtingsspleetRange, setAfdichtingsspleetRange] = useState<[number, number] | null>(null);
   const [groefbreedteRange, setGroefbreedteRange] = useState<[number, number] | null>(null);
   const isInitialMount = useRef(true);
-  
-  const searchParams = useSearchParams();
-  const router = useRouter();
   
   // Initialize page from URL
   const [page, setPage] = useState<number>(() => {
@@ -156,11 +158,14 @@ export default function CategoryClient({
   const [totalProducts, setTotalProducts] = useState<number>(initialTotalProducts);
   const [allCategoryProductsForFilters, setAllCategoryProductsForFilters] = useState<any[]>(initialFilterBaseProducts);
 
-  // Sync state with URL when page changes
+  // Sync state with URL when page or sort changes
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
     const currentPageStr = params.get("page") || "1";
+    const currentSortStr = params.get("sort") || "";
+    
+    let changed = false;
     
     if (page.toString() !== currentPageStr) {
       if (page > 1) {
@@ -168,13 +173,24 @@ export default function CategoryClient({
       } else {
         params.delete("page");
       }
-      
+      changed = true;
+    }
+
+    if (sortBy !== currentSortStr) {
+      if (sortBy) {
+        params.set("sort", sortBy);
+      } else {
+        params.delete("sort");
+      }
+      changed = true;
+    }
+    
+    if (changed) {
       const queryString = params.toString();
       const newPathname = window.location.pathname + (queryString ? "?" + queryString : "");
-      // Use replace to avoid bloating history
       router.replace(newPathname, { scroll: false });
     }
-  }, [page, router]);
+  }, [page, sortBy, router]);
 
   useEffect(() => {
     async function fetchFilterBase() {
@@ -237,6 +253,15 @@ export default function CategoryClient({
             params.order = "asc";
           } else if (sortBy === "price-high-low") {
             params.orderby = "price";
+            params.order = "desc";
+          } else if (sortBy === "date") {
+            params.orderby = "date";
+            params.order = "desc";
+          } else if (sortBy === "title-asc") {
+            params.orderby = "title";
+            params.order = "asc";
+          } else if (sortBy === "title-desc") {
+            params.orderby = "title";
             params.order = "desc";
           } else {
             params.orderby = sortBy;
@@ -327,9 +352,6 @@ export default function CategoryClient({
           console.warn("⚠️ All products from current page were filtered out localy!");
         }
 
-        if (prods.length > 0) {
-          console.log("DEBUG: Category Product Data for Image:", prods[0]);
-        }
         setProducts(prods);
       } catch (err) {
         // console.error(err);
@@ -683,12 +705,14 @@ export default function CategoryClient({
               <p className="text-xl lg:text-3xl font-bold">{category?.name ?? "Category"}</p>
               <div className='flex gap-3 '>
                 <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="select focus:outline-0 focus:ring-0 w-32 border border-[#808D9A] rounded-sm bg-[F7F7F7] h-8 w-full">
-                  <option disabled={true} value="">Sorteer op</option>
+                  <option value="">Aanbevolen</option>
                   <option value="popularity">Populariteit</option>
                   <option value="rating">Beoordeling</option>
-                  {/* <option value="latest">Nieuwste</option> */}
+                  <option value="date">Nieuwste</option>
                   <option value="price-low-high">Prijs: Laag naar Hoog</option>
                   <option value="price-high-low">Prijs: Hoog naar Laag</option>
+                  <option value="title-asc">Naam: A - Z</option>
+                  <option value="title-desc">Naam: Z - A</option>
                 </select>
                 {hasValidFilters && (
                   <button type="button" className="lg:hidden px-2 py-1 w-auto text-left bg-white border border-gray-300 rounded-md font-medium" onClick={() => setShowFilters(!showFilters)} aria-expanded={showFilters} aria-controls="filters-section">

@@ -30,7 +30,6 @@ const formatSpecValue = (value: string | number | null | undefined): string => {
 
 export default function ProductPageClient({ product, taxRate = 21, slug }: { product: any; taxRate?: number; slug?: string[] }) {
   useEffect(() => {
-    console.log("DEBUG: Single Product Data for Image:", product);
   }, [product]);
 
   const fadeInUp = {

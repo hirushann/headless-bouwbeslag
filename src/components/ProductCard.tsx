@@ -92,14 +92,21 @@ export default function ProductCard({ product, userRole: propUserRole }: { produ
   const isNumericCatImg = typeof catImgMeta === "string" && /^\d+$/.test(catImgMeta);
   const isCached = isNumericCatImg && !!globalMediaCache[catImgMeta];
   
-  const initialImgSrc = catImgMeta && catImgMeta.trim() !== ""
+  const initialImgSrc = product.resolved_cat_image || (catImgMeta && catImgMeta.trim() !== ""
       ? (isNumericCatImg ? (isCached ? globalMediaCache[catImgMeta] : undefined) : catImgMeta)
-      : product.images?.[0]?.src;
+      : product.images?.[0]?.src);
 
   const [targetImgSrc, setTargetImgSrc] = useState<string | undefined>(initialImgSrc);
-  const [isFetchingImg, setIsFetchingImg] = useState<boolean>(isNumericCatImg && !isCached);
+  const [isFetchingImg, setIsFetchingImg] = useState<boolean>(!product.resolved_cat_image && isNumericCatImg && !isCached);
 
   useEffect(() => {
+    // Priority for server-resolved image
+    if (product.resolved_cat_image) {
+        setTargetImgSrc(product.resolved_cat_image);
+        setIsFetchingImg(false);
+        return;
+    }
+
     // Reset if no cat meta
     if (!catImgMeta || catImgMeta.trim() === "") {
         setTargetImgSrc(product.images?.[0]?.src);

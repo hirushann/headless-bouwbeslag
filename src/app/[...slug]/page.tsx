@@ -242,6 +242,45 @@ async function traverseCategoryPath(category: any): Promise<string> {
   return path.join('/');
 }
 
+async function resolveProductImages(products: any[]) {
+    if (!products || products.length === 0) return products;
+
+    const mediaIds = new Set<string>();
+    products.forEach((p: any) => {
+        const catImgId = p.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value ||
+                         p.meta_data?.find((m: any) => m.key === "cat_image")?.value;
+        if (catImgId && /^\d+$/.test(String(catImgId))) {
+            mediaIds.add(String(catImgId));
+        }
+    });
+
+    if (mediaIds.size > 0) {
+        try {
+            const mediaRes = await api.get('wp/v2/media', { 
+                include: Array.from(mediaIds).join(','),
+                per_page: 100,
+                _fields: 'id,source_url'
+            });
+
+            if (Array.isArray(mediaRes.data)) {
+                const mediaMap = new Map();
+                mediaRes.data.forEach((m: any) => mediaMap.set(String(m.id), m.source_url));
+
+                products.forEach((p: any) => {
+                    const catImgId = p.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value ||
+                                     p.meta_data?.find((m: any) => m.key === "cat_image")?.value;
+                    if (catImgId && mediaMap.has(String(catImgId))) {
+                        p.resolved_cat_image = mediaMap.get(String(catImgId));
+                    }
+                });
+            }
+        } catch (error) {
+            // Silently fail and fallback to client-side or original images
+        }
+    }
+    return products;
+}
+
 /* ----------------------------------------------------
  | ✅ SEO METADATA (ACF-powered)
  ---------------------------------------------------- */
@@ -420,6 +459,9 @@ export default async function Page({ params, searchParams }: PageProps) {
     const taxRate = await getStandardTaxRate();
     const structuredData = generateStructuredData(product, taxRate);
 
+    // Resolve category image if exists
+    await resolveProductImages([product]);
+
     return (
       <main>
         {structuredData && (
@@ -439,6 +481,26 @@ export default async function Page({ params, searchParams }: PageProps) {
   if (category) {
     const sp = await searchParams;
     const initialPage = parseInt((sp?.page as string) || "1");
+    const sort = (sp?.sort as string) || "";
+    const sortParams: any = {};
+    if (sort === "price-low-high") {
+        sortParams.orderby = "price";
+        sortParams.order = "asc";
+    } else if (sort === "price-high-low") {
+        sortParams.orderby = "price";
+        sortParams.order = "desc";
+    } else if (sort === "date") {
+        sortParams.orderby = "date";
+        sortParams.order = "desc";
+    } else if (sort === "title-asc") {
+        sortParams.orderby = "title";
+        sortParams.order = "asc";
+    } else if (sort === "title-desc") {
+        sortParams.orderby = "title";
+        sortParams.order = "desc";
+    } else if (sort) {
+        sortParams.orderby = sort;
+    }
 
 
     const [attributes, subCategories, productsRes] = await Promise.all([
@@ -449,12 +511,13 @@ export default async function Page({ params, searchParams }: PageProps) {
             page: initialPage, 
             category: category.id,
             status: 'publish',
+            ...sortParams,
             next: { revalidate: 60 }
         })
     ]);
     
     const initialFilterBaseProducts: any[] = [];
-    const initialProducts = productsRes.data || [];
+    const initialProducts = await resolveProductImages(productsRes.data || []);
     const initialTotalPages = parseInt(productsRes.totalPages || '1');
     const initialTotalProducts = parseInt(productsRes.total || '0');
 

@@ -42,14 +42,21 @@ export default function ShopProductCard({ product }: { product: any }) {
   const isNumericCatImg = typeof catImgMeta === "string" && /^\d+$/.test(catImgMeta);
   const isCached = isNumericCatImg && !!globalMediaCache[catImgMeta];
   
-  const initialImgSrc = catImgMeta && catImgMeta.trim() !== ""
+  const initialImgSrc = product.resolved_cat_image || (catImgMeta && catImgMeta.trim() !== ""
       ? (isNumericCatImg ? (isCached ? globalMediaCache[catImgMeta] : undefined) : catImgMeta)
-      : product.images?.[0]?.src;
+      : product.images?.[0]?.src);
 
   const [targetImgSrc, setTargetImgSrc] = useState<string | undefined>(initialImgSrc);
-  const [isFetchingImg, setIsFetchingImg] = useState<boolean>(isNumericCatImg && !isCached);
+  const [isFetchingImg, setIsFetchingImg] = useState<boolean>(!product.resolved_cat_image && isNumericCatImg && !isCached);
 
   useEffect(() => {
+    // If we have it from server already, don't do anything
+    if (product.resolved_cat_image) {
+        setTargetImgSrc(product.resolved_cat_image);
+        setIsFetchingImg(false);
+        return;
+    }
+
     // Reset to fallback if no cat image meta exists
     if (!catImgMeta || catImgMeta.trim() === "") {
         setTargetImgSrc(product.images?.[0]?.src);
