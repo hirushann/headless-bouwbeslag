@@ -187,7 +187,7 @@ export default function Header({
 
       <div className="transition-all duration-300 bg-[#F7F7F7] w-full sticky top-0 z-50">
         <div className="max-w-[1440px] mx-auto flex justify-between items-center py-4 font-sans px-2 lg:px-0">
-          <Link href="/">
+          <Link prefetch={true} href="/">
             <Image 
               src="/logo.webp" 
               alt="Bouwbeslag Logo" 
@@ -313,7 +313,7 @@ export default function Header({
             </div>
             <div className="flex justify-start items-center">
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <Link href="/kennisbank">
+                <Link prefetch={true} href="/kennisbank">
                   <span className="text-white font-normal text-sm cursor-pointer">Kennisbank</span>
                 </Link>
               </div>

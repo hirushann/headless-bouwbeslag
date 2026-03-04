@@ -149,25 +149,31 @@ export default function CategoryClient({
   const router = useRouter();
   
   // Initialize page from URL
-  const initialPage = parseInt(searchParams.get("page") || "1");
-  const [page, setPage] = useState<number>(initialPage);
+  const initialUrlPage = parseInt(searchParams.get("page") || "1");
+  const initialMountPage = useRef(initialUrlPage).current;
+  const [page, setPage] = useState<number>(initialUrlPage);
   const [totalPages, setTotalPages] = useState<number>(initialTotalPages);
   const [totalProducts, setTotalProducts] = useState<number>(initialTotalProducts);
   const [allCategoryProductsForFilters, setAllCategoryProductsForFilters] = useState<any[]>(initialFilterBaseProducts);
 
   // Sync state with URL when page changes
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
-    if (page > 1) {
-      params.set("page", page.toString());
-    } else {
-      params.delete("page");
-    }
+    const currentPageStr = params.get("page") || "1";
     
-    const queryString = params.toString();
-    const newPathname = window.location.pathname + (queryString ? "?" + queryString : "");
-    // Use replace to avoid bloating history
-    router.replace(newPathname, { scroll: false });
+    if (page.toString() !== currentPageStr) {
+      if (page > 1) {
+        params.set("page", page.toString());
+      } else {
+        params.delete("page");
+      }
+      
+      const queryString = params.toString();
+      const newPathname = window.location.pathname + (queryString ? "?" + queryString : "");
+      // Use replace to avoid bloating history
+      router.replace(newPathname, { scroll: false });
+    }
   }, [page, router]);
 
   useEffect(() => {
@@ -191,17 +197,29 @@ export default function CategoryClient({
       }
     }
     fetchFilterBase();
-  }, [category]);
+  }, [category?.id]);
 
   useEffect(() => {
     async function loadProducts() {
       if (!category) return;
 
+      const hasFilters = Object.keys(selectedFilters).length > 0 || !!afdichtingsspleetRange || !!groefbreedteRange || !!sortBy;
+
+      // Unconditionally use server-rendered data if we are on the exact same page we mounted on with no filters!
+      // This completely suppresses the "Strict Mode" double-fetch bug and instantly responds to filter resets.
+      if (!hasFilters && page === initialMountPage) {
+         setProducts(initialProducts);
+         setRawProducts(initialProducts);
+         setTotalPages(initialTotalPages);
+         setTotalProducts(initialTotalProducts);
+         setProductsLoading(false);
+         isInitialMount.current = false;
+         return;
+      }
+
       if (isInitialMount.current) {
          isInitialMount.current = false;
-         if (Object.keys(selectedFilters).length === 0 && !afdichtingsspleetRange && !groefbreedteRange && !sortBy) {
-             return;
-         }
+         if (!hasFilters) return;
       }
       
       // console.log(`📦 Loading page ${page} for category ${category.name} (ID: ${category.id})`);
@@ -322,7 +340,7 @@ export default function CategoryClient({
     }
 
     loadProducts();
-  }, [category, selectedFilters, afdichtingsspleetRange, groefbreedteRange, sortBy, page]);
+  }, [category?.id, selectedFilters, afdichtingsspleetRange, groefbreedteRange, sortBy, page]);
 
   // Reset page when category OR filters OR sorting changes
   useEffect(() => {
@@ -333,7 +351,7 @@ export default function CategoryClient({
     } else if (page !== 1) {
        setPage(1);
     }
-  }, [category, selectedFilters, afdichtingsspleetRange, groefbreedteRange, sortBy]);
+  }, [category?.id, selectedFilters, afdichtingsspleetRange, groefbreedteRange, sortBy]);
 
   const toggleFilter = (attrId: number, termId: number) => {
     // Auto-close on mobile when selecting an item
@@ -571,13 +589,6 @@ export default function CategoryClient({
               id="filters-section"
               className={`${showFilters ? 'max-h-screen opacity-100 p-4' : 'max-h-0 opacity-0 lg:p-4'} overflow-hidden transition-all duration-300 ease-in-out lg:max-h-full lg:opacity-100 lg:block bg-white rounded-lg`}
             >
-              {filtersLoading ? (
-                <div className="space-y-4">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="h-6 bg-gray-200 rounded animate-pulse"></div>
-                  ))}
-                </div>
-              ) : (
                 <>
                   {/* Color Filter First */}
                   {hasValidColorAttribute && (
@@ -661,7 +672,6 @@ export default function CategoryClient({
                     <button onClick={resetFilters} className="text-sm text-red-500 hover:underline mb-4">Filters wissen</button>
                   )}
                 </>
-              )}
             </div>
             </motion.div>
           </aside>
@@ -707,6 +717,7 @@ export default function CategoryClient({
                 return (
                   <Link
                     key={sub.id}
+                    prefetch={true}
                     href={href}
                     className="px-3.5 py-1.5 rounded-sm text-sm font-medium border border-[#D0DFEE] bg-[#F2F7FF] text-[#4F4F4F] cursor-pointer hover:bg-blue-50 transition-colors"
                   >

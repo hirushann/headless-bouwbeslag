@@ -124,7 +124,7 @@ export default function RecommendedProductItem({ item, onAddToCart }: { item: an
             {/* Image */}
             <div className="w-28 h-28 lg:w-16 lg:h-16 bg-white rounded-md border border-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                 {item.slug ? (
-                    <Link href={`/${item.slug}`} className="block w-full h-full">
+                    <Link prefetch={true} href={`/${item.slug}`} className="block w-full h-full">
                         {mImg ? <img src={mImg} alt={item.name} className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">No Img</div>}
                     </Link>
                 ) : (
@@ -138,7 +138,7 @@ export default function RecommendedProductItem({ item, onAddToCart }: { item: an
                     <div className="flex justify-center items-start flex-row lg:flex-col w-full lg:gap-1.5">
                         <div className='max-w-[70%]'>
                             {item.slug ? (
-                                <Link href={`/${item.slug}`} className="hover:text-blue-600 transition-colors">
+                                <Link prefetch={true} href={`/${item.slug}`} className="hover:text-blue-600 transition-colors">
                                     <h4 className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</h4>
                                 </Link>
                             ) : (
