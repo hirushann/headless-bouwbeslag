@@ -8,6 +8,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import CategoryBreadcrumbs from "@/components/CategoryBreadcrumbs";
 import DualRangeSlider from "@/components/DualRangeSlider";
+import { COLOR_MAP } from "@/config/colorMap";
 
 const container = {
   hidden: { opacity: 0 },
@@ -40,22 +41,53 @@ type Attribute = {
 // Map Attribute Slugs (from Woo) to ACF Keys
 // Inspect your console logs to find the correct slugs and ACF keys
 const ATTRIBUTE_TO_ACF_MAP: Record<string, string> = {
-  // Mappings based on generated slugs from Dutch names
+  // Map Based on literal names (lowercased & hyphenated)
   'nokmaat': 'camsize',
   'kleur': 'colors',
   'afwerking': 'finishes',
+  'binnen-buiten': 'site_addresses',
   'handleidingstaal': 'languages',
   'materiaal': 'materials',
+  'maximale-deurdikte': 'max_door_thickness',
+  'eenheid-maximale-deurdikte': 'max_door_thickness', // mapping to same key if applicable
+  'minimale-deurdikte': 'min_door_thickness',
+  'eenheid-minimale-deurdikte': 'min_door_thickness',
+  'inhoud-van-de-verpakking': 'package_content',
   'verpakkingstype': 'packing_types',
+  'rosette-type': 'rosette_type',
+  'series': 'series',
   'schild-of-rozetuitvoering': 'rosette_type',
-  'vorm': 'shape',
+  'stijl': 'styles',
+  'soort-kwaliteit': 'type_of_quality',
   'uitvoering': 'executions',
-  'soort-kwaliteit': 'type_of_quality', // "Type of Quality" or "Soort Kwaliteit"? Assuming generic translation
-  'binnen-buiten': 'site_addresses', // "Binnen / Buiten" -> site_addresses (based on user info)
-  
-  // Fallbacks if existing slugs somehow appear
-  'pa_cam_size': 'camsize',
+  'vorm': 'shape',
+  'voorplaatbreedte': 'front_plate_width',
+  'raamtype': 'window_type',
+  'lengte': 'length',
+  'raamuitzetter': 'window_stay',
+  'krukhoogte': 'handle_height',
+  'doornmaat': 'spindle',
+  'merk': 'marking',
+  'verzet': 'offset',
+  'haak-type': 'hook_type',
+  'deurbeslagset-type': 'type_of_door_fitting_set',
+  'kerntrekbeveiliging': 'with_core_pulling_protection',
+  'brandvertragend': 'brandvertragend',
+  'tochtstrips-type': 'type_tochtstrip',
+  'tochtstrips-toepassing': 'tochtstrip_toepassing',
+  'tochtstrips-breedte': 'breedte_tochtstrip',
+  'groefdiepte': 'groefdiepte',
+  'afdichtingsspleet': 'afdichtingsspleet',
+  'groefbreedte': 'groefbreedte',
+  'leverancier': 'suppliers',
+
+  // Common fallbacks
+  'color': 'colors',
+  'finish': 'finishes',
+  'material': 'materials',
   'pa_color': 'colors',
+  'pa_finish': 'finishes',
+  'pa_material': 'materials',
 };
 
 type CategoryClientProps = {
@@ -101,10 +133,8 @@ function FilterAttributeGroup({
             </div>
             <span className="flex-1">
               {term.name === "1" ? "Ja" : term.name === "0" ? "Nee" : term.name}
+              {term.count !== undefined && <span className="ml-1 text-gray-400">({term.count})</span>}
             </span>
-            {term.count !== undefined && (
-              <span className="text-xs text-gray-400 tabular-nums">({term.count})</span>
-            )}
           </label>
         ))}
         {attr.terms.length > 5 && (
@@ -134,7 +164,6 @@ export default function CategoryClient({
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // console.log("CategoryClient received category:", category);
   const [products, setProducts] = useState<any[]>(initialProducts);
   const [rawProducts, setRawProducts] = useState<any[]>(initialProducts);
   const [selectedFilters, setSelectedFilters] = useState<{ [key: number]: Set<number> }>({});
@@ -278,6 +307,7 @@ export default function CategoryClient({
         const totalItemsHeader = res.headers.get('x-wp-total');
         
         const data = await res.json();
+        console.log("Category Products Response:", data);
         setRawProducts(data);
         let prods = data;
 
@@ -414,104 +444,81 @@ export default function CategoryClient({
   // AND match the ACF configuration from the category
   // ------------------------------------------------------------------
    const relevantAttributes = useMemo(() => {
-    // If we have products for the current page, we can at least show those.
-    // If we have the larger batch, we show all filters available in that batch.
     const sourceProducts = allCategoryProductsForFilters.length > 0 ? allCategoryProductsForFilters : rawProducts;
-
     if (!sourceProducts || sourceProducts.length === 0) return [];
 
-    // 1. Collect all "Option Names" present for each Attribute ID
-    const presentOptions = new Map<number, Map<string, number>>();
-
-    sourceProducts.forEach((p) => {
-      if (!Array.isArray(p.attributes)) return;
-      p.attributes.forEach((pAttr: any) => {
-        if (!presentOptions.has(pAttr.id)) {
-          presentOptions.set(pAttr.id, new Map());
-        }
-        const countsMap = presentOptions.get(pAttr.id)!;
-        pAttr.options.forEach((opt: string) => {
-          countsMap.set(opt, (countsMap.get(opt) || 0) + 1);
+    const checkMatch = (p: any, excludeAttrId?: number) => {
+      // 1. Regular attributes - AND between groups, OR within group
+      const activeFilters = Object.entries(selectedFilters);
+      for (const [idStr, terms] of activeFilters) {
+        const id = Number(idStr);
+        if (id === excludeAttrId) continue;
+        const pAttr = p.attributes?.find((a: any) => a.id === id);
+        if (!pAttr) return false;
+        const matchingTerms = pAttr.options.some((o: string) => {
+          const globalAttr = attributes.find(ga => ga.id === id);
+          const tMatch = globalAttr?.terms.find((t: AttributeTerm) => t.name.trim().toLowerCase() === o.trim().toLowerCase());
+          return tMatch && terms.has(tMatch.id);
         });
-      });
-    });
+        if (!matchingTerms) return false;
+      }
+      // 2. Ranges
+      if (afdichtingsspleetRange) {
+        const pVan = p.attributes?.find((a: any)=>a.name==="Afdichtingsspleet Van")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
+        const pTot = p.attributes?.find((a: any)=>a.name==="Afdichtingsspleet Tot")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
+        const vMin = pVan?.length ? Math.min(...pVan) : 0;
+        const vMax = pTot?.length ? Math.max(...pTot) : 9999;
+        if (!(vMin <= afdichtingsspleetRange[1] && vMax >= afdichtingsspleetRange[0])) return false;
+      }
+      if (groefbreedteRange) {
+        const pVan = p.attributes?.find((a: any)=>a.name==="Groefbreedte Van")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
+        const pTot = p.attributes?.find((a: any)=>a.name==="Groefbreedte Tot")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
+        const vMin = pVan?.length ? Math.min(...pVan) : 0;
+        const vMax = pTot?.length ? Math.max(...pTot) : 9999;
+        if (!(vMin <= groefbreedteRange[1] && vMax >= groefbreedteRange[0])) return false;
+      }
+      return true;
+    };
 
       return attributes
       .map((attr) => {
-        // ACF Filtering Logic
-        if (category && category.acf) {
-            // Determine the ACF key for this attribute
-            
-            // Client-side Polyfill for Slug if missing
-            let slug = attr.slug;
-            if (!slug && attr.name) {
-                 slug = attr.name.toLowerCase()
-                    .replace(/\s+\/\s+/g, '-') 
-                    .replace(/\s+/g, '-')      
-                    .replace(/[^\w\u00C0-\u00FF-]+/g, '')
-                    .replace(/-+/g, '-');
-            }
-
-            let acfKey = ATTRIBUTE_TO_ACF_MAP[slug];
-            
-            // Fallback: Try to derive it if not in map
-            if (!acfKey && slug) {
-                // e.g. pa_packing-types -> packing_types
-                acfKey = slug.replace(/^pa_/, '').replace(/-/g, '_');
-            } else if (!slug) {
-                 console.warn(`⚠️ Attribute has NO SLUG and NO NAME to generate from:`, attr);
-            }
-            
-            if (acfKey && category.acf) {
-                const isEnabled = category.acf[acfKey];
-
-                // Check for boolean false or string "false"
-                if (isEnabled === false || isEnabled === "false") {
-                     return null;
-                } else {
-                    //  console.log(`✅ ALLOWED Attribute: ${attr.name} (ACF check passed or indeterminate)`);
-                }
-            } else {
-                //  console.log(`⚠️ NO ACF MAPPING/KEY for Attribute: ${attr.name} (${slug}). Defaulting to ALLOWED.`);
-            }
+        // A. ACF Visibility Check
+        if (category?.acf) {
+          let slug = attr.slug || (attr.name || "").toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '').replace(/-+/g, '-');
+          let acfKey = ATTRIBUTE_TO_ACF_MAP[slug] || slug.replace(/^pa_/, '').replace(/-/g, '_');
+          if (acfKey && (category.acf[acfKey] === false || category.acf[acfKey] === "false")) return null;
         }
 
-        const presentMap = presentOptions.get(attr.id);
-
-        if (!presentMap) {
-             return null; 
-        }
-
-        // (WooCommerce API matches terms by Name in the product.attributes.options array)
-        // Normalize for comparison
+        // B. Explicitly exclude "Inhoud van de verpakking"
+        if (attr.name === "Inhoud van de verpakking") return null;
+        // Dynamic Faceted Counts
         const validTerms = attr.terms.map((term: AttributeTerm) => {
-            let totalCount = 0;
-            const match = Array.from(presentMap.keys()).some(pOpt => {
-                const isMatch = pOpt.trim().toLowerCase() === term.name.trim().toLowerCase();
-                if (isMatch) totalCount += presentMap.get(pOpt) || 0;
-                return isMatch;
-            });
-            return match ? { ...term, count: totalCount } : null;
+          let count = 0;
+          sourceProducts.forEach(p => {
+             if (checkMatch(p, attr.id)) {
+               const pAttr = p.attributes?.find((a: any) => a.id === attr.id);
+               if (pAttr?.options.some((o: string) => o.trim().toLowerCase() === term.name.trim().toLowerCase())) count++;
+             }
+          });
+          return count > 0 ? { ...term, count } : null;
         }).filter(Boolean) as AttributeTerm[];
 
         if (validTerms.length === 0) return null;
-
-        return {
-          ...attr,
-          terms: validTerms,
-        };
+        return { ...attr, terms: validTerms };
       })
       .filter(Boolean) as Attribute[];
-  }, [allCategoryProductsForFilters, rawProducts, attributes, category]);
+  }, [allCategoryProductsForFilters, rawProducts, attributes, category, selectedFilters, afdichtingsspleetRange, groefbreedteRange]);
+
+  console.log("Final Relevant Attributes for Filters:", relevantAttributes.map(a => a.name));
 
   // console.log("🔥 FINAL RELEVANT ATTRIBUTES:", relevantAttributes.map(a => a.name));
 
   const colorAttribute = relevantAttributes.find(
-    (attr) => attr.name.toLowerCase() === "color"
+    (attr) => attr.name.toLowerCase() === "color" || attr.name.toLowerCase() === "kleur"
   );
 
   const otherAttributes = relevantAttributes.filter(
-    (attr) => attr.name.toLowerCase() !== "color"
+    (attr) => attr.name.toLowerCase() !== "color" && attr.name.toLowerCase() !== "kleur"
   );
 
   const afdichtVanAttr = otherAttributes.find(a => a.name === "Afdichtingsspleet Van");
@@ -519,6 +526,11 @@ export default function CategoryClient({
 
   const afdichtspleetBounds = useMemo(() => {
     if (!afdichtVanAttr && !afdichtTotAttr) return null;
+    
+    // Check ACF
+    if (category?.acf?.afdichtingsspleet === false || category?.acf?.afdichtingsspleet === "false") {
+        return null;
+    }
     
     let min = Infinity;
     let max = -Infinity;
@@ -545,13 +557,18 @@ export default function CategoryClient({
 
     if (min === Infinity || max === -Infinity) return null;
     return { min, max };
-  }, [afdichtVanAttr, afdichtTotAttr]);
+  }, [afdichtVanAttr, afdichtTotAttr, category]);
 
   const groefVanAttr = otherAttributes.find(a => a.name === "Groefbreedte Van");
   const groefTotAttr = otherAttributes.find(a => a.name === "Groefbreedte Tot");
 
   const groefbreedteBounds = useMemo(() => {
     if (!groefVanAttr && !groefTotAttr) return null;
+
+    // Check ACF
+    if (category?.acf?.groefbreedte === false || category?.acf?.groefbreedte === "false") {
+        return null;
+    }
     
     let min = Infinity;
     let max = -Infinity;
@@ -578,11 +595,12 @@ export default function CategoryClient({
 
     if (min === Infinity || max === -Infinity) return null;
     return { min, max };
-  }, [groefVanAttr, groefTotAttr]);
+  }, [groefVanAttr, groefTotAttr, category]);
 
   const regularAttributes = otherAttributes.filter(a => a.name !== "Afdichtingsspleet Van" && a.name !== "Afdichtingsspleet Tot" && a.name !== "Groefbreedte Van" && a.name !== "Groefbreedte Tot");
 
   const validRegularAttributes = regularAttributes.filter(attr => attr.terms.length > 1);
+  console.log("Final UI Regular Attributes:", validRegularAttributes.map(a => a.name));
   const hasValidColorAttribute = colorAttribute && colorAttribute.terms.length > 1;
   const hasValidFilters = hasValidColorAttribute || afdichtspleetBounds || groefbreedteBounds || validRegularAttributes.length > 0;
 
@@ -624,7 +642,7 @@ export default function CategoryClient({
                               <button
                                 type="button"
                                 className={`w-8 h-8 rounded-full border-2 ${isSelected ? 'ring-2 ring-blue-500' : 'border-gray-300'}`}
-                                style={{ backgroundColor: term.name.toLowerCase() }}
+                                style={{ backgroundColor: COLOR_MAP[term.name.toLowerCase()] || term.name.toLowerCase() }}
                                 onClick={() => toggleFilter(colorAttribute.id, term.id)}
                                 aria-label={term.name}
                               />

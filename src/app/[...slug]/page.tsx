@@ -109,8 +109,7 @@ const getCategoryBySlugCached = cache(async (slug: string): Promise<Category | n
   try {
     const res = await api.get("products/categories", { 
       slug, 
-      next: { revalidate: 3600 },
-      _fields: "id,name,slug,description,acf,parent"
+      next: { revalidate: 3600 }
     });
     if (!res.data || res.data.length === 0) return null;
     return res.data[0];
@@ -479,6 +478,7 @@ export default async function Page({ params, searchParams }: PageProps) {
 
   // 2. Check Category
   if (category) {
+    console.log("Category Info Header/Server Side:", category);
     const sp = await searchParams;
     const initialPage = parseInt((sp?.page as string) || "1");
     const sort = (sp?.sort as string) || "";

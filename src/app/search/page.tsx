@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import ProductCard from '@/components/ProductCard';
 import api from "@/lib/woocommerce";
 import ShopProductCard from '@/components/ShopProductCard';
+import { COLOR_MAP } from "@/config/colorMap";
 
 interface Product {
   id: number;
@@ -160,6 +161,7 @@ function SearchContent() {
     // 2. Filter the Global Attributes list
     return attributes
       .map((attr) => {
+        if (attr.name === "Inhoud van de verpakking") return null;
         const presentSet = presentOptions.get(attr.id);
         if (!presentSet) return null; 
 
@@ -261,7 +263,7 @@ function SearchContent() {
                               <button
                                 type="button"
                                 className={`w-8 h-8 rounded-full border-2 ${isSelected ? 'ring-2 ring-blue-500' : 'border-gray-300'}`}
-                                style={{ backgroundColor: term.name.toLowerCase() }}
+                                style={{ backgroundColor: COLOR_MAP[term.name.toLowerCase()] || term.name.toLowerCase() }}
                                 onClick={() => {
                                   setSelectedFilters(prev => {
                                     const newFilters: { [key: number]: Set<number> } = {};
