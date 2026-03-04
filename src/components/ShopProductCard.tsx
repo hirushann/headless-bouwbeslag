@@ -36,35 +36,62 @@ export default function ShopProductCard({ product }: { product: any }) {
   const [isAdding, setIsAdding] = useState(false);
 
   // Pre-calculate image state to avoid flash
-  const catImgMeta = product?.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value;
+  const catImgMeta = product?.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value || 
+                    product?.meta_data?.find((m: any) => m.key === "cat_image")?.value;
+                    
   const isNumericCatImg = typeof catImgMeta === "string" && /^\d+$/.test(catImgMeta);
   const isCached = isNumericCatImg && !!globalMediaCache[catImgMeta];
   
   const initialImgSrc = catImgMeta && catImgMeta.trim() !== ""
-      ? (isNumericCatImg ? (isCached ? globalMediaCache[catImgMeta] : product.images?.[0]?.src) : catImgMeta)
+      ? (isNumericCatImg ? (isCached ? globalMediaCache[catImgMeta] : undefined) : catImgMeta)
       : product.images?.[0]?.src;
 
   const [targetImgSrc, setTargetImgSrc] = useState<string | undefined>(initialImgSrc);
+  const [isFetchingImg, setIsFetchingImg] = useState<boolean>(isNumericCatImg && !isCached);
 
   useEffect(() => {
-    // Reset state if product identity changes
-    setTargetImgSrc(initialImgSrc);
+    // Reset to fallback if no cat image meta exists
+    if (!catImgMeta || catImgMeta.trim() === "") {
+        setTargetImgSrc(product.images?.[0]?.src);
+        setIsFetchingImg(false);
+        return;
+    }
 
+    // Check if we need to fetch a numeric media reference
     if (isNumericCatImg && !isCached) {
       const WP_BASE = process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "https://app.bouwbeslag.nl";
+      
+      setIsFetchingImg(true);
+      
+      const startTime = Date.now();
       fetch(`${WP_BASE}/wp-json/wp/v2/media/${catImgMeta}`)
         .then(res => res.json())
         .then(data => {
           if (data && data.source_url) {
             globalMediaCache[catImgMeta] = data.source_url;
             setTargetImgSrc(data.source_url);
+          } else {
+            setTargetImgSrc(product.images?.[0]?.src);
           }
         })
         .catch(() => {
-          // Keep current fallback silently
+          setTargetImgSrc(product.images?.[0]?.src);
+        })
+        .finally(() => {
+            // Ensure at least a small delay to avoid flicker if it was too fast
+            const elapsed = Date.now() - startTime;
+            if (elapsed < 300) {
+              setTimeout(() => setIsFetchingImg(false), 300 - elapsed);
+            } else {
+              setIsFetchingImg(false);
+            }
         });
+    } else {
+      // If cached or a direct URL, use it immediately
+      setTargetImgSrc(initialImgSrc);
+      setIsFetchingImg(false);
     }
-  }, [product?.id, catImgMeta, initialImgSrc, isNumericCatImg, isCached]);
+  }, [product?.id, catImgMeta]);
 
   const { userRole } = useUserContext();
   const { openModal } = useProductAddedModal();
@@ -120,10 +147,12 @@ export default function ShopProductCard({ product }: { product: any }) {
   return (
     <div className="snap-start shrink-0 w-[100%] border border-[#E2E2E2] rounded-lg shadow-sm bg-[#F7F7F7] flex flex-col h-full">
       <Link prefetch={true} href={`/${product.slug}`} className="relative h-32 lg:h-48 bg-white rounded-tl-lg rounded-tr-lg overflow-hidden flex items-center justify-center">
-        {targetImgSrc ? (
+        {isFetchingImg ? (
+          <div className="w-full h-full bg-gray-100 animate-pulse" />
+        ) : targetImgSrc ? (
           <Image sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw" src={fixImageSrc(targetImgSrc)} alt={productTitle} fill className="object-contain" />
         ) : (
-          <div className="w-full h-full bg-gray-100 animate-pulse" />
+          <div className="w-full h-full bg-gray-100" />
         )}
 
         {/* Dynamic stock badge */}
@@ -237,7 +266,7 @@ export default function ShopProductCard({ product }: { product: any }) {
                 name: customTitle,
                 price: cartPrice,
                 quantity: 1,
-                image: product.images?.[0]?.src,
+                image: targetImgSrc || product.images?.[0]?.src,
                 deliveryText: deliveryInfo.short,
                 deliveryType: deliveryInfo.type,
               });

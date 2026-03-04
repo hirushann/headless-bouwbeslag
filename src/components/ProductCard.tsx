@@ -87,7 +87,8 @@ export default function ProductCard({ product, userRole: propUserRole }: { produ
   const [isAdding, setIsAdding] = useState(false);
 
   // Pre-calculate image state to avoid flash
-  const catImgMeta = product?.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value;
+  const catImgMeta = product?.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value ||
+                    product?.meta_data?.find((m: any) => m.key === "cat_image")?.value;
   const isNumericCatImg = typeof catImgMeta === "string" && /^\d+$/.test(catImgMeta);
   const isCached = isNumericCatImg && !!globalMediaCache[catImgMeta];
   
@@ -99,12 +100,20 @@ export default function ProductCard({ product, userRole: propUserRole }: { produ
   const [isFetchingImg, setIsFetchingImg] = useState<boolean>(isNumericCatImg && !isCached);
 
   useEffect(() => {
-    // Reset state if product identity changes
-    setTargetImgSrc(initialImgSrc);
-    setIsFetchingImg(isNumericCatImg && !isCached);
+    // Reset if no cat meta
+    if (!catImgMeta || catImgMeta.trim() === "") {
+        setTargetImgSrc(product.images?.[0]?.src);
+        setIsFetchingImg(false);
+        return;
+    }
 
+    // Check if we need to fetch a numeric media reference
     if (isNumericCatImg && !isCached) {
       const WP_BASE_URL = process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "https://app.bouwbeslag.nl";
+      
+      setIsFetchingImg(true);
+      
+      const startTime = Date.now();
       fetch(`${WP_BASE_URL}/wp-json/wp/v2/media/${catImgMeta}`)
         .then(res => res.json())
         .then(data => {
@@ -119,10 +128,18 @@ export default function ProductCard({ product, userRole: propUserRole }: { produ
           setTargetImgSrc(product.images?.[0]?.src);
         })
         .finally(() => {
-          setIsFetchingImg(false);
+            const elapsed = Date.now() - startTime;
+            if (elapsed < 300) {
+              setTimeout(() => setIsFetchingImg(false), 300 - elapsed);
+            } else {
+              setIsFetchingImg(false);
+            }
         });
+    } else {
+      setTargetImgSrc(initialImgSrc);
+      setIsFetchingImg(false);
     }
-  }, [product?.id, catImgMeta, initialImgSrc, isNumericCatImg, isCached]);
+  }, [product?.id, catImgMeta]);
 
   const imgSrc = normalizeImageUrl(targetImgSrc);
 
@@ -262,7 +279,7 @@ export default function ProductCard({ product, userRole: propUserRole }: { produ
                   name: product.name,
                   price: sale !== null ? sale : Number(product.regular_price || product.price || 0),
                   quantity: 1,
-                  image: product.images?.[0]?.src,
+                  image: targetImgSrc || product.images?.[0]?.src,
                   deliveryText: deliveryInfo.short,
                   deliveryType: deliveryInfo.type,
                   slug: product.slug,

@@ -149,9 +149,9 @@ export default function CategoryClient({
   const router = useRouter();
   
   // Initialize page from URL
-  const initialUrlPage = parseInt(searchParams.get("page") || "1");
-  const initialMountPage = useRef(initialUrlPage).current;
-  const [page, setPage] = useState<number>(initialUrlPage);
+  const [page, setPage] = useState<number>(() => {
+    return parseInt(searchParams.get("page") || "1");
+  });
   const [totalPages, setTotalPages] = useState<number>(initialTotalPages);
   const [totalProducts, setTotalProducts] = useState<number>(initialTotalProducts);
   const [allCategoryProductsForFilters, setAllCategoryProductsForFilters] = useState<any[]>(initialFilterBaseProducts);
@@ -205,21 +205,18 @@ export default function CategoryClient({
 
       const hasFilters = Object.keys(selectedFilters).length > 0 || !!afdichtingsspleetRange || !!groefbreedteRange || !!sortBy;
 
-      // Unconditionally use server-rendered data if we are on the exact same page we mounted on with no filters!
-      // This completely suppresses the "Strict Mode" double-fetch bug and instantly responds to filter resets.
-      if (!hasFilters && page === initialMountPage) {
-         setProducts(initialProducts);
-         setRawProducts(initialProducts);
-         setTotalPages(initialTotalPages);
-         setTotalProducts(initialTotalProducts);
-         setProductsLoading(false);
-         isInitialMount.current = false;
-         return;
-      }
-
+      // Upon initial mount, if we don't have extra filters, just seed the data
       if (isInitialMount.current) {
          isInitialMount.current = false;
-         if (!hasFilters) return;
+         
+         if (!hasFilters) {
+            setProducts(initialProducts);
+            setRawProducts(initialProducts);
+            setTotalPages(initialTotalPages);
+            setTotalProducts(initialTotalProducts);
+            setProductsLoading(false);
+            return;
+         }
       }
       
       // console.log(`📦 Loading page ${page} for category ${category.name} (ID: ${category.id})`);
@@ -330,7 +327,9 @@ export default function CategoryClient({
           console.warn("⚠️ All products from current page were filtered out localy!");
         }
 
-        // console.log(`✅ Loaded ${prods.length} products for page ${page}`);
+        if (prods.length > 0) {
+          console.log("DEBUG: Category Product Data for Image:", prods[0]);
+        }
         setProducts(prods);
       } catch (err) {
         // console.error(err);
@@ -728,10 +727,10 @@ export default function CategoryClient({
             </div>
 
             {/* Products Grid */}
-            {productsLoading && products.length === 0 ? (
+            {productsLoading ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 lg:gap-6">
                 {[...Array(8)].map((_, i) => (
-                  <div key={i} className="h-6 bg-gray-200 rounded animate-pulse"></div>
+                  <div key={i} className="h-64 bg-gray-200 rounded animate-pulse"></div>
                 ))}
               </div>
             ) : products.length === 0 ? (

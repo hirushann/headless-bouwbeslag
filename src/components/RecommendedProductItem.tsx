@@ -10,12 +10,68 @@ import { useUserContext } from "@/context/UserContext";
 
 export default function RecommendedProductItem({ item, onAddToCart }: { item: any, onAddToCart?: () => void }) {
     const { userRole, isLoading } = useUserContext();
+    const [quantity, setQuantity] = useState(1);
     const [isAdding, setIsAdding] = useState(false);
 
-    const [quantity, setQuantity] = useState(1);
+    // Image logic
+    const getMeta = (key: string) => item.meta_data?.find((m: any) => m.key === key)?.value;
+    
+    // Static cache for media URLs to avoid redundant requests during the session
+    const globalMediaCache = (global as any).mediaCache || ((global as any).mediaCache = {});
+
+    const catImgMeta = getMeta("assets_cat_image") || getMeta("cat_image");
+    const isNumericCatImg = typeof catImgMeta === "string" && /^\d+$/.test(catImgMeta);
+    const isCached = isNumericCatImg && !!globalMediaCache[catImgMeta];
+
+    const initialImgSrc = catImgMeta && catImgMeta.trim() !== ""
+        ? (isNumericCatImg ? (isCached ? globalMediaCache[catImgMeta] : undefined) : catImgMeta)
+        : item.images?.[0]?.src || item.images?.[0] || "";
+
+    const [targetImgSrc, setTargetImgSrc] = useState<string | undefined>(initialImgSrc);
+    const [isFetchingImg, setIsFetchingImg] = useState<boolean>(isNumericCatImg && !isCached);
+
+    React.useEffect(() => {
+        if (!catImgMeta || catImgMeta.trim() === "") {
+            setTargetImgSrc(item.images?.[0]?.src || item.images?.[0] || "");
+            setIsFetchingImg(false);
+            return;
+        }
+
+        if (isNumericCatImg && !isCached) {
+            const WP_BASE = process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "https://app.bouwbeslag.nl";
+            setIsFetchingImg(true);
+            const startTime = Date.now();
+
+            fetch(`${WP_BASE}/wp-json/wp/v2/media/${catImgMeta}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.source_url) {
+                        globalMediaCache[catImgMeta] = data.source_url;
+                        setTargetImgSrc(data.source_url);
+                    } else {
+                        setTargetImgSrc(item.images?.[0]?.src || item.images?.[0] || "");
+                    }
+                })
+                .catch(() => {
+                    setTargetImgSrc(item.images?.[0]?.src || item.images?.[0] || "");
+                })
+                .finally(() => {
+                    const elapsed = Date.now() - startTime;
+                    if (elapsed < 300) {
+                        setTimeout(() => setIsFetchingImg(false), 300 - elapsed);
+                    } else {
+                        setIsFetchingImg(false);
+                    }
+                });
+        } else {
+            setTargetImgSrc(initialImgSrc);
+            setIsFetchingImg(false);
+        }
+    }, [item.id, catImgMeta]);
+
+    const mImg = targetImgSrc;
 
     // Price Logic
-    const getMeta = (key: string) => item.meta_data?.find((m: any) => m.key === key)?.value;
     const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
     const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
     let sale = 0;
@@ -35,7 +91,6 @@ export default function RecommendedProductItem({ item, onAddToCart }: { item: an
         }
     }
 
-    const mImg = item.images?.[0]?.src || item.images?.[0] || "";
     // Calculate total price based on quantity
     const TAX_RATE = 21;
     const taxMultiplier = 1 + (TAX_RATE / 100);
@@ -94,7 +149,7 @@ export default function RecommendedProductItem({ item, onAddToCart }: { item: an
                 name: item.name,
                 price: sale, // Use the Ex-VAT 'sale' price base
                 quantity: quantity,
-                image: mImg,
+                image: targetImgSrc || item.images?.[0]?.src || item.images?.[0] || "",
                 deliveryText: deliveryInfo.short,
                 deliveryType: deliveryInfo.type,
                 slug: item.slug,
@@ -123,12 +178,14 @@ export default function RecommendedProductItem({ item, onAddToCart }: { item: an
         <div className="flex items-center flex-row gap-4 p-4 border border-gray-100 rounded-lg bg-gray-50/50 hover:bg-white hover:border-blue-200 transition-colors">
             {/* Image */}
             <div className="w-28 h-28 lg:w-16 lg:h-16 bg-white rounded-md border border-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
-                {item.slug ? (
+                {isFetchingImg ? (
+                    <div className="w-full h-full bg-gray-100 animate-pulse" />
+                ) : item.slug ? (
                     <Link prefetch={true} href={`/${item.slug}`} className="block w-full h-full">
-                        {mImg ? <img src={mImg} alt={item.name} className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">No Img</div>}
+                        {mImg ? <img src={mImg} alt={item.name} className="w-full h-full object-contain rounded-md" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">No Img</div>}
                     </Link>
                 ) : (
-                    mImg ? <img src={mImg} alt={item.name} className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">No Img</div>
+                    mImg ? <img src={mImg} alt={item.name} className="w-full h-full object-contain rounded-md" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">No Img</div>
                 )}
             </div>
 

@@ -1,23 +1,11 @@
+const https = require('https');
 
-const api = require('./src/lib/woocommerce').default;
-
-async function checkHierarchy() {
-  const slugs = ['deurklink', 'cilinders', 'tochtstrip', 'deurstoppers', 'deurbeslag'];
-  
-  for (const slug of slugs) {
-    try {
-      const res = await api.get("products/categories", { slug });
-      if (res.data && res.data.length > 0) {
-        const cat = res.data[0];
-        if (cat.parent !== 0) {
-            // fetch parent info
-            const parentRes = await api.get(`products/categories/${cat.parent}`);
-        }
-      }
-    } catch (e) {
-      console.error(`Error checking ${slug}:`, e.message);
-    }
-  }
-}
-
-checkHierarchy();
+https.get('https://app.bouwbeslag.nl/wp-json/wc/v3/products/categories?parent=131&per_page=100&consumer_key=ck_13140f6a16a11f40eb1e260c502c1130e2991d5c&consumer_secret=cs_bf4bccddc249fa39860284d7583e0df91cf32d8a', (resp) => {
+  let data = '';
+  resp.on('data', (chunk) => { data += chunk; });
+  resp.on('end', () => {
+    console.log(JSON.parse(data).map(c => c.name));
+  });
+}).on("error", (err) => {
+  console.log("Error: " + err.message);
+});

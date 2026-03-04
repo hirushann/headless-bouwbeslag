@@ -30,6 +30,7 @@ const formatSpecValue = (value: string | number | null | undefined): string => {
 
 export default function ProductPageClient({ product, taxRate = 21, slug }: { product: any; taxRate?: number; slug?: string[] }) {
   useEffect(() => {
+    console.log("DEBUG: Single Product Data for Image:", product);
   }, [product]);
 
   const fadeInUp = {
@@ -192,6 +193,31 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
 
 
   const [brandImageUrl, setBrandImageUrl] = useState<string | null>(null);
+
+  // -- Categorie Image Logic --
+  const catImgMeta = product?.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value || 
+                    product?.meta_data?.find((m: any) => m.key === "cat_image")?.value;
+  const isNumericCatImg = typeof catImgMeta === "string" && /^\d+$/.test(catImgMeta);
+  const [targetProductImg, setTargetProductImg] = useState<string>(product.images?.[0]?.src || "/afbeelding.webp");
+
+  useEffect(() => {
+    // If literal URL
+    if (catImgMeta && catImgMeta.trim() !== "" && !isNumericCatImg) {
+      setTargetProductImg(catImgMeta);
+    } 
+    // If numeric ID, fetch it
+    else if (isNumericCatImg) {
+      const WP_BASE = process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "https://app.bouwbeslag.nl";
+      fetch(`${WP_BASE}/wp-json/wp/v2/media/${catImgMeta}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.source_url) {
+            setTargetProductImg(data.source_url);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [product?.id, catImgMeta, isNumericCatImg]);
 
   useEffect(() => {
     // If we already have injected logoUrl, use it. Otherwise, fetch it.
@@ -822,7 +848,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         name: productTitle,
         price: cartBasePrice, // Use the shared Ex-VAT price
         quantity,
-        image: product?.images?.[0]?.src || "/afbeelding.webp",
+        image: targetProductImg,
         deliveryText: deliveryInfo.short,
         deliveryType: deliveryInfo.type,
         slug: product.slug,
@@ -847,7 +873,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         matchingRoseKeys,
         pcroseKeys,
         blindtoiletroseKeys,
-
+        image: targetProductImg,
         deliveryText: deliveryInfo.short,
         deliveryType: deliveryInfo.type
       });

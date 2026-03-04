@@ -16,6 +16,7 @@ interface ModalData {
   blindtoiletroseKeys?: any[];
   deliveryText?: string;
   deliveryType?: string;
+  image?: string;
 }
 
 interface ProductAddedModalContextType {

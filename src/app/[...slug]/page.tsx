@@ -141,9 +141,6 @@ const getPageMetadata = cache(async (slugArray: string[]) => {
 const getPageData = cache(async (slugArray: string[]) => {
   const currentSlug = decodeURIComponent(slugArray[slugArray.length - 1]);
 
-  // If multiple segments, it's very likely a category hierarchy.
-  // We'll check for a product first just in case, then a category to redirect.
-  
   const product = await getProductBySlugCached(currentSlug);
   if (product) return { product, category: null };
 
@@ -151,9 +148,25 @@ const getPageData = cache(async (slugArray: string[]) => {
   return { product: null, category };
 });
 
-async function fetchAttributes(): Promise<Attribute[]> {
+const fetchTermsForAttribute = cache(async (attributeId: number): Promise<AttributeTerm[]> => {
   try {
-    const res = await api.get("products/attributes");
+    const res = await api.get(`products/attributes/${attributeId}/terms`, {
+        per_page: 100,
+        _fields: "id,name",
+        next: { revalidate: 3600 }
+    });
+    return res.data || [];
+  } catch (error) {
+    return [];
+  }
+});
+
+const fetchAttributes = cache(async (): Promise<Attribute[]> => {
+  try {
+    const res = await api.get("products/attributes", { 
+        _fields: "id,name",
+        next: { revalidate: 3600 } 
+    });
     const attributesData = res.data || [];
     
     return await Promise.all(
@@ -169,16 +182,31 @@ async function fetchAttributes(): Promise<Attribute[]> {
   } catch (error) {
     return [];
   }
-}
+});
 
-async function fetchTermsForAttribute(attributeId: number): Promise<AttributeTerm[]> {
-  try {
-    const res = await api.get(`products/attributes/${attributeId}/terms`);
-    return res.data || [];
-  } catch (error) {
-    return [];
-  }
-}
+const fetchAllSubCategoriesCached = cache(async (parentId: number) => {
+  let allSubs: any[] = [];
+  let page = 1;
+  let totalPages = 1;
+
+  do {
+    const res = await api.get("products/categories", { 
+        parent: parentId, 
+        per_page: 100, 
+        page, 
+        hide_empty: false,
+        _fields: "id,name,slug,parent,count",
+        next: { revalidate: 3600 } // Subcategories don't change that often
+    });
+    if (!res.data || res.data.length === 0) break;
+    allSubs = [...allSubs, ...res.data];
+    totalPages = parseInt(res.totalPages || '1');
+    page++;
+  } while (page <= totalPages);
+  
+  return allSubs;
+});
+
 
 async function getStandardTaxRate(): Promise<number> {
   try {
@@ -412,13 +440,19 @@ export default async function Page({ params, searchParams }: PageProps) {
     const sp = await searchParams;
     const initialPage = parseInt((sp?.page as string) || "1");
 
-    const [attributes, subCategoriesRes, productsRes] = await Promise.all([
+
+    const [attributes, subCategories, productsRes] = await Promise.all([
         fetchAttributes(),
-        api.get("products/categories", { parent: category.id }),
-        api.get("products", { per_page: 20, page: initialPage, category: category.id })
+        fetchAllSubCategoriesCached(category.id),
+        api.get("products", { 
+            per_page: 20, 
+            page: initialPage, 
+            category: category.id,
+            status: 'publish',
+            next: { revalidate: 60 }
+        })
     ]);
     
-    const subCategories = subCategoriesRes.data || [];
     const initialFilterBaseProducts: any[] = [];
     const initialProducts = productsRes.data || [];
     const initialTotalPages = parseInt(productsRes.totalPages || '1');
