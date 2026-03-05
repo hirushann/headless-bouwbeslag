@@ -317,6 +317,7 @@ export async function generateMetadata(
       openGraph: {
         title: metaTitle,
         description: metaDescription,
+        url: `/${product.slug}`,
         type: "website",
         images: [
           {
@@ -478,7 +479,6 @@ export default async function Page({ params, searchParams }: PageProps) {
 
   // 2. Check Category
   if (category) {
-    console.log("Category Info Header/Server Side:", category);
     const sp = await searchParams;
     const initialPage = parseInt((sp?.page as string) || "1");
     const sort = (sp?.sort as string) || "";
