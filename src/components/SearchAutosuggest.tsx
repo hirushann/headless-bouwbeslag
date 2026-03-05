@@ -248,7 +248,7 @@ export default function SearchAutosuggest({
                                     <div className="w-full h-full">
                                         <input
                                             ref={inputRef}
-                                            className="input border-0 focus:outline-none w-full h-full px-4 text-lg bg-transparent"
+                                            className="input border-0 focus:outline-none w-full h-full px-2 lg:px-4 text-sm lg:text-lg bg-transparent"
                                             type="text"
                                             placeholder={placeholder}
                                             value={query}
@@ -285,7 +285,7 @@ export default function SearchAutosuggest({
 
                         {/* Main Content */}
                         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-6">
-                            <div className="max-w-[1440px] mx-auto flex flex-col lg:flex-row gap-8 pb-10">
+                            <div className="max-w-[1440px] mx-auto flex flex-col lg:flex-row gap-4 lg:gap-8 pb-10">
 
                                 {/* Filters Sidebar */}
                                 {results.length > 0 && ( /* Only show filters if we have results or active query? */
@@ -355,7 +355,7 @@ export default function SearchAutosuggest({
                                 {/* Product Grid */}
                                 <main className="flex-1">
                                     {loading ? (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                        <div className="grid grid-cols-1 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                             {[...Array(8)].map((_, i) => (
                                                 <div key={i} className="h-80 bg-gray-200 rounded animate-pulse" />
                                             ))}
@@ -363,7 +363,7 @@ export default function SearchAutosuggest({
                                     ) : results.length > 0 ? (
                                         <>
                                             <p className="text-sm text-gray-500 mb-4">{totalItems} resultaten gevonden</p>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                            <div className="grid grid-cols-1 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                                 {results.map((result) => (
                                                     <div
                                                         key={result.ID}

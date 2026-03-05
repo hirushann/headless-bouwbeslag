@@ -90,7 +90,7 @@ export default function WebwinkelKeurWidget({ variant = "header" }: WebwinkelKeu
       href={webwinkelUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center gap-2 group hover:opacity-80 transition-opacity"
+      className="flex items-end gap-2 group hover:opacity-80 transition-opacity"
       title="Bekijk onze beoordelingen op WebwinkelKeur"
     >
       <div className="text-[#FF0082] relative">
@@ -103,8 +103,8 @@ export default function WebwinkelKeurWidget({ variant = "header" }: WebwinkelKeu
         />
       </div>
 
-      <div className="flex items-center gap-2 text-[#3D4752] font-sans text-sm">
-        <span className="font-bold text-[#3D4752] text-md">({formattedScore})</span>
+      <div className="flex items-center lg:gap-2 text-[#3D4752] font-sans text-sm flex-wrap lg:flex-nowrap gap-0">
+        <span className="font-bold text-[#3D4752] text-md mr-2 lg:mr-0">({formattedScore})</span>
         
         <div className="flex text-[#FF9E0D]">
              {[1, 2, 3, 4, 5].map((i) => (

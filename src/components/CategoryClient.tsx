@@ -606,7 +606,7 @@ export default function CategoryClient({
 
   return (
     <div className="bg-[#F7F7F7] min-h-screen">
-      <div className="max-w-[1440px] mx-auto py-8 px-5 lg:px-0">
+      <div className="max-w-[1440px] mx-auto py-4 lg:py-8 px-5 lg:px-0">
         <div className="flex flex-col lg:flex-row gap-2 lg:gap-8">
           
           {hasValidFilters && (
@@ -749,7 +749,7 @@ export default function CategoryClient({
             </div>
 
             {/* Subcategories */}
-            <div className='flex gap-4 pb-4 flex-wrap'>
+            <div className='flex gap-4 pb-4 flex-nowrap lg:flex-wrap w-full overflow-x-auto'>
               {subCategories.map((sub) => {
                 const parentPath = currentSlug.join("/");
                 // Ensure no double slashes if something is weird, though join should be fine
@@ -760,7 +760,7 @@ export default function CategoryClient({
                     key={sub.id}
                     prefetch={true}
                     href={href}
-                    className="px-3.5 py-1.5 rounded-sm text-sm font-medium border border-[#D0DFEE] bg-[#F2F7FF] text-[#4F4F4F] cursor-pointer hover:bg-blue-50 transition-colors"
+                    className="min-w-fit px-3.5 py-1.5 rounded-sm text-sm font-medium border border-[#D0DFEE] bg-[#F2F7FF] text-[#4F4F4F] cursor-pointer hover:bg-blue-50 transition-colors"
                   >
                     {sub.name}
                   </Link>

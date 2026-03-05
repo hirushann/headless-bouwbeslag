@@ -171,62 +171,64 @@ export default function ShopProductCard({ product }: { product: any }) {
       </Link>
 
       <div className="p-2 lg:p-4 flex flex-col flex-1">
-        <Link prefetch={true} href={`/${product.slug}`} className="text-base lg:text-lg font-medium mb-1 line-clamp-3 text-[#1C2530] min-h-[85px]">
+        <Link prefetch={true} href={`/${product.slug}`} className="text-sm md:text-base lg:text-lg font-medium mb-1 line-clamp-3 text-[#1C2530] min-h-[60px] lg:min-h-[85px]">
           {productTitle}
         </Link>
 
-        <div className="flex flex-col mb-2">
-          {/* Price Display */}
-          <div className="flex flex-col items-start">
-            {/* {priceData.showStrikeThrough && priceData.advisedDisplay !== null && (
-                   <span className="text-gray-400 line-through text-xs font-normal">
-                      {new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(priceData.advisedDisplay)}
-                   </span>
-                 )} */}
-            <div className="flex items-end gap-1 flex-wrap">
-              <span className="text-xl font-bold text-[#1C2530]">
-                {new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(priceData.finalPrice)}
-              </span>
-              <span className="text-[10px] text-gray-500 mb-1">{priceData.taxLabel}</span>
+        <div className="mt-auto mb-2">
+          <div className="flex flex-col mb-2">
+            {/* Price Display */}
+            <div className="flex flex-col items-start">
+              {/* {priceData.showStrikeThrough && priceData.advisedDisplay !== null && (
+                    <span className="text-gray-400 line-through text-xs font-normal">
+                        {new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(priceData.advisedDisplay)}
+                    </span>
+                  )} */}
+              <div className="flex items-end gap-1 flex-wrap">
+                <span className="text-base lg:text-xl font-bold text-[#1C2530]">
+                  {new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(priceData.finalPrice)}
+                </span>
+                <span className="text-[10px] text-gray-500 mb-1">{priceData.taxLabel}</span>
+              </div>
             </div>
           </div>
+
+          {(() => {
+            const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
+
+            // 1. Extract Lead Times (Defaults: 1 if stock, 30 if no stock)
+            const stockLeadRaw = getMeta("crucial_data_delivery_if_stock");
+            const noStockLeadRaw = getMeta("crucial_data_delivery_if_no_stock");
+            const leadTimeInStock = stockLeadRaw && !isNaN(parseInt(stockLeadRaw)) ? parseInt(stockLeadRaw) : 1;
+            const leadTimeNoStock = noStockLeadRaw && !isNaN(parseInt(noStockLeadRaw)) ? parseInt(noStockLeadRaw) : 30;
+
+            // 2. Extract Adjusted Total Stock (ACF Priority)
+            const totalStockMeta = getMeta("crucial_data_total_stock");
+            const stockQty = totalStockMeta !== undefined && totalStockMeta !== null && totalStockMeta !== "" 
+              ? parseInt(totalStockMeta, 10) 
+              : (typeof product.stock_quantity === "number" ? product.stock_quantity : null);
+
+            // 3. Get Delivery Info
+            const deliveryInfo = getDeliveryInfo(
+              product.stock_status, 
+              1, 
+              stockQty,
+              leadTimeInStock,
+              leadTimeNoStock
+            );
+
+            // Determine color based on type (matching ProductPage/Cart logic)
+            let colorClass = "text-[#03B955]"; // Green (In stock)
+            if (deliveryInfo.type === "PARTIAL_STOCK") colorClass = "text-[#B28900]"; // Amber
+            else if (deliveryInfo.type === "BACKORDER" || deliveryInfo.type === "OUT_OF_STOCK") colorClass = "text-[#FF5E00]"; // Orange/Red
+
+            return (
+              <p className={`${colorClass} text-xs font-semibold`}>
+                {deliveryInfo.short}
+              </p>
+            );
+          })()}
         </div>
-
-        {(() => {
-          const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
-
-          // 1. Extract Lead Times (Defaults: 1 if stock, 30 if no stock)
-          const stockLeadRaw = getMeta("crucial_data_delivery_if_stock");
-          const noStockLeadRaw = getMeta("crucial_data_delivery_if_no_stock");
-          const leadTimeInStock = stockLeadRaw && !isNaN(parseInt(stockLeadRaw)) ? parseInt(stockLeadRaw) : 1;
-          const leadTimeNoStock = noStockLeadRaw && !isNaN(parseInt(noStockLeadRaw)) ? parseInt(noStockLeadRaw) : 30;
-
-          // 2. Extract Adjusted Total Stock (ACF Priority)
-          const totalStockMeta = getMeta("crucial_data_total_stock");
-          const stockQty = totalStockMeta !== undefined && totalStockMeta !== null && totalStockMeta !== "" 
-            ? parseInt(totalStockMeta, 10) 
-            : (typeof product.stock_quantity === "number" ? product.stock_quantity : null);
-
-          // 3. Get Delivery Info
-          const deliveryInfo = getDeliveryInfo(
-            product.stock_status, 
-            1, 
-            stockQty,
-            leadTimeInStock,
-            leadTimeNoStock
-          );
-
-          // Determine color based on type (matching ProductPage/Cart logic)
-          let colorClass = "text-[#03B955]"; // Green (In stock)
-          if (deliveryInfo.type === "PARTIAL_STOCK") colorClass = "text-[#B28900]"; // Amber
-          else if (deliveryInfo.type === "BACKORDER" || deliveryInfo.type === "OUT_OF_STOCK") colorClass = "text-[#FF5E00]"; // Orange/Red
-
-          return (
-            <p className={`${colorClass} text-xs font-semibold mb-3`}>
-              {deliveryInfo.short}
-            </p>
-          );
-        })()}
 
         <button
           disabled={isAdding}
@@ -307,7 +309,7 @@ export default function ShopProductCard({ product }: { product: any }) {
             <span>Checking...</span>
           ) : (
             <>
-              <span><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6" width="20" height="20"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg></span>
+              <span><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-4 lg:size-6" width="20" height="20"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg></span>
               <span>In winkelwagen</span>
             </>
           )}

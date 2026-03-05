@@ -147,9 +147,9 @@ export default async function BrandPage({ params, searchParams }: { params: Prom
                         <div 
                             className="prose prose-sm max-w-none text-gray-600"
                             dangerouslySetInnerHTML={{ 
-                                __html: (brand.acf?.brand_description && brand.acf.brand_description.trim() !== "") 
-                                    ? brand.acf.brand_description 
-                                    : (brand.description || `Bekijk ons assortiment van ${brand.name}.`) 
+                                __html: (brand.description && brand.description.trim() !== "") 
+                                    ? brand.description 
+                                    : (brand.acf?.brand_description || `Bekijk ons assortiment van ${brand.name}.`) 
                             }}
                         />
                     </div>

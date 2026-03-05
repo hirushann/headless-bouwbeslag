@@ -173,7 +173,7 @@ export default function Header({
               <span>De beste service</span>
             </div>
           </div>
-          <div className="w-auto lg:w-1/4 flex justify-end items-center gap-2">
+          <div className="w-2/5 lg:w-1/4 flex justify-end items-center gap-2">
             {/* Payment Icons */}
             {/* <img className="hidden lg:block h-6 object-contain" src="/header-top-pay.png" alt="Betaalmethoden" /> */}
             
