@@ -206,6 +206,33 @@ const fetchAllSubCategoriesCached = cache(async (parentId: number) => {
   return allSubs;
 });
 
+const fetchAllCategoryProductsForFiltersCached = cache(async (categoryId: number) => {
+  let allProducts: any[] = [];
+  let page = 1;
+  const maxPages = 10; // Up to 1000 products for filters
+
+  while (page <= maxPages) {
+    try {
+      const res = await api.get("products", {
+        category: categoryId,
+        per_page: 100,
+        page,
+        _fields: "id,attributes,price,name,date_created,total_sales",
+        status: 'publish',
+        next: { revalidate: 3600 }
+      });
+      if (!res.data || res.data.length === 0) break;
+      allProducts = [...allProducts, ...res.data];
+      const totalPages = parseInt(res.totalPages || '1');
+      if (page >= totalPages) break;
+      page++;
+    } catch (err) {
+      break;
+    }
+  }
+  return allProducts;
+});
+
 const getProductReviewsCached = cache(async (productId: number) => {
   try {
     const res = await api.get("products/reviews", { 
@@ -655,7 +682,7 @@ export default async function Page({ params, searchParams }: PageProps) {
     }
 
 
-    const [attributes, subCategories, productsRes] = await Promise.all([
+    const [attributes, subCategories, productsRes, allCategoryProducts] = await Promise.all([
         fetchAttributes(),
         fetchAllSubCategoriesCached(category.id),
         api.get("products", { 
@@ -665,10 +692,11 @@ export default async function Page({ params, searchParams }: PageProps) {
             status: 'publish',
             ...sortParams,
             next: { revalidate: 60 }
-        })
+        }),
+        fetchAllCategoryProductsForFiltersCached(category.id)
     ]);
     
-    const initialFilterBaseProducts: any[] = [];
+    const initialFilterBaseProducts = allCategoryProducts || [];
     const initialProducts = await resolveProductImages(productsRes.data || []);
     const initialTotalPages = parseInt(productsRes.totalPages || '1');
     const initialTotalProducts = parseInt(productsRes.total || '0');

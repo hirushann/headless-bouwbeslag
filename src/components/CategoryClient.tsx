@@ -121,22 +121,25 @@ function FilterAttributeGroup({
     <div className="mb-8">
       <h3 className="font-medium mb-3 text-[#212121] text-lg">{attr.name}</h3>
       <div className="flex flex-col gap-2 text-sm text-gray-700">
-        {visibleTerms.map((term: AttributeTerm) => (
-          <label key={term.id} className="flex items-start gap-1 cursor-pointer">
-            <div className="w-5">
-              <input
-                type="checkbox"
-                className="mr-2 w-5 h-5 rounded-sm border border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0"
-                checked={selectedFilters[attr.id]?.has(term.id) || false}
-                onChange={() => toggleFilter(attr.id, term.id)}
-              />
-            </div>
-            <span className="flex-1">
-              {term.name === "1" ? "Ja" : term.name === "0" ? "Nee" : term.name}
-              {term.count !== undefined && <span className="ml-1 text-gray-400">({term.count})</span>}
-            </span>
-          </label>
-        ))}
+        {visibleTerms.map((term: AttributeTerm) => {
+          const isSelected = selectedFilters[attr.id]?.has(term.id) || false;
+          return (
+            <label key={term.id} className={`flex items-start gap-1 cursor-pointer transition-opacity ${term.count === 0 && !isSelected ? 'opacity-40 hover:opacity-100' : 'opacity-100'}`}>
+              <div className="w-5">
+                <input
+                  type="checkbox"
+                  className="mr-2 w-5 h-5 rounded-sm border border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0"
+                  checked={isSelected}
+                  onChange={() => toggleFilter(attr.id, term.id)}
+                />
+              </div>
+              <span className="flex-1">
+                {term.name === "1" ? "Ja" : term.name === "0" ? "Nee" : term.name}
+                {term.count !== undefined && <span className="ml-1 text-gray-400 text-[10px] sm:text-xs">({term.count})</span>}
+              </span>
+            </label>
+          );
+        })}
         {attr.terms.length > 5 && (
           <button
             type="button"
@@ -221,40 +224,54 @@ export default function CategoryClient({
     }
   }, [page, sortBy, router]);
 
-  useEffect(() => {
-    async function fetchFilterBase() {
-      if (!category) return;
-      if (allCategoryProductsForFilters.length > 0) return;
-      setFiltersLoading(true);
-      try {
-        // Fetch a larger batch (max 100) exactly once per category to determine available filters
-        // Only fetch minimal fields to keep it fast
-        const res = await fetch(`/api/products?per_page=100&category=${category.id}&_fields=id,attributes`);
-        if (res.ok) {
-           const data = await res.json();
-          //  console.log(`🔍 Fetched ${data.length} products for global filter generation`);
-           setAllCategoryProductsForFilters(data);
-        }
-      } catch (err) {
-        // console.error("Failed to fetch filter base:", err);
-      } finally {
-        setFiltersLoading(false);
+  // ------------------------------------------------------------------
+  // Filtering Logic
+  // ------------------------------------------------------------------
+  const checkGlobalMatch = (p: any, excludeAttrId?: number) => {
+      // 1. Regular attributes - AND between groups, OR within group
+      const filters = Object.entries(selectedFilters);
+      for (const [idStr, terms] of filters) {
+        const id = Number(idStr);
+        if (id === excludeAttrId) continue;
+        const pAttr = p.attributes?.find((a: any) => a.id === id);
+        if (!pAttr) return false;
+        
+        const matchingTerms = pAttr.options.some((o: string) => {
+          const globalAttr = attributes.find(ga => ga.id === id);
+          const tMatch = globalAttr?.terms.find((t: AttributeTerm) => t.name.trim().toLowerCase() === o.trim().toLowerCase());
+          return tMatch && terms.has(tMatch.id);
+        });
+        if (!matchingTerms) return false;
       }
-    }
-    fetchFilterBase();
-  }, [category?.id]);
+
+      // 2. Ranges (Special logic for existing attributes)
+      if (afdichtingsspleetRange) {
+        const pVan = p.attributes?.find((a: any)=>a.name==="Afdichtingsspleet Van")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
+        const pTot = p.attributes?.find((a: any)=>a.name==="Afdichtingsspleet Tot")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
+        const vMin = pVan?.length ? Math.min(...pVan) : 0;
+        const vMax = pTot?.length ? Math.max(...pTot) : 9999;
+        if (!(vMin <= afdichtingsspleetRange[1] && vMax >= afdichtingsspleetRange[0])) return false;
+      }
+      if (groefbreedteRange) {
+        const pVan = p.attributes?.find((a: any)=>a.name==="Groefbreedte Van")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
+        const pTot = p.attributes?.find((a: any)=>a.name==="Groefbreedte Tot")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
+        const vMin = pVan?.length ? Math.min(...pVan) : 0;
+        const vMax = pTot?.length ? Math.max(...pTot) : 9999;
+        if (!(vMin <= groefbreedteRange[1] && vMax >= groefbreedteRange[0])) return false;
+      }
+      return true;
+  };
 
   useEffect(() => {
     async function loadProducts() {
       if (!category) return;
 
-      const hasFilters = Object.keys(selectedFilters).length > 0 || !!afdichtingsspleetRange || !!groefbreedteRange || !!sortBy;
+      const hasFilters = Object.keys(selectedFilters).length > 0 || !!afdichtingsspleetRange || !!groefbreedteRange;
 
-      // Upon initial mount, if we don't have extra filters, just seed the data
+      // Handle Initial Mount optimization
       if (isInitialMount.current) {
          isInitialMount.current = false;
-         
-         if (!hasFilters) {
+         if (!hasFilters && !sortBy && page === 1) {
             setProducts(initialProducts);
             setRawProducts(initialProducts);
             setTotalPages(initialTotalPages);
@@ -264,127 +281,66 @@ export default function CategoryClient({
          }
       }
       
-      // console.log(`📦 Loading page ${page} for category ${category.name} (ID: ${category.id})`);
       setProductsLoading(true);
-      // Clear current products to show skeletons and avoid showing wrong page data
-      setProducts([]); 
 
       try {
-        let params: any = { per_page: 20, page: page };
-
-        // For nested URLs, we always just valid the current category's ID
-        // The subcategory logic is now handled by navigating to a new URL
-        params.category = category.id;
-
-        if (sortBy) {
-          if (sortBy === "price-low-high") {
-            params.orderby = "price";
-            params.order = "asc";
-          } else if (sortBy === "price-high-low") {
-            params.orderby = "price";
-            params.order = "desc";
-          } else if (sortBy === "date") {
-            params.orderby = "date";
-            params.order = "desc";
-          } else if (sortBy === "title-asc") {
-            params.orderby = "title";
-            params.order = "asc";
-          } else if (sortBy === "title-desc") {
-            params.orderby = "title";
-            params.order = "desc";
-          } else {
-            params.orderby = sortBy;
-          }
-        }
-
-        // Use local API proxy to avoid CORS
-        // Convert params object to query string
-        const queryString = new URLSearchParams(params as any).toString();
-        const res = await fetch(`/api/products?${queryString}`, { cache: 'no-store' });
-        if (!res.ok) throw new Error('Failed to fetch products');
-        
-        const totalPagesHeader = res.headers.get('x-wp-totalpages');
-        const totalItemsHeader = res.headers.get('x-wp-total');
-        
-        const data = await res.json();
-        console.log("Category Products Response:", data);
-        setRawProducts(data);
-        let prods = data;
-
-        if (Object.keys(selectedFilters).length > 0 || afdichtingsspleetRange || groefbreedteRange) {
-          prods = prods.filter((product: any) => {
-            if (Object.keys(selectedFilters).length > 0) {
-              const matchesFilters = Object.entries(selectedFilters).every(([attrIdStr, termSet]) => {
-                const attrId = Number(attrIdStr);
-                const productAttr = product.attributes?.find((a: any) => a.id === attrId);
-                if (!productAttr) return false;
-
-                return productAttr.options.some((opt: string) => {
-                  const attr = attributes.find((a) => a.id === attrId);
-                  const term = attr?.terms.find((t: any) => t.name === opt);
-                  return termSet.has(term?.id);
-                });
+        // If filters or specialized sorting is active, we use our local Filter Base for decision making
+        if (hasFilters || sortBy) {
+           const allBase = allCategoryProductsForFilters.length > 0 ? allCategoryProductsForFilters : initialFilterBaseProducts;
+           let matches = allBase.filter(p => checkGlobalMatch(p));
+           
+           // Sort matches locally
+           if (sortBy) {
+              matches.sort((a,b) => {
+                 if (sortBy === 'price-low-high') return parseFloat(a.price || "0") - parseFloat(b.price || "0");
+                 if (sortBy === 'price-high-low') return parseFloat(b.price || "0") - parseFloat(a.price || "0");
+                 if (sortBy === 'title-asc') return (a.name || "").localeCompare(b.name || "");
+                 if (sortBy === 'title-desc') return (b.name || "").localeCompare(a.name || "");
+                 if (sortBy === 'date') return new Date(b.date_created || 0).getTime() - new Date(a.date_created || 0).getTime();
+                 if (sortBy === 'popularity') return (b.total_sales || 0) - (a.total_sales || 0);
+                 return 0;
               });
-              if (!matchesFilters) return false;
-            }
+           }
 
-            if (afdichtingsspleetRange) {
-              const pVanAttr = product.attributes?.find((a: any) => a.name === "Afdichtingsspleet Van");
-              const pTotAttr = product.attributes?.find((a: any) => a.name === "Afdichtingsspleet Tot");
+           const sliced = matches.slice((page - 1) * 20, page * 20);
+           const slicedIds = sliced.map(m => m.id);
 
-              if (pVanAttr || pTotAttr) {
-                const pVanVals = pVanAttr ? pVanAttr.options.map((o: string) => parseFloat(o)).filter((n: number) => !isNaN(n)) : [];
-                const pTotVals = pTotAttr ? pTotAttr.options.map((o: string) => parseFloat(o)).filter((n: number) => !isNaN(n)) : [];
+           if (slicedIds.length === 0) {
+              setProducts([]);
+              setTotalProducts(matches.length);
+              setTotalPages(Math.ceil(matches.length / 20));
+           } else {
+              // Fetch full product details for just this page's IDs
+              const res = await fetch(`/api/products?include=${slicedIds.join(',')}`);
+              const data = await res.json();
+              
+              // Ensure order is preserved as per our local sort
+              const sortedData = slicedIds.map(id => data.find((p:any) => p.id === id)).filter(Boolean);
+              setProducts(sortedData);
+              setTotalProducts(matches.length);
+              setTotalPages(Math.ceil(matches.length / 20));
+           }
 
-                const pVan = pVanVals.length > 0 ? Math.min(...pVanVals) : 0;
-                const pTot = pTotVals.length > 0 ? Math.max(...pTotVals) : 9999;
-
-                if (!(pVan <= afdichtingsspleetRange[1] && pTot >= afdichtingsspleetRange[0])) {
-                  return false;
-                }
-              } else {
-                 return false;
-              }
-            }
-
-            if (groefbreedteRange) {
-              const pVanAttr = product.attributes?.find((a: any) => a.name === "Groefbreedte Van");
-              const pTotAttr = product.attributes?.find((a: any) => a.name === "Groefbreedte Tot");
-
-              if (pVanAttr || pTotAttr) {
-                const pVanVals = pVanAttr ? pVanAttr.options.map((o: string) => parseFloat(o)).filter((n: number) => !isNaN(n)) : [];
-                const pTotVals = pTotAttr ? pTotAttr.options.map((o: string) => parseFloat(o)).filter((n: number) => !isNaN(n)) : [];
-
-                const pVan = pVanVals.length > 0 ? Math.min(...pVanVals) : 0;
-                const pTot = pTotVals.length > 0 ? Math.max(...pTotVals) : 9999;
-
-                if (!(pVan <= groefbreedteRange[1] && pTot >= groefbreedteRange[0])) {
-                  return false;
-                }
-              } else {
-                 return false;
-              }
-            }
-
-            return true;
-          });
-
-          // Override pagination because filtering is done client-side on the fetched batch
-          setTotalProducts(prods.length);
-          setTotalPages(Math.ceil(prods.length / 20));
         } else {
-          // Use real backend pagination if no filters are active
-          if (totalPagesHeader) setTotalPages(parseInt(totalPagesHeader));
-          if (totalItemsHeader) setTotalProducts(parseInt(totalItemsHeader));
-        }
+           // Standard paginated fetch (no filters)
+           const params: any = { per_page: 20, page: page, category: category.id };
+           if (sortBy) params.orderby = sortBy; // Basic API support
 
-        if (prods.length === 0 && data.length > 0) {
-          console.warn("⚠️ All products from current page were filtered out localy!");
+           const queryString = new URLSearchParams(params as any).toString();
+           const res = await fetch(`/api/products?${queryString}`, { cache: 'no-store' });
+           if (!res.ok) throw new Error('Failed to fetch products');
+           
+           const totalPagesHeader = res.headers.get('x-wp-totalpages');
+           const totalItemsHeader = res.headers.get('x-wp-total');
+           const data = await res.json();
+           
+           setProducts(data);
+           setRawProducts(data);
+           if (totalPagesHeader) setTotalPages(parseInt(totalPagesHeader));
+           if (totalItemsHeader) setTotalProducts(parseInt(totalItemsHeader));
         }
-
-        setProducts(prods);
       } catch (err) {
-        // console.error(err);
+        console.error("LoadProducts error:", err);
       } finally {
         setProductsLoading(false);
       }
@@ -447,40 +403,19 @@ export default function CategoryClient({
     const sourceProducts = allCategoryProductsForFilters.length > 0 ? allCategoryProductsForFilters : rawProducts;
     if (!sourceProducts || sourceProducts.length === 0) return [];
 
-    const checkMatch = (p: any, excludeAttrId?: number) => {
-      // 1. Regular attributes - AND between groups, OR within group
-      const activeFilters = Object.entries(selectedFilters);
-      for (const [idStr, terms] of activeFilters) {
-        const id = Number(idStr);
-        if (id === excludeAttrId) continue;
-        const pAttr = p.attributes?.find((a: any) => a.id === id);
-        if (!pAttr) return false;
-        const matchingTerms = pAttr.options.some((o: string) => {
-          const globalAttr = attributes.find(ga => ga.id === id);
-          const tMatch = globalAttr?.terms.find((t: AttributeTerm) => t.name.trim().toLowerCase() === o.trim().toLowerCase());
-          return tMatch && terms.has(tMatch.id);
-        });
-        if (!matchingTerms) return false;
-      }
-      // 2. Ranges
-      if (afdichtingsspleetRange) {
-        const pVan = p.attributes?.find((a: any)=>a.name==="Afdichtingsspleet Van")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
-        const pTot = p.attributes?.find((a: any)=>a.name==="Afdichtingsspleet Tot")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
-        const vMin = pVan?.length ? Math.min(...pVan) : 0;
-        const vMax = pTot?.length ? Math.max(...pTot) : 9999;
-        if (!(vMin <= afdichtingsspleetRange[1] && vMax >= afdichtingsspleetRange[0])) return false;
-      }
-      if (groefbreedteRange) {
-        const pVan = p.attributes?.find((a: any)=>a.name==="Groefbreedte Van")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
-        const pTot = p.attributes?.find((a: any)=>a.name==="Groefbreedte Tot")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
-        const vMin = pVan?.length ? Math.min(...pVan) : 0;
-        const vMax = pTot?.length ? Math.max(...pTot) : 9999;
-        if (!(vMin <= groefbreedteRange[1] && vMax >= groefbreedteRange[0])) return false;
-      }
-      return true;
-    };
+    // 1. Identify which global attributes are actually present in these products to avoid thousands of useless checks
+    const presentAttrIds = new Set<number>();
+    sourceProducts.forEach(p => {
+      p.attributes?.forEach((a: any) => {
+        if (a.id) presentAttrIds.add(a.id);
+      });
+    });
 
-      return attributes
+    // 2. Pre-filter the global attributes list to only what's used in this category
+    const activeGlobalAttrs = attributes.filter(ga => presentAttrIds.has(ga.id));
+
+    // 3. Faceted Search: For each attribute, we calculate valid terms and their counts
+    return activeGlobalAttrs
       .map((attr) => {
         // A. ACF Visibility Check
         if (category?.acf) {
@@ -491,16 +426,33 @@ export default function CategoryClient({
 
         // B. Explicitly exclude "Inhoud van de verpakking"
         if (attr.name === "Inhoud van de verpakking") return null;
-        // Dynamic Faceted Counts
+
+        // C. Pre-calculate which products pass all OTHER filters (faceted search rule)
+        // This is done once per attribute group
+        const productsPassingOtherFilters = sourceProducts.filter(p => checkGlobalMatch(p, attr.id)); 
+
+        // D. Calculate counts for each term of THIS attribute using the pre-filtered products
         const validTerms = attr.terms.map((term: AttributeTerm) => {
           let count = 0;
-          sourceProducts.forEach(p => {
-             if (checkMatch(p, attr.id)) {
-               const pAttr = p.attributes?.find((a: any) => a.id === attr.id);
-               if (pAttr?.options.some((o: string) => o.trim().toLowerCase() === term.name.trim().toLowerCase())) count++;
+          const termNameLowercase = term.name.trim().toLowerCase();
+
+          // 1. Calculate faceted count (matches with other filters active)
+          productsPassingOtherFilters.forEach(p => {
+             const pAttr = p.attributes?.find((a: any) => a.id === attr.id);
+             if (pAttr?.options.some((o: string) => o.trim().toLowerCase() === termNameLowercase)) {
+                count++;
              }
           });
-          return count > 0 ? { ...term, count } : null;
+
+          // 2. Check if this term EVER exists in this category at all (even without filters)
+          const existsInCategory = sourceProducts.some(p => {
+             const pAttr = p.attributes?.find((a: any) => a.id === attr.id);
+             return pAttr?.options.some((o: string) => o.trim().toLowerCase() === termNameLowercase);
+          });
+
+          // If it never exists in the whole category, we drop it. 
+          // If it exists but count is 0 (due to filters), we keep it!
+          return existsInCategory ? { ...term, count } : null;
         }).filter(Boolean) as AttributeTerm[];
 
         if (validTerms.length === 0) return null;
@@ -637,16 +589,17 @@ export default function CategoryClient({
                         {(showAllColors ? colorAttribute.terms : colorAttribute.terms.slice(0, 5)).map(
                           (term: AttributeTerm) => {
                           const isSelected = selectedFilters[colorAttribute.id]?.has(term.id) || false;
+                          const isDimmed = term.count === 0 && !isSelected;
                           return (
-                            <div key={term.id} className="flex flex-col items-center">
+                            <div key={term.id} className={`flex flex-col items-center transition-opacity duration-300 ${isDimmed ? 'opacity-30' : 'opacity-100'}`}>
                               <button
                                 type="button"
-                                className={`w-8 h-8 rounded-full border-2 ${isSelected ? 'ring-2 ring-blue-500' : 'border-gray-300'}`}
+                                className={`w-8 h-8 rounded-full border-2 transition-all ${isSelected ? 'ring-2 ring-blue-500 scale-110' : 'border-gray-300 hover:border-blue-400'}`}
                                 style={{ backgroundColor: COLOR_MAP[term.name.toLowerCase()] || term.name.toLowerCase() }}
                                 onClick={() => toggleFilter(colorAttribute.id, term.id)}
                                 aria-label={term.name}
                               />
-                              <span className="mt-1 text-xs text-center text-gray-700">
+                              <span className="mt-1 text-xs text-center text-gray-700 font-medium">
                                 {term.name}
                                 {term.count !== undefined && <span className="block text-[10px] text-gray-400">({term.count})</span>}
                               </span>
