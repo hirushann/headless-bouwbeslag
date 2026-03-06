@@ -491,7 +491,7 @@ function generateStructuredData(product: any, taxRate: number, reviews: any[] = 
     offers: {
       "@type": "Offer",
       url: `https://bouwbeslag.nl/${product.slug}`,
-      priceCurrency: currency,
+      currency: currency,
       price: priceWithVat.toFixed(2),
       priceValidUntil: "2027-12-31", 
       itemCondition: "https://schema.org/NewCondition",
@@ -505,7 +505,7 @@ function generateStructuredData(product: any, taxRate: number, reviews: any[] = 
         shippingRate: {
           "@type": "MonetaryAmount",
           value: priceWithVat > 50 ? "0" : "6.95", 
-          priceCurrency: currency
+          currency: currency
         },
         shippingDestination: {
           "@type": "DefinedRegion",
