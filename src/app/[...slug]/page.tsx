@@ -206,6 +206,20 @@ const fetchAllSubCategoriesCached = cache(async (parentId: number) => {
   return allSubs;
 });
 
+const getProductReviewsCached = cache(async (productId: number) => {
+  try {
+    const res = await api.get("products/reviews", { 
+      product: productId, 
+      status: 'approved',
+      per_page: 50,
+      next: { revalidate: 3600 }
+    });
+    return res.data || [];
+  } catch (error) {
+    return [];
+  }
+});
+
 
 async function getStandardTaxRate(): Promise<number> {
   try {
@@ -400,17 +414,26 @@ export async function generateMetadata(
 /* ----------------------------------------------------
  | ✅ STRUCTURED DATA (JSON-LD)
  ---------------------------------------------------- */
-function generateStructuredData(product: any, taxRate: number) {
+function generateStructuredData(product: any, taxRate: number, reviews: any[] = []) {
   if (!product) return null;
 
-  // Price Calculation Logic
-  let price = product.price ? parseFloat(product.price) : 0;
+  const meta = product.meta_data || [];
+
+  // Price Calculation Logic - Matching B2C logic in ProductPageClient.tsx
+  let salePrice = product.price ? parseFloat(product.price) : 0;
+  const b2cPrice = meta.find((m: any) => m.key === "crucial_data_b2b_and_b2c_sales_price_b2c")?.value;
+  if (b2cPrice && !isNaN(parseFloat(b2cPrice))) {
+      salePrice = parseFloat(b2cPrice);
+  }
+
+  const taxMultiplier = 1 + (taxRate / 100);
+  const priceWithVat = salePrice * taxMultiplier;
   
   const currency = "EUR"; 
-  const description =
-    product.short_description?.replace(/<[^>]+>/g, "") ||
-    product.description?.replace(/<[^>]+>/g, "") ||
-    "";
+  
+  // Robust Description: Prioritize ACF Meta Description, then Short Description, then Full Description
+  const acfDesc = meta.find((m: any) => m.key === "description_meta_description")?.value;
+  const description = clean(acfDesc) || clean(product.short_description) || clean(product.description) || "";
   
   const images = product.images?.map((img: any) => img.src) || [];
 
@@ -419,31 +442,125 @@ function generateStructuredData(product: any, taxRate: number) {
       ? "https://schema.org/InStock"
       : "https://schema.org/OutOfStock";
 
-  const schema = {
+  // Brand Identification
+  const productBrand = product.brands?.[0]?.name;
+  const brandName = productBrand || "Bouwbeslag";
+
+  // EAN / GTIN Logic
+  const eanCode = meta.find((m: any) => m.key === "crucial_data_product_ean_code")?.value || 
+                  meta.find((m: any) => m.key === "crucial_data_product_bol_ean_code")?.value;
+  
+  // Ensure description is NEVER empty (Google Requirement)
+  const finalDescription = description || `Koop ${product.name} bij Bouwbeslag.nl. ✅ Scherpe prijzen ✅ Snelle levering ✅ 30 dagen bedenktijd.`;
+
+  const schema: any = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
     image: images,
-    description: description,
+    description: finalDescription,
     sku: product.sku,
+    mpn: product.sku,
     brand: {
       "@type": "Brand",
-      name: product.brands?.[0]?.name || "Bouwbeslag",
+      name: brandName,
     },
     offers: {
       "@type": "Offer",
       url: `https://bouwbeslag.nl/${product.slug}`,
       priceCurrency: currency,
-      price: price.toFixed(2),
-      priceValidUntil: "2025-12-31", 
+      price: priceWithVat.toFixed(2),
+      priceValidUntil: "2026-12-31", 
       itemCondition: "https://schema.org/NewCondition",
       availability: availability,
       seller: {
         "@type": "Organization",
         name: "Bouwbeslag",
       },
+      shippingDetails: {
+        "@type": "OfferShippingDetails",
+        shippingRate: {
+          "@type": "MonetaryAmount",
+          value: priceWithVat > 50 ? "0" : "6.95", 
+          currency: currency
+        },
+        shippingDestination: {
+          "@type": "DefinedRegion",
+          addressCountry: "NL"
+        },
+        deliveryTime: {
+          "@type": "ShippingDeliveryTime",
+          handlingTime: {
+            "@type": "QuantitativeValue",
+            minValue: "0",
+            maxValue: "1",
+            unitCode: "DAY"
+          },
+          transitTime: {
+            "@type": "QuantitativeValue",
+            minValue: "1",
+            maxValue: "2",
+            unitCode: "DAY"
+          }
+        }
+      },
+      hasMerchantReturnPolicy: {
+        "@type": "MerchantReturnPolicy",
+        applicableCountry: "NL",
+        returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnPeriod",
+        merchantReturnDays: "30",
+        returnMethod: "https://schema.org/ReturnByMail",
+        returnFees: "https://schema.org/FreeReturn"
+      }
     },
   };
+
+  // Add GTIN if EAN code exists
+  if (eanCode) {
+    const eanStr = String(eanCode).trim();
+    if (eanStr.length === 8) {
+      schema.gtin8 = eanStr;
+    } else if (eanStr.length === 12) {
+      schema.gtin12 = eanStr;
+    } else if (eanStr.length === 13 || eanStr.length === 14) {
+      schema.gtin13 = eanStr;
+    } else {
+      schema.gtin = eanStr; // Fallback for other lengths
+    }
+  }
+
+  // Aggregate Rating (from WC product object)
+  const ratingCount = parseInt(product.rating_count || "0");
+  const averageRating = parseFloat(product.average_rating || "0");
+
+  if (ratingCount > 0 || averageRating > 0) {
+    schema.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: averageRating.toString(),
+      reviewCount: ratingCount.toString(),
+      bestRating: "5",
+      worstRating: "1"
+    };
+  }
+
+  // Individual Reviews
+  if (reviews && reviews.length > 0) {
+    schema.review = reviews.slice(0, 5).map((r: any) => ({
+      "@type": "Review",
+      reviewRating: {
+        "@type": "Rating",
+        ratingValue: r.rating.toString(),
+        bestRating: "5",
+        worstRating: "1"
+      },
+      author: {
+        "@type": "Person",
+        name: r.reviewer || "Klant",
+      },
+      reviewBody: clean(r.review),
+      datePublished: r.date_created.split('T')[0],
+    }));
+  }
 
   return schema;
 }
@@ -457,7 +574,8 @@ export default async function Page({ params, searchParams }: PageProps) {
 
   if (product) {
     const taxRate = await getStandardTaxRate();
-    const structuredData = generateStructuredData(product, taxRate);
+    const reviews = await getProductReviewsCached(product.id);
+    const structuredData = generateStructuredData(product, taxRate, reviews);
 
     // Resolve category image if exists
     await resolveProductImages([product]);
