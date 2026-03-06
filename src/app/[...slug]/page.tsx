@@ -221,6 +221,27 @@ const getProductReviewsCached = cache(async (productId: number) => {
 });
 
 
+const getGlobalRatingCached = cache(async () => {
+  try {
+    const id = "11199";
+    const code = "57112442ebe476.33241772";
+    const url = `https://dashboard.webwinkelkeur.nl/api/1.0/ratings_summary.json?id=${id}&code=${code}`;
+    const res = await fetch(url, { next: { revalidate: 3600 } });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.status === "success" && data.data?.ratings_summary) {
+        return {
+            average: parseFloat(data.data.ratings_summary.rating),
+            count: parseInt(data.data.ratings_summary.total_ratings)
+        };
+    }
+    return null;
+  } catch (error) {
+    return null;
+  }
+});
+
+
 async function getStandardTaxRate(): Promise<number> {
   try {
     const res = await api.get("taxes");
@@ -419,7 +440,7 @@ function generateStructuredData(product: any, taxRate: number, reviews: any[] = 
 
   const meta = product.meta_data || [];
 
-  // Price Calculation Logic - Matching B2C logic in ProductPageClient.tsx
+  // Price Calculation Logic
   let salePrice = product.price ? parseFloat(product.price) : 0;
   const b2cPrice = meta.find((m: any) => m.key === "crucial_data_b2b_and_b2c_sales_price_b2c")?.value;
   if (b2cPrice && !isNaN(parseFloat(b2cPrice))) {
@@ -431,7 +452,6 @@ function generateStructuredData(product: any, taxRate: number, reviews: any[] = 
   
   const currency = "EUR"; 
   
-  // Robust Description: Prioritize ACF Meta Description, then Short Description, then Full Description
   const acfDesc = meta.find((m: any) => m.key === "description_meta_description")?.value;
   const description = clean(acfDesc) || clean(product.short_description) || clean(product.description) || "";
   
@@ -442,15 +462,18 @@ function generateStructuredData(product: any, taxRate: number, reviews: any[] = 
       ? "https://schema.org/InStock"
       : "https://schema.org/OutOfStock";
 
-  // Brand Identification
   const productBrand = product.brands?.[0]?.name;
-  const brandName = productBrand || "Bouwbeslag";
+  const productBrandSlug = product.brands?.[0]?.slug;
+  const brandFromMeta = meta.find((m: any) => m.key === "brand" || m.key === "description_bouwbeslag_brand" || m.key === "merk")?.value;
+                        
+  const brandName = productBrand || brandFromMeta || productBrandSlug || "Bouwbeslag";
 
   // EAN / GTIN Logic
   const eanCode = meta.find((m: any) => m.key === "crucial_data_product_ean_code")?.value || 
-                  meta.find((m: any) => m.key === "crucial_data_product_bol_ean_code")?.value;
-  
-  // Ensure description is NEVER empty (Google Requirement)
+                  meta.find((m: any) => m.key === "crucial_data_product_bol_ean_code")?.value ||
+                  meta.find((m: any) => m.key === "_ean")?.value ||
+                  meta.find((m: any) => m.key === "_barcode")?.value;
+
   const finalDescription = description || `Koop ${product.name} bij Bouwbeslag.nl. ✅ Scherpe prijzen ✅ Snelle levering ✅ 30 dagen bedenktijd.`;
 
   const schema: any = {
@@ -482,7 +505,7 @@ function generateStructuredData(product: any, taxRate: number, reviews: any[] = 
         shippingRate: {
           "@type": "MonetaryAmount",
           value: priceWithVat > 50 ? "0" : "6.95", 
-          currency: currency
+          priceCurrency: currency
         },
         shippingDestination: {
           "@type": "DefinedRegion",
@@ -494,13 +517,13 @@ function generateStructuredData(product: any, taxRate: number, reviews: any[] = 
             "@type": "QuantitativeValue",
             minValue: "0",
             maxValue: "1",
-            unitCode: "DAY"
+            unitCode: "d"
           },
           transitTime: {
             "@type": "QuantitativeValue",
             minValue: "1",
             maxValue: "2",
-            unitCode: "DAY"
+            unitCode: "d"
           }
         }
       },
@@ -515,7 +538,6 @@ function generateStructuredData(product: any, taxRate: number, reviews: any[] = 
     },
   };
 
-  // Add GTIN if EAN code exists
   if (eanCode) {
     const eanStr = String(eanCode).trim();
     if (eanStr.length === 8) {
@@ -524,22 +546,29 @@ function generateStructuredData(product: any, taxRate: number, reviews: any[] = 
       schema.gtin12 = eanStr;
     } else if (eanStr.length === 13 || eanStr.length === 14) {
       schema.gtin13 = eanStr;
-    } else {
-      schema.gtin = eanStr; // Fallback for other lengths
+    } else if (eanStr.length > 0) {
+      schema.gtin = eanStr; 
     }
   }
 
-  // Aggregate Rating (from WC product object)
-  const ratingCount = parseInt(product.rating_count || "0");
-  const averageRating = parseFloat(product.average_rating || "0");
+  // Pure WooCommerce Aggregate Rating Logic
+  let ratingCount = parseInt(product.rating_count || "0");
+  let averageRating = parseFloat(product.average_rating || "0");
 
-  if (ratingCount > 0 || averageRating > 0) {
+  // If WooCommerce summary totals are 0, dynamically calculate from individual reviews
+  if (ratingCount === 0 && reviews && reviews.length > 0) {
+    ratingCount = reviews.length;
+    const total = reviews.reduce((acc, r: any) => acc + (parseInt(r.rating) || 0), 0);
+    averageRating = parseFloat((total / ratingCount).toFixed(1));
+  }
+
+  if (ratingCount > 0) {
     schema.aggregateRating = {
       "@type": "AggregateRating",
-      ratingValue: averageRating.toString(),
-      reviewCount: ratingCount.toString(),
-      bestRating: "5",
-      worstRating: "1"
+      ratingValue: averageRating,
+      reviewCount: ratingCount,
+      bestRating: 5, 
+      worstRating: 1
     };
   }
 
