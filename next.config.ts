@@ -15,6 +15,18 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: '/wp-content/:path*',
+        destination: 'https://app.bouwbeslag.nl/wp-content/:path*',
+      },
+      {
+        source: '/wp-includes/:path*',
+        destination: 'https://app.bouwbeslag.nl/wp-includes/:path*',
+      },
+    ];
+  },
   async headers() {
     return [
       {

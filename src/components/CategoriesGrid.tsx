@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
+import { fixImageSrc } from "@/lib/image-utils";
+
 interface Category {
   id: number;
   name: string;
@@ -49,7 +51,7 @@ export default function CategoriesGrid({ categories }: CategoriesGridProps) {
           <div className="relative h-40 w-full">
             <Link prefetch={true} href={`/${cat.slug}`} className="block w-full h-full">
               {cat.image?.src ? (
-                <Image src={cat.image.src} alt={cat.name || 'Category'} fill className="object-cover rounded-sm" />
+                <Image src={fixImageSrc(cat.image.src)} alt={cat.name || 'Category'} fill className="object-cover rounded-sm" />
               ) : (
                 <div className="bg-gray-200 h-full w-full rounded-sm" />
               )}

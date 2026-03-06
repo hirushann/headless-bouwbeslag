@@ -7,6 +7,7 @@ import { getDeliveryInfo } from "@/lib/deliveryUtils";
 import { checkStockAction } from "@/app/actions";
 import toast from "react-hot-toast";
 import { useUserContext } from "@/context/UserContext";
+import { fixImageSrc } from "@/lib/image-utils";
 
 export default function RecommendedProductItem({ item, onAddToCart }: { item: any, onAddToCart?: () => void }) {
     const { userRole, isLoading } = useUserContext();
@@ -69,7 +70,7 @@ export default function RecommendedProductItem({ item, onAddToCart }: { item: an
         }
     }, [item.id, catImgMeta]);
 
-    const mImg = targetImgSrc;
+    const mImg = fixImageSrc(targetImgSrc);
 
     // Price Logic
     const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));

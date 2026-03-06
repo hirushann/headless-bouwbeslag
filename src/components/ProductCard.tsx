@@ -10,17 +10,10 @@ const WP_BASE: string =
   (process.env.NEXT_PUBLIC_WORDPRESS_API_URL as string) ||
   "";
 
+import { fixImageSrc } from "@/lib/image-utils";
+
 function normalizeImageUrl(url?: string): string {
-  if (!url) return "/default-fallback-image.webp";
-  // protocol-relative URLs
-  if (url.startsWith("//")) return `https:${url}`;
-  // relative path from WP site
-  if (url.startsWith("/")) return `${WP_BASE}${url}`;
-  // force https if base uses https but image is http
-  if (WP_BASE.startsWith("https://") && url.startsWith("http://")) {
-    return url.replace(/^http:\/\//, "https://");
-  }
-  return url;
+  return fixImageSrc(url);
 }
 
 import { useUserContext } from "@/context/UserContext";

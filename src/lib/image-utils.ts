@@ -8,7 +8,12 @@ export function fixImageSrc(src: string | undefined | null): string {
         finalSrc = `https:${finalSrc}`;
     }
 
-    // Replace staging domains
+    // Replace staging domains or specific backend domains to use local proxy
+    const WP_URL = "https://app.bouwbeslag.nl";
+    if (finalSrc.startsWith(WP_URL)) {
+        finalSrc = finalSrc.replace(WP_URL, "");
+    }
+
     if (!finalSrc.includes("staging-plugin-test.test")) {
         finalSrc = finalSrc.replace("http://bouwbeslag.nl", "https://bouwbeslag.nl");
     }

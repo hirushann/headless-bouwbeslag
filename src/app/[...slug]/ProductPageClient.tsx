@@ -7,7 +7,6 @@ import toast from "react-hot-toast";
 import { checkStockAction, fetchProductByIdAction, fetchProductBySkuAction, fetchProductBySkuOrIdAction, fetchRelatedProductsBatchAction, fetchBrandImageUrlAction } from "@/app/actions";
 import Link from "next/link";
 // import Image from "next/image";
-// import ProductCard from "@/components/ProductCard";
 import RecommendedProductItem from "@/components/RecommendedProductItem";
 import { useCartStore } from "@/lib/cartStore";
 import { fetchMedia } from "@/lib/wordpress";
@@ -18,6 +17,7 @@ import PhotoSwipeLightbox from 'photoswipe/lightbox';
 import 'photoswipe/dist/photoswipe.css';
 import { useProductAddedModal } from "@/context/ProductAddedModalContext";
 import { useProductIndexStore } from "@/lib/productIndexStore";
+import { fixImageSrc } from "@/lib/image-utils";
 
 const formatSpecValue = (value: string | number | null | undefined): string => {
   if (value === null || value === undefined) return "";
@@ -75,7 +75,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
     const imgs =
       Array.isArray(product.images)
         ? product.images.filter((img: any) => !!img?.src).map((img: any) => ({
-          src: img.src,
+          src: fixImageSrc(img.src),
           width: img.width || 1200,
           height: img.height || 1200,
           alt: img.alt || product.name
@@ -197,12 +197,12 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
   const catImgMeta = product?.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value || 
                     product?.meta_data?.find((m: any) => m.key === "cat_image")?.value;
   const isNumericCatImg = typeof catImgMeta === "string" && /^\d+$/.test(catImgMeta);
-  const [targetProductImg, setTargetProductImg] = useState<string>(product.images?.[0]?.src || "/afbeelding.webp");
+  const [targetProductImg, setTargetProductImg] = useState<string>(product.images?.[0]?.src ? fixImageSrc(product.images[0].src) : "/afbeelding.webp");
 
   useEffect(() => {
     // If literal URL
     if (catImgMeta && catImgMeta.trim() !== "" && !isNumericCatImg) {
-      setTargetProductImg(catImgMeta);
+      setTargetProductImg(fixImageSrc(catImgMeta));
     } 
     // If numeric ID, fetch it
     else if (isNumericCatImg) {
@@ -211,7 +211,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
         .then(res => res.json())
         .then(data => {
           if (data && data.source_url) {
-            setTargetProductImg(data.source_url);
+            setTargetProductImg(fixImageSrc(data.source_url));
           }
         })
         .catch(() => {});
@@ -221,7 +221,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
   useEffect(() => {
     // If we already have injected logoUrl, use it. Otherwise, fetch it.
     if (product?.brands?.[0]?.logoUrl) {
-      setBrandImageUrl(product.brands[0].logoUrl);
+      setBrandImageUrl(fixImageSrc(product.brands[0].logoUrl));
       return;
     }
     
@@ -230,7 +230,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
     if (brandId) {
       fetchBrandImageUrlAction(brandId).then((res) => {
         if (res.success && res.data) {
-          setBrandImageUrl(res.data);
+          setBrandImageUrl(fixImageSrc(res.data));
         }
       });
     }
