@@ -477,8 +477,9 @@ function generateStructuredData(product: any, taxRate: number, reviews: any[] = 
   const finalDescription = description || `Koop ${product.name} bij Bouwbeslag.nl. ✅ Scherpe prijzen ✅ Snelle levering ✅ 30 dagen bedenktijd.`;
 
   const schema: any = {
-    "@context": "https://schema.org",
+    "@context": "https://schema.org/",
     "@type": "Product",
+    "debug_schema_version": "v2-dynamic-ratings",
     name: product.name,
     image: images,
     description: finalDescription,
@@ -493,7 +494,7 @@ function generateStructuredData(product: any, taxRate: number, reviews: any[] = 
       url: `https://bouwbeslag.nl/${product.slug}`,
       priceCurrency: currency,
       price: priceWithVat.toFixed(2),
-      priceValidUntil: "2026-12-31", 
+      priceValidUntil: "2027-12-31", 
       itemCondition: "https://schema.org/NewCondition",
       availability: availability,
       seller: {
@@ -605,6 +606,11 @@ export default async function Page({ params, searchParams }: PageProps) {
     const taxRate = await getStandardTaxRate();
     const reviews = await getProductReviewsCached(product.id);
     const structuredData = generateStructuredData(product, taxRate, reviews);
+
+    console.log("==========================================");
+    console.log("FINAL SCHEMA BEING SENT TO BROWSER:");
+    console.log(JSON.stringify(structuredData, null, 2));
+    console.log("==========================================");
 
     // Resolve category image if exists
     await resolveProductImages([product]);
