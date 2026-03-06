@@ -479,7 +479,6 @@ function generateStructuredData(product: any, taxRate: number, reviews: any[] = 
   const schema: any = {
     "@context": "https://schema.org/",
     "@type": "Product",
-    "debug_schema_version": "v2-dynamic-ratings",
     name: product.name,
     image: images,
     description: finalDescription,
@@ -531,7 +530,7 @@ function generateStructuredData(product: any, taxRate: number, reviews: any[] = 
       hasMerchantReturnPolicy: {
         "@type": "MerchantReturnPolicy",
         applicableCountry: "NL",
-        returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnPeriod",
+        returnPolicyCategory: "http://schema.org/MerchantReturnFiniteReturnWindow",
         merchantReturnDays: "30",
         returnMethod: "https://schema.org/ReturnByMail",
         returnFees: "https://schema.org/FreeReturn"
