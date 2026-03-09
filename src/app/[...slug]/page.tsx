@@ -67,6 +67,38 @@ const getCategoryMetadataCached = cache(async (slug: string) => {
   }
 });
 
+/**
+ * Optimization: Fetch all categories once and cache them.
+ * This allows synchronous traversal of the category tree.
+ */
+const getAllCategoriesCached = cache(async () => {
+    try {
+        const res = await api.get("products/categories", {
+            per_page: 100,
+            _fields: "id,slug,parent",
+            next: { revalidate: 3600 }
+        });
+        let all = [...(res.data || [])];
+        const totalPages = parseInt(res.totalPages || "1");
+        if (totalPages > 1) {
+            const promises = [];
+            for (let i = 2; i <= totalPages; i++) {
+                promises.push(api.get("products/categories", {
+                    per_page: 100,
+                    page: i,
+                    _fields: "id,slug,parent",
+                    next: { revalidate: 3600 }
+                }));
+            }
+            const results = await Promise.all(promises);
+            results.forEach(r => all = [...all, ...(r.data || [])]);
+        }
+        return all;
+    } catch (e) {
+        return [];
+    }
+});
+
 const getProductBySlugCached = cache(async (slug: string) => {
   try {
     // 1. Fetch search by slug - WooCommerce returns the full product here already
@@ -298,12 +330,15 @@ const getStandardTaxRate = cache(async (): Promise<number> => {
 const clean = (s: string | undefined) => s ? s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim() : "";
 
 async function traverseCategoryPath(category: any): Promise<string> {
+  const allCategories = await getAllCategoriesCached();
+  const catMap = new Map(allCategories.map((c: any) => [c.id, c]));
+  
   const path = [category.slug];
   let currentParentId = category.parent;
   let depth = 0;
   
   while (currentParentId && currentParentId !== 0 && depth < 10) {
-    const parent = await getCategoryByIdCached(currentParentId);
+    const parent = catMap.get(currentParentId);
     if (!parent) break;
     path.unshift(parent.slug);
     currentParentId = parent.parent;
