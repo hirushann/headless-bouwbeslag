@@ -113,6 +113,7 @@ function FilterAttributeGroup({
   toggleFilter: (attrId: number, termId: number) => void;
 }) {
   const [showAll, setShowAll] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
 
   // If there's only 1 option, CategoryClient already filters it out, but let's be safe.
   if (attr.terms.length <= 1) return null;
@@ -120,38 +121,65 @@ function FilterAttributeGroup({
   const visibleTerms = showAll ? attr.terms : attr.terms.slice(0, 5);
 
   return (
-    <div className="mb-8">
-      <h3 className="font-medium mb-3 text-[#212121] text-lg">{attr.name}</h3>
-      <div className="flex flex-col gap-2 text-sm text-gray-700">
-        {visibleTerms.map((term: AttributeTerm) => {
-          const isSelected = selectedFilters[attr.id]?.has(term.id) || false;
-          return (
-            <label key={term.id} className={`flex items-start gap-1 cursor-pointer transition-opacity ${term.count === 0 && !isSelected ? 'opacity-40 hover:opacity-100' : 'opacity-100'}`}>
-              <div className="w-5">
-                <input
-                  type="checkbox"
-                  className="mr-2 w-5 h-5 rounded-sm border border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0"
-                  checked={isSelected}
-                  onChange={() => toggleFilter(attr.id, term.id)}
-                />
-              </div>
-              <span className="flex-1">
-                {term.name === "1" ? "Ja" : term.name === "0" ? "Nee" : term.name}
-                {term.count !== undefined && <span className="ml-1 text-gray-400 text-[10px] sm:text-xs">({term.count})</span>}
-              </span>
-            </label>
-          );
-        })}
-        {attr.terms.length > 5 && (
-          <button
-            type="button"
-            className="mt-2 text-left text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
-            onClick={() => setShowAll((prev) => !prev)}
-          >
-            {showAll ? "Toon minder" : `Toon meer (${attr.terms.length - 5})`}
-          </button>
-        )}
-      </div>
+    <div className="mb-4 border-b border-[#F7F7F7] pb-4 last:border-0 last:pb-0">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between w-full group py-2"
+      >
+        <h3 className="font-semibold text-lg text-[#212121] capitalize group-hover:text-[#0066FF] transition-colors">{attr.name}</h3>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={`text-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+        >
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+
+      {isOpen && (
+        <motion.div 
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          className="flex flex-col gap-2 text-sm text-gray-700 mt-2"
+        >
+          {visibleTerms.map((term: AttributeTerm) => {
+            const isSelected = selectedFilters[attr.id]?.has(term.id) || false;
+            return (
+              <label key={term.id} className={`flex items-start gap-1 cursor-pointer transition-opacity ${term.count === 0 && !isSelected ? 'opacity-40 hover:opacity-100' : 'opacity-100'}`}>
+                <div className="w-5">
+                  <input
+                    type="checkbox"
+                    className="mr-2 w-5 h-5 rounded-sm border border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0"
+                    checked={isSelected}
+                    onChange={() => toggleFilter(attr.id, term.id)}
+                  />
+                </div>
+                <span className="flex-1">
+                  {term.name === "1" ? "Ja" : term.name === "0" ? "Nee" : term.name}
+                  {term.count !== undefined && <span className="ml-1 text-gray-400 text-[10px] sm:text-xs">({term.count})</span>}
+                </span>
+              </label>
+            );
+          })}
+          {attr.terms.length > 5 && (
+            <button
+              type="button"
+              className="mt-2 text-left text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
+              onClick={() => setShowAll((prev) => !prev)}
+            >
+              {showAll ? "Toon minder" : `Toon meer (${attr.terms.length - 5})`}
+            </button>
+          )}
+        </motion.div>
+      )}
     </div>
   );
 }
@@ -352,63 +380,148 @@ function FilterSidebar({
   const validRegularAttributes = regularAttributes.filter(attr => attr.terms.length > 1);
   const hasValidColorAttribute = !!colorAttribute && colorAttribute.terms.length > 1;
 
+  const [isColorOpen, setIsColorOpen] = useState(true);
+  const [isAfdichtOpen, setIsAfdichtOpen] = useState(true);
+  const [isGroefOpen, setIsGroefOpen] = useState(true);
+
   return (
     <aside className="w-full lg:w-1/4 relative">
       <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
         <button onClick={() => setShowFilters(false)} className={`${showFilters ? 'block' : 'hidden'} lg:hidden absolute top-3 right-3 text-gray-500`}>
           <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
-        <div className={`${showFilters ? 'max-h-screen opacity-100 p-4' : 'max-h-0 opacity-0 lg:p-4'} overflow-hidden transition-all lg:max-h-full lg:opacity-100 bg-white rounded-lg`}>
+        <div className={`${showFilters ? 'max-h-[2000px] opacity-100 p-4' : 'max-h-0 opacity-0 lg:p-4'} overflow-hidden transition-all lg:max-h-full lg:opacity-100 bg-white rounded-lg shadow-sm border border-gray-100`}>
           {hasValidColorAttribute && (
-            <div className="mb-6">
-              <h3 className="font-medium mb-3 text-lg">{colorAttribute.name}</h3>
-              <div className="grid grid-cols-5 gap-4">
-                {(showAllColors ? colorAttribute.terms : colorAttribute.terms.slice(0, 5)).map(term => {
-                  const isSelected = selectedFilters[colorAttribute.id]?.has(term.id);
-                  return (
-                    <div key={term.id} className={`flex flex-col items-center duration-300 ${term.count === 0 && !isSelected ? 'opacity-30' : ''}`}>
-                      <button className={`w-8 h-8 rounded-full border-2 ${isSelected ? 'ring-2 ring-blue-500 scale-110' : ''}`}
-                        style={{ backgroundColor: COLOR_MAP[term.name.toLowerCase()] || term.name.toLowerCase() }}
-                        onClick={() => toggleFilter(colorAttribute.id, term.id)} />
-                    </div>
-                  );
-                })}
-              </div>
-              {colorAttribute.terms.length > 5 && (
-                <button className="text-sm text-blue-600 mt-2" onClick={() => setShowAllColors(!showAllColors)}>
-                  {showAllColors ? "Toon minder" : `Toon meer (${colorAttribute.terms.length - 5})`}
-                </button>
+            <div className="mb-4 border-b border-[#F7F7F7] pb-4">
+              <button 
+                onClick={() => setIsColorOpen(!isColorOpen)}
+                className="flex items-center justify-between w-full group py-2"
+              >
+                <h3 className="font-semibold text-lg text-[#212121] group-hover:text-[#0066FF] transition-colors">{colorAttribute?.name}</h3>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`text-gray-400 transition-transform duration-200 ${isColorOpen ? "rotate-180" : ""}`}
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+              {isColorOpen && colorAttribute && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  className="mt-3"
+                >
+                  <div className="grid grid-cols-5 gap-4">
+                    {(showAllColors ? colorAttribute.terms : colorAttribute.terms.slice(0, 5)).map(term => {
+                      const isSelected = selectedFilters[colorAttribute.id]?.has(term.id);
+                      return (
+                        <div key={term.id} className={`flex flex-col items-center duration-300 ${term.count === 0 && !isSelected ? 'opacity-30' : ''}`}>
+                          <button className={`w-8 h-8 rounded-full border-2 ${isSelected ? 'ring-2 ring-blue-500 scale-110' : 'border-gray-200'}`}
+                            style={{ backgroundColor: COLOR_MAP[term.name.toLowerCase()] || term.name.toLowerCase() }}
+                            onClick={() => toggleFilter(colorAttribute.id, term.id)} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {colorAttribute.terms.length > 5 && (
+                    <button className="text-sm text-blue-600 mt-2 font-medium" onClick={() => setShowAllColors(!showAllColors)}>
+                      {showAllColors ? "Toon minder" : `Toon meer (${colorAttribute.terms.length - 5})`}
+                    </button>
+                  )}
+                </motion.div>
               )}
             </div>
           )}
           {afdichtspleetBounds && (
-            <div className="mb-8">
-              <h3 className="font-medium mb-3 text-lg">Afdichtingsspleet (mm)</h3>
-              <DualRangeSlider 
-                min={afdichtspleetBounds.min} 
-                max={afdichtspleetBounds.max} 
-                value={afdichtingsspleetRange ?? [afdichtspleetBounds.min, afdichtspleetBounds.max]} 
-                onChange={setAfdichtingsspleetRange} 
-              />
+            <div className="mb-4 border-b border-[#F7F7F7] pb-4">
+               <button 
+                onClick={() => setIsAfdichtOpen(!isAfdichtOpen)}
+                className="flex items-center justify-between w-full group py-2"
+              >
+                <h3 className="font-semibold text-lg text-[#212121] group-hover:text-[#0066FF] transition-colors">Afdichtingsspleet (mm)</h3>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`text-gray-400 transition-transform duration-200 ${isAfdichtOpen ? "rotate-180" : ""}`}
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+              {isAfdichtOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  className="mt-3 px-1"
+                >
+                  <DualRangeSlider 
+                    min={afdichtspleetBounds.min} 
+                    max={afdichtspleetBounds.max} 
+                    value={afdichtingsspleetRange ?? [afdichtspleetBounds.min, afdichtspleetBounds.max]} 
+                    onChange={setAfdichtingsspleetRange} 
+                  />
+                </motion.div>
+              )}
             </div>
           )}
           {groefbreedteBounds && (
-            <div className="mb-8">
-              <h3 className="font-medium mb-3 text-lg">Groefbreedte (mm)</h3>
-              <DualRangeSlider 
-                min={groefbreedteBounds.min} 
-                max={groefbreedteBounds.max} 
-                value={groefbreedteRange ?? [groefbreedteBounds.min, groefbreedteBounds.max]} 
-                onChange={setGroefbreedteRange} 
-              />
+            <div className="mb-4 border-b border-[#F7F7F7] pb-4">
+               <button 
+                onClick={() => setIsGroefOpen(!isGroefOpen)}
+                className="flex items-center justify-between w-full group py-2"
+              >
+                <h3 className="font-semibold text-lg text-[#212121] group-hover:text-[#0066FF] transition-colors">Groefbreedte (mm)</h3>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`text-gray-400 transition-transform duration-200 ${isGroefOpen ? "rotate-180" : ""}`}
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+              {isGroefOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  className="mt-3 px-1"
+                >
+                  <DualRangeSlider 
+                    min={groefbreedteBounds.min} 
+                    max={groefbreedteBounds.max} 
+                    value={groefbreedteRange ?? [groefbreedteBounds.min, groefbreedteBounds.max]} 
+                    onChange={setGroefbreedteRange} 
+                  />
+                </motion.div>
+              )}
             </div>
           )}
 
-          {validRegularAttributes.map(attr => (
+          {validRegularAttributes.map((attr: Attribute) => (
             <FilterAttributeGroup key={attr.id} attr={attr} selectedFilters={selectedFilters} toggleFilter={toggleFilter} />
           ))}
           {(Object.keys(selectedFilters).length > 0 || afdichtingsspleetRange || groefbreedteRange) && (
-            <button onClick={resetFilters} className="text-sm text-red-500 hover:underline mb-4">Filters wissen</button>
+            <button onClick={resetFilters} className="text-sm text-red-500 hover:text-red-700 font-bold mt-4 block w-full text-center py-2 border border-red-100 rounded-md bg-red-50 transition-colors">Filters wissen</button>
           )}
         </div>
       </motion.div>
@@ -540,28 +653,35 @@ export default function CategoryClient({
 
       const hasFilters = Object.keys(selectedFilters).length > 0 || !!afdichtingsspleetRange || !!groefbreedteRange;
 
-      // Handle Initial Mount optimization
+      // Logic: 
+      // 1. If we have NO filters AND NO custom sorting, we can use the server-side pre-fetched initialProducts for Page 1.
       if (isInitialMount.current) {
-         isInitialMount.current = false;
          if (!hasFilters && !sortBy && page === 1) {
             setProducts(initialProducts);
             setRawProducts(initialProducts);
             setTotalPages(initialTotalPages);
             setTotalProducts(initialTotalProducts);
-            setProductsLoading(false);
+            isInitialMount.current = false;
             return;
          }
+         isInitialMount.current = false;
       }
       
       setProductsLoading(true);
 
       try {
-        // If filters or specialized sorting is active, we use our local Filter Base for decision making
-        if (hasFilters || sortBy) {
-           const allBase = allCategoryProductsForFilters.length > 0 ? allCategoryProductsForFilters : rawProducts;
-           let matches = allBase.filter(p => checkGlobalMatch(p));
+        // Optimization: If we have filters active, we MUST use our local client-side Filter Base (full product list)
+        // to handle complex multi-select filtering and faceted counts correctly.
+        if (hasFilters) {
+           // We need to wait until the full category products are loaded for filtering to work accurately across pages
+           if (allCategoryProductsForFilters.length === 0) {
+              // Wait for it to load via the other useEffect or promise resolution
+              return; 
+           }
+
+           let matches = allCategoryProductsForFilters.filter(p => checkGlobalMatch(p));
            
-           // Sort matches locally
+           // Sort matches locally if needed
            if (sortBy) {
               matches.sort((a,b) => {
                  if (sortBy === 'price-low-high') return parseFloat(a.price || "0") - parseFloat(b.price || "0");
@@ -582,7 +702,7 @@ export default function CategoryClient({
               setTotalProducts(matches.length);
               setTotalPages(Math.ceil(matches.length / 20));
            } else {
-              // Fetch full product details for just this page's IDs
+              // Fetch full product details for just this page's matched IDs
               const res = await fetch(`/api/products?include=${slicedIds.join(',')}`);
               const data = await res.json();
               
@@ -594,9 +714,20 @@ export default function CategoryClient({
            }
 
         } else {
-           // Standard paginated fetch (no filters)
+           // Standard paginated fetch (No filters applied: Sorting can be handled by API)
            const params: any = { per_page: 20, page: page, category: category.id };
-           if (sortBy) params.orderby = sortBy; // Basic API support
+           
+           if (sortBy) {
+              switch(sortBy) {
+                case 'price-low-high': params.orderby = 'price'; params.order = 'asc'; break;
+                case 'price-high-low': params.orderby = 'price'; params.order = 'desc'; break;
+                case 'title-asc': params.orderby = 'title'; params.order = 'asc'; break;
+                case 'title-desc': params.orderby = 'title'; params.order = 'desc'; break;
+                case 'date': params.orderby = 'date'; params.order = 'desc'; break;
+                case 'popularity': params.orderby = 'popularity'; params.order = 'desc'; break;
+                case 'rating': params.orderby = 'rating'; params.order = 'desc'; break;
+              }
+           }
 
            const queryString = new URLSearchParams(params as any).toString();
            const res = await fetch(`/api/products?${queryString}`, { cache: 'no-store' });
@@ -619,17 +750,18 @@ export default function CategoryClient({
     }
 
     loadProducts();
-  }, [category?.id, selectedFilters, afdichtingsspleetRange, groefbreedteRange, sortBy, page]);
+  }, [category?.id, selectedFilters, afdichtingsspleetRange, groefbreedteRange, sortBy, page, allCategoryProductsForFilters]);
 
   // Reset page when category OR filters OR sorting changes
   useEffect(() => {
-    // Only reset if it's NOT the initial load from URL
-    const urlPage = parseInt(searchParams.get("page") || "1");
-    if (page !== 1 && urlPage === page) {
-       // do nothing if they already match
-    } else if (page !== 1) {
-       setPage(1);
-    }
+    // Only reset if it's NOT the initial load
+    // We want to reset page to 1 if the USER changes the category, filters, or sorting.
+    // We use a flag to skip the initial mount reset.
+    if (isInitialMount.current) return;
+    
+    // We should NOT reset if the only change was 'page' itself.
+    // This effect only runs when catId, filters or sortBy change.
+    setPage(1);
   }, [category?.id, selectedFilters, afdichtingsspleetRange, groefbreedteRange, sortBy]);
 
   const toggleFilter = (attrId: number, termId: number) => {
