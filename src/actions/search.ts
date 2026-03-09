@@ -32,7 +32,8 @@ export async function searchProducts(
     query: string,
     filters: FilterState = {},
     page: number = 1,
-    limit: number = 24
+    limit: number = 24,
+    sortBy: string = ""
 ): Promise<SearchResponse> {
     // if (!query.trim()) return { products: [], facets: [] };
 
@@ -72,6 +73,35 @@ export async function searchProducts(
         }
     });
 
+    // Sorting Logic
+    const sort: any[] = [];
+    if (sortBy) {
+        switch (sortBy) {
+            case "price-low-high":
+                sort.push({ "meta._price.double": { order: "asc" } });
+                break;
+            case "price-high-low":
+                sort.push({ "meta._price.double": { order: "desc" } });
+                break;
+            case "title-asc":
+                sort.push({ "post_title.sortable": { order: "asc" } });
+                break;
+            case "title-desc":
+                sort.push({ "post_title.sortable": { order: "desc" } });
+                break;
+            case "latest":
+                sort.push({ "post_date": { order: "desc" } });
+                break;
+            case "popularity":
+                sort.push({ "meta.total_sales.long": { order: "desc" } });
+                break;
+        }
+    }
+    // Default sort by score (relevance) if query exists, otherwise maybe latest?
+    if (sort.length === 0 && !query.trim()) {
+        sort.push({ "post_date": { order: "desc" } });
+    }
+
     try {
         const estQuery: any = {
             index: process.env.ELASTICSEARCH_INDEX as string,
@@ -82,6 +112,7 @@ export async function searchProducts(
                         filter: filterClauses
                     },
                 },
+                sort: sort,
                 size: limit,
                 from: (page - 1) * limit,
                 _source: ["post_title", "post_name", "ID", "meta", "terms", "thumbnail", "images"], // Need terms for potential display

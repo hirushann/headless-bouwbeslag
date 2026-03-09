@@ -104,6 +104,7 @@ export default function SearchAutosuggest({
     const [results, setResults] = useState<SearchResult[]>([]);
     const [facets, setFacets] = useState<Facet[]>([]);
     const [filters, setFilters] = useState<FilterState>({});
+    const [sortBy, setSortBy] = useState<string>("");
 
     // Pagination States
     const [page, setPage] = useState(1);
@@ -136,10 +137,10 @@ export default function SearchAutosuggest({
         };
     }, [isExpanded]);
 
-    // Reset page to 1 when query or filters change
+    // Reset page to 1 when query, filters, or sortBy change
     useEffect(() => {
         setPage(1);
-    }, [query, filters]);
+    }, [query, filters, sortBy]);
 
     // Search Logic
     useEffect(() => {
@@ -148,7 +149,7 @@ export default function SearchAutosuggest({
             if (query.trim().length === 0 || query.trim().length >= 2) {
                 setLoading(true);
                 try {
-                    const response = await searchProducts(query, filters, page, 24);
+                    const response = await searchProducts(query, filters, page, 24, sortBy);
                     // console.log(response);
                     setResults(response.products);
                     setFacets(response.facets);
@@ -168,7 +169,7 @@ export default function SearchAutosuggest({
         }, 300);
 
         return () => clearTimeout(delayDebounceFn);
-    }, [query, filters, page]);
+    }, [query, filters, page, sortBy]);
 
     const handleFilterChange = (facetName: string, value: string) => {
         setFilters(prev => {
@@ -240,10 +241,10 @@ export default function SearchAutosuggest({
                     >
                         {/* Header */}
                         <div className="bg-white border-b border-[#E2E2E2] px-4 py-4 shadow-sm shrink-0">
-                            <div className="max-w-[1440px] mx-auto flex items-center gap-4">
+                            <div className="max-w-[1440px] mx-auto flex flex-col md:flex-row items-center gap-4">
                                 <form
                                     onSubmit={(e) => e.preventDefault()}
-                                    className="flex-1 join border border-[#E2E2E2] rounded-[4px] bg-white h-[50px]"
+                                    className="flex-1 join border border-[#E2E2E2] rounded-[4px] bg-white h-[50px] w-full"
                                 >
                                     <div className="w-full h-full">
                                         <input
@@ -272,14 +273,36 @@ export default function SearchAutosuggest({
                                     </button>
                                 </form>
 
-                                <button
-                                    onClick={handleClose}
-                                    className="btn btn-ghost btn-circle"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
+                                <div className="flex items-center gap-3 w-full md:w-auto">
+                                    <select
+                                        value={sortBy}
+                                        onChange={(e) => setSortBy(e.target.value)}
+                                        className="appearance-none select focus:outline-0 focus:ring-0 border border-[#808D9A] rounded-sm bg-[#F7F7F7] h-10 px-4 pr-10 min-w-[180px] text-sm font-medium text-[#4F4F4F] transition-all hover:border-[#0066FF] cursor-pointer w-full md:w-auto"
+                                        style={{
+                                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%234F4F4F'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                                            backgroundRepeat: 'no-repeat',
+                                            backgroundPosition: 'right 12px center',
+                                            backgroundSize: '16px'
+                                        }}
+                                    >
+                                        <option value="">Aanbevolen</option>
+                                        <option value="popularity">Populariteit</option>
+                                        <option value="price-low-high">Prijs: Laag naar Hoog</option>
+                                        <option value="price-high-low">Prijs: Hoog naar Laag</option>
+                                        <option value="title-asc">Naam: A - Z</option>
+                                        <option value="title-desc">Naam: Z - A</option>
+                                        <option value="latest">Nieuwste</option>
+                                    </select>
+
+                                    <button
+                                        onClick={handleClose}
+                                        className="btn btn-ghost btn-circle shrink-0"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 

@@ -82,7 +82,7 @@ function SearchContent() {
       }
       setProductsLoading(true);
       try {
-        let params: any = { per_page: 20, search: query };
+        let params: any = { per_page: 100, search: query };
 
         if (sortBy) {
           switch (sortBy) {
@@ -102,6 +102,14 @@ function SearchContent() {
               break;
             case "price-high-low":
               params.orderby = "price";
+              params.order = "desc";
+              break;
+            case "title-asc":
+              params.orderby = "title";
+              params.order = "asc";
+              break;
+            case "title-desc":
+              params.orderby = "title";
               params.order = "desc";
               break;
             default:
@@ -367,14 +375,25 @@ function SearchContent() {
               <div>
                 <h1 className="text-base font-medium text-[#4F4F4F]">{products.length} results found</h1>
               </div>
-              <div className='flex gap-3 items-center'>
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="select focus:outline-0 focus:ring-0 w-32 border border-[#808D9A] rounded-sm bg-[F7F7F7] h-8 w-full">
-                <option disabled={true} value="">Sort by</option>
+              <div className='flex gap-3 items-center relative'>
+              <select 
+                value={sortBy} 
+                onChange={(e) => setSortBy(e.target.value)} 
+                className="appearance-none select focus:outline-0 focus:ring-0 border border-[#808D9A] rounded-sm bg-[#F7F7F7] h-10 px-4 pr-10 min-w-[200px] text-sm font-medium text-[#4F4F4F] transition-all hover:border-[#0066FF] cursor-pointer"
+                style={{ 
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%234F4F4F'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, 
+                  backgroundRepeat: 'no-repeat', 
+                  backgroundPosition: 'right 12px center', 
+                  backgroundSize: '16px' 
+                }}
+              >
+                <option value="">Recommended</option>
                 <option value="popularity">Popularity</option>
-                <option value="rating">Rating</option>
-                <option value="latest">Latest</option>
                 <option value="price-low-high">Price: Low to High</option>
                 <option value="price-high-low">Price: High to Low</option>
+                <option value="title-asc">Alphabetical: A - Z</option>
+                <option value="title-desc">Alphabetical: Z - A</option>
+                <option value="latest">Newest First</option>
               </select>
                 <button type="button" className="lg:hidden px-2 py-1 w-auto text-left bg-white border border-gray-300 rounded-md font-medium" onClick={() => setShowFilters(!showFilters)} aria-expanded={showFilters} aria-controls="filters-section">
                   {showFilters ? (
