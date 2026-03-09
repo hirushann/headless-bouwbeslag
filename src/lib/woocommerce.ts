@@ -28,7 +28,7 @@ export class WooCommerceClient {
         };
 
         const params = isGet ? (data.params || data) : data;
-        const revalidate = params?.next?.revalidate !== undefined ? params.next.revalidate : 60; // Lowered from 3600 to 60 for better responsiveness
+        const revalidate = params?.next?.revalidate !== undefined ? params.next.revalidate : 3600; // Increased default to 1 hour
         const cache = params?.cache;
 
         const config: any = {
@@ -41,7 +41,7 @@ export class WooCommerceClient {
         } else if (cache) {
             config.cache = cache;
         } else {
-            config.next = { revalidate: 60 };
+            config.next = { revalidate: 3600 };
         }
 
         if (isGet) {
@@ -114,7 +114,7 @@ export const fetchProducts = async (params: any = {}) => {
 
 export const fetchCategories = async () => {
     const res = await api.get("products/categories", {
-        params: { per_page: 100, _fields: "id,name,slug,parent" },
+        params: { per_page: 100, _fields: "id,name,slug,parent", next: { revalidate: 86400 } },
     });
     return res.data;
 };
@@ -170,7 +170,7 @@ export const getBrands = async (): Promise<Brand[]> => {
                     page: page,
                     hide_empty: true,
                     _embed: true,
-                    next: { revalidate: 60 }
+                    next: { revalidate: 3600 }
                 }
             });
 
@@ -195,7 +195,7 @@ export const getBrands = async (): Promise<Brand[]> => {
 export const getBrand = async (slug: string): Promise<Brand | null> => {
     try {
         const { data: brands } = await api.get("wp/v2/product_brand", {
-            params: { slug: slug, _embed: true, next: { revalidate: 60 } }
+            params: { slug: slug, _embed: true, next: { revalidate: 3600 } }
         });
 
         if (brands.length > 0) {
@@ -217,12 +217,12 @@ export interface ShippingMethod {
 
 export const getShippingMethods = async () => {
     try {
-        const { data: zones } = await api.get("shipping/zones", { _fields: "id,name" });
+        const { data: zones } = await api.get("shipping/zones", { _fields: "id,name", next: { revalidate: 86400 } });
         const nlZone = zones.find((z: any) => z.name.toLowerCase() === "nederland" || z.name.toLowerCase() === "netherlands");
         const primaryZone = nlZone || zones.find((z: any) => z.id !== 0) || zones[0];
         const zoneId = primaryZone?.id || 0;
 
-        const { data: methods } = await api.get(`shipping/zones/${zoneId}/methods`);
+        const { data: methods } = await api.get(`shipping/zones/${zoneId}/methods`, { next: { revalidate: 86400 } });
 
         const availableMethods: ShippingMethod[] = [];
 
@@ -255,7 +255,6 @@ export const getShippingMethods = async () => {
         return availableMethods;
 
     } catch (error) {
-        // console.error("Error fetching shipping methods:", error);
         return [];
     }
 };
@@ -363,34 +362,47 @@ export const getProductsByBrand = async (brandId: number): Promise<any[]> => {
 
 
 export const fetchAllWoo = async (endpoint: string, extraParams: any = {}) => {
-    let page = 1;
-    const allItems: any[] = [];
+    try {
+        const firstPageRes = await api.get(endpoint, {
+            params: {
+                per_page: 100,
+                page: 1,
+                ...extraParams,
+            }
+        });
 
-    while (true) {
-        try {
-            const res = await api.get(endpoint, {
-                params: {
-                    per_page: 50, // Reduced from 100 to avoid cache limits
-                    page,
-                    ...extraParams,
+        const data = Array.isArray(firstPageRes?.data) ? firstPageRes.data : [];
+        if (!data.length) return [];
+
+        const allItems = [...data];
+        const totalPages = parseInt(firstPageRes.totalPages || '1');
+        const maxPages = Math.min(totalPages, 50); // Safety limit
+
+        if (maxPages > 1) {
+            const promises = [];
+            for (let p = 2; p <= maxPages; p++) {
+                promises.push(
+                    api.get(endpoint, {
+                        params: {
+                            per_page: 100,
+                            page: p,
+                            ...extraParams,
+                        }
+                    })
+                );
+            }
+            const results = await Promise.all(promises);
+            results.forEach(res => {
+                if (Array.isArray(res?.data)) {
+                    allItems.push(...res.data);
                 }
             });
-
-            const data = Array.isArray(res?.data) ? res.data : [];
-            if (!data.length) break;
-
-            allItems.push(...data);
-            page++;
-
-            // Safety break to prevent infinite loops (max 5000 items)
-            if (page > 50) break;
-        } catch (e: any) {
-            // console.error(`Error fetching page ${page} of ${endpoint}:`, e.message);
-            break;
         }
-    }
 
-    return allItems;
+        return allItems;
+    } catch (e) {
+        return [];
+    }
 };
 
 export default api;

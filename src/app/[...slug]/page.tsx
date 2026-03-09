@@ -43,7 +43,8 @@ const getProductMetadataCached = cache(async (slug: string) => {
   try {
     const res = await api.get("products", { 
       slug, 
-      _fields: "id,name,slug,meta_data,short_description,sku,images"
+      _fields: "id,name,slug,meta_data,short_description,sku,images",
+      next: { revalidate: 3600 }
     });
     if (!Array.isArray(res.data) || !res.data[0]) return null;
     return res.data[0];
@@ -56,7 +57,8 @@ const getCategoryMetadataCached = cache(async (slug: string) => {
   try {
     const res = await api.get("products/categories", { 
       slug, 
-      _fields: "id,name,slug,description,acf,parent,image"
+      _fields: "id,name,slug,description,acf,parent,image",
+      next: { revalidate: 3600 }
     });
     if (!res.data || res.data.length === 0) return null;
     return res.data[0];
@@ -67,38 +69,32 @@ const getCategoryMetadataCached = cache(async (slug: string) => {
 
 const getProductBySlugCached = cache(async (slug: string) => {
   try {
+    // 1. Fetch search by slug - WooCommerce returns the full product here already
     const res = await api.get("products", { slug, next: { revalidate: 3600 } });
     if (!Array.isArray(res.data) || !res.data[0]) return null;
+    
+    const product = res.data[0];
 
-    const full = await api.get(`products/${res.data[0].id}`, { next: { revalidate: 3600 } });
-    const product = full?.data ?? null;
-    if (!product) return null;
-
-    // Fetch Brand Logo if present
+    // 2. Fetch Brand Logo in parallel if present
     if (product.brands && product.brands.length > 0) {
       const brandId = product.brands[0].id;
-      try {
-        const brandRes = await api.get(`wp/v2/product_brand/${brandId}`);
-        const brandData = brandRes.data;
-        
-        if (brandData?.acf?.brand_logo) {
-          let logoUrl = null;
-          const logoData = brandData.acf.brand_logo;
-          
-          if (typeof logoData === 'number') {
-            try {
-              const mediaRes = await api.get(`wp/v2/media/${logoData}`);
-              logoUrl = mediaRes.data?.source_url || null;
-            } catch (e) {}
-          } else if (typeof logoData === 'string') {
-            logoUrl = logoData;
-          } else if (logoData?.url) {
-            logoUrl = logoData.url;
+      api.get(`wp/v2/product_brand/${brandId}`, { next: { revalidate: 3600 } })
+        .then(async (brandRes) => {
+          const brandData = brandRes.data;
+          if (brandData?.acf?.brand_logo) {
+            const logoData = brandData.acf.brand_logo;
+            if (typeof logoData === 'number') {
+              const mediaRes = await api.get(`wp/v2/media/${logoData}`, { next: { revalidate: 3600 } });
+              product.brands[0].logoUrl = mediaRes.data?.source_url || null;
+            } else if (typeof logoData === 'string') {
+              product.brands[0].logoUrl = logoData;
+            } else if (logoData?.url) {
+              product.brands[0].logoUrl = logoData.url;
+            }
           }
-          if (logoUrl) product.brands[0].logoUrl = logoUrl;
-        }
-      } catch (e) {}
+        }).catch(() => {});
     }
+
     return product;
   } catch (error) {
     return null;
@@ -131,20 +127,20 @@ const getCategoryByIdCached = cache(async (id: number) => {
 
 const getPageMetadata = cache(async (slugArray: string[]) => {
   const currentSlug = decodeURIComponent(slugArray[slugArray.length - 1]);
-  const product = await getProductMetadataCached(currentSlug);
-  if (product) return { product, category: null };
-  const category = await getCategoryMetadataCached(currentSlug);
-  return { product: null, category };
+  const [product, category] = await Promise.all([
+    getProductMetadataCached(currentSlug),
+    getCategoryMetadataCached(currentSlug)
+  ]);
+  return { product, category };
 });
 
 const getPageData = cache(async (slugArray: string[]) => {
   const currentSlug = decodeURIComponent(slugArray[slugArray.length - 1]);
-
-  const product = await getProductBySlugCached(currentSlug);
-  if (product) return { product, category: null };
-
-  const category = await getCategoryBySlugCached(currentSlug);
-  return { product: null, category };
+  const [product, category] = await Promise.all([
+    getProductBySlugCached(currentSlug),
+    getCategoryBySlugCached(currentSlug)
+  ]);
+  return { product, category };
 });
 
 const fetchTermsForAttribute = cache(async (attributeId: number): Promise<AttributeTerm[]> => {
@@ -163,8 +159,9 @@ const fetchTermsForAttribute = cache(async (attributeId: number): Promise<Attrib
 const fetchAttributes = cache(async (): Promise<Attribute[]> => {
   try {
     const res = await api.get("products/attributes", { 
+        per_page: 100,
         _fields: "id,name",
-        next: { revalidate: 3600 } 
+        next: { revalidate: 86400 } 
     });
     const attributesData = res.data || [];
     
@@ -207,30 +204,45 @@ const fetchAllSubCategoriesCached = cache(async (parentId: number) => {
 });
 
 const fetchAllCategoryProductsForFiltersCached = cache(async (categoryId: number) => {
-  let allProducts: any[] = [];
-  let page = 1;
-  const maxPages = 10; // Up to 1000 products for filters
+  try {
+    const firstPage = await api.get("products", {
+      category: categoryId,
+      per_page: 100,
+      page: 1,
+      _fields: "id,attributes,price,name,date_created,total_sales",
+      status: 'publish',
+      next: { revalidate: 3600 }
+    });
 
-  while (page <= maxPages) {
-    try {
-      const res = await api.get("products", {
-        category: categoryId,
-        per_page: 100,
-        page,
-        _fields: "id,attributes,price,name,date_created,total_sales",
-        status: 'publish',
-        next: { revalidate: 3600 }
+    if (!firstPage.data || firstPage.data.length === 0) return [];
+    
+    let allProducts = [...firstPage.data];
+    const totalPagesCount = parseInt(firstPage.totalPages || '1');
+    const pagesToFetch = Math.min(totalPagesCount, 10);
+
+    if (pagesToFetch > 1) {
+      const pagePromises = [];
+      for (let p = 2; p <= pagesToFetch; p++) {
+        pagePromises.push(
+          api.get("products", {
+            category: categoryId,
+            per_page: 100,
+            page: p,
+            _fields: "id,attributes,price,name,date_created,total_sales",
+            status: 'publish',
+            next: { revalidate: 3600 }
+          })
+        );
+      }
+      const results = await Promise.all(pagePromises);
+      results.forEach(res => {
+        if (res.data) allProducts = [...allProducts, ...res.data];
       });
-      if (!res.data || res.data.length === 0) break;
-      allProducts = [...allProducts, ...res.data];
-      const totalPages = parseInt(res.totalPages || '1');
-      if (page >= totalPages) break;
-      page++;
-    } catch (err) {
-      break;
     }
+    return allProducts;
+  } catch (error) {
+    return [];
   }
-  return allProducts;
 });
 
 const getProductReviewsCached = cache(async (productId: number) => {
@@ -269,19 +281,16 @@ const getGlobalRatingCached = cache(async () => {
 });
 
 
-async function getStandardTaxRate(): Promise<number> {
+const getStandardTaxRate = cache(async (): Promise<number> => {
   try {
-    const res = await api.get("taxes");
+    const res = await api.get("taxes", { next: { revalidate: 86400 } });
     const rates = res.data;
-    // Look for "standard" class (often empty string or 'standard')
-    // We'll take the first one or default to 21
     const standard = rates.find((r: any) => r.class === "standard" || r.class === "");
     return standard && standard.rate ? parseFloat(standard.rate) : 21;
   } catch (error) {
-    // console.error("Tax fetch failed, defaulting to 21:", error);
     return 21;
   }
-}
+});
 
 /* ----------------------------------------------------
  | Helper Functions
@@ -629,8 +638,12 @@ export default async function Page({ params, searchParams }: PageProps) {
   const { product, category } = await getPageData(slug);
 
   if (product) {
-    const taxRate = await getStandardTaxRate();
-    const reviews = await getProductReviewsCached(product.id);
+    const reviewsPromise = getProductReviewsCached(product.id);
+    const [taxRate, reviews] = await Promise.all([
+      getStandardTaxRate(),
+      reviewsPromise
+    ]);
+
     const structuredData = generateStructuredData(product, taxRate, reviews);
 
     console.log("==========================================");
@@ -651,7 +664,8 @@ export default async function Page({ params, searchParams }: PageProps) {
             }}
           />
         )}
-        <ProductPageClient product={product} taxRate={taxRate} slug={slug} />
+        <ProductPageClient product={product} taxRate={taxRate} slug={slug} initialReviews={reviewsPromise} />
+
       </main>
     );
   }
@@ -682,28 +696,46 @@ export default async function Page({ params, searchParams }: PageProps) {
     }
 
 
-    const [attributes, subCategories, productsRes, allCategoryProducts] = await Promise.all([
-        fetchAttributes(),
-        fetchAllSubCategoriesCached(category.id),
-        api.get("products", { 
-            per_page: 20, 
-            page: initialPage, 
-            category: category.id,
-            status: 'publish',
-            ...sortParams,
-            next: { revalidate: 60 }
-        }),
-        fetchAllCategoryProductsForFiltersCached(category.id)
+    const fetchCurrentPage = async () => {
+      const res = await api.get("products", { 
+          per_page: 20, 
+          page: initialPage, 
+          category: category.id,
+          status: 'publish',
+          ...sortParams,
+          next: { revalidate: 60 }
+      });
+      const prods = await resolveProductImages(res.data || []);
+      return {
+        prods,
+        totalPages: parseInt(res.totalPages || '1'),
+        total: parseInt(res.total || '0')
+      };
+    };
+    
+    // Start all requests in parallel
+    const attributesPromise = fetchAttributes();
+    const subCategoriesPromise = fetchAllSubCategoriesCached(category.id);
+    const filterBasePromise = fetchAllCategoryProductsForFiltersCached(category.id);
+    const pathPromise = traverseCategoryPath(category);
+    const currentPagePromise = fetchCurrentPage();
+
+
+
+    // Await ONLY what's needed for initial products and SEO redirect check
+    const [currentPageData, correctPath] = await Promise.all([
+        currentPagePromise,
+        pathPromise
     ]);
     
-    const initialFilterBaseProducts = allCategoryProducts || [];
-    const initialProducts = await resolveProductImages(productsRes.data || []);
-    const initialTotalPages = parseInt(productsRes.totalPages || '1');
-    const initialTotalProducts = parseInt(productsRes.total || '0');
+    // Pass promises for heavy sidebar/filter data
+    const initialFilterBaseProducts = filterBasePromise; 
+    const initialProducts = currentPageData.prods;
+    const initialTotalPages = currentPageData.totalPages;
+    const initialTotalProducts = currentPageData.total;
 
-    const correctPath = await traverseCategoryPath(category);
+
     const currentPath = slug.join("/");
-
     if (currentPath !== correctPath) {
       const query = sp ? new URLSearchParams(sp as any).toString() : "";
       const destination = `/${correctPath}${query ? `?${query}` : ""}`;
@@ -716,15 +748,17 @@ export default async function Page({ params, searchParams }: PageProps) {
           <CategoryClient
             key={category.id}
             category={category}
-            attributes={attributes}
-            subCategories={subCategories}
+            attributes={attributesPromise}
+            subCategories={subCategoriesPromise}
             currentSlug={slug}
             initialProducts={initialProducts}
             initialTotalPages={initialTotalPages}
             initialTotalProducts={initialTotalProducts}
-            initialFilterBaseProducts={initialFilterBaseProducts}
+            initialFilterBaseProducts={filterBasePromise}
+
           />
         </React.Suspense>
+
       </main>
     );
   }

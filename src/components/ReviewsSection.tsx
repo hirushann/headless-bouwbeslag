@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
+
 import toast from "react-hot-toast";
 
 interface Review {
@@ -16,11 +17,34 @@ interface Review {
 interface ReviewsSectionProps {
   productId: number;
   productName: string;
+  initialReviews?: Review[] | Promise<Review[]>;
 }
 
-export default function ReviewsSection({ productId, productName }: ReviewsSectionProps) {
+export default function ReviewsSection({ productId, productName, initialReviews: initialReviewsProp }: ReviewsSectionProps) {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasInitialized, setHasInitialized] = useState(false);
+
+  // If a promise is passed, we unwrap it during the FIRST RENDER only if we don't have reviews yet
+  const resolvedInitial = initialReviewsProp && typeof (initialReviewsProp as any).then === 'function'
+    ? use(initialReviewsProp as Promise<Review[]>)
+    : initialReviewsProp as Review[];
+
+  useEffect(() => {
+    if (resolvedInitial && !hasInitialized) {
+        setReviews(resolvedInitial);
+        setLoading(false);
+        setHasInitialized(true);
+    }
+  }, [resolvedInitial, hasInitialized]);
+
+  // If no initial reviews provided, fetch them
+  useEffect(() => {
+    if (productId && !initialReviewsProp) {
+      fetchReviews();
+    }
+  }, [productId, initialReviewsProp]);
+
   const [showForm, setShowForm] = useState(false);
 
   // Form State

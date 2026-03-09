@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef, use, Suspense } from "react";
+
 import api from "@/lib/woocommerce";
 import ShopProductCard from "@/components/ShopProductCard";
 import Link from "next/link";
@@ -92,14 +93,15 @@ const ATTRIBUTE_TO_ACF_MAP: Record<string, string> = {
 
 type CategoryClientProps = {
   category: any;
-  subCategories: any[];
-  attributes: any[];
+  subCategories: any[] | Promise<any[]>;
+  attributes: any[] | Promise<any[]>;
   currentSlug: string[];
   initialProducts?: any[];
   initialTotalPages?: number;
   initialTotalProducts?: number;
-  initialFilterBaseProducts?: any[];
+  initialFilterBaseProducts?: any[] | Promise<any[]>;
 };
+
 
 function FilterAttributeGroup({
   attr,
@@ -154,7 +156,268 @@ function FilterAttributeGroup({
   );
 }
 
+function SubCategoryGrid({ 
+  subCategories: subCategoriesProp, 
+  currentSlug 
+}: { 
+  subCategories: any[] | Promise<any[]>, 
+  currentSlug: string[] 
+}) {
+  const subCategories = typeof (subCategoriesProp as any).then === 'function' 
+    ? use(subCategoriesProp as Promise<any[]>) 
+    : subCategoriesProp as any[];
+
+  if (!subCategories || subCategories.length === 0) return null;
+
+  return (
+    <div className='flex gap-4 pb-4 flex-nowrap lg:flex-wrap w-full overflow-x-auto'>
+      {subCategories.map((sub: any) => {
+        const parentPath = currentSlug.join("/");
+        const href = `/${parentPath}/${sub.slug}`;
+        return (
+          <Link
+            key={sub.id}
+            prefetch={true}
+            href={href}
+            className="min-w-fit px-3.5 py-1.5 rounded-sm text-sm font-medium border border-[#D0DFEE] bg-[#F2F7FF] text-[#4F4F4F] cursor-pointer hover:bg-blue-50 transition-colors"
+          >
+            {sub.name}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
+interface FilterSidebarProps {
+  attributes: any[] | Promise<any[]>;
+  initialFilterBaseProducts: any[] | Promise<any[]>;
+  category: any;
+  selectedFilters: { [key: number]: Set<number> };
+  toggleFilter: (attrId: number, termId: number) => void;
+  resetFilters: () => void;
+  afdichtingsspleetRange: [number, number] | null;
+  groefbreedteRange: [number, number] | null;
+  setAfdichtingsspleetRange: (r: [number, number] | null) => void;
+  setGroefbreedteRange: (r: [number, number] | null) => void;
+  showFilters: boolean;
+  setShowFilters: (s: boolean) => void;
+}
+
+function FilterSidebar({
+  attributes: attributesProp,
+  initialFilterBaseProducts: filterBaseProp,
+  category,
+  selectedFilters,
+  toggleFilter,
+  resetFilters,
+  afdichtingsspleetRange,
+  groefbreedteRange,
+  setAfdichtingsspleetRange,
+  setGroefbreedteRange,
+  showFilters,
+  setShowFilters
+}: FilterSidebarProps) {
+  const attributes = typeof (attributesProp as any).then === 'function' 
+    ? use(attributesProp as Promise<Attribute[]>) 
+    : attributesProp as Attribute[];
+    
+  const allCategoryProductsForFilters = typeof (filterBaseProp as any).then === 'function'
+    ? use(filterBaseProp as Promise<any[]>)
+    : filterBaseProp as any[];
+
+  const [showAllColors, setShowAllColors] = useState(false);
+
+  // Re-implement checkGlobalMatch logic locally for the sidebar faceted counting
+  const checkGlobalMatchLocal = (p: any, excludeAttrId?: number) => {
+      const filters = Object.entries(selectedFilters);
+      for (const [idStr, terms] of filters) {
+        const id = Number(idStr);
+        if (id === excludeAttrId) continue;
+        const pAttr = p.attributes?.find((a: any) => a.id === id);
+        if (!pAttr) return false;
+        
+        const matchingTerms = pAttr.options.some((o: string) => {
+          const globalAttr = attributes.find(ga => ga.id === id);
+          const tMatch = globalAttr?.terms.find((t: AttributeTerm) => t.name.trim().toLowerCase() === o.trim().toLowerCase());
+          return tMatch && terms.has(tMatch.id);
+        });
+        if (!matchingTerms) return false;
+      }
+      if (afdichtingsspleetRange) {
+        const pVan = p.attributes?.find((a: any)=>a.name==="Afdichtingsspleet Van")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
+        const pTot = p.attributes?.find((a: any)=>a.name==="Afdichtingsspleet Tot")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
+        const pMin = pVan && pVan.length > 0 ? Math.min(...pVan) : null;
+        const pMax = pTot && pTot.length > 0 ? Math.max(...pTot) : null;
+        if (pMin !== null && pMin > afdichtingsspleetRange[1]) return false;
+        if (pMax !== null && pMax < afdichtingsspleetRange[0]) return false;
+      }
+      if (groefbreedteRange) {
+        const pVan = p.attributes?.find((a: any)=>a.name==="Groefbreedte Van")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
+        const pTot = p.attributes?.find((a: any)=>a.name==="Groefbreedte Tot")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
+        const pMin = pVan && pVan.length > 0 ? Math.min(...pVan) : null;
+        const pMax = pTot && pTot.length > 0 ? Math.max(...pTot) : null;
+        if (pMin !== null && pMin > groefbreedteRange[1]) return false;
+        if (pMax !== null && pMax < groefbreedteRange[0]) return false;
+      }
+      return true;
+  };
+
+  const relevantAttributes = useMemo(() => {
+    const sourceProducts = allCategoryProductsForFilters || [];
+    if (sourceProducts.length === 0) return [];
+    
+    const presentAttrIds = new Set<number>();
+    sourceProducts.forEach(p => {
+      p.attributes?.forEach((a: any) => {
+        if (a.id) presentAttrIds.add(a.id);
+      });
+    });
+
+    const activeGlobalAttrs = attributes.filter(ga => presentAttrIds.has(ga.id));
+
+    return activeGlobalAttrs
+      .map((attr) => {
+        if (category?.acf) {
+          let slug = attr.slug || (attr.name || "").toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '').replace(/-+/g, '-');
+          let acfKey = ATTRIBUTE_TO_ACF_MAP[slug] || slug.replace(/^pa_/, '').replace(/-/g, '_');
+          if (acfKey && (category.acf[acfKey] === false || category.acf[acfKey] === "false")) return null;
+        }
+        if (attr.name === "Inhoud van de verpakking") return null;
+
+        const productsPassingOtherFilters = sourceProducts.filter(p => checkGlobalMatchLocal(p, attr.id)); 
+
+        const validTerms = attr.terms.map((term: AttributeTerm) => {
+          let count = 0;
+          const termNameLowercase = term.name.trim().toLowerCase();
+          productsPassingOtherFilters.forEach(p => {
+             const pAttr = p.attributes?.find((a: any) => a.id === attr.id);
+             if (pAttr?.options.some((o: string) => o.trim().toLowerCase() === termNameLowercase)) {
+                count++;
+             }
+          });
+          const existsInCategory = sourceProducts.some(p => {
+             const pAttr = p.attributes?.find((a: any) => a.id === attr.id);
+             return pAttr?.options.some((o: string) => o.trim().toLowerCase() === termNameLowercase);
+          });
+          return existsInCategory ? { ...term, count } : null;
+        }).filter(Boolean) as AttributeTerm[];
+
+        if (validTerms.length === 0) return null;
+        return { ...attr, terms: validTerms };
+      })
+      .filter(Boolean) as Attribute[];
+  }, [allCategoryProductsForFilters, attributes, category, selectedFilters, afdichtingsspleetRange, groefbreedteRange]);
+
+  const colorAttribute = relevantAttributes.find(
+    (attr) => attr.name.toLowerCase() === "color" || attr.name.toLowerCase() === "kleur"
+  );
+  const otherAttributes = relevantAttributes.filter(
+    (attr) => attr.name.toLowerCase() !== "color" && attr.name.toLowerCase() !== "kleur"
+  );
+
+  const afdichtVanAttr = otherAttributes.find(a => a.name === "Afdichtingsspleet Van");
+  const afdichtTotAttr = otherAttributes.find(a => a.name === "Afdichtingsspleet Tot");
+
+  const afdichtspleetBounds = useMemo(() => {
+    if (!afdichtVanAttr && !afdichtTotAttr) return null;
+    if (category?.acf?.afdichtingsspleet === false || category?.acf?.afdichtingsspleet === "false") return null;
+    let min = Infinity, max = -Infinity;
+    [afdichtVanAttr, afdichtTotAttr].forEach(attr => {
+      attr?.terms.forEach(t => {
+        const val = parseFloat(t.name);
+        if (!isNaN(val)) { min = Math.min(min, val); max = Math.max(max, val); }
+      });
+    });
+    return min === Infinity ? null : { min, max };
+  }, [afdichtVanAttr, afdichtTotAttr, category]);
+
+  const groefVanAttr = otherAttributes.find(a => a.name === "Groefbreedte Van");
+  const groefTotAttr = otherAttributes.find(a => a.name === "Groefbreedte Tot");
+
+  const groefbreedteBounds = useMemo(() => {
+    if (!groefVanAttr && !groefTotAttr) return null;
+    if (category?.acf?.groefbreedte === false || category?.acf?.groefbreedte === "false") return null;
+    let min = Infinity, max = -Infinity;
+    [groefVanAttr, groefTotAttr].forEach(attr => {
+      attr?.terms.forEach(t => {
+        const val = parseFloat(t.name);
+        if (!isNaN(val)) { min = Math.min(min, val); max = Math.max(max, val); }
+      });
+    });
+    return min === Infinity ? null : { min, max };
+  }, [groefVanAttr, groefTotAttr, category]);
+
+  const regularAttributes = otherAttributes.filter(a => !["Afdichtingsspleet Van", "Afdichtingsspleet Tot", "Groefbreedte Van", "Groefbreedte Tot"].includes(a.name));
+  const validRegularAttributes = regularAttributes.filter(attr => attr.terms.length > 1);
+  const hasValidColorAttribute = !!colorAttribute && colorAttribute.terms.length > 1;
+
+  return (
+    <aside className="w-full lg:w-1/4 relative">
+      <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+        <button onClick={() => setShowFilters(false)} className={`${showFilters ? 'block' : 'hidden'} lg:hidden absolute top-3 right-3 text-gray-500`}>
+          <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+        <div className={`${showFilters ? 'max-h-screen opacity-100 p-4' : 'max-h-0 opacity-0 lg:p-4'} overflow-hidden transition-all lg:max-h-full lg:opacity-100 bg-white rounded-lg`}>
+          {hasValidColorAttribute && (
+            <div className="mb-6">
+              <h3 className="font-medium mb-3 text-lg">{colorAttribute.name}</h3>
+              <div className="grid grid-cols-5 gap-4">
+                {(showAllColors ? colorAttribute.terms : colorAttribute.terms.slice(0, 5)).map(term => {
+                  const isSelected = selectedFilters[colorAttribute.id]?.has(term.id);
+                  return (
+                    <div key={term.id} className={`flex flex-col items-center duration-300 ${term.count === 0 && !isSelected ? 'opacity-30' : ''}`}>
+                      <button className={`w-8 h-8 rounded-full border-2 ${isSelected ? 'ring-2 ring-blue-500 scale-110' : ''}`}
+                        style={{ backgroundColor: COLOR_MAP[term.name.toLowerCase()] || term.name.toLowerCase() }}
+                        onClick={() => toggleFilter(colorAttribute.id, term.id)} />
+                    </div>
+                  );
+                })}
+              </div>
+              {colorAttribute.terms.length > 5 && (
+                <button className="text-sm text-blue-600 mt-2" onClick={() => setShowAllColors(!showAllColors)}>
+                  {showAllColors ? "Toon minder" : `Toon meer (${colorAttribute.terms.length - 5})`}
+                </button>
+              )}
+            </div>
+          )}
+          {afdichtspleetBounds && (
+            <div className="mb-8">
+              <h3 className="font-medium mb-3 text-lg">Afdichtingsspleet (mm)</h3>
+              <DualRangeSlider 
+                min={afdichtspleetBounds.min} 
+                max={afdichtspleetBounds.max} 
+                value={afdichtingsspleetRange ?? [afdichtspleetBounds.min, afdichtspleetBounds.max]} 
+                onChange={setAfdichtingsspleetRange} 
+              />
+            </div>
+          )}
+          {groefbreedteBounds && (
+            <div className="mb-8">
+              <h3 className="font-medium mb-3 text-lg">Groefbreedte (mm)</h3>
+              <DualRangeSlider 
+                min={groefbreedteBounds.min} 
+                max={groefbreedteBounds.max} 
+                value={groefbreedteRange ?? [groefbreedteBounds.min, groefbreedteBounds.max]} 
+                onChange={setGroefbreedteRange} 
+              />
+            </div>
+          )}
+
+          {validRegularAttributes.map(attr => (
+            <FilterAttributeGroup key={attr.id} attr={attr} selectedFilters={selectedFilters} toggleFilter={toggleFilter} />
+          ))}
+          {(Object.keys(selectedFilters).length > 0 || afdichtingsspleetRange || groefbreedteRange) && (
+            <button onClick={resetFilters} className="text-sm text-red-500 hover:underline mb-4">Filters wissen</button>
+          )}
+        </div>
+      </motion.div>
+    </aside>
+  );
+}
+
 export default function CategoryClient({
+
   category,
   subCategories,
   attributes,
@@ -180,7 +443,15 @@ export default function CategoryClient({
   const [showFilters, setShowFilters] = useState(false);
   const [afdichtingsspleetRange, setAfdichtingsspleetRange] = useState<[number, number] | null>(null);
   const [groefbreedteRange, setGroefbreedteRange] = useState<[number, number] | null>(null);
+  const [unwrappedAttributes, setUnwrappedAttributes] = useState<Attribute[]>([]);
+  const [allCategoryProductsForFilters, setAllCategoryProductsForFilters] = useState<any[]>([]);
   const isInitialMount = useRef(true);
+
+  useEffect(() => {
+    Promise.resolve(attributes).then(res => setUnwrappedAttributes(res as Attribute[]));
+    Promise.resolve(initialFilterBaseProducts).then(res => setAllCategoryProductsForFilters(res as any[]));
+  }, [attributes, initialFilterBaseProducts]);
+
   
   // Initialize page from URL
   const [page, setPage] = useState<number>(() => {
@@ -188,9 +459,9 @@ export default function CategoryClient({
   });
   const [totalPages, setTotalPages] = useState<number>(initialTotalPages);
   const [totalProducts, setTotalProducts] = useState<number>(initialTotalProducts);
-  const [allCategoryProductsForFilters, setAllCategoryProductsForFilters] = useState<any[]>(initialFilterBaseProducts);
 
   // Sync state with URL when page or sort changes
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
@@ -237,10 +508,11 @@ export default function CategoryClient({
         if (!pAttr) return false;
         
         const matchingTerms = pAttr.options.some((o: string) => {
-          const globalAttr = attributes.find(ga => ga.id === id);
+          const globalAttr = unwrappedAttributes.find(ga => ga.id === id);
           const tMatch = globalAttr?.terms.find((t: AttributeTerm) => t.name.trim().toLowerCase() === o.trim().toLowerCase());
           return tMatch && terms.has(tMatch.id);
         });
+
         if (!matchingTerms) return false;
       }
 
@@ -286,7 +558,7 @@ export default function CategoryClient({
       try {
         // If filters or specialized sorting is active, we use our local Filter Base for decision making
         if (hasFilters || sortBy) {
-           const allBase = allCategoryProductsForFilters.length > 0 ? allCategoryProductsForFilters : initialFilterBaseProducts;
+           const allBase = allCategoryProductsForFilters.length > 0 ? allCategoryProductsForFilters : rawProducts;
            let matches = allBase.filter(p => checkGlobalMatch(p));
            
            // Sort matches locally
@@ -394,280 +666,34 @@ export default function CategoryClient({
     setGroefbreedteRange(null);
   };
 
-  // ------------------------------------------------------------------
-  // DYNAMIC FILTER LOGIC
-  // Only show attributes/terms that exist in the currently loaded `rawProducts`.
-  // AND match the ACF configuration from the category
-  // ------------------------------------------------------------------
-   const relevantAttributes = useMemo(() => {
-    const sourceProducts = allCategoryProductsForFilters.length > 0 ? allCategoryProductsForFilters : rawProducts;
-    if (!sourceProducts || sourceProducts.length === 0) return [];
+  // Relevant attributes moved to FilterSidebar component for streaming support
 
-    // 1. Identify which global attributes are actually present in these products to avoid thousands of useless checks
-    const presentAttrIds = new Set<number>();
-    sourceProducts.forEach(p => {
-      p.attributes?.forEach((a: any) => {
-        if (a.id) presentAttrIds.add(a.id);
-      });
-    });
 
-    // 2. Pre-filter the global attributes list to only what's used in this category
-    const activeGlobalAttrs = attributes.filter(ga => presentAttrIds.has(ga.id));
+  // Filter validation state moved to FilterSidebar
 
-    // 3. Faceted Search: For each attribute, we calculate valid terms and their counts
-    return activeGlobalAttrs
-      .map((attr) => {
-        // A. ACF Visibility Check
-        if (category?.acf) {
-          let slug = attr.slug || (attr.name || "").toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '').replace(/-+/g, '-');
-          let acfKey = ATTRIBUTE_TO_ACF_MAP[slug] || slug.replace(/^pa_/, '').replace(/-/g, '_');
-          if (acfKey && (category.acf[acfKey] === false || category.acf[acfKey] === "false")) return null;
-        }
-
-        // B. Explicitly exclude "Inhoud van de verpakking"
-        if (attr.name === "Inhoud van de verpakking") return null;
-
-        // C. Pre-calculate which products pass all OTHER filters (faceted search rule)
-        // This is done once per attribute group
-        const productsPassingOtherFilters = sourceProducts.filter(p => checkGlobalMatch(p, attr.id)); 
-
-        // D. Calculate counts for each term of THIS attribute using the pre-filtered products
-        const validTerms = attr.terms.map((term: AttributeTerm) => {
-          let count = 0;
-          const termNameLowercase = term.name.trim().toLowerCase();
-
-          // 1. Calculate faceted count (matches with other filters active)
-          productsPassingOtherFilters.forEach(p => {
-             const pAttr = p.attributes?.find((a: any) => a.id === attr.id);
-             if (pAttr?.options.some((o: string) => o.trim().toLowerCase() === termNameLowercase)) {
-                count++;
-             }
-          });
-
-          // 2. Check if this term EVER exists in this category at all (even without filters)
-          const existsInCategory = sourceProducts.some(p => {
-             const pAttr = p.attributes?.find((a: any) => a.id === attr.id);
-             return pAttr?.options.some((o: string) => o.trim().toLowerCase() === termNameLowercase);
-          });
-
-          // If it never exists in the whole category, we drop it. 
-          // If it exists but count is 0 (due to filters), we keep it!
-          return existsInCategory ? { ...term, count } : null;
-        }).filter(Boolean) as AttributeTerm[];
-
-        if (validTerms.length === 0) return null;
-        return { ...attr, terms: validTerms };
-      })
-      .filter(Boolean) as Attribute[];
-  }, [allCategoryProductsForFilters, rawProducts, attributes, category, selectedFilters, afdichtingsspleetRange, groefbreedteRange]);
-
-  console.log("Final Relevant Attributes for Filters:", relevantAttributes.map(a => a.name));
-
-  // console.log("🔥 FINAL RELEVANT ATTRIBUTES:", relevantAttributes.map(a => a.name));
-
-  const colorAttribute = relevantAttributes.find(
-    (attr) => attr.name.toLowerCase() === "color" || attr.name.toLowerCase() === "kleur"
-  );
-
-  const otherAttributes = relevantAttributes.filter(
-    (attr) => attr.name.toLowerCase() !== "color" && attr.name.toLowerCase() !== "kleur"
-  );
-
-  const afdichtVanAttr = otherAttributes.find(a => a.name === "Afdichtingsspleet Van");
-  const afdichtTotAttr = otherAttributes.find(a => a.name === "Afdichtingsspleet Tot");
-
-  const afdichtspleetBounds = useMemo(() => {
-    if (!afdichtVanAttr && !afdichtTotAttr) return null;
-    
-    // Check ACF
-    if (category?.acf?.afdichtingsspleet === false || category?.acf?.afdichtingsspleet === "false") {
-        return null;
-    }
-    
-    let min = Infinity;
-    let max = -Infinity;
-
-    if (afdichtVanAttr) {
-      afdichtVanAttr.terms.forEach(t => {
-        const val = parseFloat(t.name);
-        if (!isNaN(val)) {
-          if (val < min) min = val;
-          if (val > max) max = val;
-        }
-      });
-    }
-    
-    if (afdichtTotAttr) {
-      afdichtTotAttr.terms.forEach(t => {
-        const val = parseFloat(t.name);
-        if (!isNaN(val)) {
-          if (val < min) min = val;
-          if (val > max) max = val;
-        }
-      });
-    }
-
-    if (min === Infinity || max === -Infinity) return null;
-    return { min, max };
-  }, [afdichtVanAttr, afdichtTotAttr, category]);
-
-  const groefVanAttr = otherAttributes.find(a => a.name === "Groefbreedte Van");
-  const groefTotAttr = otherAttributes.find(a => a.name === "Groefbreedte Tot");
-
-  const groefbreedteBounds = useMemo(() => {
-    if (!groefVanAttr && !groefTotAttr) return null;
-
-    // Check ACF
-    if (category?.acf?.groefbreedte === false || category?.acf?.groefbreedte === "false") {
-        return null;
-    }
-    
-    let min = Infinity;
-    let max = -Infinity;
-
-    if (groefVanAttr) {
-      groefVanAttr.terms.forEach(t => {
-        const val = parseFloat(t.name);
-        if (!isNaN(val)) {
-          if (val < min) min = val;
-          if (val > max) max = val;
-        }
-      });
-    }
-    
-    if (groefTotAttr) {
-      groefTotAttr.terms.forEach(t => {
-        const val = parseFloat(t.name);
-        if (!isNaN(val)) {
-          if (val < min) min = val;
-          if (val > max) max = val;
-        }
-      });
-    }
-
-    if (min === Infinity || max === -Infinity) return null;
-    return { min, max };
-  }, [groefVanAttr, groefTotAttr, category]);
-
-  const regularAttributes = otherAttributes.filter(a => a.name !== "Afdichtingsspleet Van" && a.name !== "Afdichtingsspleet Tot" && a.name !== "Groefbreedte Van" && a.name !== "Groefbreedte Tot");
-
-  const validRegularAttributes = regularAttributes.filter(attr => attr.terms.length > 1);
-  console.log("Final UI Regular Attributes:", validRegularAttributes.map(a => a.name));
-  const hasValidColorAttribute = colorAttribute && colorAttribute.terms.length > 1;
-  const hasValidFilters = hasValidColorAttribute || afdichtspleetBounds || groefbreedteBounds || validRegularAttributes.length > 0;
 
   return (
     <div className="bg-[#F7F7F7] min-h-screen">
       <div className="max-w-[1440px] mx-auto py-4 lg:py-8 px-5 lg:px-0">
         <div className="flex flex-col lg:flex-row gap-2 lg:gap-8">
           
-          {hasValidFilters && (
-          <aside className="w-full lg:w-1/4 relative">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-            >
-            <button
-              type="button"
-              onClick={() => setShowFilters(false)}
-              className={`${showFilters ? 'block' : 'hidden'} lg:hidden block absolute top-3 right-3 text-gray-500 hover:text-gray-700 transition`}
-              aria-label="Close Filters"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
-            </button>
-            <div
-              id="filters-section"
-              className={`${showFilters ? 'max-h-screen opacity-100 p-4' : 'max-h-0 opacity-0 lg:p-4'} overflow-hidden transition-all duration-300 ease-in-out lg:max-h-full lg:opacity-100 lg:block bg-white rounded-lg`}
-            >
-                <>
-                  {/* Color Filter First */}
-                  {hasValidColorAttribute && (
-                    <div key={colorAttribute.id} className="mb-6">
-                      <h3 className="font-medium mb-3 text-[#212121] text-lg">{colorAttribute.name}</h3>
-                      <div className="grid grid-cols-5 gap-4">
-                        {(showAllColors ? colorAttribute.terms : colorAttribute.terms.slice(0, 5)).map(
-                          (term: AttributeTerm) => {
-                          const isSelected = selectedFilters[colorAttribute.id]?.has(term.id) || false;
-                          const isDimmed = term.count === 0 && !isSelected;
-                          return (
-                            <div key={term.id} className={`flex flex-col items-center transition-opacity duration-300 ${isDimmed ? 'opacity-30' : 'opacity-100'}`}>
-                              <button
-                                type="button"
-                                className={`w-8 h-8 rounded-full border-2 transition-all ${isSelected ? 'ring-2 ring-blue-500 scale-110' : 'border-gray-300 hover:border-blue-400'}`}
-                                style={{ backgroundColor: COLOR_MAP[term.name.toLowerCase()] || term.name.toLowerCase() }}
-                                onClick={() => toggleFilter(colorAttribute.id, term.id)}
-                                aria-label={term.name}
-                              />
-                              <span className="mt-1 text-xs text-center text-gray-700 font-medium">
-                                {term.name}
-                                {term.count !== undefined && <span className="block text-[10px] text-gray-400">({term.count})</span>}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      {colorAttribute.terms.length > 5 && (
-                        <button
-                          type="button"
-                          className="mt-4 w-full py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm font-medium"
-                          onClick={() => setShowAllColors(prev => !prev)}
-                        >
-                          {showAllColors ? "Toon minder" : `Toon meer (${colorAttribute.terms.length - 5})`}
-                        </button>
-                      )}
-                    </div>
-                  )}
+          <Suspense fallback={<div className="w-full lg:w-1/4 animate-pulse bg-white rounded-lg h-[600px]"></div>}>
+            <FilterSidebar 
+              attributes={attributes}
+              initialFilterBaseProducts={initialFilterBaseProducts}
+              category={category}
+              selectedFilters={selectedFilters}
+              toggleFilter={toggleFilter}
+              resetFilters={resetFilters}
+              afdichtingsspleetRange={afdichtingsspleetRange}
+              groefbreedteRange={groefbreedteRange}
+              setAfdichtingsspleetRange={setAfdichtingsspleetRange}
+              setGroefbreedteRange={setGroefbreedteRange}
+              showFilters={showFilters}
+              setShowFilters={setShowFilters}
+            />
+          </Suspense>
 
-                  {/* Afdichtingsspleet Range Slider */}
-                  {afdichtspleetBounds && (
-                    <div className="mb-8">
-                      <h3 className="font-medium mb-3 text-[#212121] text-lg">Afdichtingsspleet (mm)</h3>
-                      <div className="px-1">
-                        <DualRangeSlider 
-                          min={afdichtspleetBounds.min}
-                          max={afdichtspleetBounds.max}
-                          step={0.1}
-                          value={afdichtingsspleetRange || [afdichtspleetBounds.min, afdichtspleetBounds.max]}
-                          onChange={(val: [number, number]) => setAfdichtingsspleetRange(val)}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Groefbreedte Range Slider */}
-                  {groefbreedteBounds && (
-                    <div className="mb-8">
-                      <h3 className="font-medium mb-3 text-[#212121] text-lg">Groefbreedte (mm)</h3>
-                      <div className="px-1">
-                        <DualRangeSlider 
-                          min={groefbreedteBounds.min}
-                          max={groefbreedteBounds.max}
-                          step={0.1}
-                          value={groefbreedteRange || [groefbreedteBounds.min, groefbreedteBounds.max]}
-                          onChange={(val: [number, number]) => setGroefbreedteRange(val)}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Other Attributes */}
-                  {validRegularAttributes.map(attr => (
-                    <FilterAttributeGroup
-                      key={attr.id}
-                      attr={attr}
-                      selectedFilters={selectedFilters}
-                      toggleFilter={toggleFilter}
-                    />
-                  ))}
-                  {(Object.keys(selectedFilters).length > 0 || afdichtingsspleetRange || groefbreedteRange) && (
-                    <button onClick={resetFilters} className="text-sm text-red-500 hover:underline mb-4">Filters wissen</button>
-                  )}
-                </>
-            </div>
-            </motion.div>
-          </aside>
-          )}
 
           {/* Main Content */}
           <main className="flex-1">
@@ -685,41 +711,25 @@ export default function CategoryClient({
                   <option value="title-asc">Naam: A - Z</option>
                   <option value="title-desc">Naam: Z - A</option>
                 </select>
-                {hasValidFilters && (
-                  <button type="button" className="lg:hidden px-2 py-1 w-auto text-left bg-white border border-gray-300 rounded-md font-medium" onClick={() => setShowFilters(!showFilters)} aria-expanded={showFilters} aria-controls="filters-section">
-                    {showFilters ? (
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                      </svg>
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
-                      </svg>
-                    )}
-                  </button>
-                )}
+                <button type="button" className="lg:hidden px-2 py-1 w-auto text-left bg-white border border-gray-300 rounded-md font-medium" onClick={() => setShowFilters(!showFilters)} aria-expanded={showFilters} aria-controls="filters-section">
+                  {showFilters ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+                    </svg>
+                  )}
+                </button>
               </div>
+
             </div>
 
-            {/* Subcategories */}
-            <div className='flex gap-4 pb-4 flex-nowrap lg:flex-wrap w-full overflow-x-auto'>
-              {subCategories.map((sub) => {
-                const parentPath = currentSlug.join("/");
-                // Ensure no double slashes if something is weird, though join should be fine
-                const href = `/${parentPath}/${sub.slug}`;
-                
-                return (
-                  <Link
-                    key={sub.id}
-                    prefetch={true}
-                    href={href}
-                    className="min-w-fit px-3.5 py-1.5 rounded-sm text-sm font-medium border border-[#D0DFEE] bg-[#F2F7FF] text-[#4F4F4F] cursor-pointer hover:bg-blue-50 transition-colors"
-                  >
-                    {sub.name}
-                  </Link>
-                );
-              })}
-            </div>
+            <Suspense fallback={<div className="h-10 w-full animate-pulse bg-gray-100 rounded mb-4"></div>}>
+              <SubCategoryGrid subCategories={subCategories} currentSlug={currentSlug} />
+            </Suspense>
+
 
             {/* Products Grid */}
             {productsLoading ? (

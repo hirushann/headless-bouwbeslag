@@ -171,7 +171,7 @@ export default function ShopProductCard({ product }: { product: any }) {
       </Link>
 
       <div className="p-2 lg:p-4 flex flex-col flex-1">
-        <Link prefetch={true} href={`/${product.slug}`} className="text-sm md:text-base lg:text-lg font-medium mb-1 line-clamp-3 text-[#1C2530] min-h-[60px] lg:min-h-[85px]">
+        <Link prefetch={true} href={`/${product.slug}`} className="text-sm md:text-base lg:text-lg font-medium mb-1 line-clamp-3 text-[#1C2530] min-h-[60px] lg:min-h-[65px]">
           {productTitle}
         </Link>
 

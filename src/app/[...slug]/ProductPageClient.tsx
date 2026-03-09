@@ -28,7 +28,8 @@ const formatSpecValue = (value: string | number | null | undefined): string => {
   return strVal;
 };
 
-export default function ProductPageClient({ product, taxRate = 21, slug }: { product: any; taxRate?: number; slug?: string[] }) {
+export default function ProductPageClient({ product, taxRate = 21, slug, initialReviews }: { product: any; taxRate?: number; slug?: string[]; initialReviews?: any[] | Promise<any[]> }) {
+
   useEffect(() => {
   }, [product]);
 
@@ -2195,7 +2196,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug }: { pro
                     <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
                   </summary>
                   <div className="px-6 pb-6 w-full">
-                    <ReviewsSection productId={product.id} productName={product.name} />
+                    <ReviewsSection productId={product.id} productName={product.name} initialReviews={initialReviews} />
                   </div>
                 </details>
               </div>
