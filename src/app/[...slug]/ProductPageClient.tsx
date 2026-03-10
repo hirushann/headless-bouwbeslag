@@ -33,13 +33,15 @@ export default function ProductPageClient({
   taxRate = 21, 
   slug, 
   initialReviews,
-  initialRelatedItems
+  initialRelatedItems,
+  resolvedProductPromise
 }: { 
   product: any; 
   taxRate?: number; 
   slug?: string[]; 
   initialReviews?: any[] | Promise<any[]>;
   initialRelatedItems?: Promise<any>;
+  resolvedProductPromise?: Promise<any>;
 }) {
 
   useEffect(() => {
@@ -231,6 +233,17 @@ export default function ProductPageClient({
         .catch(() => {});
     }
   }, [product?.id, catImgMeta, isNumericCatImg]);
+
+  // Handle server-resolved image
+  useEffect(() => {
+    if (resolvedProductPromise) {
+        resolvedProductPromise.then(p => {
+            if (p && p.resolved_cat_image) {
+                setTargetProductImg(fixImageSrc(p.resolved_cat_image));
+            }
+        });
+    }
+  }, [resolvedProductPromise]);
 
   useEffect(() => {
     // If we already have injected logoUrl, use it. Otherwise, fetch it.
@@ -444,11 +457,12 @@ export default function ProductPageClient({
         return;
     }
 
-    // 2. Perform Fetch (Using initialRelatedItems if provided for speed, but ONLY on initial mount for this product)
+    // 2. Perform Fetch (Using initialRelatedItems if provided for speed)
     const runFetch = async () => {
         try {
-            // Only use initialRelatedItems if it's the first run and the product matches
-            const res = (isInitialMount.current && initialRelatedItems) 
+            // We use the initialRelatedItems promise provided by the server
+            // On navigation, Next.js provides a fresh promise for the new product.
+            const res = initialRelatedItems 
                 ? await initialRelatedItems 
                 : await fetchRelatedProductsBatchAction(idsToFetch, product.id);
 
@@ -1357,6 +1371,7 @@ export default function ProductPageClient({
                         <Link
                           key={index}
                           href={`/${colorItem.slug}`}
+                          prefetch={true}
                           title={colorItem.name}
                           className="w-8 h-8 rounded-full border border-gray-300 shadow-sm cursor-pointer hover:scale-110 transition-transform block"
                           style={{ backgroundColor: colorItem.color }}
@@ -1415,6 +1430,7 @@ export default function ProductPageClient({
                       orderModels.map((model: any, index: number) => (
                         <Link
                           href={`/${model.slug}`}
+                          prefetch={true}
                           key={`${model.id}-${index}`}
                           className="flex-shrink-0 w-32 flex flex-col items-center gap-2 group"
                         >

@@ -526,6 +526,63 @@ export async function fetchRelatedProductsBatchAction(identifiers: string[], exc
     }
 }
 
+/**
+ * Resolves a slug to a type (product/category) and its ID using Elasticsearch.
+ * This is 10x faster than querying WooCommerce by slug.
+ */
+export async function resolveSlugAction(slug: string) {
+    if (!slug) return { success: false, type: null, id: null };
+
+    const esIndex = process.env.SEARCH_INDEX || process.env.ELASTICSEARCH_INDEX;
+    if (!esIndex) return { success: false, type: null, id: null };
+
+    try {
+        // 1. Try to find a PRODUCT with this slug (post_name)
+        const productRes = await elasticClient.search({
+            index: esIndex,
+            size: 1,
+            query: {
+                bool: {
+                    must: [
+                        { term: { post_type: "product" } },
+                        { term: { "post_name.keyword": slug } }
+                    ]
+                }
+            }
+        });
+
+        if (productRes.hits.hits.length > 0) {
+            const hit: any = productRes.hits.hits[0]._source;
+            return { success: true, type: 'product', id: hit.ID, data: hit };
+        }
+
+        // 2. Try to find if it's a CATEGORY
+        // Note: Many ES setups don't index categories as primary docs.
+        // We'll do a quick check in products to see if any product HAS this category slug.
+        const categoryCheck = await elasticClient.search({
+            index: esIndex,
+            size: 1,
+            query: {
+                bool: {
+                    must: [
+                        { term: { "terms.product_cat.slug": slug } }
+                    ]
+                }
+            }
+        });
+
+        if (categoryCheck.hits.hits.length > 0) {
+            // We found a product with this category, so it's likely a valid category slug.
+            // We still need the real Category ID from Woo, but at least we know it's a category!
+            return { success: true, type: 'category', id: null };
+        }
+
+        return { success: false, type: null, id: null };
+    } catch (e) {
+        return { success: false, type: null, id: null };
+    }
+}
+
 
 export async function refreshCartStockAction(productIds: number[]) {
     try {

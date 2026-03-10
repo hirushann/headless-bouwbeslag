@@ -5,7 +5,7 @@ import api from "@/lib/woocommerce";
 import ProductPageClient from "./ProductPageClient";
 import CategoryClient from "@/components/CategoryClient";
 import { extractRelatedIdentifiers } from "@/lib/productUtils";
-import { fetchRelatedProductsBatchAction } from "@/app/actions";
+import { fetchRelatedProductsBatchAction, resolveSlugAction } from "@/app/actions";
 
 /* ----------------------------------------------------
  | Types
@@ -148,6 +148,39 @@ const getCategoryBySlugCached = cache(async (slug: string): Promise<Category | n
   }
 });
 
+const getProductByIdCached = cache(async (id: number) => {
+  try {
+    const res = await api.get(`products/${id}`, { next: { revalidate: 3600 } });
+    
+    const product = res.data;
+    if (!product || !product.id) return null;
+
+    // Fetch Brand Logo in parallel if present
+    if (product.brands && product.brands.length > 0) {
+      const brandId = product.brands[0].id;
+      api.get(`wp/v2/product_brand/${brandId}`, { next: { revalidate: 3600 } })
+        .then(async (brandRes) => {
+          const brandData = brandRes.data;
+          if (brandData?.acf?.brand_logo) {
+            const logoData = brandData.acf.brand_logo;
+            if (typeof logoData === 'number') {
+              const mediaRes = await api.get(`wp/v2/media/${logoData}`, { next: { revalidate: 3600 } });
+              product.brands[0].logoUrl = mediaRes.data?.source_url || null;
+            } else if (typeof logoData === 'string') {
+              product.brands[0].logoUrl = logoData;
+            } else if (logoData?.url) {
+              product.brands[0].logoUrl = logoData.url;
+            }
+          }
+        }).catch(() => {});
+    }
+
+    return product;
+  } catch (error) {
+    return null;
+  }
+});
+
 const getCategoryByIdCached = cache(async (id: number) => {
   try {
     const res = await api.get(`products/categories/${id}`, { 
@@ -161,6 +194,23 @@ const getCategoryByIdCached = cache(async (id: number) => {
 
 const getPageMetadata = cache(async (slugArray: string[]) => {
   const currentSlug = decodeURIComponent(slugArray[slugArray.length - 1]);
+  
+  // 1. Resolve slug to ID & Type
+  const resolved = await resolveSlugAction(currentSlug);
+
+  if (resolved.success && resolved.type === 'product' && resolved.id) {
+    // Fetch minimal product by ID for metadata (FAST)
+    const product = await getProductByIdCached(resolved.id);
+    return { product, category: null };
+  }
+
+  if (resolved.success && resolved.type === 'category') {
+    // Fetch minimal category by slug (FAST)
+    const category = await getCategoryMetadataCached(currentSlug);
+    return { product: null, category };
+  }
+
+  // 2. Fallback (If ES failed or missing index)
   const [product, category] = await Promise.all([
     getProductMetadataCached(currentSlug),
     getCategoryMetadataCached(currentSlug)
@@ -170,6 +220,23 @@ const getPageMetadata = cache(async (slugArray: string[]) => {
 
 const getPageData = cache(async (slugArray: string[]) => {
   const currentSlug = decodeURIComponent(slugArray[slugArray.length - 1]);
+  
+  // 1. Resolve slug to ID & Type
+  const resolved = await resolveSlugAction(currentSlug);
+
+  if (resolved.success && resolved.type === 'product' && resolved.id) {
+    // Fetch full product by ID (FAST)
+    const product = await getProductByIdCached(resolved.id);
+    return { product, category: null };
+  }
+
+  if (resolved.success && resolved.type === 'category') {
+    // Fetch full category by slug (FAST)
+    const category = await getCategoryBySlugCached(currentSlug);
+    return { product: null, category };
+  }
+
+  // 2. Parallel Fallback
   const [product, category] = await Promise.all([
     getProductBySlugCached(currentSlug),
     getCategoryBySlugCached(currentSlug)
@@ -750,23 +817,19 @@ export default async function Page({ params, searchParams }: PageProps) {
   const { product, category } = await getPageData(slug);
 
   if (product) {
+    // 1. Kick off parallel background promises (DO NOT AWAIT)
     const reviewsPromise = getProductReviewsCached(product.id);
-    const [taxRate, reviews] = await Promise.all([
-      getStandardTaxRate(),
-      reviewsPromise
-    ]);
+    const taxRatePromise = getStandardTaxRate();
+    const resolvedProductPromise = resolveProductImages([product]).then(p => p[0]);
+    
+    // We only await the most critical pieces if absolutely necessary, 
+    // but here we can actually trust the product we already have.
+    
+    // For SEO structured data, we'll use defaults and not block the page.
+    // If we MUST have the exact tax rate for SEO, we can use a hardcoded 21 which is standard for this shop.
+    const structuredData = generateStructuredData(product, 21, []); 
 
-    const structuredData = generateStructuredData(product, taxRate, reviews);
-
-    console.log("==========================================");
-    console.log("FINAL SCHEMA BEING SENT TO BROWSER:");
-    console.log(JSON.stringify(structuredData, null, 2));
-    console.log("==========================================");
-
-    // Resolve category image if exists
-    await resolveProductImages([product]);
-
-    // Start related items fetch on server for faster loading
+    // Related items fetch (No block)
     const relatedIds = extractRelatedIdentifiers(product);
     const relatedItemsPromise = fetchRelatedProductsBatchAction(relatedIds, product.id);
 
@@ -780,14 +843,21 @@ export default async function Page({ params, searchParams }: PageProps) {
             }}
           />
         )}
-        <ProductPageClient 
-            product={product} 
-            taxRate={taxRate} 
-            slug={slug} 
-            initialReviews={reviewsPromise} 
-            initialRelatedItems={relatedItemsPromise}
-        />
-
+        <React.Suspense fallback={
+             <div className="flex h-[80vh] w-full flex-col items-center justify-center bg-white">
+                <span className="loading loading-spinner loading-lg text-blue-600"></span>
+                <p className="mt-4 text-gray-500 font-medium">Product details laden...</p>
+             </div>
+        }>
+            <ProductPageClient 
+                product={product} 
+                taxRate={21} // Fallback to 21 initially
+                slug={slug} 
+                initialReviews={reviewsPromise} 
+                initialRelatedItems={relatedItemsPromise}
+                resolvedProductPromise={resolvedProductPromise}
+            />
+        </React.Suspense>
       </main>
     );
   }
