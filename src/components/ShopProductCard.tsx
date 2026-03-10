@@ -153,11 +153,17 @@ export default function ShopProductCard({ product }: { product: any }) {
 
   return (
     <div className="snap-start shrink-0 w-[100%] border border-[#E2E2E2] rounded-lg shadow-sm bg-[#F7F7F7] flex flex-col h-full">
-      <Link prefetch={true} href={`/${product.slug}`} className="relative h-32 lg:h-48 bg-white rounded-tl-lg rounded-tr-lg overflow-hidden flex items-center justify-center">
+      <Link href={`/${product.slug}`} className="relative h-32 lg:h-48 bg-white rounded-tl-lg rounded-tr-lg overflow-hidden flex items-center justify-center">
         {isFetchingImg ? (
           <div className="w-full h-full bg-gray-100 animate-pulse" />
         ) : targetImgSrc ? (
-          <Image sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw" src={fixImageSrc(targetImgSrc)} alt={productTitle} fill className="object-contain" />
+          <img 
+            src={fixImageSrc(targetImgSrc)} 
+            alt={productTitle} 
+            loading="lazy" 
+            decoding="async"
+            className="w-full h-full object-contain p-2" 
+          />
         ) : (
           <div className="w-full h-full bg-gray-100" />
         )}
@@ -171,7 +177,7 @@ export default function ShopProductCard({ product }: { product: any }) {
       </Link>
 
       <div className="p-2 lg:p-4 flex flex-col flex-1">
-        <Link prefetch={true} href={`/${product.slug}`} className="text-sm md:text-base lg:text-lg font-medium mb-1 line-clamp-3 text-[#1C2530] min-h-[60px] lg:min-h-[65px]">
+        <Link href={`/${product.slug}`} className="text-sm md:text-base lg:text-lg font-medium mb-1 line-clamp-3 text-[#1C2530] min-h-[60px] lg:min-h-[65px]">
           {productTitle}
         </Link>
 

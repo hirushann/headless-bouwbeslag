@@ -295,14 +295,19 @@ function FilterSidebar({
     const sourceProducts = allCategoryProductsForFilters || [];
     if (sourceProducts.length === 0) return [];
     
-    const presentAttrIds = new Set<number>();
+    // O(P): Pre-calculate overall presence of attr/term pairs in the entire category
+    const globalTermPresence = new Map<number, Set<string>>();
     sourceProducts.forEach(p => {
       p.attributes?.forEach((a: any) => {
-        if (a.id) presentAttrIds.add(a.id);
+        if (a.id) {
+          if (!globalTermPresence.has(a.id)) globalTermPresence.set(a.id, new Set());
+          const termSet = globalTermPresence.get(a.id)!;
+          a.options?.forEach((o: string) => termSet.add(o.trim().toLowerCase()));
+        }
       });
     });
 
-    const activeGlobalAttrs = attributes.filter(ga => presentAttrIds.has(ga.id));
+    const activeGlobalAttrs = attributes.filter(ga => globalTermPresence.has(ga.id));
 
     return activeGlobalAttrs
       .map((attr) => {
@@ -313,22 +318,31 @@ function FilterSidebar({
         }
         if (attr.name === "Inhoud van de verpakking") return null;
 
+        // Get subset of products passing OTHER filters
         const productsPassingOtherFilters = sourceProducts.filter(p => checkGlobalMatchLocal(p, attr.id)); 
 
-        const validTerms = attr.terms.map((term: AttributeTerm) => {
-          let count = 0;
-          const termNameLowercase = term.name.trim().toLowerCase();
-          productsPassingOtherFilters.forEach(p => {
+        // O(P): Pre-count occurrences for the specific attribute in the filtered subset
+        const termCounts = new Map<string, number>();
+        productsPassingOtherFilters.forEach(p => {
              const pAttr = p.attributes?.find((a: any) => a.id === attr.id);
-             if (pAttr?.options.some((o: string) => o.trim().toLowerCase() === termNameLowercase)) {
-                count++;
+             if (pAttr) {
+                 pAttr.options?.forEach((o: string) => {
+                     const key = o.trim().toLowerCase();
+                     termCounts.set(key, (termCounts.get(key) || 0) + 1);
+                 });
              }
-          });
-          const existsInCategory = sourceProducts.some(p => {
-             const pAttr = p.attributes?.find((a: any) => a.id === attr.id);
-             return pAttr?.options.some((o: string) => o.trim().toLowerCase() === termNameLowercase);
-          });
-          return existsInCategory ? { ...term, count } : null;
+        });
+
+        const categoryTerms = globalTermPresence.get(attr.id) || new Set();
+
+        const validTerms = attr.terms.map((term: AttributeTerm) => {
+          const termNameLowercase = term.name.trim().toLowerCase();
+          
+          // O(1): Fast lookup
+          if (!categoryTerms.has(termNameLowercase)) return null;
+          
+          const count = termCounts.get(termNameLowercase) || 0;
+          return { ...term, count };
         }).filter(Boolean) as AttributeTerm[];
 
         if (validTerms.length === 0) return null;

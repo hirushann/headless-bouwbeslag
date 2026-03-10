@@ -665,6 +665,81 @@ function generateStructuredData(product: any, taxRate: number, reviews: any[] = 
   return schema;
 }
 
+async function CategoryLoader({ category, slug, sp }: { category: any, slug: string[], sp: any }) {
+    const initialPage = parseInt((sp?.page as string) || "1");
+    const sort = (sp?.sort as string) || "";
+    const sortParams: any = {};
+    if (sort === "price-low-high") {
+        sortParams.orderby = "price";
+        sortParams.order = "asc";
+    } else if (sort === "price-high-low") {
+        sortParams.orderby = "price";
+        sortParams.order = "desc";
+    } else if (sort === "date") {
+        sortParams.orderby = "date";
+        sortParams.order = "desc";
+    } else if (sort === "title-asc") {
+        sortParams.orderby = "title";
+        sortParams.order = "asc";
+    } else if (sort === "title-desc") {
+        sortParams.orderby = "title";
+        sortParams.order = "desc";
+    } else if (sort) {
+        sortParams.orderby = sort;
+    }
+
+    const fetchCurrentPage = async () => {
+      const res = await api.get("products", { 
+          per_page: 20, 
+          page: initialPage, 
+          category: category.id,
+          status: 'publish',
+          ...sortParams,
+          next: { revalidate: 60 }
+      });
+      const prods = await resolveProductImages(res.data || []);
+      return {
+        prods,
+        totalPages: parseInt(res.totalPages || '1'),
+        total: parseInt(res.total || '0')
+      };
+    };
+    
+    // Start all requests in parallel
+    const attributesPromise = fetchAttributes();
+    const subCategoriesPromise = fetchAllSubCategoriesCached(category.id);
+    const filterBasePromise = fetchAllCategoryProductsForFiltersCached(category.id);
+    const pathPromise = traverseCategoryPath(category);
+    const currentPagePromise = fetchCurrentPage();
+
+    // Await ONLY what's needed for initial products and SEO redirect check
+    const [currentPageData, correctPath] = await Promise.all([
+        currentPagePromise,
+        pathPromise
+    ]);
+
+    const currentPath = slug.join("/");
+    if (currentPath !== correctPath) {
+      const query = sp ? new URLSearchParams(sp as any).toString() : "";
+      const destination = `/${correctPath}${query ? `?${query}` : ""}`;
+      permanentRedirect(destination);
+    }
+
+    return (
+        <CategoryClient
+          key={category.id}
+          category={category}
+          attributes={attributesPromise}
+          subCategories={subCategoriesPromise}
+          currentSlug={slug}
+          initialProducts={currentPageData.prods}
+          initialTotalPages={currentPageData.totalPages}
+          initialTotalProducts={currentPageData.total}
+          initialFilterBaseProducts={filterBasePromise}
+        />
+    );
+}
+
 /* ----------------------------------------------------
  | ✅ PAGE (SERVER COMPONENT)
  ---------------------------------------------------- */
@@ -708,92 +783,17 @@ export default async function Page({ params, searchParams }: PageProps) {
   // 2. Check Category
   if (category) {
     const sp = await searchParams;
-    const initialPage = parseInt((sp?.page as string) || "1");
-    const sort = (sp?.sort as string) || "";
-    const sortParams: any = {};
-    if (sort === "price-low-high") {
-        sortParams.orderby = "price";
-        sortParams.order = "asc";
-    } else if (sort === "price-high-low") {
-        sortParams.orderby = "price";
-        sortParams.order = "desc";
-    } else if (sort === "date") {
-        sortParams.orderby = "date";
-        sortParams.order = "desc";
-    } else if (sort === "title-asc") {
-        sortParams.orderby = "title";
-        sortParams.order = "asc";
-    } else if (sort === "title-desc") {
-        sortParams.orderby = "title";
-        sortParams.order = "desc";
-    } else if (sort) {
-        sortParams.orderby = sort;
-    }
-
-
-    const fetchCurrentPage = async () => {
-      const res = await api.get("products", { 
-          per_page: 20, 
-          page: initialPage, 
-          category: category.id,
-          status: 'publish',
-          ...sortParams,
-          next: { revalidate: 60 }
-      });
-      const prods = await resolveProductImages(res.data || []);
-      return {
-        prods,
-        totalPages: parseInt(res.totalPages || '1'),
-        total: parseInt(res.total || '0')
-      };
-    };
-    
-    // Start all requests in parallel
-    const attributesPromise = fetchAttributes();
-    const subCategoriesPromise = fetchAllSubCategoriesCached(category.id);
-    const filterBasePromise = fetchAllCategoryProductsForFiltersCached(category.id);
-    const pathPromise = traverseCategoryPath(category);
-    const currentPagePromise = fetchCurrentPage();
-
-
-
-    // Await ONLY what's needed for initial products and SEO redirect check
-    const [currentPageData, correctPath] = await Promise.all([
-        currentPagePromise,
-        pathPromise
-    ]);
-    
-    // Pass promises for heavy sidebar/filter data
-    const initialFilterBaseProducts = filterBasePromise; 
-    const initialProducts = currentPageData.prods;
-    const initialTotalPages = currentPageData.totalPages;
-    const initialTotalProducts = currentPageData.total;
-
-
-    const currentPath = slug.join("/");
-    if (currentPath !== correctPath) {
-      const query = sp ? new URLSearchParams(sp as any).toString() : "";
-      const destination = `/${correctPath}${query ? `?${query}` : ""}`;
-      permanentRedirect(destination);
-    }
 
     return (
-      <main>
-        <React.Suspense fallback={<div className="flex items-center justify-center min-h-screen">Laden...</div>}>
-          <CategoryClient
-            key={category.id}
-            category={category}
-            attributes={attributesPromise}
-            subCategories={subCategoriesPromise}
-            currentSlug={slug}
-            initialProducts={initialProducts}
-            initialTotalPages={initialTotalPages}
-            initialTotalProducts={initialTotalProducts}
-            initialFilterBaseProducts={filterBasePromise}
-
-          />
+      <main className="min-h-screen bg-[#F7F7F7]">
+        <React.Suspense fallback={
+          <div className="flex h-[60vh] w-full flex-col items-center justify-center bg-[#F7F7F7]">
+            <span className="loading loading-spinner loading-lg text-blue-600 w-12 h-12 mb-4"></span>
+            <p className="text-gray-500 font-medium text-lg animate-pulse">Pagina laden...</p>
+          </div>
+        }>
+          <CategoryLoader category={category} slug={slug} sp={sp} />
         </React.Suspense>
-
       </main>
     );
   }
