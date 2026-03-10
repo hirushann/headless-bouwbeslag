@@ -1139,7 +1139,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug, initial
             <div className="flex items-center gap-4">
               {/* <Image src="/productcatlogo.png" className="w-auto h-auto" alt="Product Category Logo" width={50} height={50} /> */}
               {brandImageUrl && (
-                <Link href={product?.brands?.[0]?.slug ? `/merken/${product.brands[0].slug}` : "#"}>
+                <Link prefetch={true} href={product?.brands?.[0]?.slug ? `/merken/${product.brands[0].slug}` : "#"}>
                   <img
                     src={brandImageUrl}
                     alt="Brand Logo"

@@ -158,34 +158,73 @@ const resolveBrandLogin = async (brand: Brand): Promise<Brand> => {
 
 export const getBrands = async (): Promise<Brand[]> => {
     try {
-        let allBrands: Brand[] = [];
-        let page = 1;
-        let totalPages = 1;
+        const firstPageRes = await api.get("wp/v2/product_brand", {
+            params: { per_page: 100, page: 1, hide_empty: true, _embed: true, next: { revalidate: 3600 } }
+        });
 
-        do {
-            // Fetch from product_brand taxonomy (wp/v2 namespace)
-            const response = await api.get("wp/v2/product_brand", {
-                params: {
-                    per_page: 100,
-                    page: page,
-                    hide_empty: true,
-                    _embed: true,
-                    next: { revalidate: 3600 }
+        let allBrands: Brand[] = Array.isArray(firstPageRes.data) ? firstPageRes.data : [];
+        const totalPages = Number(firstPageRes.totalPages) || 1;
+
+        if (totalPages > 1) {
+            const promises = [];
+            for (let p = 2; p <= totalPages; p++) {
+                promises.push(
+                    api.get("wp/v2/product_brand", {
+                        params: { per_page: 100, page: p, hide_empty: true, _embed: true, next: { revalidate: 3600 } }
+                    })
+                );
+            }
+            const results = await Promise.all(promises);
+            results.forEach(res => {
+                if (Array.isArray(res.data)) {
+                    allBrands.push(...res.data);
                 }
             });
+        }
 
-            const brands = response.data;
-            if (!brands || brands.length === 0) break;
+        // Bulk resolve ACF images
+        const mediaIds = new Set<string>();
+        allBrands.forEach(brand => {
+            if (brand.acf?.brand_logo && !isNaN(Number(brand.acf.brand_logo))) {
+                mediaIds.add(String(brand.acf.brand_logo));
+            }
+        });
 
-            allBrands = [...allBrands, ...brands];
-            totalPages = Number(response.totalPages) || 1;
-            page++;
-        } while (page <= totalPages);
+        const mediaMap = new Map<string, string>();
+        if (mediaIds.size > 0) {
+            const idsArray = Array.from(mediaIds);
+            const mediaPromises = [];
+            for (let i = 0; i < idsArray.length; i += 100) {
+                const chunk = idsArray.slice(i, i + 100);
+                mediaPromises.push(
+                    api.get('wp/v2/media', {
+                        params: { include: chunk.join(','), per_page: 100, _fields: 'id,source_url', next: { revalidate: 86400 } }
+                    }).catch(() => null)
+                );
+            }
 
-        // Resolve images in parallel
-        const resolvedBrands = await Promise.all(allBrands.map((b: Brand) => resolveBrandLogin(b)));
+            const mediaResults = await Promise.all(mediaPromises);
+            mediaResults.forEach(res => {
+                if (res && Array.isArray(res.data)) {
+                    res.data.forEach((m: any) => mediaMap.set(String(m.id), m.source_url));
+                }
+            });
+        }
 
-        return resolvedBrands;
+        // Assign resolved images and native images
+        allBrands = allBrands.map(brand => {
+            // First check native WP API embedded image (faster than direct lookup)
+            const embeddedMedia = brand._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+            if (embeddedMedia) {
+                if (!brand.acf) brand.acf = {};
+                brand.acf.brand_logo = embeddedMedia;
+            } else if (brand.acf?.brand_logo && mediaMap.has(String(brand.acf.brand_logo))) {
+                brand.acf.brand_logo = mediaMap.get(String(brand.acf.brand_logo));
+            }
+            return brand;
+        });
+
+        return allBrands;
     } catch (error) {
         // console.error("Error fetching brands:", error);
         return [];
@@ -307,55 +346,70 @@ export interface Brand {
 
 export const getProductsByBrand = async (brandId: number): Promise<any[]> => {
     try {
-        let allProducts: any[] = [];
-        let page = 1;
-        let totalPages = 1;
+        // 1. Fetch first page of product IDs
+        const firstPageRes = await api.get("wp/v2/product", {
+            params: {
+                product_brand: brandId,
+                per_page: 100,
+                page: 1,
+                _fields: 'id',
+                next: { revalidate: 3600 }
+            }
+        });
 
-        // 1. Fetch all product IDs for this brand from WP Core endpoint
-        do {
-            const response = await api.get("wp/v2/product", {
-                params: {
-                    product_brand: brandId,
-                    per_page: 100, // Max allowed by WP
-                    page: page,
-                    _fields: 'id',
-                    next: { revalidate: 60 } // Lower revalidate for better updates
+        let wpProducts = Array.isArray(firstPageRes.data) ? firstPageRes.data : [];
+        const totalPages = Number(firstPageRes.totalPages) || 1;
+
+        // 2. Fetch remaining pages of product IDs in parallel
+        if (totalPages > 1) {
+            const promises = [];
+            for (let p = 2; p <= totalPages; p++) {
+                promises.push(
+                    api.get("wp/v2/product", {
+                        params: { product_brand: brandId, per_page: 100, page: p, _fields: 'id', next: { revalidate: 3600 } }
+                    })
+                );
+            }
+            const results = await Promise.all(promises);
+            results.forEach(res => {
+                if (Array.isArray(res.data)) {
+                    wpProducts.push(...res.data);
                 }
             });
+        }
 
-            const wpProducts = response.data;
-            if (!wpProducts || wpProducts.length === 0) break;
+        const ids = wpProducts.map((p: any) => p.id);
+        if (ids.length === 0) return [];
 
-            const ids = wpProducts.map((p: any) => p.id);
+        // 3. Fetch full product details from WC API in parallel chunks
+        const chunkSize = 50;
+        const wcProducts: any[] = [];
+        const chunkPromises = [];
 
-            // 2. Fetch full product details for these IDs from WC API in chunks to avoid Next.js 2MB fetch cache limit
-            const chunkSize = 40;
-            const wcProducts: any[] = [];
-
-            for (let i = 0; i < ids.length; i += chunkSize) {
-                const chunk = ids.slice(i, i + chunkSize);
-                const { data: chunkData } = await api.get("products", {
+        for (let i = 0; i < ids.length; i += chunkSize) {
+            const chunk = ids.slice(i, i + chunkSize);
+            chunkPromises.push(
+                api.get("products", {
                     params: {
                         include: chunk.join(','),
                         per_page: chunkSize,
                         status: 'publish',
-                        next: { revalidate: 60 }
+                        next: { revalidate: 3600 }
                     }
-                });
-                if (Array.isArray(chunkData)) {
-                    wcProducts.push(...chunkData);
-                }
+                }).catch(() => null)
+            );
+        }
+
+        const chunkResults = await Promise.all(chunkPromises);
+        chunkResults.forEach(res => {
+            if (res && Array.isArray(res.data)) {
+                wcProducts.push(...res.data);
             }
+        });
 
-            allProducts = [...allProducts, ...wcProducts];
-            totalPages = Number(response.totalPages) || 1;
-            page++;
-        } while (page <= totalPages);
-
-        return allProducts;
+        return wcProducts;
 
     } catch (error) {
-        // console.error("Error fetching brand products:", error);
         return [];
     }
 };

@@ -1,4 +1,5 @@
-import api, { getBrand, fetchProducts, getProductsByBrand } from "@/lib/woocommerce";
+import api, { getBrand, fetchProducts } from "@/lib/woocommerce";
+import { searchProducts } from "@/actions/search";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ShopProductCard from "@/components/ShopProductCard";
@@ -94,29 +95,69 @@ export default async function BrandPage({ params, searchParams }: { params: Prom
         notFound();
     }
 
-    // Fetch products for this brand using the specialized function to ensure correct filtering
-    const allProducts = await getProductsByBrand(brand.id);
-
-    // Extract categories from products
-    const categoriesMap = new Map<string, { id: number, name: string, slug: string, count: number }>();
+    // 1. Fetch Aggregations (Categories) and Initial Product IDs via Elasticsearch
+    // Passing size 0 if categorized so we just get aggregations, else get 60 items.
+    const brandEsRes = await searchProducts("", { brand: [slug] }, 1, categorySlug ? 0 : 60);
     
-    allProducts.forEach((product: any) => {
-        if (product.categories) {
-            product.categories.forEach((cat: any) => {
-                 if (!categoriesMap.has(cat.slug)) {
-                     categoriesMap.set(cat.slug, { ...cat, count: 0 });
-                 }
-                 categoriesMap.get(cat.slug)!.count++;
-            });
+    // Extract Categories from ES
+    const categoryFacet = brandEsRes.facets.find((f: any) => f.name === 'categories');
+    const categories = categoryFacet?.buckets.map((b: any) => ({
+        id: b.key, // using slug as id fallback
+        slug: b.key,
+        name: b.label || b.key,
+        count: b.doc_count
+    })).sort((a: any, b: any) => a.name.localeCompare(b.name)) || [];
+    
+    const allProductsCount = brandEsRes.totalItems;
+
+    // 2. Determine Product IDs to fetch
+    let productIds: number[] = [];
+    if (!categorySlug) {
+        productIds = brandEsRes.products.map((p: any) => p.ID);
+    } else {
+        const filteredEsRes = await searchProducts("", { brand: [slug], category: [categorySlug] }, 1, 60);
+        productIds = filteredEsRes.products.map((p: any) => p.ID);
+    }
+
+    // 3. Fetch Full Product Data + Pre-Resolve Media for Speed
+    let filteredProducts: any[] = [];
+    if (productIds.length > 0) {
+        const wcProducts = await fetchProducts({ include: productIds.join(','), per_page: 60 });
+        
+        // Sorting by wcProducts based on ES order
+        const idToProduct = new Map();
+        wcProducts.forEach((p: any) => idToProduct.set(p.id, p));
+        filteredProducts = productIds.map(id => idToProduct.get(id)).filter(Boolean);
+
+        // Pre-resolve media to prevent client-side fetching in ShopProductCard
+        const mediaIds = new Set<string>();
+        filteredProducts.forEach((p: any) => {
+            const catImgId = p.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value ||
+                             p.meta_data?.find((m: any) => m.key === "cat_image")?.value;
+            if (catImgId && /^\d+$/.test(String(catImgId))) {
+                mediaIds.add(String(catImgId));
+            }
+        });
+
+        if (mediaIds.size > 0) {
+            try {
+                const mediaRes = await api.get('wp/v2/media', {
+                    include: Array.from(mediaIds).join(','), per_page: 100, _fields: 'id,source_url'
+                });
+                if (Array.isArray(mediaRes.data)) {
+                    const mediaMap = new Map();
+                    mediaRes.data.forEach((m: any) => mediaMap.set(String(m.id), m.source_url));
+                    filteredProducts.forEach((p: any) => {
+                        const catImgId = p.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value ||
+                                         p.meta_data?.find((m: any) => m.key === "cat_image")?.value;
+                        if (catImgId && mediaMap.has(String(catImgId))) {
+                            p.resolved_cat_image = mediaMap.get(String(catImgId));
+                        }
+                    });
+                }
+            } catch(e) {}
         }
-    });
-
-    const categories = Array.from(categoriesMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-
-    // Filter products if category selected
-    const filteredProducts = categorySlug 
-        ? allProducts.filter((p: any) => p.categories.some((c: any) => c.slug === categorySlug))
-        : allProducts;
+    }
 
     return (
         <div className="max-w-[1440px] container mx-auto px-1 py-8">
@@ -168,7 +209,7 @@ export default async function BrandPage({ params, searchParams }: { params: Prom
                                     className={`flex items-center justify-between p-2 rounded-lg transition-colors ${!categorySlug ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}
                                 >
                                     <span>Alle producten</span>
-                                    <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-500">{allProducts.length}</span>
+                                    <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-500">{allProductsCount}</span>
                                 </Link>
                             </li>
                             {categories.map((cat) => (
