@@ -4,6 +4,8 @@ import { notFound, redirect, permanentRedirect } from "next/navigation";
 import api from "@/lib/woocommerce";
 import ProductPageClient from "./ProductPageClient";
 import CategoryClient from "@/components/CategoryClient";
+import { extractRelatedIdentifiers } from "@/lib/productUtils";
+import { fetchRelatedProductsBatchAction } from "@/app/actions";
 
 /* ----------------------------------------------------
  | Types
@@ -764,6 +766,10 @@ export default async function Page({ params, searchParams }: PageProps) {
     // Resolve category image if exists
     await resolveProductImages([product]);
 
+    // Start related items fetch on server for faster loading
+    const relatedIds = extractRelatedIdentifiers(product);
+    const relatedItemsPromise = fetchRelatedProductsBatchAction(relatedIds, product.id);
+
     return (
       <main>
         {structuredData && (
@@ -774,7 +780,13 @@ export default async function Page({ params, searchParams }: PageProps) {
             }}
           />
         )}
-        <ProductPageClient product={product} taxRate={taxRate} slug={slug} initialReviews={reviewsPromise} />
+        <ProductPageClient 
+            product={product} 
+            taxRate={taxRate} 
+            slug={slug} 
+            initialReviews={reviewsPromise} 
+            initialRelatedItems={relatedItemsPromise}
+        />
 
       </main>
     );

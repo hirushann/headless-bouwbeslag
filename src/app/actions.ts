@@ -2,6 +2,7 @@
 
 
 import api, { fetchAllWoo } from "@/lib/woocommerce";
+import elasticClient from "@/lib/elasticsearch";
 
 export async function fetchProductIndexAction() {
     try {
@@ -164,7 +165,7 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
             }
         }
 
-        // 3. Parallel WP Meta Query
+        // 3. Parallel WP Meta/Elasticsearch Query
         const targetMetaKeys = [
             "crucial_data_product_ean_code",
             "_sku",
@@ -172,7 +173,7 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
             "ean_code",
             "ean",
             "_global_unique_id",
-            "global_unique_id", // Added this based on user feedback
+            "global_unique_id",
             "gtin",
             "upc",
             "isbn",
@@ -183,7 +184,46 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
         ];
 
         try {
-            // We'll trust the first valid hit that we can VERIFY
+            // A. Try Elasticsearch FIRST (Fastest)
+            const esIndex = process.env.SEARCH_INDEX || process.env.ELASTICSEARCH_INDEX;
+            if (esIndex) {
+                const esRes = await elasticClient.search({
+                    index: esIndex,
+                    size: 1,
+                    query: {
+                        bool: {
+                            must: [
+                                { match: { post_type: "product" } },
+                                {
+                                    multi_match: {
+                                        query: idStr,
+                                        fields: [
+                                            "ID",
+                                            "meta._sku.value.keyword",
+                                            "meta.crucial_data_product_ean_code.value.keyword",
+                                            "meta.crucial_data_product_factory_sku.value.keyword",
+                                            "meta.*.value.keyword"
+                                        ],
+                                        type: "best_fields"
+                                    }
+                                }
+                            ],
+                            filter: numericExcludeId ? [{ bool: { must_not: { term: { ID: numericExcludeId } } } }] : []
+                        }
+                    }
+                });
+
+                if (esRes.hits.hits.length > 0) {
+                    const hit: any = esRes.hits.hits[0]._source;
+                    // We need full WC product data, so we still fetch by ID once, but now we have the ID directly!
+                    const finalRes = await api.get(`products/${hit.ID}`, { next: { revalidate: 3600 } });
+                    if (finalRes.data && finalRes.data.id) {
+                        return { success: true, data: finalRes.data };
+                    }
+                }
+            }
+
+            // B. Fallback to slow WP Meta Query
             let verifiedMatch: any = null;
 
             // Run all meta queries in parallel
@@ -369,18 +409,107 @@ export async function fetchRelatedProductsBatchAction(identifiers: string[], exc
             });
         }
 
-        // 2. SLOW FETCH: Resolve missing items via fallback (WP Meta / IDs)
+        // 2. MEDIUM FETCH: Resolve missing items via Elasticsearch (SINGLE BATCH QUERY)
         const missingQueries = identifiers.filter(q => !foundMap.has(q));
         if (missingQueries.length > 0) {
-            const fallbackResults = await Promise.all(
-                missingQueries.map(id => fetchProductBySkuOrIdAction(id, excludeId))
-            );
+            const esIndex = process.env.SEARCH_INDEX || process.env.ELASTICSEARCH_INDEX;
+            if (esIndex) {
+                const esRes = await elasticClient.search({
+                    index: esIndex,
+                    size: missingQueries.length * 2,
+                    query: {
+                        bool: {
+                            must: [{ match: { post_type: "product" } }],
+                            should: [
+                                { terms: { "ID": missingQueries } },
+                                { terms: { "meta._sku.value.keyword": missingQueries } },
+                                { terms: { "meta.crucial_data_product_ean_code.value.keyword": missingQueries } },
+                                { terms: { "meta.crucial_data_product_factory_sku.value.keyword": missingQueries } },
+                                {
+                                    multi_match: {
+                                        query: missingQueries.join(" "),
+                                        fields: ["meta.*.value.keyword"],
+                                        type: "best_fields"
+                                    }
+                                }
+                            ],
+                            minimum_should_match: 1,
+                            filter: excludeId ? [{ bool: { must_not: { term: { ID: excludeId } } } }] : []
+                        }
+                    }
+                });
 
-            fallbackResults.forEach((res, i) => {
-                if (res.success && res.data && res.data.id !== excludeId) {
-                    foundMap.set(missingQueries[i], res.data);
+                if (esRes.hits.hits.length > 0) {
+                    // Fetch full WooCommerce data for these in parallel
+                    const matchedIDs = esRes.hits.hits.map((h: any) => h._source.ID);
+
+                    const fullProducts = await Promise.all(
+                        matchedIDs.map(id => api.get(`products/${id}`, { next: { revalidate: 3600 } }).then(r => r.data).catch(() => null))
+                    );
+
+                    const validProducts = fullProducts.filter(Boolean);
+
+                    // Resolve category images for these batch products
+                    const mediaIds = new Set<string>();
+                    validProducts.forEach((p: any) => {
+                        const catImgId = p.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value ||
+                            p.meta_data?.find((m: any) => m.key === "cat_image")?.value;
+                        if (catImgId && /^\d+$/.test(String(catImgId))) {
+                            mediaIds.add(String(catImgId));
+                        }
+                    });
+
+                    if (mediaIds.size > 0) {
+                        try {
+                            const mediaRes = await api.get('wp/v2/media', {
+                                include: Array.from(mediaIds).join(','),
+                                per_page: 100,
+                                _fields: 'id,source_url'
+                            });
+                            if (Array.isArray(mediaRes.data)) {
+                                const mediaMap = new Map();
+                                mediaRes.data.forEach((m: any) => mediaMap.set(String(m.id), m.source_url));
+
+                                validProducts.forEach((p: any) => {
+                                    const catImgId = p.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value ||
+                                        p.meta_data?.find((m: any) => m.key === "cat_image")?.value;
+                                    if (catImgId && mediaMap.has(String(catImgId))) {
+                                        p.resolved_cat_image = mediaMap.get(String(catImgId));
+                                    }
+                                });
+                            }
+                        } catch (e) { }
+                    }
+
+                    validProducts.forEach((p: any) => {
+                        // Map back to ALL queries that might match this product
+                        const pId = String(p.id);
+                        const pSku = String(p.sku).trim().toLowerCase();
+                        const pMeta = (p.meta_data || []).map((m: any) => String(m.value).trim().toLowerCase());
+
+                        identifiers.forEach(q => {
+                            const cq = String(q).trim().toLowerCase();
+                            if (cq === pId || cq === pSku || pMeta.includes(cq)) {
+                                foundMap.set(q, p);
+                            }
+                        });
+                    });
                 }
-            });
+            }
+
+            // 3. SLOW FETCH fallback (only for things still missing)
+            const remainingQueries = identifiers.filter(q => !foundMap.has(q));
+            if (remainingQueries.length > 0) {
+                const fallbackResults = await Promise.all(
+                    remainingQueries.map(id => fetchProductBySkuOrIdAction(id, excludeId))
+                );
+
+                fallbackResults.forEach((res, i) => {
+                    if (res.success && res.data && res.data.id !== excludeId) {
+                        foundMap.set(remainingQueries[i], res.data);
+                    }
+                });
+            }
         }
 
         // 3. Return mapped results in original identifiers order (to slot correctly)

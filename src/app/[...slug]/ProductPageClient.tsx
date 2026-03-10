@@ -28,7 +28,19 @@ const formatSpecValue = (value: string | number | null | undefined): string => {
   return strVal;
 };
 
-export default function ProductPageClient({ product, taxRate = 21, slug, initialReviews }: { product: any; taxRate?: number; slug?: string[]; initialReviews?: any[] | Promise<any[]> }) {
+export default function ProductPageClient({ 
+  product, 
+  taxRate = 21, 
+  slug, 
+  initialReviews,
+  initialRelatedItems
+}: { 
+  product: any; 
+  taxRate?: number; 
+  slug?: string[]; 
+  initialReviews?: any[] | Promise<any[]>;
+  initialRelatedItems?: Promise<any>;
+}) {
 
   useEffect(() => {
   }, [product]);
@@ -193,6 +205,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug, initial
 
 
   const [brandImageUrl, setBrandImageUrl] = useState<string | null>(null);
+  const isInitialMount = useRef(true);
 
   // -- Categorie Image Logic --
   const catImgMeta = product?.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value || 
@@ -431,11 +444,15 @@ export default function ProductPageClient({ product, taxRate = 21, slug, initial
         return;
     }
 
-    // 2. Perform ONE Fetch
-    fetchRelatedProductsBatchAction(idsToFetch, product.id)
-        .then(res => {
-            if (res.success && Array.isArray(res.data)) {
-                
+    // 2. Perform Fetch (Using initialRelatedItems if provided for speed, but ONLY on initial mount for this product)
+    const runFetch = async () => {
+        try {
+            // Only use initialRelatedItems if it's the first run and the product matches
+            const res = (isInitialMount.current && initialRelatedItems) 
+                ? await initialRelatedItems 
+                : await fetchRelatedProductsBatchAction(idsToFetch, product.id);
+
+            if (res && res.success && Array.isArray(res.data)) {
                 // Temporary buckets for results
                 const bucket_colors: any[] = [];
                 const bucket_models: any[] = [];
@@ -451,6 +468,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug, initial
                     const consumers = requestMap[item.query] || [];
                     consumers.forEach(consumer => {
                         const productData = item.product;
+                        if (!productData) return;
                         
                         // Self-reference check
                         if (String(productData.id) === String(product.id)) return;
@@ -467,8 +485,6 @@ export default function ProductPageClient({ product, taxRate = 21, slug, initial
                             const modelEntry = {
                                 ...productData,
                                 displayText: consumer.extraData?.displayText || null,
-                                // sort position? we can just push, array order is roughly preserved 
-                                // or we can sort/dedupe later if needed.
                                 _pos: consumer.position
                             };
                             bucket_models.push(modelEntry);
@@ -491,7 +507,7 @@ export default function ProductPageClient({ product, taxRate = 21, slug, initial
                     });
                 });
 
-                // Sort models/colors by position if needed (simple sort)
+                // Sort models/colors by position if needed
                 bucket_models.sort((a, b) => a._pos - b._pos);
                 bucket_colors.sort((a, b) => a._pos - b._pos);
 
@@ -504,13 +520,17 @@ export default function ProductPageClient({ product, taxRate = 21, slug, initial
                 setPcRoseKeys(bucket_pcrose);
                 setblindtoiletroseKeys(bucket_toiletrose);
                 setMusthaveprodKeys(bucket_musthave);
-
             }
-        })
-        .finally(() => {
+        } catch (err) {
+            // console.error("Related fetch error:", err);
+        } finally {
             setIsOrderColorsLoading(false);
             setIsOrderModelsLoading(false);
-        });
+            isInitialMount.current = false;
+        }
+    };
+
+    runFetch();
 
   }, [product]);
 
@@ -1396,17 +1416,19 @@ export default function ProductPageClient({ product, taxRate = 21, slug, initial
                         <Link
                           href={`/${model.slug}`}
                           key={`${model.id}-${index}`}
-                          className="flex-shrink-0 w-32 flex flex-col items-center gap-2"
+                          className="flex-shrink-0 w-32 flex flex-col items-center gap-2 group"
                         >
-                          <div className="h-32 w-full border border-[#E8E1DC] rounded-sm bg-white flex items-center justify-center">
+                          <div className="h-32 w-full border border-[#E8E1DC] rounded-sm bg-white flex items-center justify-center overflow-hidden">
                             <img
-                              src={model?.images?.[0]?.src || "/afbeelding.webp"}
+                              src={fixImageSrc(model?.images?.[0]?.src || model?.resolved_cat_image || "/afbeelding.webp")}
                               alt={model?.name || "Model"}
-                              className="max-h-full max-w-full object-contain"
+                              className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300"
+                              loading="lazy"
+                              decoding="async"
                             />
                           </div>
                           {model.displayText && (
-                            <p className="text-xs text-center text-[#3D4752] leading-tight">
+                            <p className="text-xs text-center text-[#3D4752] leading-tight font-medium group-hover:text-blue-600 transition-colors">
                               {model.displayText}
                             </p>
                           )}
