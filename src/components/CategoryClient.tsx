@@ -230,6 +230,7 @@ interface FilterSidebarProps {
   setGroefbreedteRange: (r: [number, number] | null) => void;
   showFilters: boolean;
   setShowFilters: (s: boolean) => void;
+  onFilterCheck?: (hasFilters: boolean) => void;
 }
 
 function FilterSidebar({
@@ -244,7 +245,8 @@ function FilterSidebar({
   setAfdichtingsspleetRange,
   setGroefbreedteRange,
   showFilters,
-  setShowFilters
+  setShowFilters,
+  onFilterCheck
 }: FilterSidebarProps) {
   const attributes = typeof (attributesProp as any).then === 'function' 
     ? use(attributesProp as Promise<Attribute[]>) 
@@ -397,6 +399,14 @@ function FilterSidebar({
   const [isColorOpen, setIsColorOpen] = useState(true);
   const [isAfdichtOpen, setIsAfdichtOpen] = useState(true);
   const [isGroefOpen, setIsGroefOpen] = useState(true);
+
+  const hasAnyFilters = hasValidColorAttribute || validRegularAttributes.length > 0 || afdichtspleetBounds !== null || groefbreedteBounds !== null;
+
+  useEffect(() => {
+    if (onFilterCheck) onFilterCheck(hasAnyFilters);
+  }, [hasAnyFilters, onFilterCheck]);
+
+  if (!hasAnyFilters) return null;
 
   return (
     <aside className="w-full lg:w-1/4 relative">
@@ -570,6 +580,7 @@ export default function CategoryClient({
   const [showFilters, setShowFilters] = useState(false);
   const [afdichtingsspleetRange, setAfdichtingsspleetRange] = useState<[number, number] | null>(null);
   const [groefbreedteRange, setGroefbreedteRange] = useState<[number, number] | null>(null);
+  const [hasFiltersAvailable, setHasFiltersAvailable] = useState<boolean>(true);
   const [unwrappedAttributes, setUnwrappedAttributes] = useState<Attribute[]>([]);
   const [allCategoryProductsForFilters, setAllCategoryProductsForFilters] = useState<any[]>([]);
   const isInitialMount = useRef(true);
@@ -837,6 +848,7 @@ export default function CategoryClient({
               setGroefbreedteRange={setGroefbreedteRange}
               showFilters={showFilters}
               setShowFilters={setShowFilters}
+              onFilterCheck={setHasFiltersAvailable}
             />
           </Suspense>
 
@@ -857,17 +869,19 @@ export default function CategoryClient({
                   <option value="title-asc">Naam: A - Z</option>
                   <option value="title-desc">Naam: Z - A</option>
                 </select>
-                <button type="button" className="lg:hidden px-2 py-1 w-auto text-left bg-white border border-gray-300 rounded-md font-medium" onClick={() => setShowFilters(!showFilters)} aria-expanded={showFilters} aria-controls="filters-section">
-                  {showFilters ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                    </svg>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
-                    </svg>
-                  )}
-                </button>
+                {hasFiltersAvailable && (
+                  <button type="button" className="lg:hidden px-2 py-1 w-auto text-left bg-white border border-gray-300 rounded-md font-medium" onClick={() => setShowFilters(!showFilters)} aria-expanded={showFilters} aria-controls="filters-section">
+                    {showFilters ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+                      </svg>
+                    )}
+                  </button>
+                )}
               </div>
 
             </div>
