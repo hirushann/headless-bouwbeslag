@@ -152,13 +152,15 @@ function FilterAttributeGroup({
         >
           {visibleTerms.map((term: AttributeTerm) => {
             const isSelected = selectedFilters[attr.id]?.has(term.id) || false;
+            const isDisabled = term.count === 0 && !isSelected;
             return (
-              <label key={term.id} className={`flex items-start gap-1 cursor-pointer transition-opacity ${term.count === 0 && !isSelected ? 'opacity-40 hover:opacity-100' : 'opacity-100'}`}>
+              <label key={term.id} className={`flex items-start gap-1 transition-opacity ${isDisabled ? 'opacity-40 cursor-not-allowed' : 'opacity-100 cursor-pointer'}`}>
                 <div className="w-5">
                   <input
                     type="checkbox"
-                    className="mr-2 w-5 h-5 rounded-sm border border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0"
+                    className={`mr-2 w-5 h-5 rounded-sm border border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0 ${isDisabled ? 'cursor-not-allowed' : ''}`}
                     checked={isSelected}
+                    disabled={isDisabled}
                     onChange={() => toggleFilter(attr.id, term.id)}
                   />
                 </div>
@@ -446,9 +448,11 @@ function FilterSidebar({
                   <div className="grid grid-cols-5 gap-4">
                     {(showAllColors ? colorAttribute.terms : colorAttribute.terms.slice(0, 5)).map(term => {
                       const isSelected = selectedFilters[colorAttribute.id]?.has(term.id);
+                      const isDisabled = term.count === 0 && !isSelected;
                       return (
-                        <div key={term.id} className={`flex flex-col items-center duration-300 ${term.count === 0 && !isSelected ? 'opacity-30' : ''}`}>
-                          <button className={`w-8 h-8 rounded-full border-2 ${isSelected ? 'ring-2 ring-blue-500 scale-110' : 'border-gray-200'}`}
+                        <div key={term.id} className={`flex flex-col items-center duration-300 ${isDisabled ? 'opacity-30 cursor-not-allowed' : ''}`}>
+                          <button className={`w-8 h-8 rounded-full border-2 ${isSelected ? 'ring-2 ring-blue-500 scale-110' : 'border-gray-200'} ${isDisabled ? 'cursor-not-allowed' : ''}`}
+                            disabled={isDisabled}
                             style={{ backgroundColor: COLOR_MAP[term.name.toLowerCase()] || term.name.toLowerCase() }}
                             onClick={() => toggleFilter(colorAttribute.id, term.id)} />
                         </div>

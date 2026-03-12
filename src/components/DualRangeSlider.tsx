@@ -13,7 +13,7 @@ interface DualRangeSliderProps {
 export default function DualRangeSlider({
   min,
   max,
-  step = 1,
+  step = 0.01,
   value,
   onChange,
 }: DualRangeSliderProps) {
@@ -25,7 +25,10 @@ export default function DualRangeSlider({
 
   // Convert to percentage
   const getPercent = useCallback(
-    (val: number) => Math.round(((val - min) / (max - min)) * 100),
+    (val: number) => {
+      if (max === min) return 0;
+      return Number((((val - min) / (max - min)) * 100).toFixed(4));
+    },
     [min, max]
   );
 
@@ -42,7 +45,7 @@ export default function DualRangeSlider({
 
     if (range.current) {
       range.current.style.left = `${minPercent}%`;
-      range.current.style.width = `${maxPercent - minPercent}%`;
+      range.current.style.width = `${Math.max(0, maxPercent - minPercent)}%`;
     }
   }, [minVal, getPercent]);
 
@@ -51,17 +54,22 @@ export default function DualRangeSlider({
     const maxPercent = getPercent(maxVal);
 
     if (range.current) {
-      range.current.style.width = `${maxPercent - minPercent}%`;
+      range.current.style.left = `${minPercent}%`;
+      range.current.style.width = `${Math.max(0, maxPercent - minPercent)}%`;
     }
   }, [maxVal, getPercent]);
 
+  // Dynamically bring the thumb closest to the respective edge to the top,
+  // preventing a state where one thumb completely covers the other at boundaries.
+  const isMinThumbOnTop = minVal > min + (max - min) / 2;
+
   return (
     <div className="flex flex-col w-full">
-      <div className="flex justify-between text-xs text-gray-500 mb-4 px-1">
+      <div className="flex justify-between text-sm font-medium text-gray-700 mb-4 px-1">
         <span>{minVal.toFixed(2)}</span>
         <span>{maxVal.toFixed(2)}</span>
       </div>
-      <div className="relative w-full h-4 flex items-center">
+      <div className="relative w-full h-6 flex items-center">
         <input
           type="range"
           min={min}
@@ -75,11 +83,12 @@ export default function DualRangeSlider({
           }}
           onMouseUp={() => onChange([minVal, maxVal])}
           onTouchEnd={() => onChange([minVal, maxVal])}
-          className="pointer-events-none absolute w-full h-0 outline-none z-30"
+          className="pointer-events-none absolute w-full h-full m-0 p-0 outline-none"
           style={{ 
             WebkitAppearance: "none", 
             appearance: "none", 
-            zIndex: minVal > max - 100 ? 5 : 3 
+            background: "transparent",
+            zIndex: isMinThumbOnTop ? 40 : 30 
           }}
         />
         <input
@@ -95,43 +104,61 @@ export default function DualRangeSlider({
           }}
           onMouseUp={() => onChange([minVal, maxVal])}
           onTouchEnd={() => onChange([minVal, maxVal])}
-          className="pointer-events-none absolute w-full h-0 outline-none z-40"
-          style={{ WebkitAppearance: "none", appearance: "none" }}
+          className="pointer-events-none absolute w-full h-full m-0 p-0 outline-none"
+          style={{ 
+            WebkitAppearance: "none", 
+            appearance: "none", 
+            background: "transparent",
+            zIndex: isMinThumbOnTop ? 30 : 40 
+          }}
         />
 
-        <div className="relative w-full h-1">
-          <div className="absolute w-full h-1 bg-gray-200 rounded-md z-10" />
+        {/* Track accurately aligned with the path of the thumb centers */}
+        <div className="absolute left-[9px] right-[9px] h-1.5 pointer-events-none">
+          <div className="absolute w-full h-full bg-gray-200 rounded-full z-10" />
           <div
             ref={range}
-            className="absolute h-1 bg-[#0066FF] rounded-md z-20"
+            className="absolute h-full bg-[#0066FF] rounded-full z-20"
           />
         </div>
 
         <style dangerouslySetInnerHTML={{__html: `
+          input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: none;
+          }
+          input[type="range"]::-moz-range-track {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: none;
+          }
           input[type="range"]::-webkit-slider-thumb {
             pointer-events: all;
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
             -webkit-appearance: none;
             background-color: white;
             border: 2px solid #0066FF;
             border-radius: 50%;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
             cursor: pointer;
             position: relative;
             z-index: 50;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
           }
           input[type="range"]::-moz-range-thumb {
             pointer-events: all;
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
             background-color: white;
             border: 2px solid #0066FF;
             border-radius: 50%;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
             cursor: pointer;
             position: relative;
-             z-index: 50;
+            z-index: 50;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
           }
         `}} />
       </div>
