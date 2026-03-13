@@ -160,7 +160,13 @@ export default async function SingleBlogPage({
 
           <div
             className="text-[#3D4752] font-normal text-base [&>p]:mb-5 max-w-none mt-5"
-            dangerouslySetInnerHTML={{ __html: post.content.rendered }}
+            dangerouslySetInnerHTML={{ 
+              __html: post.content.rendered
+                .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '')
+                .replace(/<meta[^>]*>/gi, '')
+                .replace(/<link[^>]*>/gi, '')
+                .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+            }}
           />
         </div>
       </div>

@@ -43,7 +43,6 @@ export default async function RootLayout({
 
   return (
     <html lang="nl" data-theme="light">
-      <head />
       <body className={`${dmsans.variable} ${geistMono.variable} font-sans antialiased overflow-visible`} >
         <Toaster position="top-right" />
         <UserProvider>

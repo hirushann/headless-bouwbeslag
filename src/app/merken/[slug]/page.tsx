@@ -188,9 +188,13 @@ export default async function BrandPage({ params, searchParams }: { params: Prom
                         <div 
                             className="prose prose-sm max-w-none text-gray-600"
                             dangerouslySetInnerHTML={{ 
-                                __html: (brand.description && brand.description.trim() !== "") 
+                                __html: ((brand.description && brand.description.trim() !== "") 
                                     ? brand.description 
-                                    : (brand.acf?.brand_description || `Bekijk ons assortiment van ${brand.name}.`) 
+                                    : (brand.acf?.brand_description || `Bekijk ons assortiment van ${brand.name}.`))
+                                    .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '')
+                                    .replace(/<meta[^>]*>/gi, '')
+                                    .replace(/<link[^>]*>/gi, '')
+                                    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
                             }}
                         />
                     </div>

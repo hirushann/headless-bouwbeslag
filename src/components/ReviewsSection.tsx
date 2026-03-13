@@ -184,7 +184,13 @@ export default function ReviewsSection({ productId, productName, initialReviews:
                 </div>
                 <div
                   className="text-[#3D4752] text-base leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: review.review }}
+                  dangerouslySetInnerHTML={{ 
+                    __html: review.review
+                      .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '')
+                      .replace(/<meta[^>]*>/gi, '')
+                      .replace(/<link[^>]*>/gi, '')
+                      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                  }}
                 />
                 <p className="text-[#9CA3AF] text-sm mt-1">
                   Geplaatst op {new Date(review.date_created).toLocaleDateString("nl-NL", { day: 'numeric', month: 'short', year: 'numeric' })} door {review.reviewer}

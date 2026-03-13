@@ -1789,7 +1789,13 @@ export default function ProductPageClient({
                         return (
                           <div
                             className="prose prose-sm lg:prose-base text-[#3D4752]"
-                            dangerouslySetInnerHTML={{ __html: desc }}
+                            dangerouslySetInnerHTML={{ 
+                              __html: desc
+                                .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '')
+                                .replace(/<meta[^>]*>/gi, '')
+                                .replace(/<link[^>]*>/gi, '')
+                                .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                            }}
                           />
                         );
                       })()}

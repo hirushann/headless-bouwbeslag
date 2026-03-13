@@ -787,13 +787,6 @@ async function CategoryLoader({ category, slug, sp }: { category: any, slug: str
         pathPromise
     ]);
 
-    const currentPath = slug.join("/");
-    if (currentPath !== correctPath) {
-      const query = sp ? new URLSearchParams(sp as any).toString() : "";
-      const destination = `/${correctPath}${query ? `?${query}` : ""}`;
-      permanentRedirect(destination);
-    }
-
     return (
         <CategoryClient
           key={category.id}
@@ -817,6 +810,14 @@ export default async function Page({ params, searchParams }: PageProps) {
   const { product, category } = await getPageData(slug);
 
   if (product) {
+    const sp = await searchParams;
+    const currentPath = slug.join("/");
+    // Product should permanently be located at /product-slug (root level)
+    if (currentPath !== product.slug) {
+      const query = sp && Object.keys(sp).length > 0 ? new URLSearchParams(sp as any).toString() : "";
+      permanentRedirect(`/${product.slug}${query ? `?${query}` : ""}`);
+    }
+
     // 1. Kick off parallel background promises (DO NOT AWAIT)
     const reviewsPromise = getProductReviewsCached(product.id);
     const taxRatePromise = getStandardTaxRate();
@@ -843,21 +844,14 @@ export default async function Page({ params, searchParams }: PageProps) {
             }}
           />
         )}
-        <React.Suspense fallback={
-             <div className="flex h-[80vh] w-full flex-col items-center justify-center bg-white">
-                <span className="loading loading-spinner loading-lg text-blue-600"></span>
-                <p className="mt-4 text-gray-500 font-medium">Product details laden...</p>
-             </div>
-        }>
-            <ProductPageClient 
-                product={product} 
-                taxRate={21} // Fallback to 21 initially
-                slug={slug} 
-                initialReviews={reviewsPromise} 
-                initialRelatedItems={relatedItemsPromise}
-                resolvedProductPromise={resolvedProductPromise}
-            />
-        </React.Suspense>
+        <ProductPageClient 
+            product={product} 
+            taxRate={21} // Fallback to 21 initially
+            slug={slug} 
+            initialReviews={reviewsPromise} 
+            initialRelatedItems={relatedItemsPromise}
+            resolvedProductPromise={resolvedProductPromise}
+        />
       </main>
     );
   }
@@ -865,17 +859,19 @@ export default async function Page({ params, searchParams }: PageProps) {
   // 2. Check Category
   if (category) {
     const sp = await searchParams;
+    
+    // SEO Redirect Check - Top level to avoid Suspense rendering `<meta http-equiv="refresh">`
+    const correctPath = await traverseCategoryPath(category);
+    const currentPath = slug.join("/");
+    
+    if (currentPath !== correctPath) {
+      const query = sp && Object.keys(sp).length > 0 ? new URLSearchParams(sp as any).toString() : "";
+      permanentRedirect(`/${correctPath}${query ? `?${query}` : ""}`);
+    }
 
     return (
       <main className="min-h-screen bg-[#F7F7F7]">
-        <React.Suspense fallback={
-          <div className="flex h-[60vh] w-full flex-col items-center justify-center bg-[#F7F7F7]">
-            <span className="loading loading-spinner loading-lg text-blue-600 w-12 h-12 mb-4"></span>
-            <p className="text-gray-500 font-medium text-lg animate-pulse">Pagina laden...</p>
-          </div>
-        }>
-          <CategoryLoader category={category} slug={slug} sp={sp} />
-        </React.Suspense>
+        <CategoryLoader category={category} slug={slug} sp={sp} />
       </main>
     );
   }

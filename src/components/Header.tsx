@@ -14,33 +14,39 @@ import { getDeliveryInfo } from "@/lib/deliveryUtils";
 import { ShippingMethod } from "@/lib/woocommerce";
 import SearchAutosuggest from "./SearchAutosuggest";
 import WebwinkelKeurWidget from "./WebwinkelKeurWidget";
-import dynamic from "next/dynamic";
-
-const CartDrawer = dynamic(() => import("./CartDrawer"), { ssr: false });
-const MobileMenu = dynamic(() => import("./MobileMenu"), { ssr: false });
+import CartDrawer from "./CartDrawer";
+import MobileMenu from "./MobileMenu";
 
 export default function Header({
   shippingMethods,
 }: {
   shippingMethods: ShippingMethod[];
 }) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const items = useCartStore((state) => state.items);
   const isCartOpen = useCartStore((state) => state.isCartOpen);
   const setCartOpen = useCartStore((state) => state.setCartOpen);
-  const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
+  
+  // Prevent hydration mismatch by defaulting to 0 items during SSR
+  const totalQty = isMounted ? items.reduce((sum, i) => sum + i.quantity, 0) : 0;
   const lengthFreightCost = useCartStore((state) => state.lengthFreightCost());
 
   const { userRole } = useUserContext();
   const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
   const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
 
-  const subtotal = items.reduce(
+  const subtotal = isMounted ? items.reduce(
     (sum, item) => {
       const displayedItemPrice = isB2B ? item.price : item.price * 1.21;
       return sum + displayedItemPrice * item.quantity;
     },
     0
-  );
+  ) : 0;
 
   // Derive simple settings for sidecart display (defaulting to Flat Rate)
   let flatRate = 0;
@@ -274,7 +280,7 @@ export default function Header({
           </div>
         </div>
         <div className="bg-[#1C2530] shadow-[0px_4px_40px_0px_#00000012] w-full">
-          <MobileMenu />
+          {isMounted && <MobileMenu />}
           <div className="max-w-[1440px] relative mx-auto hidden lg:flex justify-between items-center">
             <div className="flex justify-start items-center">
               <Link prefetch={true} href="/categories">
@@ -327,11 +333,13 @@ export default function Header({
         </div>
       </div>
 
-      <CartDrawer 
-        isB2B={!!isB2B} 
-        taxLabel={taxLabel} 
-        shippingMethods={shippingMethods} 
-      />
+      {isMounted && (
+        <CartDrawer 
+          isB2B={!!isB2B} 
+          taxLabel={taxLabel} 
+          shippingMethods={shippingMethods} 
+        />
+      )}
     </>
   );
 }

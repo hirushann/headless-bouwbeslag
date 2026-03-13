@@ -332,9 +332,13 @@ function FilterSidebar({
         productsPassingOtherFilters.forEach(p => {
              const pAttr = p.attributes?.find((a: any) => a.id === attr.id);
              if (pAttr) {
+                 const seenInProduct = new Set<string>();
                  pAttr.options?.forEach((o: string) => {
                      const key = o.trim().toLowerCase();
-                     termCounts.set(key, (termCounts.get(key) || 0) + 1);
+                     if (!seenInProduct.has(key)) {
+                         seenInProduct.add(key);
+                         termCounts.set(key, (termCounts.get(key) || 0) + 1);
+                     }
                  });
              }
         });
@@ -1012,7 +1016,12 @@ export default function CategoryClient({
             {category?.description && (
               <div
                 className="my-6 prose prose-blue max-w-none leading-relaxed text-gray-800 category-description-style"
-                dangerouslySetInnerHTML={{ __html: category.description }}
+                dangerouslySetInnerHTML={{ 
+                  __html: category.description
+                    .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '')
+                    .replace(/<meta[^>]*>/gi, '')
+                    .replace(/<link[^>]*>/gi, '')
+                }}
               />
             )}
           </main>

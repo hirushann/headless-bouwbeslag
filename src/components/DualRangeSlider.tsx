@@ -37,7 +37,7 @@ export default function DualRangeSlider({
     setMaxVal(value[1]);
     minValRef.current = value[0];
     maxValRef.current = value[1];
-  }, [value]);
+  }, [value[0], value[1]]);
 
   useEffect(() => {
     const minPercent = getPercent(minVal);
