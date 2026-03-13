@@ -281,6 +281,7 @@ function FilterSidebar({
         const pTot = p.attributes?.find((a: any)=>a.name==="Afdichtingsspleet Tot")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
         const pMin = pVan && pVan.length > 0 ? Math.min(...pVan) : null;
         const pMax = pTot && pTot.length > 0 ? Math.max(...pTot) : null;
+        if (pMin === null && pMax === null) return false;
         if (pMin !== null && pMin > afdichtingsspleetRange[1]) return false;
         if (pMax !== null && pMax < afdichtingsspleetRange[0]) return false;
       }
@@ -289,6 +290,7 @@ function FilterSidebar({
         const pTot = p.attributes?.find((a: any)=>a.name==="Groefbreedte Tot")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
         const pMin = pVan && pVan.length > 0 ? Math.min(...pVan) : null;
         const pMax = pTot && pTot.length > 0 ? Math.max(...pTot) : null;
+        if (pMin === null && pMax === null) return false;
         if (pMin !== null && pMin > groefbreedteRange[1]) return false;
         if (pMax !== null && pMax < groefbreedteRange[0]) return false;
       }
@@ -662,15 +664,23 @@ export default function CategoryClient({
       if (afdichtingsspleetRange) {
         const pVan = p.attributes?.find((a: any)=>a.name==="Afdichtingsspleet Van")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
         const pTot = p.attributes?.find((a: any)=>a.name==="Afdichtingsspleet Tot")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
-        const vMin = pVan?.length ? Math.min(...pVan) : 0;
-        const vMax = pTot?.length ? Math.max(...pTot) : 9999;
+        const pMin = pVan && pVan.length > 0 ? Math.min(...pVan) : null;
+        const pMax = pTot && pTot.length > 0 ? Math.max(...pTot) : null;
+        if (pMin === null && pMax === null) return false;
+        
+        const vMin = pMin !== null ? pMin : 0;
+        const vMax = pMax !== null ? pMax : 9999;
         if (!(vMin <= afdichtingsspleetRange[1] && vMax >= afdichtingsspleetRange[0])) return false;
       }
       if (groefbreedteRange) {
         const pVan = p.attributes?.find((a: any)=>a.name==="Groefbreedte Van")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
         const pTot = p.attributes?.find((a: any)=>a.name==="Groefbreedte Tot")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
-        const vMin = pVan?.length ? Math.min(...pVan) : 0;
-        const vMax = pTot?.length ? Math.max(...pTot) : 9999;
+        const pMin = pVan && pVan.length > 0 ? Math.min(...pVan) : null;
+        const pMax = pTot && pTot.length > 0 ? Math.max(...pTot) : null;
+        if (pMin === null && pMax === null) return false;
+
+        const vMin = pMin !== null ? pMin : 0;
+        const vMax = pMax !== null ? pMax : 9999;
         if (!(vMin <= groefbreedteRange[1] && vMax >= groefbreedteRange[0])) return false;
       }
       return true;
@@ -732,7 +742,7 @@ export default function CategoryClient({
               setTotalPages(Math.ceil(matches.length / 20));
            } else {
               // Fetch full product details for just this page's matched IDs
-              const res = await fetch(`/api/products?include=${slicedIds.join(',')}`);
+              const res = await fetch(`/api/products?include=${slicedIds.join(',')}&per_page=${slicedIds.length}`);
               const data = await res.json();
               
               // Ensure order is preserved as per our local sort
