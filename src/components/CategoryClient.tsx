@@ -348,6 +348,11 @@ function FilterSidebar({
           if (!categoryTerms.has(termNameLowercase)) return null;
           
           const count = termCounts.get(termNameLowercase) || 0;
+
+          // Hide disabled filters (count 0) unless they are currently selected
+          const isSelected = selectedFilters[attr.id]?.has(term.id) || false;
+          if (count === 0 && !isSelected) return null;
+
           return { ...term, count };
         }).filter(Boolean) as AttributeTerm[];
 
@@ -368,33 +373,42 @@ function FilterSidebar({
   const afdichtTotAttr = otherAttributes.find(a => a.name === "Afdichtingsspleet Tot");
 
   const afdichtspleetBounds = useMemo(() => {
-    if (!afdichtVanAttr && !afdichtTotAttr) return null;
     if (category?.acf?.afdichtingsspleet === false || category?.acf?.afdichtingsspleet === "false") return null;
+    if (!allCategoryProductsForFilters || allCategoryProductsForFilters.length === 0) return null;
+
     let min = Infinity, max = -Infinity;
-    [afdichtVanAttr, afdichtTotAttr].forEach(attr => {
-      attr?.terms.forEach(t => {
-        const val = parseFloat(t.name);
-        if (!isNaN(val)) { min = Math.min(min, val); max = Math.max(max, val); }
+    allCategoryProductsForFilters.forEach(p => {
+      ["Afdichtingsspleet Van", "Afdichtingsspleet Tot"].forEach(attrName => {
+        const attr = p.attributes?.find((a: any) => a.name === attrName);
+        if (attr && attr.options) {
+          attr.options.forEach((o: any) => {
+            const val = parseFloat(o);
+            if (!isNaN(val)) { min = Math.min(min, val); max = Math.max(max, val); }
+          });
+        }
       });
     });
     return min === Infinity ? null : { min, max };
-  }, [afdichtVanAttr, afdichtTotAttr, category]);
-
-  const groefVanAttr = otherAttributes.find(a => a.name === "Groefbreedte Van");
-  const groefTotAttr = otherAttributes.find(a => a.name === "Groefbreedte Tot");
+  }, [allCategoryProductsForFilters, category]);
 
   const groefbreedteBounds = useMemo(() => {
-    if (!groefVanAttr && !groefTotAttr) return null;
     if (category?.acf?.groefbreedte === false || category?.acf?.groefbreedte === "false") return null;
+    if (!allCategoryProductsForFilters || allCategoryProductsForFilters.length === 0) return null;
+
     let min = Infinity, max = -Infinity;
-    [groefVanAttr, groefTotAttr].forEach(attr => {
-      attr?.terms.forEach(t => {
-        const val = parseFloat(t.name);
-        if (!isNaN(val)) { min = Math.min(min, val); max = Math.max(max, val); }
+    allCategoryProductsForFilters.forEach(p => {
+      ["Groefbreedte Van", "Groefbreedte Tot"].forEach(attrName => {
+        const attr = p.attributes?.find((a: any) => a.name === attrName);
+        if (attr && attr.options) {
+          attr.options.forEach((o: any) => {
+            const val = parseFloat(o);
+            if (!isNaN(val)) { min = Math.min(min, val); max = Math.max(max, val); }
+          });
+        }
       });
     });
     return min === Infinity ? null : { min, max };
-  }, [groefVanAttr, groefTotAttr, category]);
+  }, [allCategoryProductsForFilters, category]);
 
   const regularAttributes = otherAttributes.filter(a => !["Afdichtingsspleet Van", "Afdichtingsspleet Tot", "Groefbreedte Van", "Groefbreedte Tot"].includes(a.name));
   const validRegularAttributes = regularAttributes.filter(attr => attr.terms.length > 1);
