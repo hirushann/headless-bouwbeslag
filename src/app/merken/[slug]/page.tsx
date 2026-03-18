@@ -97,12 +97,12 @@ export default async function BrandPage({ params, searchParams }: { params: Prom
 
     // 1. Fetch Aggregations (Categories) and Initial Product IDs via Elasticsearch
     // Passing size 0 if categorized so we just get aggregations, else get 60 items.
-    const brandEsRes = await searchProducts("", { brand: [slug] }, 1, categorySlug ? 0 : 60);
+    const brandEsRes = await searchProducts("", { brand: [slug] }, 1, 0); // Always set size 0 as we don't trust ES results
     
-    // Extract Categories from ES
-    const categoryFacet = brandEsRes.facets.find((f: any) => f.name === 'categories');
+    // Extract Categories from ES (Counts might still be roughly correct even if IDs are old)
+    const categoryFacet = brandEsRes.facets.find((f: any) => f.name === 'category');
     const categories = categoryFacet?.buckets.map((b: any) => ({
-        id: b.key, // using slug as id fallback
+        id: b.key, 
         slug: b.key,
         name: b.label || b.key,
         count: b.doc_count
@@ -110,25 +110,30 @@ export default async function BrandPage({ params, searchParams }: { params: Prom
     
     const allProductsCount = brandEsRes.totalItems;
 
-    // 2. Determine Product IDs to fetch
-    let productIds: number[] = [];
-    if (!categorySlug) {
-        productIds = brandEsRes.products.map((p: any) => p.ID);
-    } else {
-        const filteredEsRes = await searchProducts("", { brand: [slug], category: [categorySlug] }, 1, 60);
-        productIds = filteredEsRes.products.map((p: any) => p.ID);
+    // 2. Fetch Actual Products from WooCommerce API (Correct source of truth)
+    let filteredProducts: any[] = [];
+    
+    const queryParams: any = {
+        brand: brand.id,
+        per_page: 60,
+        status: 'publish',
+        next: { revalidate: 3600 }
+    };
+
+    if (categorySlug) {
+        try {
+            const { data: catData } = await api.get("products/categories", { slug: categorySlug });
+            if (catData && catData.length > 0) {
+                queryParams.category = catData[0].id;
+            }
+        } catch (e) {
+            console.error("Error resolving category ID:", e);
+        }
     }
 
-    // 3. Fetch Full Product Data + Pre-Resolve Media for Speed
-    let filteredProducts: any[] = [];
-    if (productIds.length > 0) {
-        const wcProducts = await fetchProducts({ include: productIds.join(','), per_page: 60 });
-        
-        // Sorting by wcProducts based on ES order
-        const idToProduct = new Map();
-        wcProducts.forEach((p: any) => idToProduct.set(p.id, p));
-        filteredProducts = productIds.map(id => idToProduct.get(id)).filter(Boolean);
-
+    const { data: wcProducts } = await api.get("products", queryParams);
+    filteredProducts = Array.isArray(wcProducts) ? wcProducts : [];
+    if (filteredProducts.length > 0) {
         // Pre-resolve media to prevent client-side fetching in ShopProductCard
         const mediaIds = new Set<string>();
         filteredProducts.forEach((p: any) => {

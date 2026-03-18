@@ -10,6 +10,8 @@ export interface SearchResult {
     id: number;
     name: string;
     slug: string;
+    meta_data?: { key: string; value: any }[];
+    resolved_cat_image?: string;
 }
 
 export type FilterState = {
@@ -104,7 +106,7 @@ export async function searchProducts(
 
     try {
         const estQuery: any = {
-            index: process.env.ELASTICSEARCH_INDEX as string,
+            index: (process.env.SEARCH_INDEX || process.env.ELASTICSEARCH_INDEX || "appbouwbeslagnl-post-1") as string,
             body: {
                 query: {
                     bool: {
@@ -145,26 +147,70 @@ export async function searchProducts(
             const source = hit._source as any;
 
             // Transform ES meta object to WC-style meta_data array
-            const meta_data = source.meta ? Object.entries(source.meta).map(([key, value]: [string, any]) => {
-                // Value in ES meta is typically an array of objects with 'value' property or just values?
-                // Looking at dump: "_sku": [{"value":"123"}]
-                // We want the primary value.
-                const val = Array.isArray(value) && value.length > 0 ? value[0]?.value : value;
-                return { key, value: val };
-            }) : [];
+            const meta_data: any[] = [];
+            if (source.meta) {
+                Object.entries(source.meta).forEach(([key, value]: [string, any]) => {
+                    const val = Array.isArray(value) && value.length > 0 ? (value[0]?.value ?? value[0]) : value;
+                    meta_data.push({ key, value: val });
+                });
+            }
 
             // Map thumbnail to images array
             const images = source.thumbnail ? [{ src: source.thumbnail.src, alt: source.thumbnail.alt || "" }] : [];
+            
+            // Extract custom title if present
+            const customTitle = meta_data.find(m => m.key === "description_bouwbeslag_title")?.value || source.post_title;
 
             return {
                 ...source,
                 meta_data: meta_data,
-                name: source.post_title,
+                name: customTitle,
                 slug: source.post_name,
                 id: source.ID,
                 images: images
             } as SearchResult;
         });
+
+        // Resolve category images for search results
+        const mediaIds = new Set<string>();
+        hits.forEach((p: any) => {
+            const catImgId = p.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value ||
+                             p.meta_data?.find((m: any) => m.key === "cat_image")?.value;
+            if (catImgId && /^\d+$/.test(String(catImgId))) {
+                mediaIds.add(String(catImgId));
+            }
+        });
+
+        if (mediaIds.size > 0) {
+            try {
+                const { data: mediaItems } = await client.transport.request({
+                    method: 'GET',
+                    path: `/wp-json/wp/v2/media?include=${Array.from(mediaIds).join(',')}&per_page=100&_fields=id,source_url`,
+                }, {
+                    // This is a bit of a hack since we use a raw ES client, but we need to call the WP API
+                    // Actually we should just fetch it using global fetch
+                }) as any;
+                // Wait, use standard fetch for simplicity and to avoid ES client complexity
+                const WP_BASE = process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "https://app.bouwbeslag.nl";
+                const res = await fetch(`${WP_BASE}/wp-json/wp/v2/media?include=${Array.from(mediaIds).join(',')}&per_page=100&_fields=id,source_url`);
+                const mediaData = await res.json();
+
+                if (Array.isArray(mediaData)) {
+                    const mediaMap = new Map();
+                    mediaData.forEach((m: any) => mediaMap.set(String(m.id), m.source_url));
+
+                    hits.forEach((p: any) => {
+                        const catImgId = p.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value ||
+                                         p.meta_data?.find((m: any) => m.key === "cat_image")?.value;
+                        if (catImgId && mediaMap.has(String(catImgId))) {
+                            p.resolved_cat_image = mediaMap.get(String(catImgId));
+                        }
+                    });
+                }
+            } catch (mediaErr) {
+                // Silent fail
+            }
+        }
 
         // Process Facets
         const facets: Facet[] = [];

@@ -125,7 +125,7 @@ export const fetchMedia = async (id: number | string) => {
 };
 
 // Helper to resolve brand logo if it's an ID or native WC
-const resolveBrandLogin = async (brand: Brand): Promise<Brand> => {
+const resolveBrandLogo = async (brand: Brand): Promise<Brand> => {
     // 1. Check native WooCommerce Brand image first (Most reliable)
     try {
         const wcBrandRes = await api.get(`products/brands/${brand.id}`, { next: { revalidate: 3600 } });
@@ -211,14 +211,38 @@ export const getBrands = async (): Promise<Brand[]> => {
             });
         }
 
+        // Fetch native WooCommerce brand images in parallel for better reliability
+        const wcBrandsRes = await api.get("products/brands", {
+            params: { per_page: 100, hide_empty: true, next: { revalidate: 3600 } }
+        }).catch(() => ({ data: [] }));
+
+        const wcImageMap = new Map<number, string>();
+        if (Array.isArray(wcBrandsRes.data)) {
+            wcBrandsRes.data.forEach((b: any) => {
+                if (b.image?.src) {
+                    wcImageMap.set(Number(b.id), b.image.src);
+                }
+            });
+        }
+
         // Assign resolved images and native images
         allBrands = allBrands.map(brand => {
-            // First check native WP API embedded image (faster than direct lookup)
+            // 1. Priority: Native WooCommerce Brand Image (Most accurate)
+            const wcLogo = wcImageMap.get(Number(brand.id));
+            if (wcLogo) {
+                if (!brand.acf) brand.acf = {};
+                brand.acf.brand_logo = wcLogo;
+                return brand;
+            }
+
+            // 2. Check native WP API embedded image
             const embeddedMedia = brand._embedded?.['wp:featuredmedia']?.[0]?.source_url;
             if (embeddedMedia) {
                 if (!brand.acf) brand.acf = {};
                 brand.acf.brand_logo = embeddedMedia;
-            } else if (brand.acf?.brand_logo && mediaMap.has(String(brand.acf.brand_logo))) {
+            } 
+            // 3. Fallback to ACF resolved images
+            else if (brand.acf?.brand_logo && mediaMap.has(String(brand.acf.brand_logo))) {
                 brand.acf.brand_logo = mediaMap.get(String(brand.acf.brand_logo));
             }
             return brand;
@@ -238,7 +262,7 @@ export const getBrand = async (slug: string): Promise<Brand | null> => {
         });
 
         if (brands.length > 0) {
-            return await resolveBrandLogin(brands[0]);
+            return await resolveBrandLogo(brands[0]);
         }
         return null;
     } catch (error) {
