@@ -4,6 +4,12 @@ import SearchAutosuggest from "./SearchAutosuggest";
 import Link from "next/link";
 
 export default function MobileMenu() {
+  const closeMenu = () => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  };
+
   return (
     <div className="p-4 flex lg:hidden w-full gap-5 bg-[#1C2530]">
       <div>
@@ -14,11 +20,11 @@ export default function MobileMenu() {
             </svg>
           </div>
           <ul tabIndex={0} className="menu menu-lg dropdown-content bg-[#1C2530] z-1 mt-4.5 w-75 p-2 shadow text-white">
-            <li><Link prefetch={true} href="/categories">Categorieën</Link></li>
-            <li><Link prefetch={true} href="/deurbeslag/deurklink">Deurklink</Link></li>
-            <li><Link prefetch={true} href="/deurbeslag/cilinders">Cilinder</Link></li>
-            <li><Link prefetch={true} href="/deurbeslag/tochtstrip">Tochtstrip</Link></li>
-            <li><Link prefetch={true} href="/deurbeslag/deurstoppers">Deurstopper</Link></li>
+            <li><Link onClick={closeMenu} prefetch={true} href="/categories">Categorieën</Link></li>
+            <li><Link onClick={closeMenu} prefetch={true} href="/deurbeslag/deurklink">Deurklink</Link></li>
+            <li><Link onClick={closeMenu} prefetch={true} href="/deurbeslag/cilinders">Cilinder</Link></li>
+            <li><Link onClick={closeMenu} prefetch={true} href="/deurbeslag/tochtstrip">Tochtstrip</Link></li>
+            <li><Link onClick={closeMenu} prefetch={true} href="/deurbeslag/deurstoppers">Deurstopper</Link></li>
           </ul>
         </div>
       </div>
