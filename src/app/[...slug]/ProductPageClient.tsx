@@ -1008,26 +1008,7 @@ export default function ProductPageClient({
                 rel="noreferrer"
                 className="pswp-gallery-item cursor-zoom-in"
               >
-              <div className="relative w-full aspect-square overflow-hidden rounded-lg bg-white flex items-center justify-center">
-                {isMainImageLoading && (
-                  <div className="absolute inset-0 z-20 bg-gray-100 flex items-center justify-center rounded-lg overflow-hidden">
-                    <div className="w-full h-full bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-[shimmer_2s_infinite] bg-[length:400%_100%]"></div>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                       {/* Placeholder Icon */}
-                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1" stroke="currentColor" className="size-20 text-gray-300">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
-                        </svg>
-                    </div>
-                  </div>
-                )}
-                <img 
-                  src={selectedImage} 
-                  alt="Main Product" 
-                  className={`w-full h-auto rounded-lg object-cover transition-all duration-700 ease-in-out ${isMainImageLoading ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100 blur-0'}`}
-                  onLoad={() => setIsMainImageLoading(false)}
-                  onError={() => setIsMainImageLoading(false)}
-                />
-              </div>
+                <img src={selectedImage} alt="Main Product" className="w-full h-auto rounded-lg object-cover" />
               </a>
 
               {/* Hidden links for the rest of the gallery so they are all available in the lightbox */}
@@ -1288,7 +1269,7 @@ export default function ProductPageClient({
               }
 
               return (
-                <div className="flex justify-evenly lg:justify-start items-center gap-1.5 lg:gap-4">
+                <div className="flex justify-start items-center gap-4">
                   {finalPrice !== null && finalPrice !== undefined ? (
                     <>
                       <div className="flex items-baseline gap-1.5">
@@ -1534,7 +1515,7 @@ export default function ProductPageClient({
 
             {/* Quantity Selector and Add to Cart */}
             <div className="flex flex-wrap lg:flex-nowrap items-center gap-3 lg:gap-4 mt-4 justify-between">
-              <div className='w-5/12 lg:w-4/12 flex flex-col justify-center items-center'>
+              <div className='w-5/12 lg:w-4/12 flex flex-col justify-center items-start lg:items-center'>
                 <div className='flex items-baseline'>
                   <p className="text-xl lg:text-3xl font-bold text-[#1C2530]">
                     {isLoading ? "..." : `${currency}${totalPrice.toFixed(2)}`}
@@ -1681,7 +1662,8 @@ export default function ProductPageClient({
             })()}
 
             <div>
-              <p className='text-[#212121] font-medium text-lg mb-3'>Heb je vragen over dit product? Wij helpen je graag!</p>
+              <p className='text-[#212121] font-medium text-lg mb-3 hidden lg:block'>Heb je vragen over dit product? Wij helpen je graag!</p>
+              <p className='text-[#212121] font-medium text-lg mb-3 block lg:hidden'>Vragen? Wij helpen je graag!</p>
               <div className='flex gap-1.5 lg:gap-3 items-center justify-center'>
                 <a href={`mailto:contact@bouwbeslag.nl?subject=${encodeURIComponent(productTitle)}`} className='border border-[#0066FF] rounded-sm py-2.5 bg-white text-[#0066FF] font-bold text-sm flex items-center justify-center gap-1.5 lg:gap-3 w-full cursor-pointer hover:text-white hover:bg-[#0066FF] transition-colors'>
                   <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-5 transition-colors"><path d="M1.5 8.67v8.58a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3V8.67l-8.928 5.493a3 3 0 0 1-3.144 0L1.5 8.67Z" /><path d="M22.5 6.908V6.75a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3v.158l9.714 5.978a1.5 1.5 0 0 0 1.572 0L22.5 6.908Z" /></svg></span>

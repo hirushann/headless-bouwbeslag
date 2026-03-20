@@ -1,49 +1,41 @@
 @import "tailwindcss";
 @plugin "daisyui";
 @plugin "@tailwindcss/typography";
-
 :root {
   color-scheme: light;
   --background: #ffffff;
   --foreground: #1C2530;
 }
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
-
 /* @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
   }
 } */
-
 html{
   overflow-x: hidden;
 }
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
   overflow-x: hidden;
 }
-
 .collapse-arrow > .collapse-title:after{
   top: 1.3rem;
   right: 20px;
 }
-
 .highlight-section {
   outline: 2px solid #0066FF;
   outline-offset: 4px;
   transition: outline 0.3s ease-in-out;
 }
-
 .category-description-style h1{
     font-size: 28px;
     font-weight: 700;
@@ -54,24 +46,20 @@ body {
     font-weight: 400;
     margin-bottom: 15px;
 }
-
 .category-description-style h2{
     font-size: 20px;
     font-weight: 600;
     margin-top: 15px;
 }
-
 .category-description-style a{
     font-weight: 500;
     color: #0166FF;
 }
-
 @media (max-width: 1024px) {
   div#wwkSidebarTop {
     display: none !important;
   }
 }
-
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
