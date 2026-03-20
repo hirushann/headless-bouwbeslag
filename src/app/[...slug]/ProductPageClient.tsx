@@ -71,6 +71,8 @@ export default function ProductPageClient({
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
   const [currentUrl, setCurrentUrl] = useState("");
   const [mounted, setMounted] = useState(false);
+  const [mainImageLoaded, setMainImageLoaded] = useState(false);
+  const [isMainImageLoading, setIsMainImageLoading] = useState(true);
 
 
 
@@ -89,7 +91,7 @@ export default function ProductPageClient({
   useEffect(() => {
     const imgs =
       Array.isArray(product.images)
-        ? product.images.filter((img: any) => !!img?.src).map((img: any) => ({
+        ? product.images.filter((img: any) => !!img?.src && !img.src.includes("afbeelding.webp")).map((img: any) => ({
           src: fixImageSrc(img.src),
           width: img.width || 1200,
           height: img.height || 1200,
@@ -100,7 +102,7 @@ export default function ProductPageClient({
     if (imgs.length > 0) {
       setGalleryImages(imgs);
       setSelectedImage((prev) =>
-        prev && prev !== "/afbeelding.webp" && prev !== "/default-fallback-image.webp" ? prev : imgs[0].src
+        prev && prev !== "/default-fallback-image.webp" ? prev : imgs[0].src
       );
     }
   }, [product]);
@@ -117,6 +119,12 @@ export default function ProductPageClient({
       lightbox = null as any;
     };
   }, []);
+
+  useEffect(() => {
+    if (selectedImage) {
+      setIsMainImageLoading(true);
+    }
+  }, [selectedImage]);
 
   const [thumbIndex, setThumbIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -1000,7 +1008,26 @@ export default function ProductPageClient({
                 rel="noreferrer"
                 className="pswp-gallery-item cursor-zoom-in"
               >
-                <img src={selectedImage} alt="Main Product" className="w-full h-auto rounded-lg object-cover" />
+              <div className="relative w-full aspect-square overflow-hidden rounded-lg bg-white flex items-center justify-center">
+                {isMainImageLoading && (
+                  <div className="absolute inset-0 z-20 bg-gray-100 flex items-center justify-center rounded-lg overflow-hidden">
+                    <div className="w-full h-full bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-[shimmer_2s_infinite] bg-[length:400%_100%]"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                       {/* Placeholder Icon */}
+                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1" stroke="currentColor" className="size-20 text-gray-300">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+                        </svg>
+                    </div>
+                  </div>
+                )}
+                <img 
+                  src={selectedImage} 
+                  alt="Main Product" 
+                  className={`w-full h-auto rounded-lg object-cover transition-all duration-700 ease-in-out ${isMainImageLoading ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100 blur-0'}`}
+                  onLoad={() => setIsMainImageLoading(false)}
+                  onError={() => setIsMainImageLoading(false)}
+                />
+              </div>
               </a>
 
               {/* Hidden links for the rest of the gallery so they are all available in the lightbox */}
