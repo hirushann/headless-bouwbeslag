@@ -424,7 +424,7 @@ export default function ProductPageClient({
     let hasModels = false;
 
     groups.forEach(group => {
-        for (let i = 1; i <= 8; i++) {
+        for (let i = 1; i <= 37; i++) {
             const metaKey = `${group.prefix}${i}`;
             const val = product.meta_data.find((m: any) => m.key === metaKey)?.value;
             
@@ -647,6 +647,7 @@ export default function ProductPageClient({
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const thumbsRef = useRef<HTMLDivElement>(null);
+  const colorScrollRef = useRef<HTMLDivElement>(null);
 
   // Note: matchingRoses logic seems unused or duplicate of keys, but keeping if it was used for UI refs
   // const [matchingRoses, setMatchingRoses] = useState<any[]>([]); 
@@ -1291,7 +1292,7 @@ export default function ProductPageClient({
                       <div className='flex gap-1.5 lg:gap-4 flex-col lg:flex-row'>
                         {advised !== null && sale !== null && discountPercent !== null && advised > sale ? (
                           <div
-                            className="tooltip tooltip-right"
+                            className="tooltip tooltip-top lg:tooltip-right"
                             // data-tip={`Discount from ${currency}${advised.toFixed(2)}`}
                             data-tip={`T.o.v. verkoopadviesprijs leverancier`}
                           >
@@ -1367,12 +1368,37 @@ export default function ProductPageClient({
             {/* Dynamic Order Colors */}
             {(orderColors.length > 0 || isOrderColorsLoading) && (
               <div className="mb-4">
-                <p className="font-semibold text-base lg:text-lg mb-2">Andere kleuren van dit product:</p>
-                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 scroll-smooth">
+                <div className="flex justify-between items-center mb-2">
+                  <p className="font-semibold text-base lg:text-lg">Andere kleuren van dit product:</p>
+                  {(orderColors.length > 8 || isOrderColorsLoading) && (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => scrollCarousel(colorScrollRef, "left")}
+                        className="w-8 h-8 flex items-center justify-center rounded-full border border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer"
+                        aria-label="Previous colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => scrollCarousel(colorScrollRef, "right")}
+                        className="w-8 h-8 flex items-center justify-center rounded-full border border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer"
+                        aria-label="Next colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div ref={colorScrollRef} className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 scroll-smooth">
                   {isOrderColorsLoading ? (
-                      // Skeleton for Order Colors
-                      Array.from({ length: 4 }).map((_, i) => (
-                          <div key={i} className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
+                      Array.from({ length: 8 }).map((_, i) => (
+                          <div key={i} className="w-8 h-8 rounded-full bg-gray-200 animate-pulse shrink-0" />
                       ))
                   ) : (
                       orderColors.map((colorItem, index) => (
@@ -1381,7 +1407,7 @@ export default function ProductPageClient({
                           href={`/${colorItem.slug}`}
                           prefetch={true}
                           title={colorItem.name}
-                          className="w-8 h-8 rounded-full border border-gray-300 shadow-sm cursor-pointer hover:scale-110 transition-transform block"
+                          className="w-8 h-8 rounded-full border border-gray-300 shadow-sm cursor-pointer hover:scale-110 transition-transform block shrink-0"
                           style={{ backgroundColor: colorItem.color }}
                         />
                       ))
