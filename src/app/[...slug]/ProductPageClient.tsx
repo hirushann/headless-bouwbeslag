@@ -648,6 +648,7 @@ export default function ProductPageClient({
   const scrollRef = useRef<HTMLDivElement>(null);
   const thumbsRef = useRef<HTMLDivElement>(null);
   const colorScrollRef = useRef<HTMLDivElement>(null);
+  const mainImageScrollRef = useRef<HTMLDivElement>(null);
 
   // Note: matchingRoses logic seems unused or duplicate of keys, but keeping if it was used for UI refs
   // const [matchingRoses, setMatchingRoses] = useState<any[]>([]); 
@@ -1001,33 +1002,62 @@ export default function ProductPageClient({
           {/* Left side: Images */}
           <motion.div variants={fadeInUp} className="lg:w-1/2 pswp-gallery" id="product-gallery">
             <div className="mb-4 relative group">
-              <a
-                href={selectedImage}
-                data-pswp-width={galleryImages.find(img => img.src === selectedImage)?.width || 1200}
-                data-pswp-height={galleryImages.find(img => img.src === selectedImage)?.height || 1200}
-                target="_blank"
-                rel="noreferrer"
-                className="pswp-gallery-item cursor-zoom-in"
+              <div 
+                ref={mainImageScrollRef}
+                className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide scroll-smooth"
+                onScroll={(e) => {
+                  const container = e.currentTarget;
+                  const index = Math.round(container.scrollLeft / container.clientWidth);
+                  if (galleryImages[index]) {
+                    setSelectedImage(galleryImages[index].src);
+                  }
+                }}
               >
-                <img src={selectedImage} alt="Main Product" className="w-full h-auto rounded-lg object-cover" />
-              </a>
-
-              {/* Hidden links for the rest of the gallery so they are all available in the lightbox */}
-              <div className="hidden">
-                {galleryImages.filter(img => img.src !== selectedImage).map((img, idx) => (
-                  <a
-                    key={idx}
-                    href={img.src}
-                    data-pswp-width={img.width}
-                    data-pswp-height={img.height}
-                    className="pswp-gallery-item"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <img src={img.src} alt={`Gallery image ${idx}`} />
-                  </a>
+                {galleryImages.map((img, idx) => (
+                  <div key={idx} className="w-full flex-shrink-0 snap-center">
+                    <a
+                      href={img.src}
+                      data-pswp-width={img.width || 1200}
+                      data-pswp-height={img.height || 1200}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="pswp-gallery-item cursor-zoom-in block"
+                    >
+                      <img src={img.src} alt={`Product view ${idx + 1}`} className="w-full h-auto rounded-lg object-contain bg-white aspect-square" />
+                    </a>
+                  </div>
                 ))}
               </div>
+
+              {/* Navigation arrows for main image if count > 1 */}
+              {galleryImages.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (mainImageScrollRef.current) {
+                        mainImageScrollRef.current.scrollBy({ left: -mainImageScrollRef.current.clientWidth, behavior: 'smooth' });
+                      }
+                    }}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-white/80 border border-gray-200 shadow-md hover:bg-white transition-opacity opacity-0 group-hover:opacity-100 hidden lg:flex"
+                    aria-label="Previous image"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (mainImageScrollRef.current) {
+                        mainImageScrollRef.current.scrollBy({ left: mainImageScrollRef.current.clientWidth, behavior: 'smooth' });
+                      }
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-white/80 border border-gray-200 shadow-md hover:bg-white transition-opacity opacity-0 group-hover:opacity-100 hidden lg:flex"
+                    aria-label="Next image"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Thumbnails Carousel with slice-based logic */}
@@ -1043,7 +1073,17 @@ export default function ProductPageClient({
                   .map((thumb, idx) => {
                     const globalIdx = thumbIndex + idx; // Use global index for aria-label and key
                     return (
-                      <button key={globalIdx} onClick={() => setSelectedImage(thumb.src)} className={`items-center justify-center border aspect-square rounded-md overflow-hidden flex-shrink-0 transition-all ${selectedImage === thumb.src ? 'border-blue-600 ring-2 ring-blue-100' : 'border-gray-200 hover:border-blue-400'}`} aria-label={`Thumbnail ${globalIdx + 1}`} type="button">
+                      <button key={globalIdx} 
+                        onClick={() => {
+                          setSelectedImage(thumb.src);
+                          if (mainImageScrollRef.current) {
+                            mainImageScrollRef.current.scrollTo({ 
+                              left: mainImageScrollRef.current.clientWidth * globalIdx, 
+                              behavior: 'smooth' 
+                            });
+                          }
+                        }} 
+                        className={`items-center justify-center border aspect-square rounded-md overflow-hidden flex-shrink-0 transition-all ${selectedImage === thumb.src ? 'border-blue-600 ring-2 ring-blue-100' : 'border-gray-200 hover:border-blue-400'}`} aria-label={`Thumbnail ${globalIdx + 1}`} type="button">
                         <img src={thumb.src} alt={`Thumbnail ${globalIdx + 1}`} className="w-full h-full object-contain" />
                       </button>
                     );
