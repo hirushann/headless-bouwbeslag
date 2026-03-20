@@ -53,7 +53,7 @@ export default function ProductAddedModal() {
               <div className="flex flex-col md:flex-row gap-4 lg:gap-6 items-center p-4 lg:p-3 bg-white lg:bg-[#F8FAFC] rounded-xl border border-[#E2E8F0] mb-8 lg:mb-10">
                 <div className="w-20 h-20 lg:w-24 lg:h-24 bg-white rounded-lg border border-[#E2E8F0] overflow-hidden flex-shrink-0 flex items-center justify-center p-2 shadow-sm relative">
                   <img 
-                    src={fixImageSrc(modalData.image || modalData.product?.images?.[0]?.src || "/afbeelding.webp")} 
+                    src={fixImageSrc(modalData.image || modalData.product?.images?.[0]?.src)} 
                     alt={modalData.product?.name || "Product"} 
                     className="max-w-full max-h-full object-contain"
                   />

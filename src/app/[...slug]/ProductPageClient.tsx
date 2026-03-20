@@ -67,7 +67,7 @@ export default function ProductPageClient({
   };
   const addItem = useCartStore((state) => state.addItem);
   const items = useCartStore((state) => state.items);
-  const [selectedImage, setSelectedImage] = useState('/afbeelding.webp');
+  const [selectedImage, setSelectedImage] = useState(product?.images?.[0]?.src ? fixImageSrc(product.images[0].src) : fixImageSrc(null));
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
   const [currentUrl, setCurrentUrl] = useState("");
   const [mounted, setMounted] = useState(false);
@@ -100,7 +100,7 @@ export default function ProductPageClient({
     if (imgs.length > 0) {
       setGalleryImages(imgs);
       setSelectedImage((prev) =>
-        prev && prev !== "/afbeelding.webp" ? prev : imgs[0].src
+        prev && prev !== "/afbeelding.webp" && prev !== "/default-fallback-image.webp" ? prev : imgs[0].src
       );
     }
   }, [product]);
@@ -213,7 +213,7 @@ export default function ProductPageClient({
   const catImgMeta = product?.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value || 
                     product?.meta_data?.find((m: any) => m.key === "cat_image")?.value;
   const isNumericCatImg = typeof catImgMeta === "string" && /^\d+$/.test(catImgMeta);
-  const [targetProductImg, setTargetProductImg] = useState<string>(product.images?.[0]?.src ? fixImageSrc(product.images[0].src) : "/afbeelding.webp");
+  const [targetProductImg, setTargetProductImg] = useState<string>(product.images?.[0]?.src ? fixImageSrc(product.images[0].src) : fixImageSrc(null));
 
   useEffect(() => {
     // If literal URL
@@ -1436,7 +1436,7 @@ export default function ProductPageClient({
                         >
                           <div className="h-32 w-full border border-[#E8E1DC] rounded-sm bg-white flex items-center justify-center overflow-hidden">
                             <img
-                              src={fixImageSrc(model?.images?.[0]?.src || model?.resolved_cat_image || "/afbeelding.webp")}
+                              src={fixImageSrc(model?.images?.[0]?.src || model?.resolved_cat_image)}
                               alt={model?.name || "Model"}
                               className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300"
                               loading="lazy"

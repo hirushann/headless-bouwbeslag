@@ -845,6 +845,7 @@ export default async function Page({ params, searchParams }: PageProps) {
           />
         )}
         <ProductPageClient 
+            key={product.id}
             product={product} 
             taxRate={21} // Fallback to 21 initially
             slug={slug} 
