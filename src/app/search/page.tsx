@@ -379,7 +379,7 @@ function SearchContent() {
               <select 
                 value={sortBy} 
                 onChange={(e) => setSortBy(e.target.value)} 
-                className="appearance-none select focus:outline-0 focus:ring-0 border border-[#808D9A] rounded-sm bg-[#F7F7F7] h-10 px-4 pr-10 min-w-[200px] text-sm font-medium text-[#4F4F4F] transition-all hover:border-[#0066FF] cursor-pointer"
+                className="appearance-none select focus:outline-0 focus:ring-0 border border-[#808D9A] rounded-sm bg-[#F7F7F7] h-10 px-4 pr-10 min-w-[200px] text-base font-medium text-[#4F4F4F] transition-all hover:border-[#0066FF] cursor-pointer"
                 style={{ 
                   backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%234F4F4F'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, 
                   backgroundRepeat: 'no-repeat', 

@@ -249,7 +249,7 @@ export default function SearchAutosuggest({
                                     <div className="w-full h-full">
                                         <input
                                             ref={inputRef}
-                                            className="input border-0 focus:outline-none w-full h-full px-2 lg:px-4 text-sm lg:text-lg bg-transparent"
+                                            className="input border-0 focus:outline-none w-full h-full px-2 lg:px-4 text-base lg:text-lg bg-transparent"
                                             type="text"
                                             placeholder={placeholder}
                                             value={query}
@@ -277,7 +277,7 @@ export default function SearchAutosuggest({
                                     <select
                                         value={sortBy}
                                         onChange={(e) => setSortBy(e.target.value)}
-                                        className="appearance-none select focus:outline-0 focus:ring-0 border border-[#808D9A] rounded-sm bg-[#F7F7F7] h-10 px-4 pr-10 min-w-[180px] text-sm font-medium text-[#4F4F4F] transition-all hover:border-[#0066FF] cursor-pointer w-full md:w-auto"
+                                        className="appearance-none select focus:outline-0 focus:ring-0 border border-[#808D9A] rounded-sm bg-[#F7F7F7] h-10 px-4 pr-10 min-w-[180px] text-base font-medium text-[#4F4F4F] transition-all hover:border-[#0066FF] cursor-pointer w-full md:w-auto"
                                         style={{
                                             backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%234F4F4F'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
                                             backgroundRepeat: 'no-repeat',

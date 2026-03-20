@@ -891,7 +891,7 @@ export default function CategoryClient({
             <div className="flex justify-between items-end mb-4 sticky top-[88px] bg-[#F7F7F7] z-40 py-4 -mx-5 px-5 lg:static lg:p-0 lg:mx-0"> 
               <p className="text-xl lg:text-3xl font-bold">{category?.name ?? "Category"}</p>
               <div className='flex gap-3 '>
-                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="select focus:outline-0 focus:ring-0 w-32 border border-[#808D9A] rounded-sm bg-[F7F7F7] h-8 w-full">
+                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="select focus:outline-0 focus:ring-0 w-32 border border-[#808D9A] rounded-sm bg-[F7F7F7] h-8 w-full text-base">
                   <option value="">Aanbevolen</option>
                   <option value="popularity">Populariteit</option>
                   <option value="rating">Beoordeling</option>
