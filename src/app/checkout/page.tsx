@@ -34,6 +34,7 @@ export default function NewCheckoutPage() {
   const [isHydrated, setIsHydrated] = useState(false);
   useEffect(() => {
     setIsHydrated(true);
+    window.scrollTo(0, 0);
   }, []);
 
   // Form State
@@ -225,19 +226,23 @@ export default function NewCheckoutPage() {
   }, []);
 
   useEffect(() => {
+    if (!isHydrated) return;
+    
     // Scroll to the top of the active step when it changes
+    // But avoid doing this on the very first mount if we just did window.scrollTo(0,0)
     const element = document.getElementById(`step-${currentStep}`);
     if (element) {
-        const headerOffset = 120; 
-        const elementPosition = element.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+        const headerOffset = 160; // Increased to account for sticky mobile header
+        const rect = element.getBoundingClientRect();
+        const elementPosition = rect.top + window.pageYOffset;
+        const offsetPosition = elementPosition - headerOffset;
 
         window.scrollTo({
             top: offsetPosition,
-            behavior: "smooth"
+            behavior: currentStep === 1 ? "instant" as any : "smooth"
         });
     }
-  }, [currentStep]);
+  }, [currentStep, isHydrated]);
 
   // Calculate totals
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);

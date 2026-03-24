@@ -728,35 +728,35 @@ export default function ProductPageClient({
     const pdfMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_manual_pdf");
     if (pdfMeta?.value) {
       fetchMedia(pdfMeta.value).then(media =>
-        setManualPdf(media?.source_url || null)
+        setManualPdf(media?.source_url ? fixImageSrc(media.source_url) : null)
       );
     }
 
     const installMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_installation_guide");
     if (installMeta?.value) {
       fetchMedia(installMeta.value).then(media =>
-        setInstallationGuide(media?.source_url || null)
+        setInstallationGuide(media?.source_url ? fixImageSrc(media.source_url) : null)
       );
     }
 
     const certMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_product_certificate");
     if (certMeta?.value) {
       fetchMedia(certMeta.value).then(media =>
-        setCertificate(media?.source_url || null)
+        setCertificate(media?.source_url ? fixImageSrc(media.source_url) : null)
       );
     }
 
     const careMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_care_instructions");
     if (careMeta?.value) {
       fetchMedia(careMeta.value).then(media =>
-        setCareInstructions(media?.source_url || null)
+        setCareInstructions(media?.source_url ? fixImageSrc(media.source_url) : null)
       );
     }
 
     const techDrawMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_technical_drawing");
     if (techDrawMeta?.value) {
       fetchMedia(techDrawMeta.value).then(media => {
-        setTechnicalDrawingUrl(media?.source_url || null);
+        setTechnicalDrawingUrl(media?.source_url ? fixImageSrc(media.source_url) : null);
       });
     }
   }, [product]);
