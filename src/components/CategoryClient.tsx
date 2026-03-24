@@ -657,6 +657,14 @@ export default function CategoryClient({
     }
   }, [page, sortBy, router]);
 
+  // Handle scroll to top on page/filter changes
+  useEffect(() => {
+    if (isInitialMount.current) return;
+    
+    // Immediate scroll to top when navigation changes
+    window.scrollTo({ top: 0, behavior: "instant" as any });
+  }, [page, sortBy, selectedFilters]);
+
   // ------------------------------------------------------------------
   // Filtering Logic
   // ------------------------------------------------------------------
@@ -954,7 +962,6 @@ export default function CategoryClient({
                   <button
                     onClick={() => {
                       setPage(prev => Math.max(1, prev - 1));
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                     disabled={page === 1}
                     className="flex items-center gap-1 px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors font-medium cursor-pointer"
@@ -974,7 +981,6 @@ export default function CategoryClient({
                             key={p}
                             onClick={() => {
                               setPage(p);
-                              window.scrollTo({ top: 0, behavior: 'smooth' });
                             }}
                             className={`w-10 h-10 flex-shrink-0 rounded-md border font-bold transition-all cursor-pointer text-sm ${
                               page === p
@@ -997,7 +1003,6 @@ export default function CategoryClient({
                   <button
                     onClick={() => {
                       setPage(prev => Math.min(totalPages, prev + 1));
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                     disabled={page === totalPages}
                     className="flex items-center gap-1 px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors font-medium cursor-pointer"
