@@ -2138,12 +2138,12 @@ export default function ProductPageClient({
                     </summary>
                     <div className="px-6 pb-4 text-gray-700 space-y-4">
                       {/* <iframe 
-                                          src={`/api/proxy?url=${encodeURIComponent(technicalDrawingUrl || "")}`}
+                                          src={technicalDrawingUrl || ""}
                                           className="w-full h-[500px] rounded-md border-0"
                                           title="Technische documentatie"
                                       /> */}
                       <img
-                        src={`/api/proxy?url=${encodeURIComponent(technicalDrawingUrl || "")}`}
+                        src={technicalDrawingUrl || ""}
                         className="w-full h-[500px] object-contain rounded-md border-0"
                         alt="Technische documentatie"
                       />
