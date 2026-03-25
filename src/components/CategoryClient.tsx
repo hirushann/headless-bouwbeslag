@@ -317,10 +317,12 @@ function FilterSidebar({
 
     return activeGlobalAttrs
       .map((attr) => {
-        if (category?.acf) {
-          let slug = attr.slug || (attr.name || "").toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '').replace(/-+/g, '-');
-          let acfKey = ATTRIBUTE_TO_ACF_MAP[slug] || slug.replace(/^pa_/, '').replace(/-/g, '_');
-          if (acfKey && (category.acf[acfKey] === false || category.acf[acfKey] === "false")) return null;
+        let slug = attr.slug || (attr.name || "").toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '').replace(/-+/g, '-');
+        let acfKey = ATTRIBUTE_TO_ACF_MAP[slug] || slug.replace(/^pa_/, '').replace(/-/g, '_');
+        
+        // Only show if explicitly enabled
+        if (!category?.acf || !acfKey || (category.acf[acfKey] !== true && category.acf[acfKey] !== "true" && category.acf[acfKey] !== 1 && category.acf[acfKey] !== "1")) {
+          return null;
         }
         if (attr.name === "Inhoud van de verpakking") return null;
 
@@ -377,7 +379,8 @@ function FilterSidebar({
   const afdichtTotAttr = otherAttributes.find(a => a.name === "Afdichtingsspleet Tot");
 
   const afdichtspleetBounds = useMemo(() => {
-    if (category?.acf?.afdichtingsspleet === false || category?.acf?.afdichtingsspleet === "false") return null;
+    const isEnabled = category?.acf?.afdichtingsspleet === true || category?.acf?.afdichtingsspleet === "true" || category?.acf?.afdichtingsspleet === 1 || category?.acf?.afdichtingsspleet === "1";
+    if (!isEnabled) return null;
     if (!allCategoryProductsForFilters || allCategoryProductsForFilters.length === 0) return null;
 
     let min = Infinity, max = -Infinity;
@@ -396,7 +399,8 @@ function FilterSidebar({
   }, [allCategoryProductsForFilters, category]);
 
   const groefbreedteBounds = useMemo(() => {
-    if (category?.acf?.groefbreedte === false || category?.acf?.groefbreedte === "false") return null;
+    const isEnabled = category?.acf?.groefbreedte === true || category?.acf?.groefbreedte === "true" || category?.acf?.groefbreedte === 1 || category?.acf?.groefbreedte === "1";
+    if (!isEnabled) return null;
     if (!allCategoryProductsForFilters || allCategoryProductsForFilters.length === 0) return null;
 
     let min = Infinity, max = -Infinity;
