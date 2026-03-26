@@ -938,13 +938,13 @@ export default function ProductPageClient({
   return (
     <div className='bg-[#F5F5F5] font-sans'>
       <motion.div
-        className="max-w-[1440px] mx-auto py-4 lg:py-8 px-5 lg:px-0"
+        className="max-w-[1440px] mx-auto py-2 lg:py-8 px-5 lg:px-0"
         initial="hidden"
         animate="visible"
         variants={staggerContainer}
       >
         {/* ✅ Dynamic Breadcrumb */}
-        <motion.div variants={fadeInUp} className="text-sm text-gray-500 mb-6 flex items-center gap-2 flex-wrap">
+        <motion.div variants={fadeInUp} className="text-sm text-gray-500 mb-3 lg:mb-6 flex items-center gap-2 flex-wrap">
           {/* Home */}
           <Link href="/" className="hover:underline flex items-center gap-1 text-black">
             <svg
@@ -998,10 +998,10 @@ export default function ProductPageClient({
             });
           })()}
         </motion.div>
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
           {/* Left side: Images */}
-          <motion.div variants={fadeInUp} className="lg:w-1/2 pswp-gallery" id="product-gallery">
-            <div className="mb-4 relative group">
+          <motion.div variants={fadeInUp} className="w-full lg:w-[40%] pswp-gallery md:max-w-2xl mx-auto lg:max-w-none" id="product-gallery">
+            <div className="mb-2 lg:mb-4 relative group">
               <div 
                 ref={mainImageScrollRef}
                 className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide scroll-smooth"
@@ -1023,7 +1023,7 @@ export default function ProductPageClient({
                       rel="noreferrer"
                       className="pswp-gallery-item cursor-zoom-in block"
                     >
-                      <img src={img.src} alt={`Product view ${idx + 1}`} className="w-full h-auto rounded-lg object-contain bg-white aspect-square" />
+                      <img src={img.src} alt={`Product view ${idx + 1}`} className="w-full h-auto rounded-lg object-contain bg-white aspect-square max-h-[280px] lg:max-h-none" />
                     </a>
                   </div>
                 ))}
@@ -1061,13 +1061,13 @@ export default function ProductPageClient({
             </div>
 
             {/* Thumbnails Carousel with slice-based logic */}
-            <div className="flex items-center gap-2 mt-2">
+            <div className="flex items-center gap-1 mt-1 lg:mt-2">
               {galleryImages.length > 4 && (
-                <button type="button" onClick={() => setThumbIndex((prev) => Math.max(0, prev - 1))} className="w-8 h-8 flex items-center justify-center rounded-full border border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer" aria-label="Previous thumbnails" disabled={thumbIndex === 0} style={{ opacity: thumbIndex === 0 ? 0.5 : 1 }}>
+                <button type="button" onClick={() => setThumbIndex((prev) => Math.max(0, prev - 1))} className="w-7 h-7 flex items-center justify-center rounded-full border border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer" aria-label="Previous thumbnails" disabled={thumbIndex === 0} style={{ opacity: thumbIndex === 0 ? 0.5 : 1 }}>
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                 </button>
               )}
-              <div className="grid grid-cols-4 gap-4 pb-1 w-[90%]">
+              <div className="grid grid-cols-4 gap-2 lg:gap-4 pb-1 w-full lg:w-[90%]">
                 {(galleryImages && galleryImages.length > 0 ? galleryImages : [])
                   .slice(thumbIndex, thumbIndex + 4)
                   .map((thumb, idx) => {
@@ -1099,7 +1099,7 @@ export default function ProductPageClient({
                       )
                     )
                   }
-                  className="w-8 h-8 flex items-center justify-center rounded-full border border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer"
+                  className="w-7 h-7 flex items-center justify-center rounded-full border border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer"
                   aria-label="Next thumbnails"
                   disabled={
                     thumbIndex >=

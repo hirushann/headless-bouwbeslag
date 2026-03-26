@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import Script from "next/script";
 import { ChevronRight, CreditCard, Package, ShieldCheck, Truck, Check, Loader2, Tag, X } from "lucide-react";
 import { getShippingRatesAction, placeOrderAction, validateCouponAction, checkPostcodeAction, getPaymentMethodsAction, validateVatAction } from "./actions";
 import { useCartStore } from "@/lib/cartStore";
@@ -128,6 +129,8 @@ export default function NewCheckoutPage() {
   
   const [isCheckingPostcode, setIsCheckingPostcode] = useState(false);
   const [postcodeError, setPostcodeError] = useState<string | null>(null);
+  const [isCheckingShippingPostcode, setIsCheckingShippingPostcode] = useState(false);
+  const [shippingPostcodeError, setShippingPostcodeError] = useState<string | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [maatwerkAccepted, setMaatwerkAccepted] = useState(false);
   const [lengthFreightAccepted, setLengthFreightAccepted] = useState(false);
@@ -146,8 +149,98 @@ export default function NewCheckoutPage() {
     city: ""
   });
   const [orderNotes, setOrderNotes] = useState("");
+  
+  // Google Autocomplete Refs
+  const billingSearchRef = useRef<HTMLInputElement>(null);
+  const shippingSearchRef = useRef<HTMLInputElement>(null);
+  const billingAutocomplete = useRef<any>(null);
+  const shippingAutocomplete = useRef<any>(null);
+  const billingInitRef = useRef<HTMLInputElement | null>(null);
+  const shippingInitRef = useRef<HTMLInputElement | null>(null);
 
-  // Address lookup effect
+  const handlePlaceSelect = (autocomplete: any, type: 'billing' | 'shipping') => {
+    const place = autocomplete.getPlace();
+    if (!place.address_components) return;
+
+    let street = "";
+    let houseNumber = "";
+    let postcode = "";
+    let city = "";
+    let country = "";
+
+    place.address_components.forEach((component: any) => {
+      const types = component.types;
+      if (types.includes("street_number")) houseNumber = component.long_name;
+      if (types.includes("route")) street = component.long_name;
+      if (types.includes("postal_code")) postcode = component.long_name;
+      if (types.includes("locality")) city = component.long_name;
+      if (types.includes("country")) country = component.long_name;
+    });
+
+    // Map common country names
+    const countryMap: Record<string, string> = {
+        "Netherlands": "Netherlands",
+        "Nederland": "Netherlands",
+        "Belgium": "Belgium",
+        "België": "Belgium",
+        "Belgique": "Belgium",
+        "Germany": "Germany",
+        "Deutschland": "Germany"
+    };
+
+    if (type === 'billing') {
+      setFormData(prev => ({
+        ...prev,
+        street: street || prev.street,
+        houseNumber: houseNumber || prev.houseNumber,
+        postcode: postcode || prev.postcode,
+        city: city || prev.city,
+        country: countryMap[country] || prev.country
+      }));
+    } else {
+      setShippingData(prev => ({
+        ...prev,
+        street: street || prev.street,
+        houseNumber: houseNumber || prev.houseNumber,
+        postcode: postcode || prev.postcode,
+        city: city || prev.city,
+        country: countryMap[country] || prev.country
+      }));
+    }
+  };
+
+  const initGoogleAutocomplete = () => {
+    if (!window.google) return;
+
+    if (billingSearchRef.current && billingSearchRef.current !== billingInitRef.current) {
+        billingAutocomplete.current = new window.google.maps.places.Autocomplete(billingSearchRef.current, {
+            types: ['address'],
+            componentRestrictions: { country: ['nl', 'be', 'de'] },
+            fields: ['address_components', 'geometry']
+        });
+        billingAutocomplete.current.addListener('place_changed', () => handlePlaceSelect(billingAutocomplete.current, 'billing'));
+        billingInitRef.current = billingSearchRef.current;
+    }
+
+    if (shippingSearchRef.current && shippingSearchRef.current !== shippingInitRef.current) {
+        shippingAutocomplete.current = new window.google.maps.places.Autocomplete(shippingSearchRef.current, {
+            types: ['address'],
+            componentRestrictions: { country: ['nl', 'be', 'de'] },
+            fields: ['address_components', 'geometry']
+        });
+        shippingAutocomplete.current.addListener('place_changed', () => handlePlaceSelect(shippingAutocomplete.current, 'shipping'));
+        shippingInitRef.current = shippingSearchRef.current;
+    }
+  };
+
+  useEffect(() => {
+     // Re-init if elements appear (like shipping form) or script loaded
+     if (window.google) {
+         initGoogleAutocomplete();
+     }
+  }, [shipToDifferentAddress, currentStep]);
+
+  // Address lookup effect for Billing
   useEffect(() => {
     const checkAddress = async () => {
         const { postcode, houseNumber, country } = formData;
@@ -194,6 +287,49 @@ export default function NewCheckoutPage() {
     return () => clearTimeout(timeoutId);
 
   }, [formData.postcode, formData.houseNumber, formData.country]);
+
+  // Address lookup effect for Shipping
+  useEffect(() => {
+    const checkShippingAddress = async () => {
+        const { postcode, houseNumber, country } = shippingData;
+        
+        if (shipToDifferentAddress && country === 'Netherlands' && postcode.length >= 6 && houseNumber) {
+            setIsCheckingShippingPostcode(true);
+            setShippingPostcodeError(null);
+            
+            // Clean postcode
+            const cleanPostcode = postcode.replace(/\s/g, '');
+            
+            const result = await checkPostcodeAction(cleanPostcode, houseNumber);
+            
+            if (result.success && result.data) {
+                setShippingData(prev => ({
+                    ...prev,
+                    street: result.data.street || prev.street, 
+                    city: result.data.city || prev.city
+                }));
+                // Clear errors for street and city if populated
+                setFormErrors(prev => {
+                    const newErrors = { ...prev };
+                    if (result.data.street) delete newErrors.shipping_street;
+                    if (result.data.city) delete newErrors.shipping_city;
+                    return newErrors;
+                });
+            } else {
+                setShippingPostcodeError(result.message || "Adres niet gevonden");
+                setShippingData(prev => ({ ...prev, street: "", city: "" })); 
+            }
+            setIsCheckingShippingPostcode(false);
+        }
+    };
+    
+    const timeoutId = setTimeout(() => {
+        checkShippingAddress();
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+
+  }, [shippingData.postcode, shippingData.houseNumber, shippingData.country, shipToDifferentAddress]);
 
   // Coupon State
   const [couponCode, setCouponCode] = useState("");
@@ -651,6 +787,10 @@ export default function NewCheckoutPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
+      <Script 
+        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`} 
+        onLoad={initGoogleAutocomplete}
+      />
       <main className="max-w-[1440px] mx-auto px-2 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
           {/* LEFT COLUMN: Steps & Forms */}
@@ -680,6 +820,21 @@ export default function NewCheckoutPage() {
               {currentStep === 1 && (
                 <div className="p-6 pt-6 animate-in slide-in-from-top-4 fade-in duration-300">
                   <div className="space-y-5 mb-6">
+                    {/* Google Address Lookup */}
+                    <div className="form-control mb-2">
+                        <label className={labelParams}>Snel adres zoeken (Google)</label>
+                        <div className="relative">
+                            <input 
+                                ref={billingSearchRef}
+                                type="text" 
+                                className={`${inputParams} pl-10`} 
+                                placeholder="Begin met typen voor suggesties..." 
+                            />
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                                <ShieldCheck className="w-5 h-5" />
+                            </div>
+                        </div>
+                    </div>
                     {/* Name Fields */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div className="form-control">
@@ -834,7 +989,23 @@ export default function NewCheckoutPage() {
 
                      {shipToDifferentAddress && (
                          <div className="space-y-5 animate-in slide-in-from-top-2 fade-in duration-200 pl-1">
-                            <h3 className="text-base font-semibold text-gray-900 mb-2">Verzendgegevens</h3>
+                             {/* Google Address Lookup Shipping */}
+                             <div className="form-control mb-2">
+                                <label className={labelParams}>Snel adres zoeken (Google)</label>
+                                <div className="relative">
+                                    <input 
+                                        ref={shippingSearchRef}
+                                        type="text" 
+                                        className={`${inputParams} pl-10`} 
+                                        placeholder="Begin met typen voor suggesties..." 
+                                    />
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                                        <Truck className="w-5 h-5" />
+                                    </div>
+                                </div>
+                             </div>
+                             
+                             <h3 className="text-base font-semibold text-gray-900 mb-2">Verzendgegevens</h3>
                             
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div className="form-control">
@@ -890,13 +1061,17 @@ export default function NewCheckoutPage() {
                                     {formErrors.shipping_houseNumber && <p className="text-red-500 text-sm mt-1">{formErrors.shipping_houseNumber}</p>}
                                 </div>
                             </div>
+                            
+                            {/* Shipping PC Check Feedback */}
+                            {isCheckingShippingPostcode && <p className="text-sm text-blue-500">Adres controleren...</p>}
+                            {shippingPostcodeError && <p className="text-sm text-red-500">{shippingPostcodeError} - Vul adres handmatig in indien nodig.</p>}
 
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                <div className="form-control">
                                     <label className={labelParams}>Straat <span className="text-red-500">*</span></label>
                                     <input 
                                         type="text" 
-                                        className={`${inputParams} ${formErrors.shipping_street ? 'border-red-500 ring-1 ring-red-500' : ''}`}
+                                        className={`${inputParams} ${shippingData.country === 'Netherlands' ? 'bg-gray-50' : ''} ${formErrors.shipping_street ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                                         value={shippingData.street} 
                                         onChange={(e) => handleShippingChange("street", e.target.value)} 
                                     />
@@ -906,7 +1081,7 @@ export default function NewCheckoutPage() {
                                     <label className={labelParams}>Plaats <span className="text-red-500">*</span></label>
                                     <input 
                                         type="text" 
-                                        className={`${inputParams} ${formErrors.shipping_city ? 'border-red-500 ring-1 ring-red-500' : ''}`}
+                                        className={`${inputParams} ${shippingData.country === 'Netherlands' ? 'bg-gray-50' : ''} ${formErrors.shipping_city ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                                         value={shippingData.city} 
                                         onChange={(e) => handleShippingChange("city", e.target.value)} 
                                     />
