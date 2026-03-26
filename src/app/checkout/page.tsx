@@ -209,27 +209,34 @@ export default function NewCheckoutPage() {
     }
   };
 
-  const initGoogleAutocomplete = () => {
+  const initGoogleAutocomplete = async () => {
     if (!window.google) return;
 
-    if (billingSearchRef.current && billingSearchRef.current !== billingInitRef.current) {
-        billingAutocomplete.current = new window.google.maps.places.Autocomplete(billingSearchRef.current, {
-            types: ['address'],
-            componentRestrictions: { country: ['nl', 'be', 'de'] },
-            fields: ['address_components', 'geometry']
-        });
-        billingAutocomplete.current.addListener('place_changed', () => handlePlaceSelect(billingAutocomplete.current, 'billing'));
-        billingInitRef.current = billingSearchRef.current;
-    }
+    try {
+        // Modern approach: import the places library dynamically
+        const { Autocomplete } = await window.google.maps.importLibrary("places") as any;
 
-    if (shippingSearchRef.current && shippingSearchRef.current !== shippingInitRef.current) {
-        shippingAutocomplete.current = new window.google.maps.places.Autocomplete(shippingSearchRef.current, {
-            types: ['address'],
-            componentRestrictions: { country: ['nl', 'be', 'de'] },
-            fields: ['address_components', 'geometry']
-        });
-        shippingAutocomplete.current.addListener('place_changed', () => handlePlaceSelect(shippingAutocomplete.current, 'shipping'));
-        shippingInitRef.current = shippingSearchRef.current;
+        if (billingSearchRef.current && billingSearchRef.current !== billingInitRef.current) {
+            billingAutocomplete.current = new Autocomplete(billingSearchRef.current, {
+                types: ['address'],
+                componentRestrictions: { country: ['nl', 'be', 'de'] },
+                fields: ['address_components', 'geometry']
+            });
+            billingAutocomplete.current.addListener('place_changed', () => handlePlaceSelect(billingAutocomplete.current, 'billing'));
+            billingInitRef.current = billingSearchRef.current;
+        }
+
+        if (shippingSearchRef.current && shippingSearchRef.current !== shippingInitRef.current) {
+            shippingAutocomplete.current = new Autocomplete(shippingSearchRef.current, {
+                types: ['address'],
+                componentRestrictions: { country: ['nl', 'be', 'de'] },
+                fields: ['address_components', 'geometry']
+            });
+            shippingAutocomplete.current.addListener('place_changed', () => handlePlaceSelect(shippingAutocomplete.current, 'shipping'));
+            shippingInitRef.current = shippingSearchRef.current;
+        }
+    } catch (error) {
+        console.error("Error initializing Google Autocomplete:", error);
     }
   };
 
@@ -787,8 +794,12 @@ export default function NewCheckoutPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
+      {/* Google Maps Script */}
+      {!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && (
+        <script dangerouslySetInnerHTML={{ __html: 'console.warn("⚠️ Google Maps API Key is missing. Address lookup will not work.")'}} />
+      )}
       <Script 
-        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`} 
+        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`} 
         onLoad={initGoogleAutocomplete}
       />
       <main className="max-w-[1440px] mx-auto px-2 py-10">
