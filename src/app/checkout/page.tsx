@@ -125,7 +125,7 @@ export default function NewCheckoutPage() {
   }, [user]);
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [vatValidationState, setVatValidationState] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
+  const [vatValidationState, setVatValidationState] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');  
   
   const [isCheckingPostcode, setIsCheckingPostcode] = useState(false);
   const [postcodeError, setPostcodeError] = useState<string | null>(null);
