@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Script from "next/script";
-import { ChevronRight, CreditCard, Package, ShieldCheck, Truck, Check, Loader2, Tag, X } from "lucide-react";
+import { ChevronRight, CreditCard, Package, ShieldCheck, Truck, Check, Loader2, Tag, X, Clock, Trash2 } from "lucide-react";
 import { getShippingRatesAction, placeOrderAction, validateCouponAction, checkPostcodeAction, getPaymentMethodsAction, validateVatAction } from "./actions";
 import { useCartStore } from "@/lib/cartStore";
 import { useRouter } from "next/navigation";
@@ -30,6 +30,37 @@ export default function NewCheckoutPage() {
   const cartItems = useCartStore((state) => state.items);
   const clearCart = useCartStore((state) => state.clearCart);
   const lengthFreightCost = useCartStore((state) => state.lengthFreightCost());
+  const isConsolidated = useCartStore((state) => state.isConsolidated);
+  const setConsolidated = useCartStore((state) => state.setConsolidated);
+  const CONSOLIDATION_DISCOUNT = 2.50;
+
+  // Combine delivery info calculation globally for the checkout view
+  const deliveryState = React.useMemo(() => {
+    const infos = cartItems.map(item => getDeliveryInfo(
+        item.stockStatus || "instock",
+        item.quantity,
+        item.stockQuantity ?? null,
+        item.leadTimeInStock || 1,
+        item.leadTimeNoStock || 30
+    ));
+
+    const latest = infos.reduce((prev, current) => {
+        return (current.days > prev.days) ? current : prev;
+    }, infos[0] || { days: 0, short: "Onbekend", type: "IN_STOCK" });
+
+    // Consolidation is only possible if there is more than one unique delivery date
+    const uniqueDays = new Set(infos.map(i => i.days));
+    const canConsolidate = uniqueDays.size > 1;
+
+    return { infos, latest, canConsolidate };
+  }, [cartItems]);
+
+  // If consolidation is no longer possible (e.g. item removed), turn it off
+  React.useEffect(() => {
+    if (!deliveryState.canConsolidate && isConsolidated) {
+      setConsolidated(false);
+    }
+  }, [deliveryState.canConsolidate, isConsolidated, setConsolidated]);
   
   // Hydration check for persisted store
   const [isHydrated, setIsHydrated] = useState(false);
@@ -209,12 +240,43 @@ export default function NewCheckoutPage() {
     }
   };
 
-  const initGoogleAutocomplete = async () => {
-    if (!window.google) return;
+  const initGoogleAutocomplete = async (retries = 0) => {
+    if (typeof window === 'undefined') return;
+    if (!window.google || !window.google.maps) {
+        if (retries < 10) {
+            // Script might be loaded but maps object not fully initialized
+            setTimeout(() => initGoogleAutocomplete(retries + 1), 500);
+        }
+        return;
+    }
 
     try {
+        let Autocomplete;
+        
         // Modern approach: import the places library dynamically
-        const { Autocomplete } = await window.google.maps.importLibrary("places") as any;
+        if (window.google.maps.importLibrary) {
+            try {
+                const places = await window.google.maps.importLibrary("places") as any;
+                Autocomplete = places.Autocomplete;
+            } catch (err) {
+                console.error("Error importing places library via importLibrary:", err);
+                if (window.google.maps.places) {
+                    Autocomplete = window.google.maps.places.Autocomplete;
+                }
+            }
+        } else if (window.google.maps.places) {
+            Autocomplete = window.google.maps.places.Autocomplete;
+        }
+
+        if (!Autocomplete) {
+            if (retries < 10) {
+                console.warn(`⚠️ Google Maps Places library not available yet (retry ${retries + 1}/10). Retrying...`);
+                setTimeout(() => initGoogleAutocomplete(retries + 1), 500);
+            } else {
+                console.error("❌ Google Maps Places library failed to load after 10 retries.");
+            }
+            return;
+        }
 
         if (billingSearchRef.current && billingSearchRef.current !== billingInitRef.current) {
             billingAutocomplete.current = new Autocomplete(billingSearchRef.current, {
@@ -224,6 +286,7 @@ export default function NewCheckoutPage() {
             });
             billingAutocomplete.current.addListener('place_changed', () => handlePlaceSelect(billingAutocomplete.current, 'billing'));
             billingInitRef.current = billingSearchRef.current;
+            // console.log("✅ Billing Autocomplete initialized");
         }
 
         if (shippingSearchRef.current && shippingSearchRef.current !== shippingInitRef.current) {
@@ -234,6 +297,7 @@ export default function NewCheckoutPage() {
             });
             shippingAutocomplete.current.addListener('place_changed', () => handlePlaceSelect(shippingAutocomplete.current, 'shipping'));
             shippingInitRef.current = shippingSearchRef.current;
+            // console.log("✅ Shipping Autocomplete initialized");
         }
     } catch (error) {
         console.error("Error initializing Google Autocomplete:", error);
@@ -531,18 +595,20 @@ export default function NewCheckoutPage() {
 
   const discountAmount = calculateDiscount();
 
-  const tax = (subtotal - discountAmount) * 0.21; // Tax on discounted items
+  const consolidationDiscountAmount = isConsolidated ? CONSOLIDATION_DISCOUNT : 0;
+  
+  const tax = (subtotal - discountAmount - consolidationDiscountAmount) * 0.21; // Tax on discounted items
   
   // Calculate card payment fee (2.5% of order total excluding VAT)
   // Fee applies only when card payment method (creditcard) is selected
   const cardPaymentFee = React.useMemo(() => {
     if (selectedPaymentMethod === 'creditcard') {
       // Calculate fee on subtotal + shipping - discount (Ex VAT)
-      const orderTotal = (subtotal - discountAmount) + (shippingCost || 0);
+      const orderTotal = (subtotal - discountAmount - consolidationDiscountAmount) + (shippingCost || 0);
       return orderTotal * 0.025; // 2.5% fee
     }
     return 0;
-  }, [selectedPaymentMethod, subtotal, discountAmount, shippingCost]);
+  }, [selectedPaymentMethod, subtotal, discountAmount, consolidationDiscountAmount, shippingCost]);
   
   // Header logic: Total = (subtotal + shipping) * 1.21 for B2C (Inc VAT).
   // Subtotal here (from cartStore) is Ex-VAT.
@@ -554,14 +620,15 @@ export default function NewCheckoutPage() {
   // Header shows: Totaal + (incl. BTW) label.
   
   const total = isB2B 
-    ? (subtotal - discountAmount) + (shippingCost || 0) + cardPaymentFee
-    : ((subtotal - discountAmount) + (shippingCost || 0) + cardPaymentFee) * 1.21;
+    ? (subtotal - discountAmount - consolidationDiscountAmount) + (shippingCost || 0) + cardPaymentFee
+    : ((subtotal - discountAmount - consolidationDiscountAmount) + (shippingCost || 0) + cardPaymentFee) * 1.21;
     
   // Display Helpers -- Adjusted for discount
   // Note: Discount is usually applied to item prices (subtotal).
   
   const displaySubtotal = isB2B ? subtotal : subtotal * 1.21;
   const displayDiscount = isB2B ? discountAmount : discountAmount * 1.21;
+  const displayConsolidationDiscount = isB2B ? consolidationDiscountAmount : consolidationDiscountAmount * 1.21;
   const displayShipping = isB2B ? (shippingCost || 0) : (shippingCost || 0) * 1.21;
   const displayCardFee = isB2B ? cardPaymentFee : cardPaymentFee * 1.21;
   const displayTax = isB2B ? 0 : tax; // Tax line is redundant in Inc-VAT view usually, or we show full tax breakdown?
@@ -682,6 +749,8 @@ export default function NewCheckoutPage() {
         phone: formData.phone
     };
 
+    const consolidationNote = isConsolidated ? "\n\n⚠️ SAMENBUNDELING: Alle artikelen in één pakket verzenden op de laatst mogelijke leverdatum." : "";
+
     const method = validMethods.find(m => m.id === selectedMethodId);
 
     const shippingObject = shipToDifferentAddress ? {
@@ -699,7 +768,7 @@ export default function NewCheckoutPage() {
     const orderData = {
         billing: billingData,
         shipping: shippingObject,
-        customer_note: orderNotes,
+        customer_note: orderNotes + consolidationNote,
         cart: cartItems,
         payment_method: "mollie",
         shipping_line: method ? [{
@@ -716,6 +785,12 @@ export default function NewCheckoutPage() {
             ...(cardPaymentFee > 0 ? [{
                 name: "Betaalkosten (Kaart)",
                 total: cardPaymentFee.toFixed(2),
+                tax_status: "taxable",
+                tax_class: ""
+            }] : []),
+            ...(isConsolidated ? [{
+                name: "Samenbundel-korting",
+                total: (-CONSOLIDATION_DISCOUNT).toFixed(2),
                 tax_status: "taxable",
                 tax_class: ""
             }] : [])
@@ -799,8 +874,10 @@ export default function NewCheckoutPage() {
         <script dangerouslySetInnerHTML={{ __html: 'console.warn("⚠️ Google Maps API Key is missing. Address lookup will not work.")'}} />
       )}
       <Script 
-        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`} 
-        onLoad={initGoogleAutocomplete}
+        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async&v=weekly`} 
+        onReady={() => {
+            initGoogleAutocomplete();
+        }}
       />
       <main className="max-w-[1440px] mx-auto px-2 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
@@ -1359,52 +1436,58 @@ export default function NewCheckoutPage() {
               {/* Items Card */}
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
                   {/* Real Cart Items */}
-                  {cartItems.map((item, index) => (
-                    <div key={index} className="flex gap-4 p-4 border border-gray-100 rounded-lg bg-gray-50/50">
-                        <div className="w-16 h-16 bg-white rounded-md border border-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
-                             {item.slug ? (
-                                <Link href={`/${item.slug}`} className="block w-full h-full">
-                                    {item.image ? <img src={item.image} alt={item.name} className="w-full h-full object-cover rounded-md" /> : <Package className="w-8 h-8 text-gray-300 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />}
-                                </Link>
-                             ) : (
-                                item.image ? <img src={item.image} alt={item.name} className="w-full h-full object-cover rounded-md" /> : <Package className="w-8 h-8 text-gray-300" />
-                             )}
-                        </div>
-                        <div className="flex-1 flex justify-between">
-                            <div>
-                                {item.slug ? (
-                                    <Link href={`/${item.slug}`} className="hover:text-blue-600 transition-colors">
-                                        <h4 className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</h4>
+                  {cartItems.map((item, index) => {
+                      const info = isConsolidated ? deliveryState.latest : deliveryState.infos[index];
+                      
+                      return (
+                        <div key={item.id} className="flex gap-4 p-4 border border-gray-100 rounded-lg bg-gray-50/50">
+                            <div className="w-16 h-16 bg-white rounded-md border border-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+                                 {item.slug ? (
+                                    <Link href={`/${item.slug}`} className="block w-full h-full">
+                                        {item.image ? <img src={item.image} alt={item.name} className="w-full h-full object-cover rounded-md" /> : <Package className="w-8 h-8 text-gray-300 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />}
                                     </Link>
-                                ) : (
-                                    <h4 className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</h4>
-                                )}
-                                <p className="text-sm text-gray-500 mt-1">× {item.quantity}</p>
-                                
-                                {(() => {
-                                    // Calculate delivery info for Checkout
-                                    const info = getDeliveryInfo(
-                                        item.stockStatus || 'instock',
-                                        item.quantity,
-                                        item.stockQuantity !== undefined ? item.stockQuantity : null,
-                                        item.leadTimeInStock || 1,
-                                        item.leadTimeNoStock || 30
-                                    );
-                                    
-                                    // Determine color based on type
-                                    let colorClass = "text-[#03B955]";
-                                    if (info.type === "PARTIAL_STOCK") colorClass = "text-[#B28900]";
-                                    else if (info.type === "BACKORDER" || info.type === "OUT_OF_STOCK") colorClass = "text-[#FF5E00]";
+                                 ) : (
+                                    item.image ? <img src={item.image} alt={item.name} className="w-full h-full object-cover rounded-md" /> : <Package className="w-8 h-8 text-gray-300 whitespace-nowrap" />
+                                 )}
+                            </div>
+                            <div className="flex-1">
+                                <div className="flex justify-between items-start gap-2">
+                                    <div className="min-w-0">
+                                        {item.slug ? (
+                                            <Link href={`/${item.slug}`} className="hover:text-blue-600 transition-colors">
+                                                <h4 className="text-sm font-bold text-gray-900 line-clamp-2">{item.name}</h4>
+                                            </Link>
+                                        ) : (
+                                            <h4 className="text-sm font-bold text-gray-900 line-clamp-2">{item.name}</h4>
+                                        )}
+                                        
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="text-xs text-gray-500 font-medium whitespace-nowrap">{item.quantity} stuks</span>
+                                            <div className="w-1 h-1 rounded-full bg-gray-300"></div>
+                                            <span className="text-sm font-bold text-gray-900 whitespace-nowrap">€ {(isB2B ? item.price : item.price * 1.21).toFixed(2).replace('.', ',')}</span>
+                                        </div>
 
-                                    return (
-                                        <p className={`text-xs ${colorClass} mt-1 font-semibold`}>
-                                            {info.short}
-                                        </p>
-                                    );
-                                })()}
-                                {item.isMaatwerk && (
-                                    <p className="text-xs text-amber-600 mt-1 font-medium">Let op: maatwerk product. Uitgesloten van retourrecht</p>
-                                )}
+                                        {(() => {
+                                            let colorClass = "text-[#03B955]";
+                                            if (info.type === "PARTIAL_STOCK") colorClass = "text-[#B28900]";
+                                            else if (info.type === "BACKORDER" || info.type === "OUT_OF_STOCK") colorClass = "text-[#FF5E00]";
+
+                                            return (
+                                                <p className={`text-xs ${colorClass} mt-1 font-bold flex items-center gap-1`}>
+                                                    <Clock className="w-3.5 h-3.5" />
+                                                    {info.short}
+                                                </p>
+                                            );
+                                        })()}
+                                    </div>
+                                    <button 
+                                        onClick={() => useCartStore.getState().removeItem(item.id)}
+                                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-white rounded-lg transition-colors flex-shrink-0"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                                
                                 {item.hasLengthFreight && (
                                      <div className="flex items-start gap-1 mt-1">
                                         <Truck className="w-3 h-3 text-blue-600 mt-0.5" />
@@ -1412,11 +1495,41 @@ export default function NewCheckoutPage() {
                                     </div>
                                 )}
                             </div>
-                            <span className="text-sm font-medium text-gray-900 whitespace-nowrap ml-2">€ {(isB2B ? item.price : item.price * 1.21).toFixed(2).replace('.', ',')}</span>
                         </div>
-                    </div>
-                  ))}
+                      );
+                  })}
               </div>
+
+              {/* Shipment Consolidation Upsell */}
+              {deliveryState.canConsolidate && (
+                  <div className={`p-5 rounded-xl border-2 transition-all duration-300 ${isConsolidated ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-100 hover:border-blue-100'}`}>
+                      <div className="flex items-start gap-4">
+                          <div className="pt-1">
+                               <input 
+                                  type="checkbox" 
+                                  id="consolidate-shipment" 
+                                  checked={isConsolidated}
+                                  onChange={(e) => setConsolidated(e.target.checked)}
+                                  className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                               />
+                          </div>
+                          <div className="flex-1">
+                              <label htmlFor="consolidate-shipment" className="font-bold text-gray-900 cursor-pointer select-none">
+                                  Samen verzenden en besparen
+                              </label>
+                              <p className="text-sm text-gray-600 mt-1 leading-relaxed">
+                                  Wij verzenden al uw artikelen in één pakket op <span className="font-bold text-gray-900">{deliveryState.latest.short.replace('Levering: ', '')}</span> en u ontvangt direct <span className="text-green-600 font-bold text-base">€2,50 korting</span> op uw bestelling.
+                              </p>
+                              {isConsolidated && (
+                                  <div className="mt-3 flex items-center gap-2 text-blue-600 text-xs font-bold bg-blue-100/50 py-1.5 px-3 rounded-full w-fit">
+                                      <Check className="w-3.5 h-3.5" />
+                                      Laatste levering datum wordt toegepast
+                                  </div>
+                              )}
+                          </div>
+                      </div>
+                  </div>
+              )}
 
               {/* Totals Card */}
                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-3">
@@ -1507,8 +1620,18 @@ export default function NewCheckoutPage() {
                         <span>BTW (21%)</span>
                          {/* Calculate actual tax amount for the whole order including card fee and freight */}
                          {/* Freight Ex VAT = lengthFreightCost / 1.21 */}
-                        <span className="font-medium text-gray-900">€ {(((subtotal - discountAmount) + (shippingCost || 0) + cardPaymentFee) * 0.21).toFixed(2).replace('.', ',')}</span>
+                        <span className="font-medium text-gray-900">€ {(((subtotal - discountAmount - consolidationDiscountAmount) + (shippingCost || 0) + cardPaymentFee) * 0.21).toFixed(2).replace('.', ',')}</span>
                     </div>
+
+                    {isConsolidated && (
+                        <div className="flex justify-between text-base text-green-600 font-medium">
+                            <span className="flex items-center gap-2">
+                                <Truck className="w-4 h-4" />
+                                Samenbundel-korting
+                            </span>
+                            <span>- € {displayConsolidationDiscount.toFixed(2).replace('.', ',')}</span>
+                        </div>
+                    )}
                     <div className="pt-3 mt-3 border-t border-gray-100 flex justify-between items-center text-lg font-bold text-gray-900">
                         <span>Totaal <span className="text-xs font-normal text-gray-500">{taxLabel}</span></span>
                         <span>€ {total.toFixed(2).replace('.', ',')}</span>

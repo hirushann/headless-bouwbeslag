@@ -30,12 +30,15 @@ export async function createOrder(
       shipping: shipping || billing,
       customer_note,
       customer_id,
-      line_items: cart.map((item) => ({
-        product_id: item.id,
-        quantity: item.quantity,
-        subtotal: item.price.toString(),
-        total: item.price.toString(),
-      })),
+      line_items: cart.map((item) => {
+        const linePrice = (Number(item.price) * Number(item.quantity)).toFixed(2);
+        return {
+          product_id: item.id,
+          quantity: item.quantity,
+          subtotal: linePrice,
+          total: linePrice,
+        };
+      }),
       shipping_lines,
       coupon_lines,
       fee_lines,

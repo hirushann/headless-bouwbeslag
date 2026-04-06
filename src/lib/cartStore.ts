@@ -35,6 +35,10 @@ interface CartState {
   isCartOpen: boolean;
   setCartOpen: (isOpen: boolean) => void;
   updateStockForItems: (updates: { id: number; stockStatus: string; stockQuantity: number | null; leadTimeInStock?: string; leadTimeNoStock?: string }[]) => void;
+  
+  // Consolidation Feature
+  isConsolidated: boolean;
+  setConsolidated: (value: boolean) => void;
 }
 
 export const useCartStore = create<CartState>()(
@@ -150,6 +154,10 @@ export const useCartStore = create<CartState>()(
       },
       isCartOpen: false,
       setCartOpen: (isOpen) => set({ isCartOpen: isOpen }),
+      
+      // Consolidation Feature
+      isConsolidated: false,
+      setConsolidated: (value) => set({ isConsolidated: value }),
     }),
     { name: "cart-storage" }
   )

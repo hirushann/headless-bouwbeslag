@@ -170,10 +170,13 @@ export const getDeliveryInfo = (
     // If (stock >= qty) OR (stock is null AND status is 'instock')
     if ((stockQuantity !== null && stockQuantity >= quantityRequested) || (stockQuantity === null && stockStatus === "instock")) {
         const date = calculateDeliveryDate(leadTimeInStock);
+        const diffTime = startOfDay(date).getTime() - startOfDay(now).getTime();
+        const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         return {
             type: "IN_STOCK", // Green
             message: `Bestel nu en ontvang dit product ${formatDeliveryMessage(date)} in huis`,
-            short: `Levering: ${formatDeliveryMessage(date)}`
+            short: `Levering: ${formatDeliveryMessage(date)}`,
+            days
         };
     }
 
@@ -186,18 +189,26 @@ export const getDeliveryInfo = (
         const msgDirect = formatDeliveryMessage(dateDirect);
         const msgBack = formatDeliveryMessage(dateBackorder);
 
+        const diffTime = startOfDay(dateBackorder).getTime() - startOfDay(now).getTime();
+        const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
         return {
             type: "PARTIAL_STOCK", // Mixed/Green warning
             message: `LET OP: van dit product hebben wij momenteel maar ${stockQuantity} op voorraad voor levering ${msgDirect}. De resterende ${(quantityRequested - stockQuantity)} stuks worden ${msgBack} verzonden.`,
-            short: `Levering: ${stockQuantity}x ${msgDirect}, ${(quantityRequested - stockQuantity)}x ${msgBack}`
+            short: `Levering: ${stockQuantity}x ${msgDirect}, ${(quantityRequested - stockQuantity)}x ${msgBack}`,
+            days
         };
     }
 
     // SCENARIO 3: NO STOCK (Backorder)
     const date = calculateDeliveryDate(leadTimeNoStock);
+    const diffTime = startOfDay(date).getTime() - startOfDay(now).getTime();
+    const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
     return {
         type: "BACKORDER", // Red
         message: `Bestel nu en ontvang dit product ${formatDeliveryMessage(date)} in huis`,
-        short: `Levering: ${formatDeliveryMessage(date)}`
+        short: `Levering: ${formatDeliveryMessage(date)}`,
+        days
     };
 };

@@ -48,8 +48,7 @@ export async function searchProducts(
             multi_match: {
                 query: query,
                 fields: ["post_title^3", "post_content", "meta.*.value", "meta._sku.value^2",],
-                type: "best_fields",
-                operator: "and" // Optional: helps with specific number searches
+                type: "bool_prefix"
             },
         });
     }
