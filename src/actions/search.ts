@@ -159,7 +159,7 @@ export async function searchProducts(
             }
 
             // Sync with fresh live index data to bypass stale ES image paths and missing thumbnails
-            const indexItem = productIndex.find((p: any) => p.slug === source.post_name);
+            const indexItem = productIndex?.find((p: any) => p.slug === source.post_name);
             const esImages = source.images && source.images.length > 0 ? source.images : (source.thumbnail?.src ? [{ src: source.thumbnail.src, alt: source.thumbnail?.alt || "" }] : []);
             const verifiedImages = indexItem?.images && indexItem.images.length > 0
                 ? indexItem.images
