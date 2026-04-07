@@ -9,10 +9,9 @@ export async function fetchProductIndexAction() {
         // Fetch ALL products lightweight
         // We select fields: id, name, slug, sku, meta_data (to get EANs)
         // INCREASED CACHE: Revalidates every 1 hour (3600s) to be super fast. 
-        // This is acceptable for related products which don't change often.
         const allProducts = await fetchAllWoo("products", {
             status: "publish",
-            _fields: "id,name,slug,sku,meta_data",
+            _fields: "id,name,slug,sku,meta_data,images",
             next: { revalidate: 3600 }
         });
 

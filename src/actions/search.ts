@@ -1,6 +1,7 @@
 "use server";
 
 import client from "@/lib/elasticsearch";
+import { fetchProductIndexAction } from "@/app/actions";
 
 export interface SearchResult {
     ID: number;
@@ -142,6 +143,9 @@ export async function searchProducts(
         const totalItems = typeof result.hits.total === 'object' ? result.hits.total.value : (result.hits.total || 0);
         const totalPages = Math.ceil(totalItems / limit);
 
+        const indexRes = await fetchProductIndexAction();
+        const productIndex = indexRes.success ? indexRes.data : [];
+
         const hits = result.hits.hits.map((hit: any) => {
             const source = hit._source as any;
 
@@ -154,19 +158,23 @@ export async function searchProducts(
                 });
             }
 
-            // Map thumbnail to images array
-            const images = source.thumbnail ? [{ src: source.thumbnail.src, alt: source.thumbnail.alt || "" }] : [];
+            // Sync with fresh live index data to bypass stale ES image paths and missing thumbnails
+            const indexItem = productIndex.find((p: any) => p.slug === source.post_name);
+            const esImages = source.images && source.images.length > 0 ? source.images : (source.thumbnail?.src ? [{ src: source.thumbnail.src, alt: source.thumbnail?.alt || "" }] : []);
+            const verifiedImages = indexItem?.images && indexItem.images.length > 0
+                ? indexItem.images
+                : esImages;
             
             // Extract custom title if present
-            const customTitle = meta_data.find(m => m.key === "description_bouwbeslag_title")?.value || source.post_title;
+            const customTitle = meta_data.find((m: any) => m.key === "description_bouwbeslag_title")?.value || source.post_title;
 
             return {
                 ...source,
                 meta_data: meta_data,
                 name: customTitle,
                 slug: source.post_name,
-                id: source.ID,
-                images: images
+                id: indexItem?.id || source.ID,
+                images: verifiedImages
             } as SearchResult;
         });
 

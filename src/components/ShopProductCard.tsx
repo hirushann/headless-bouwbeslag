@@ -163,9 +163,22 @@ export default function ShopProductCard({ product }: { product: any }) {
             loading="lazy" 
             decoding="async"
             className="w-full h-full object-contain p-2" 
+            onError={(e) => {
+              const target = e.currentTarget as HTMLImageElement;
+              const fallbackSrc = product.images?.[0]?.src ? fixImageSrc(product.images[0].src) : "/default-fallback-image.webp";
+              if (target.src !== fallbackSrc && target.src !== window.location.origin + fallbackSrc) {
+                target.src = fallbackSrc;
+              } else if (!target.src.includes("default-fallback-image.webp")) {
+                target.src = "/default-fallback-image.webp";
+              }
+            }}
           />
         ) : (
-          <div className="w-full h-full bg-gray-100" />
+          <img 
+            src="/default-fallback-image.webp" 
+            alt={productTitle} 
+            className="w-full h-full object-contain p-2 opacity-50" 
+          />
         )}
 
         {/* Dynamic stock badge */}
