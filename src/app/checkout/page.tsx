@@ -704,7 +704,7 @@ export default function NewCheckoutPage() {
           // Failure to reach Validation API (e.g., VIES down). 
           // Revert to idle to not trap the user in an invalid state preventing checkout!
           setVatValidationState('idle');
-          setFormErrors(prev => ({ ...prev, vatNumber: "Verificatie mislukt, maar u kunt doorgaan." }));
+          setFormErrors(prev => ({ ...prev, vatNumber: result.message || "Verificatie mislukt, maar u kunt doorgaan." }));
       }
   };
 

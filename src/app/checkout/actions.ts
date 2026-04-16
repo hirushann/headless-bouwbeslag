@@ -288,20 +288,26 @@ export async function validateVatAction(vatNumber: string) {
         // Sanitize the input to strip any spaces, dots, or dashes
         const cleanVat = vatNumber.replace(/[\s\-\.]/g, '').toUpperCase();
         
+        if (cleanVat.length < 3) {
+            return { success: true, valid: false, message: "BTW-nummer is te kort" };
+        }
+
         // Extract country code (first 2 chars) and numeric payload
         const countryCode = cleanVat.substring(0, 2);
         const number = cleanVat.substring(2);
 
-        // Pass country code and number separately if needed, or check docs. 
-        // Based on "Expected 2-3 arguments", it probably wants (countryCode, vatNumber, [options]).
+        if (!number) {
+            return { success: true, valid: false, message: "BTW-nummer ontbreekt na landcode" };
+        }
+
         const result = await validateVatEU(countryCode, number);
-        if (result) {
-            return { success: true, valid: true, data: result }; // Assuming library returns boolean or object
+        
+        if (result && typeof result.valid === 'boolean') {
+            return { success: true, valid: result.valid, data: result };
         } else {
-            return { success: true, valid: false, message: "Ongeldig BTW-nummer" };
+            return { success: true, valid: false, message: "Verificatie service gaf een onbekende reactie" };
         }
     } catch (error: any) {
-        // console.error("VAT Validation Failed:", error);
-        return { success: false, message: "Kon BTW-nummer niet controleren. Probeer het later opnieuw." };
+        return { success: false, message: `Verificatie mislukt: ${error.message}` };
     }
 }
