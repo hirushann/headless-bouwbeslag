@@ -76,7 +76,10 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods }: CartDra
   }
 
   const hasLengthFreight = items.some((i) => i.hasLengthFreight);
-  const isFreeShipping = freeShippingThreshold !== null && subtotal >= freeShippingThreshold;
+  
+  // Custom logic: Free shipping over 74 Euro (excluding length freight)
+  const isFreeShipping = (freeShippingThreshold !== null && subtotal >= freeShippingThreshold) || subtotal >= 74;
+  
   const shipping = hasLengthFreight ? lengthFreightCost / 1.21 : isFreeShipping ? 0 : flatRate;
   const displayShipping = isB2B ? shipping : shipping * 1.21;
 

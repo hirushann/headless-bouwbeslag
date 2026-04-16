@@ -185,7 +185,8 @@ export async function placeOrderAction(data: any) {
             data.coupon_lines,
             data.customer_note, // Pass customer note
             data.customer_id || 0, // Pass customer ID
-            data.fee_lines || [] // Pass fee lines (e.g., card payment fee)
+            data.fee_lines || [], // Pass fee lines (e.g., card payment fee)
+            data.meta_data || [] // Pass explicit metadata like vat numbers
         );
 
         // console.log("📦 WooCommerce Order Created:", JSON.stringify({
@@ -284,11 +285,12 @@ export async function checkPostcodeAction(postcode: string, number: string) {
 
 export async function validateVatAction(vatNumber: string) {
     try {
-        // Extract country code (first 2 chars) usually. Or just assume it's in the string.
-        // The library might want country code separate?
-        // Let's check if the first 2 chars are letters.
-        const countryCode = vatNumber.substring(0, 2).toUpperCase();
-        const number = vatNumber.substring(2);
+        // Sanitize the input to strip any spaces, dots, or dashes
+        const cleanVat = vatNumber.replace(/[\s\-\.]/g, '').toUpperCase();
+        
+        // Extract country code (first 2 chars) and numeric payload
+        const countryCode = cleanVat.substring(0, 2);
+        const number = cleanVat.substring(2);
 
         // Pass country code and number separately if needed, or check docs. 
         // Based on "Expected 2-3 arguments", it probably wants (countryCode, vatNumber, [options]).

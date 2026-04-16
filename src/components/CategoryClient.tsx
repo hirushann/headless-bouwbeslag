@@ -320,9 +320,11 @@ function FilterSidebar({
         let slug = attr.slug || (attr.name || "").toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '').replace(/-+/g, '-');
         let acfKey = ATTRIBUTE_TO_ACF_MAP[slug] || slug.replace(/^pa_/, '').replace(/-/g, '_');
         
-        // Only show if explicitly enabled
-        if (!category?.acf || !acfKey || (category.acf[acfKey] !== true && category.acf[acfKey] !== "true" && category.acf[acfKey] !== 1 && category.acf[acfKey] !== "1")) {
-          return null;
+        // Only restrict if ACF is explicitly configured (an object). Default to show if untouched (false).
+        if (category?.acf && typeof category.acf === 'object') {
+          if (category.acf[acfKey] !== true && category.acf[acfKey] !== "true" && category.acf[acfKey] !== 1 && category.acf[acfKey] !== "1") {
+            return null;
+          }
         }
         if (attr.name === "Inhoud van de verpakking") return null;
 
@@ -379,7 +381,10 @@ function FilterSidebar({
   const afdichtTotAttr = otherAttributes.find(a => a.name === "Afdichtingsspleet Tot");
 
   const afdichtspleetBounds = useMemo(() => {
-    const isEnabled = category?.acf?.afdichtingsspleet === true || category?.acf?.afdichtingsspleet === "true" || category?.acf?.afdichtingsspleet === 1 || category?.acf?.afdichtingsspleet === "1";
+    let isEnabled = true;
+    if (category?.acf && typeof category.acf === 'object') {
+        isEnabled = category.acf.afdichtingsspleet === true || category.acf.afdichtingsspleet === "true" || category.acf.afdichtingsspleet === 1 || category.acf.afdichtingsspleet === "1";
+    }
     if (!isEnabled) return null;
     if (!allCategoryProductsForFilters || allCategoryProductsForFilters.length === 0) return null;
 
@@ -399,7 +404,10 @@ function FilterSidebar({
   }, [allCategoryProductsForFilters, category]);
 
   const groefbreedteBounds = useMemo(() => {
-    const isEnabled = category?.acf?.groefbreedte === true || category?.acf?.groefbreedte === "true" || category?.acf?.groefbreedte === 1 || category?.acf?.groefbreedte === "1";
+    let isEnabled = true;
+    if (category?.acf && typeof category.acf === 'object') {
+      isEnabled = category.acf.groefbreedte === true || category.acf.groefbreedte === "true" || category.acf.groefbreedte === 1 || category.acf.groefbreedte === "1";
+    }
     if (!isEnabled) return null;
     if (!allCategoryProductsForFilters || allCategoryProductsForFilters.length === 0) return null;
 

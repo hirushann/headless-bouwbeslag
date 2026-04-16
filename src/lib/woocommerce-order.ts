@@ -10,7 +10,8 @@ export async function createOrder(
   coupon_lines: any[] = [],
   customer_note = "",
   customer_id = 0,
-  fee_lines: any[] = []
+  fee_lines: any[] = [],
+  meta_data: any[] = []
 ) {
   try {
     // console.log("📤 Sending to WooCommerce API:", JSON.stringify({
@@ -42,6 +43,7 @@ export async function createOrder(
       shipping_lines,
       coupon_lines,
       fee_lines,
+      meta_data,
     });
 
     return response.data;

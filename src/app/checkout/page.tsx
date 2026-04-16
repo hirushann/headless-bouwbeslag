@@ -11,6 +11,44 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
 
+const SUPPORTED_COUNTRIES = [
+    { iso: 'NL', name: 'Netherlands', localNames: ['Netherlands', 'Nederland'] },
+    { iso: 'BE', name: 'Belgium', localNames: ['Belgium', 'België', 'Belgique'] },
+    { iso: 'DE', name: 'Germany', localNames: ['Germany', 'Deutschland'] },
+    { iso: 'AT', name: 'Austria', localNames: ['Austria', 'Österreich'] },
+    { iso: 'PL', name: 'Poland', localNames: ['Poland', 'Polska'] },
+    { iso: 'DK', name: 'Denmark', localNames: ['Denmark', 'Danmark'] },
+    { iso: 'EE', name: 'Estonia', localNames: ['Estonia', 'Eesti'] },
+    { iso: 'FI', name: 'Finland', localNames: ['Finland', 'Suomi'] },
+    { iso: 'HR', name: 'Croatia', localNames: ['Croatia', 'Hrvatska'] },
+    { iso: 'LT', name: 'Lithuania', localNames: ['Lithuania', 'Lietuva'] },
+    { iso: 'PT', name: 'Portugal', localNames: ['Portugal'] },
+    { iso: 'ES', name: 'Spain', localNames: ['Spain', 'España'] },
+    { iso: 'SK', name: 'Slovakia', localNames: ['Slovakia', 'Slovensko'] },
+    { iso: 'BG', name: 'Bulgaria', localNames: ['Bulgaria', 'България'] },
+    { iso: 'CZ', name: 'Czech Republic', localNames: ['Czech Republic', 'Czechia', 'Česko', 'Czech'] },
+    { iso: 'SE', name: 'Sweden', localNames: ['Sweden', 'Sverige'] }
+];
+
+const getCountryNameFromIso = (iso: string, defaultName: string) => {
+    const country = SUPPORTED_COUNTRIES.find(c => c.iso === iso);
+    return country ? country.name : defaultName;
+};
+
+const getIsoFromCountryName = (name: string, defaultIso: string) => {
+    const country = SUPPORTED_COUNTRIES.find(c => c.name === name);
+    return country ? country.iso : defaultIso;
+};
+
+const getCountryMappedName = (inputName: string) => {
+    for (const country of SUPPORTED_COUNTRIES) {
+        if (country.localNames.includes(inputName) || country.name === inputName) {
+            return country.name;
+        }
+    }
+    return inputName;
+};
+
 export default function NewCheckoutPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
@@ -32,7 +70,7 @@ export default function NewCheckoutPage() {
   const lengthFreightCost = useCartStore((state) => state.lengthFreightCost());
   const isConsolidated = useCartStore((state) => state.isConsolidated);
   const setConsolidated = useCartStore((state) => state.setConsolidated);
-  const CONSOLIDATION_DISCOUNT = 2.50;
+  const CONSOLIDATION_DISCOUNT = 3.00 / 1.21; // Exactly €3.00 including VAT (21%)
 
   // Combine delivery info calculation globally for the checkout view
   const deliveryState = React.useMemo(() => {
@@ -117,7 +155,7 @@ export default function NewCheckoutPage() {
             firstName: b.first_name || prev.firstName,
             lastName: b.last_name || prev.lastName,
             companyName: b.company || prev.companyName,
-            country: b.country === 'NL' ? 'Netherlands' : (b.country === 'BE' ? 'Belgium' : (b.country === 'DE' ? 'Germany' : prev.country)),
+            country: getCountryNameFromIso(b.country, prev.country),
             street: street || prev.street,
             houseNumber: houseNumber || prev.houseNumber,
             apartment: b.address_2 || prev.apartment,
@@ -144,7 +182,7 @@ export default function NewCheckoutPage() {
                  firstName: s.first_name || prev.firstName,
                  lastName: s.last_name || prev.lastName,
                  companyName: s.company || prev.companyName,
-                 country: s.country === 'NL' ? 'Netherlands' : (s.country === 'BE' ? 'Belgium' : (s.country === 'DE' ? 'Germany' : prev.country)),
+                 country: getCountryNameFromIso(s.country, prev.country),
                  street: sStreet || prev.street,
                  houseNumber: sHouseNumber || prev.houseNumber,
                  apartment: s.address_2 || prev.apartment,
@@ -205,19 +243,8 @@ export default function NewCheckoutPage() {
       if (types.includes("route")) street = component.long_name;
       if (types.includes("postal_code")) postcode = component.long_name;
       if (types.includes("locality")) city = component.long_name;
-      if (types.includes("country")) country = component.long_name;
+      if (types.includes("country")) country = component.short_name; // Use standard ISO code from Google
     });
-
-    // Map common country names
-    const countryMap: Record<string, string> = {
-        "Netherlands": "Netherlands",
-        "Nederland": "Netherlands",
-        "Belgium": "Belgium",
-        "België": "Belgium",
-        "Belgique": "Belgium",
-        "Germany": "Germany",
-        "Deutschland": "Germany"
-    };
 
     if (type === 'billing') {
       setFormData(prev => ({
@@ -226,7 +253,7 @@ export default function NewCheckoutPage() {
         houseNumber: houseNumber || prev.houseNumber,
         postcode: postcode || prev.postcode,
         city: city || prev.city,
-        country: countryMap[country] || prev.country
+        country: getCountryNameFromIso(country, prev.country)
       }));
     } else {
       setShippingData(prev => ({
@@ -235,7 +262,7 @@ export default function NewCheckoutPage() {
         houseNumber: houseNumber || prev.houseNumber,
         postcode: postcode || prev.postcode,
         city: city || prev.city,
-        country: countryMap[country] || prev.country
+        country: getCountryNameFromIso(country, prev.country)
       }));
     }
   };
@@ -281,7 +308,6 @@ export default function NewCheckoutPage() {
         if (billingSearchRef.current && billingSearchRef.current !== billingInitRef.current) {
             billingAutocomplete.current = new Autocomplete(billingSearchRef.current, {
                 types: ['address'],
-                componentRestrictions: { country: ['nl', 'be', 'de'] },
                 fields: ['address_components', 'geometry']
             });
             billingAutocomplete.current.addListener('place_changed', () => handlePlaceSelect(billingAutocomplete.current, 'billing'));
@@ -292,7 +318,6 @@ export default function NewCheckoutPage() {
         if (shippingSearchRef.current && shippingSearchRef.current !== shippingInitRef.current) {
             shippingAutocomplete.current = new Autocomplete(shippingSearchRef.current, {
                 types: ['address'],
-                componentRestrictions: { country: ['nl', 'be', 'de'] },
                 fields: ['address_components', 'geometry']
             });
             shippingAutocomplete.current.addListener('place_changed', () => handlePlaceSelect(shippingAutocomplete.current, 'shipping'));
@@ -459,37 +484,54 @@ export default function NewCheckoutPage() {
   const hasLengthFreight = cartItems.some(i => i.hasLengthFreight);
 
   const validMethods = React.useMemo(() => {
+    let methodsToReturn = [];
+
     if (hasLengthFreight) {
         // Prioritize backend method if available
         const realMethod = availableMethods.find(m => m.title.toLowerCase().includes('lengtevracht'));
-        if (realMethod) return [realMethod];
+        if (realMethod) {
+            methodsToReturn = [realMethod];
+        } else {
+            methodsToReturn = [{
+                id: 9999, // distinct ID
+                methodId: 'length_freight',
+                title: 'Lengtevracht toeslag',
+                cost: lengthFreightCost / 1.21,
+                enabled: true
+            }];
+        }
+    } else {
+        methodsToReturn = availableMethods.filter(method => {
+           // Filter out Lengtevracht if not applicable (since hasLengthFreight is false here)
+           if (method.title && method.title.toLowerCase().includes('lengtevracht')) {
+               return false;
+           }
 
-        return [{
-            id: 9999, // distinct ID
-            methodId: 'length_freight',
-            title: 'Lengtevracht toeslag',
-            // cost: lengthFreightCost / 1.21,
-            cost: lengthFreightCost,
-            enabled: true
-        }];
+           if (method.methodId === 'free_shipping') {
+             // Check requires
+             if (method.requires === 'min_amount' || method.requires === 'either') {
+                 const minAmount = method.minAmount ? parseFloat(method.minAmount) : 0;
+                 if (subtotal < minAmount) return false;
+             }
+           }
+           return true;
+        });
     }
 
-    return availableMethods.filter(method => {
-       // Filter out Lengtevracht if not applicable (since hasLengthFreight is false here)
-       if (method.title && method.title.toLowerCase().includes('lengtevracht')) {
-           return false;
-       }
+    // Custom Free Shipping Logic: Free standard shipping over 74 Euro
+    const cartTotalForShipping = isB2B ? subtotal : subtotal * 1.21;
+    if (cartTotalForShipping >= 74) {
+        methodsToReturn = methodsToReturn.map(method => {
+            // Apply only to regular shipping methods, not lengtevracht
+            if (method.methodId !== 'length_freight' && !method.title.toLowerCase().includes('lengtevracht')) {
+                return { ...method, cost: 0 };
+            }
+            return method;
+        });
+    }
 
-       if (method.methodId === 'free_shipping') {
-         // Check requires
-         if (method.requires === 'min_amount' || method.requires === 'either') {
-             const minAmount = method.minAmount ? parseFloat(method.minAmount) : 0;
-             if (subtotal < minAmount) return false;
-         }
-       }
-       return true;
-    });
-  }, [availableMethods, subtotal, hasLengthFreight]);
+    return methodsToReturn;
+  }, [availableMethods, subtotal, hasLengthFreight, isB2B, lengthFreightCost]);
 
   // Update shipping cost whenever rates or selected method changes
   // AND Auto-select if needed
@@ -655,9 +697,14 @@ export default function NewCheckoutPage() {
       
       if (result.success && result.valid) {
           setVatValidationState('valid');
-      } else {
+      } else if (result.success && !result.valid) {
           setVatValidationState('invalid');
           setFormErrors(prev => ({ ...prev, vatNumber: result.message || "Invalid VAT number" }));
+      } else {
+          // Failure to reach Validation API (e.g., VIES down). 
+          // Revert to idle to not trap the user in an invalid state preventing checkout!
+          setVatValidationState('idle');
+          setFormErrors(prev => ({ ...prev, vatNumber: "Verificatie mislukt, maar u kunt doorgaan." }));
       }
   };
 
@@ -744,7 +791,7 @@ export default function NewCheckoutPage() {
         city: formData.city,
         state: "", // Add state if needed
         postcode: formData.postcode,
-        country: formData.country === "Netherlands" ? "NL" : (formData.country === "Belgium" ? "BE" : "DE"), // Simple mapping
+        country: getIsoFromCountryName(formData.country, "NL"), // Dynamically mapped
         email: formData.email,
         phone: formData.phone
     };
@@ -762,7 +809,7 @@ export default function NewCheckoutPage() {
         city: shippingData.city,
         state: "",
         postcode: shippingData.postcode,
-        country: shippingData.country === "Netherlands" ? "NL" : (shippingData.country === "Belgium" ? "BE" : "DE"),
+        country: getIsoFromCountryName(shippingData.country, "NL"),
     } : billingData;
 
     const orderData = {
@@ -795,6 +842,10 @@ export default function NewCheckoutPage() {
                 tax_class: ""
             }] : [])
         ],
+        meta_data: formData.vatNumber ? [{
+            key: "vat_number",
+            value: formData.vatNumber
+        }] : [],
         mollie_method_id: selectedPaymentMethod, // Pass selected method
         customer_id: user?.id || 0
     };
@@ -948,9 +999,9 @@ export default function NewCheckoutPage() {
                         <label className={labelParams}>Land <span className="text-red-500">*</span></label>
                         <select className={`select w-full bg-gray-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all rounded-lg h-12 font-normal text-base ${formErrors.country ? 'border-red-500 ring-1 ring-red-500' : ''}`} value={formData.country} onChange={(e) => handleInputChange("country", e.target.value)}>
                             <option disabled>Selecteer een land...</option>
-                            <option>Netherlands</option>
-                            <option>Belgium</option>
-                            <option>Germany</option>
+                            {SUPPORTED_COUNTRIES.map(c => (
+                                <option key={c.iso} value={c.name}>{c.name}</option>
+                            ))}
                         </select>
                         {formErrors.country && <p className="text-red-500 text-sm mt-1">{formErrors.country}</p>}
                      </div>
@@ -1029,7 +1080,7 @@ export default function NewCheckoutPage() {
                       {formErrors.email && <p className="text-red-500 text-sm mt-1">{formErrors.email}</p>}
                     </div>
 
-                    {(formData.companyName.trim() !== '' && formData.country !== 'Netherlands') && (
+                    {(formData.companyName.trim() !== '') && (
                       <div className="form-control">
                           <label className={labelParams}>BTW nummer (optioneel)</label>
                           <div className="relative">
@@ -1117,9 +1168,9 @@ export default function NewCheckoutPage() {
                                 <label className={labelParams}>Land <span className="text-red-500">*</span></label>
                                 <select className={`select w-full bg-gray-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all rounded-lg h-12 font-normal text-base ${formErrors.shipping_country ? 'border-red-500 ring-1 ring-red-500' : ''}`} value={shippingData.country} onChange={(e) => handleShippingChange("country", e.target.value)}>
                                     <option disabled>Selecteer een land...</option>
-                                    <option>Netherlands</option>
-                                    <option>Belgium</option>
-                                    <option>Germany</option>
+                                    {SUPPORTED_COUNTRIES.map(c => (
+                                        <option key={c.iso} value={c.name}>{c.name}</option>
+                                    ))}
                                 </select>
                                 {formErrors.shipping_country && <p className="text-red-500 text-sm mt-1">{formErrors.shipping_country}</p>}
                              </div>
@@ -1518,7 +1569,7 @@ export default function NewCheckoutPage() {
                                   Samen verzenden en besparen
                               </label>
                               <p className="text-sm text-gray-600 mt-1 leading-relaxed">
-                                  Wij verzenden al uw artikelen in één pakket op <span className="font-bold text-gray-900">{deliveryState.latest.short.replace('Levering: ', '')}</span> en u ontvangt direct <span className="text-green-600 font-bold text-base">€2,50 korting</span> op uw bestelling.
+                                  Wij verzenden al uw artikelen in één pakket op <span className="font-bold text-gray-900">{deliveryState.latest.short.replace('Levering: ', '')}</span> en u ontvangt direct <span className="text-green-600 font-bold text-base">€3,00 korting</span> op uw bestelling.
                               </p>
                               {isConsolidated && (
                                   <div className="mt-3 flex items-center gap-2 text-blue-600 text-xs font-bold bg-blue-100/50 py-1.5 px-3 rounded-full w-fit">
