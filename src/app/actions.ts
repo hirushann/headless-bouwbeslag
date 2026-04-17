@@ -11,7 +11,8 @@ export async function fetchProductIndexAction() {
         // INCREASED CACHE: Revalidates every 1 hour (3600s) to be super fast. 
         const allProducts = await fetchAllWoo("products", {
             status: "publish",
-            _fields: "id,name,slug,sku,meta_data,images",
+            per_page: 30, // Reduced from 100 to keep JSON response under 2MB for Next.js cache
+            _fields: "id,name,slug,sku,meta_data",
             next: { revalidate: 3600 }
         });
 

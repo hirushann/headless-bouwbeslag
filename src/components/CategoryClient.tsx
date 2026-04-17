@@ -317,12 +317,15 @@ function FilterSidebar({
 
     return activeGlobalAttrs
       .map((attr) => {
-        let slug = attr.slug || (attr.name || "").toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '').replace(/-+/g, '-');
-        let acfKey = ATTRIBUTE_TO_ACF_MAP[slug] || slug.replace(/^pa_/, '').replace(/-/g, '_');
+        const rawSlug = attr.slug || (attr.name || "").toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '').replace(/-+/g, '-');
+        const normalizedSlug = (rawSlug.startsWith('pa_') ? rawSlug.slice(3) : rawSlug).trim().toLowerCase();
+        let acfKey = ATTRIBUTE_TO_ACF_MAP[normalizedSlug] || normalizedSlug.replace(/-/g, '_');
         
-        // Only restrict if ACF is explicitly configured (an object). Default to show if untouched (false).
-        if (category?.acf && typeof category.acf === 'object') {
-          if (category.acf[acfKey] !== true && category.acf[acfKey] !== "true" && category.acf[acfKey] !== 1 && category.acf[acfKey] !== "1") {
+        // Only hide if ACF explicitly tells us to (is false/0). 
+        // If it's undefined (not configured) or true, we show it.
+        if (category?.acf && typeof category.acf === 'object' && category.acf.hasOwnProperty(acfKey)) {
+          const val = category.acf[acfKey];
+          if (val === false || val === "false" || val === 0 || val === "0") {
             return null;
           }
         }
@@ -382,8 +385,9 @@ function FilterSidebar({
 
   const afdichtspleetBounds = useMemo(() => {
     let isEnabled = true;
-    if (category?.acf && typeof category.acf === 'object') {
-        isEnabled = category.acf.afdichtingsspleet === true || category.acf.afdichtingsspleet === "true" || category.acf.afdichtingsspleet === 1 || category.acf.afdichtingsspleet === "1";
+    if (category?.acf && typeof category.acf === 'object' && category.acf.hasOwnProperty('afdichtingsspleet')) {
+        const val = category.acf.afdichtingsspleet;
+        isEnabled = val !== false && val !== "false" && val !== 0 && val !== "0";
     }
     if (!isEnabled) return null;
     if (!allCategoryProductsForFilters || allCategoryProductsForFilters.length === 0) return null;
@@ -405,8 +409,9 @@ function FilterSidebar({
 
   const groefbreedteBounds = useMemo(() => {
     let isEnabled = true;
-    if (category?.acf && typeof category.acf === 'object') {
-      isEnabled = category.acf.groefbreedte === true || category.acf.groefbreedte === "true" || category.acf.groefbreedte === 1 || category.acf.groefbreedte === "1";
+    if (category?.acf && typeof category.acf === 'object' && category.acf.hasOwnProperty('groefbreedte')) {
+      const val = category.acf.groefbreedte;
+      isEnabled = val !== false && val !== "false" && val !== 0 && val !== "0";
     }
     if (!isEnabled) return null;
     if (!allCategoryProductsForFilters || allCategoryProductsForFilters.length === 0) return null;

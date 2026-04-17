@@ -793,8 +793,11 @@ export default function NewCheckoutPage() {
         postcode: formData.postcode,
         country: getIsoFromCountryName(formData.country, "NL"), // Dynamically mapped
         email: formData.email,
-        phone: formData.phone
+        phone: formData.phone,
+        vat_number: formData.vatNumber
     };
+
+    const vatNote = formData.vatNumber ? `\nBTW Nummer: ${formData.vatNumber}` : "";
 
     const consolidationNote = isConsolidated ? "\n\n⚠️ SAMENBUNDELING: Alle artikelen in één pakket verzenden op de laatst mogelijke leverdatum." : "";
 
@@ -815,7 +818,7 @@ export default function NewCheckoutPage() {
     const orderData = {
         billing: billingData,
         shipping: shippingObject,
-        customer_note: orderNotes + consolidationNote,
+        customer_note: orderNotes + consolidationNote + vatNote,
         cart: cartItems,
         payment_method: "mollie",
         shipping_line: method ? [{
@@ -842,10 +845,11 @@ export default function NewCheckoutPage() {
                 tax_class: ""
             }] : [])
         ],
-        meta_data: formData.vatNumber ? [{
-            key: "vat_number",
-            value: formData.vatNumber
-        }] : [],
+        meta_data: formData.vatNumber ? [
+            { key: "vat_number", value: formData.vatNumber },
+            { key: "_billing_vat_number", value: formData.vatNumber },
+            { key: "BTW Nummer", value: formData.vatNumber }
+        ] : [],
         mollie_method_id: selectedPaymentMethod, // Pass selected method
         customer_id: user?.id || 0
     };
@@ -959,6 +963,58 @@ export default function NewCheckoutPage() {
               {currentStep === 1 && (
                 <div className="p-6 pt-6 animate-in slide-in-from-top-4 fade-in duration-300">
                   <div className="space-y-5 mb-6">
+                    
+
+                    {/* Name Fields */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="form-control">
+                        <label className={labelParams}>Voornaam <span className="text-red-500">*</span></label>
+                        <input type="text" className={`${inputParams} ${formErrors.firstName ? 'border-red-500 ring-1 ring-red-500' : ''}`} value={formData.firstName} onChange={(e) => handleInputChange("firstName", e.target.value)} />
+                        {formErrors.firstName && <p className="text-red-500 text-sm mt-1">{formErrors.firstName}</p>}
+                      </div>
+                      <div className="form-control">
+                        <label className={labelParams}>Achternaam <span className="text-red-500">*</span></label>
+                        <input type="text" className={`${inputParams} ${formErrors.lastName ? 'border-red-500 ring-1 ring-red-500' : ''}`} value={formData.lastName} onChange={(e) => handleInputChange("lastName", e.target.value)} />
+                        {formErrors.lastName && <p className="text-red-500 text-sm mt-1">{formErrors.lastName}</p>}
+                      </div>
+                    </div>
+
+                    {/* Company Name (Optional) */}
+                    <div className="form-control">
+                    <label className={labelParams}>Bedrijfsnaam (optioneel)</label>
+                    <input type="text" className={inputParams} value={formData.companyName} onChange={(e) => handleInputChange("companyName", e.target.value)} />
+                    </div>
+
+                    {(formData.companyName.trim() !== '') && (
+                      <div className="form-control">
+                          <label className={labelParams}>BTW nummer (optioneel)</label>
+                          <div className="relative">
+                              <input 
+                                  type="text" 
+                                  className={`${inputParams} ${vatValidationState === 'invalid' ? 'border-red-500 ring-1 ring-red-500' : ''} ${vatValidationState === 'valid' ? 'border-green-500 ring-1 ring-green-500' : ''}`} 
+                                  value={formData.vatNumber} 
+                                  onChange={(e) => {
+                                      handleInputChange("vatNumber", e.target.value);
+                                      if (vatValidationState !== 'idle') setVatValidationState('idle'); // Reset state on type
+                                  }} 
+                                  onBlur={handleVatBlur}
+                                  placeholder="NL123456789B01"
+                              />
+                              {vatValidationState === 'validating' && (
+                                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                      <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                                  </div>
+                              )}
+                               {vatValidationState === 'valid' && (
+                                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                      <Check className="w-5 h-5 text-green-500" />
+                                  </div>
+                              )}
+                          </div>
+                          {formErrors.vatNumber && <p className="text-red-500 text-sm mt-1">{formErrors.vatNumber}</p>}
+                      </div>
+                    )}
+
                     {/* Google Address Lookup */}
                     <div className="form-control mb-2">
                         <label className={labelParams}>Snel adres zoeken (Google)</label>
@@ -974,37 +1030,6 @@ export default function NewCheckoutPage() {
                             </div>
                         </div>
                     </div>
-                    {/* Name Fields */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      <div className="form-control">
-                        <label className={labelParams}>Voornaam <span className="text-red-500">*</span></label>
-                        <input type="text" className={`${inputParams} ${formErrors.firstName ? 'border-red-500 ring-1 ring-red-500' : ''}`} value={formData.firstName} onChange={(e) => handleInputChange("firstName", e.target.value)} />
-                        {formErrors.firstName && <p className="text-red-500 text-sm mt-1">{formErrors.firstName}</p>}
-                      </div>
-                      <div className="form-control">
-                        <label className={labelParams}>Achternaam <span className="text-red-500">*</span></label>
-                        <input type="text" className={`${inputParams} ${formErrors.lastName ? 'border-red-500 ring-1 ring-red-500' : ''}`} value={formData.lastName} onChange={(e) => handleInputChange("lastName", e.target.value)} />
-                        {formErrors.lastName && <p className="text-red-500 text-sm mt-1">{formErrors.lastName}</p>}
-                      </div>
-                    </div>
-
-                      {/* Company Name (Optional) */}
-                      <div className="form-control">
-                        <label className={labelParams}>Bedrijfsnaam (optioneel)</label>
-                        <input type="text" className={inputParams} value={formData.companyName} onChange={(e) => handleInputChange("companyName", e.target.value)} />
-                      </div>
-
-                     {/* Country */}
-                     <div className="form-control">
-                        <label className={labelParams}>Land <span className="text-red-500">*</span></label>
-                        <select className={`select w-full bg-gray-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all rounded-lg h-12 font-normal text-base ${formErrors.country ? 'border-red-500 ring-1 ring-red-500' : ''}`} value={formData.country} onChange={(e) => handleInputChange("country", e.target.value)}>
-                            <option disabled>Selecteer een land...</option>
-                            {SUPPORTED_COUNTRIES.map(c => (
-                                <option key={c.iso} value={c.name}>{c.name}</option>
-                            ))}
-                        </select>
-                        {formErrors.country && <p className="text-red-500 text-sm mt-1">{formErrors.country}</p>}
-                     </div>
 
                     {/* Street Address */}
                     {/* Postcode & House Number */}
@@ -1064,51 +1089,36 @@ export default function NewCheckoutPage() {
                         </div>
                     </div>
 
+                    {/* Country */}
                     <div className="form-control">
+                    <label className={labelParams}>Land <span className="text-red-500">*</span></label>
+                    <select className={`select w-full bg-gray-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all rounded-lg h-12 font-normal text-base ${formErrors.country ? 'border-red-500 ring-1 ring-red-500' : ''}`} value={formData.country} onChange={(e) => handleInputChange("country", e.target.value)}>
+                        <option disabled>Selecteer een land...</option>
+                        {SUPPORTED_COUNTRIES.map(c => (
+                            <option key={c.iso} value={c.name}>{c.name}</option>
+                        ))}
+                    </select>
+                    {formErrors.country && <p className="text-red-500 text-sm mt-1">{formErrors.country}</p>}
+                    </div>
+
+                    {/* <div className="form-control">
                         <label className={labelParams}>Appartement, suite, unit, enz. (optioneel)</label>
                          <input type="text" className={inputParams} value={formData.apartment} onChange={(e) => handleInputChange("apartment", e.target.value)} />
-                    </div>
+                    </div> */}
 
                     {/* Phone & Email */}
-                    <div className="form-control">
-                      <label className={labelParams}>Telefoon (optioneel)</label>
-                      <input type="tel" className={inputParams} value={formData.phone} onChange={(e) => handleInputChange("phone", e.target.value)} />
-                    </div>
-                    <div className="form-control">
-                      <label className={labelParams}>E-mail adres <span className="text-red-500">*</span></label>
-                      <input type="email" className={`${inputParams} ${formErrors.email ? 'border-red-500 ring-1 ring-red-500' : ''}`} value={formData.email} onChange={(e) => handleInputChange("email", e.target.value)} />
-                      {formErrors.email && <p className="text-red-500 text-sm mt-1">{formErrors.email}</p>}
-                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div className="form-control">
+                        <label className={labelParams}>E-mail adres <span className="text-red-500">*</span></label>
+                        <input type="email" className={`${inputParams} ${formErrors.email ? 'border-red-500 ring-1 ring-red-500' : ''}`} value={formData.email} onChange={(e) => handleInputChange("email", e.target.value)} />
+                        {formErrors.email && <p className="text-red-500 text-sm mt-1">{formErrors.email}</p>}
+                        </div>
 
-                    {(formData.companyName.trim() !== '') && (
-                      <div className="form-control">
-                          <label className={labelParams}>BTW nummer (optioneel)</label>
-                          <div className="relative">
-                              <input 
-                                  type="text" 
-                                  className={`${inputParams} ${vatValidationState === 'invalid' ? 'border-red-500 ring-1 ring-red-500' : ''} ${vatValidationState === 'valid' ? 'border-green-500 ring-1 ring-green-500' : ''}`} 
-                                  value={formData.vatNumber} 
-                                  onChange={(e) => {
-                                      handleInputChange("vatNumber", e.target.value);
-                                      if (vatValidationState !== 'idle') setVatValidationState('idle'); // Reset state on type
-                                  }} 
-                                  onBlur={handleVatBlur}
-                                  placeholder="NL123456789B01"
-                              />
-                              {vatValidationState === 'validating' && (
-                                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                                      <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-                                  </div>
-                              )}
-                               {vatValidationState === 'valid' && (
-                                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                                      <Check className="w-5 h-5 text-green-500" />
-                                  </div>
-                              )}
-                          </div>
-                          {formErrors.vatNumber && <p className="text-red-500 text-sm mt-1">{formErrors.vatNumber}</p>}
-                      </div>
-                    )}
+                        <div className="form-control">
+                        <label className={labelParams}>Telefoon (optioneel)</label>
+                        <input type="tel" className={inputParams} value={formData.phone} onChange={(e) => handleInputChange("phone", e.target.value)} />
+                        </div>
+                    </div>
                   </div>
                   
                   {/* Shipping Address Toggle */}
@@ -1128,25 +1138,8 @@ export default function NewCheckoutPage() {
 
                      {shipToDifferentAddress && (
                          <div className="space-y-5 animate-in slide-in-from-top-2 fade-in duration-200 pl-1">
-                             {/* Google Address Lookup Shipping */}
-                             <div className="form-control mb-2">
-                                <label className={labelParams}>Snel adres zoeken (Google)</label>
-                                <div className="relative">
-                                    <input 
-                                        ref={shippingSearchRef}
-                                        type="text" 
-                                        className={`${inputParams} pl-10`} 
-                                        placeholder="Begin met typen voor suggesties..." 
-                                    />
-                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                                        <Truck className="w-5 h-5" />
-                                    </div>
-                                </div>
-                             </div>
-                             
-                             <h3 className="text-base font-semibold text-gray-900 mb-2">Verzendgegevens</h3>
-                            
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <h3 className="text-base font-semibold text-gray-900 mb-2">Verzendgegevens</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div className="form-control">
                                     <label className={labelParams}>Voornaam <span className="text-red-500">*</span></label>
                                     <input type="text" className={`${inputParams} ${formErrors.shipping_firstName ? 'border-red-500 ring-1 ring-red-500' : ''}`} value={shippingData.firstName} onChange={(e) => handleShippingChange("firstName", e.target.value)} />
@@ -1159,23 +1152,28 @@ export default function NewCheckoutPage() {
                                 </div>
                             </div>
 
-                             <div className="form-control">
+                            <div className="form-control">
                                 <label className={labelParams}>Bedrijfsnaam (optioneel)</label>
                                 <input type="text" className={inputParams} value={shippingData.companyName} onChange={(e) => handleShippingChange("companyName", e.target.value)} />
                             </div>
 
-                             <div className="form-control">
-                                <label className={labelParams}>Land <span className="text-red-500">*</span></label>
-                                <select className={`select w-full bg-gray-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all rounded-lg h-12 font-normal text-base ${formErrors.shipping_country ? 'border-red-500 ring-1 ring-red-500' : ''}`} value={shippingData.country} onChange={(e) => handleShippingChange("country", e.target.value)}>
-                                    <option disabled>Selecteer een land...</option>
-                                    {SUPPORTED_COUNTRIES.map(c => (
-                                        <option key={c.iso} value={c.name}>{c.name}</option>
-                                    ))}
-                                </select>
-                                {formErrors.shipping_country && <p className="text-red-500 text-sm mt-1">{formErrors.shipping_country}</p>}
-                             </div>
+                            {/* Google Address Lookup Shipping */}
+                            <div className="form-control mb-2">
+                                <label className={labelParams}>Snel adres zoeken (Google)</label>
+                                <div className="relative">
+                                    <input 
+                                        ref={shippingSearchRef}
+                                        type="text" 
+                                        className={`${inputParams} pl-10`} 
+                                        placeholder="Begin met typen voor suggesties..." 
+                                    />
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                                        <Truck className="w-5 h-5" />
+                                    </div>
+                                </div>
+                            </div>
 
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                  <div className="form-control">
                                     <label className={labelParams}>Postcode <span className="text-red-500">*</span></label>
                                     <input 
@@ -1205,7 +1203,7 @@ export default function NewCheckoutPage() {
                             {isCheckingShippingPostcode && <p className="text-sm text-blue-500">Adres controleren...</p>}
                             {shippingPostcodeError && <p className="text-sm text-red-500">{shippingPostcodeError} - Vul adres handmatig in indien nodig.</p>}
 
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                <div className="form-control">
                                     <label className={labelParams}>Straat <span className="text-red-500">*</span></label>
                                     <input 
@@ -1229,9 +1227,20 @@ export default function NewCheckoutPage() {
                             </div>
 
                             <div className="form-control">
+                                <label className={labelParams}>Land <span className="text-red-500">*</span></label>
+                                <select className={`select w-full bg-gray-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all rounded-lg h-12 font-normal text-base ${formErrors.shipping_country ? 'border-red-500 ring-1 ring-red-500' : ''}`} value={shippingData.country} onChange={(e) => handleShippingChange("country", e.target.value)}>
+                                    <option disabled>Selecteer een land...</option>
+                                    {SUPPORTED_COUNTRIES.map(c => (
+                                        <option key={c.iso} value={c.name}>{c.name}</option>
+                                    ))}
+                                </select>
+                                {formErrors.shipping_country && <p className="text-red-500 text-sm mt-1">{formErrors.shipping_country}</p>}
+                            </div>
+
+                            {/* <div className="form-control">
                                 <label className={labelParams}>Appartement, suite, unit, enz. (optioneel)</label>
                                  <input type="text" className={inputParams} value={shippingData.apartment} onChange={(e) => handleShippingChange("apartment", e.target.value)} />
-                            </div>
+                            </div> */}
                          </div>
                      )}
                   </div>
@@ -1249,10 +1258,7 @@ export default function NewCheckoutPage() {
                       </div>
                   </div>
 
-                  <button 
-                    onClick={nextStep}
-                    className="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white border-none min-h-[48px] px-8 rounded-xl font-semibold shadow-lg shadow-blue-600/20 w-auto"
-                  >
+                  <button onClick={nextStep} className="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white border-none min-h-[48px] px-8 rounded-xl font-semibold shadow-lg shadow-blue-600/20 w-auto">
                     Volgende stap
                   </button>
                 </div>
@@ -1478,9 +1484,8 @@ export default function NewCheckoutPage() {
             </div>
           </div>
 
-          {/* RIGHT COLUMN: Order Summary (Sticky) */}
-          <div className="lg:col-span-5 relative">
-            <div className="sticky top-24 space-y-6">
+          {/* RIGHT COLUMN: Order Summary */}
+          <div className="lg:col-span-5 relative flex flex-col gap-6">
               
               <h3 className="text-2xl font-bold text-gray-900">Jouw Bestelling</h3>
 
@@ -1503,13 +1508,13 @@ export default function NewCheckoutPage() {
                             </div>
                             <div className="flex-1">
                                 <div className="flex justify-between items-start gap-2">
-                                    <div className="min-w-0">
+                                    <div className="w-8/12">
                                         {item.slug ? (
                                             <Link href={`/${item.slug}`} className="hover:text-blue-600 transition-colors">
-                                                <h4 className="text-sm font-bold text-gray-900 line-clamp-2">{item.name}</h4>
+                                                <h4 className="text-sm font-bold text-gray-900 line-clamp-2 break-all">{item.name}</h4>
                                             </Link>
                                         ) : (
-                                            <h4 className="text-sm font-bold text-gray-900 line-clamp-2">{item.name}</h4>
+                                            <h4 className="text-sm font-bold text-gray-900 line-clamp-2 break-all">{item.name}</h4>
                                         )}
                                         
                                         <div className="flex items-center gap-2 mt-1">
@@ -1574,7 +1579,7 @@ export default function NewCheckoutPage() {
                               {isConsolidated && (
                                   <div className="mt-3 flex items-center gap-2 text-blue-600 text-xs font-bold bg-blue-100/50 py-1.5 px-3 rounded-full w-fit">
                                       <Check className="w-3.5 h-3.5" />
-                                      Laatste levering datum wordt toegepast
+                                      Zodra alles binnen is verzenden we alles tegelijk.
                                   </div>
                               )}
                           </div>
@@ -1583,7 +1588,7 @@ export default function NewCheckoutPage() {
               )}
 
               {/* Totals Card */}
-               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-3">
+               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-3 sticky top-40 z-10">
                     <div className="flex justify-between text-base text-gray-600">
                         <span>Subtotaal</span>
                         <span className="font-medium text-gray-900">€ {displaySubtotal.toFixed(2).replace('.', ',')}</span>
@@ -1697,11 +1702,10 @@ export default function NewCheckoutPage() {
                  </div>
                  <div className="flex items-center gap-2 text-xs text-gray-500">
                     <Truck className="w-4 h-4 text-blue-600"/>
-                    <span>Gratis verzending boven €100</span>
+                    <span>Gratis verzending boven €75</span>
                  </div>
                </div>
 
-            </div>
           </div>
         </div>
       </main>

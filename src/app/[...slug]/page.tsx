@@ -261,7 +261,7 @@ const fetchAttributes = cache(async (): Promise<Attribute[]> => {
   try {
     const res = await api.get("products/attributes", { 
         per_page: 100,
-        _fields: "id,name",
+        _fields: "id,name,slug",
         next: { revalidate: 86400 } 
     });
     const attributesData = res.data || [];
@@ -272,6 +272,7 @@ const fetchAttributes = cache(async (): Promise<Attribute[]> => {
         return {
           id: attr.id,
           name: attr.name,
+          slug: attr.slug,
           terms: termsRes,
         };
       })

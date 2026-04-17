@@ -131,7 +131,7 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods }: CartDra
             ) : (
               items.map((item) => (
                 <div key={item.id} className="flex gap-2 items-center justify-between p-3 mb-3 border border-[#DEDEDE] rounded-sm relative flex-col lg:flex-row">
-                  <div className="flex items-center gap-4 justify-start w-full">
+                  <div className="flex items-center gap-4 justify-start w-8/12">
                     {item.slug ? (
                       <Link className="w-1/3 flex items-center justify-start" href={`/${item.slug}`} onClick={() => setCartOpen(false)}>
                         {item.image ? (
@@ -156,10 +156,10 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods }: CartDra
                     <div className="w-2/3">
                       {item.slug ? (
                         <Link href={`/${item.slug}`} className="hover:text-blue-600 transition" onClick={() => setCartOpen(false)}>
-                          <h3 className="font-semibold">{item.name}</h3>
+                          <h3 className="font-semibold break-all">{item.name}</h3>
                         </Link>
                       ) : (
-                        <h3 className="font-semibold">{item.name}</h3>
+                        <h3 className="font-semibold break-all">{item.name}</h3>
                       )}
                       {(item.color || item.brand || item.model) && (
                         <div className="flex gap-2 flex-wrap mt-1 mb-2">
@@ -207,7 +207,7 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods }: CartDra
                       )}
                     </div>
                   </div>
-                  <div className="flex w-full lg:w-auto flex-row-reverse lg:flex-col items-center lg:items-end gap-2">
+                  <div className="flex w-4/12 lg:w-auto flex-row-reverse lg:flex-col items-center lg:items-end gap-2">
                     <div className="flex items-center border border-[#EDEDED] shadow-xs rounded-sm w-auto">
                       <button onClick={() => decreaseQuantity(item.id)} aria-label={`${item.name} aantal verlagen`} className="border-r border-[#EDEDED] cursor-pointer px-3 py-1 text-lg font-bold text-gray-700 hover:bg-gray-200">−</button>
                       <input type="number" min={1} aria-label="Aantal" className="w-14 text-center px-2 py-1 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" value={item.quantity} onChange={(e) => useCartStore.getState().updateQty(item.id, Math.max(1, parseInt(e.target.value) || 1))} />
