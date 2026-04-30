@@ -91,6 +91,66 @@ const ATTRIBUTE_TO_ACF_MAP: Record<string, string> = {
   'pa_material': 'materials',
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SHARED PURE FILTER UTILITY
+// Used identically by FilterSidebar (facet counts) and CategoryClient
+// (product loading). Keeping one copy prevents logic drift.
+// ─────────────────────────────────────────────────────────────────────────────
+function matchesFilters(
+  product: any,
+  selectedFilters: { [key: number]: Set<number> },
+  allAttributes: Attribute[],
+  afdichtingsspleetRange: [number, number] | null,
+  groefbreedteRange: [number, number] | null,
+  excludeAttrId?: number
+): boolean {
+  // 1. Regular attribute filters — AND across groups, OR within each group
+  for (const [idStr, terms] of Object.entries(selectedFilters)) {
+    const id = Number(idStr);
+    if (id === excludeAttrId) continue;
+    const pAttr = product.attributes?.find((a: any) => a.id === id);
+    if (!pAttr) return false;
+    const hasMatch = pAttr.options.some((o: string) => {
+      const globalAttr = allAttributes.find(ga => ga.id === id);
+      const tMatch = globalAttr?.terms.find(
+        (t: AttributeTerm) => t.name.trim().toLowerCase() === o.trim().toLowerCase()
+      );
+      return tMatch && terms.has(tMatch.id);
+    });
+    if (!hasMatch) return false;
+  }
+
+  // 2. Range: Afdichtingsspleet
+  if (afdichtingsspleetRange) {
+    const pVan = (product.attributes?.find((a: any) => a.name === "Afdichtingsspleet Van")?.options ?? [])
+      .map((o: any) => parseFloat(o)).filter((n: number) => !isNaN(n));
+    const pTot = (product.attributes?.find((a: any) => a.name === "Afdichtingsspleet Tot")?.options ?? [])
+      .map((o: any) => parseFloat(o)).filter((n: number) => !isNaN(n));
+    const pMin = pVan.length > 0 ? Math.min(...pVan) : null;
+    const pMax = pTot.length > 0 ? Math.max(...pTot) : null;
+    if (pMin === null && pMax === null) return false;
+    const vMin = pMin !== null ? pMin : 0;
+    const vMax = pMax !== null ? pMax : 9999;
+    if (!(vMin <= afdichtingsspleetRange[1] && vMax >= afdichtingsspleetRange[0])) return false;
+  }
+
+  // 3. Range: Groefbreedte
+  if (groefbreedteRange) {
+    const pVan = (product.attributes?.find((a: any) => a.name === "Groefbreedte Van")?.options ?? [])
+      .map((o: any) => parseFloat(o)).filter((n: number) => !isNaN(n));
+    const pTot = (product.attributes?.find((a: any) => a.name === "Groefbreedte Tot")?.options ?? [])
+      .map((o: any) => parseFloat(o)).filter((n: number) => !isNaN(n));
+    const pMin = pVan.length > 0 ? Math.min(...pVan) : null;
+    const pMax = pTot.length > 0 ? Math.max(...pTot) : null;
+    if (pMin === null && pMax === null) return false;
+    const vMin = pMin !== null ? pMin : 0;
+    const vMax = pMax !== null ? pMax : 9999;
+    if (!(vMin <= groefbreedteRange[1] && vMax >= groefbreedteRange[0])) return false;
+  }
+
+  return true;
+}
+
 type CategoryClientProps = {
   category: any;
   subCategories: any[] | Promise<any[]>;
@@ -260,42 +320,9 @@ function FilterSidebar({
 
   const [showAllColors, setShowAllColors] = useState(false);
 
-  // Re-implement checkGlobalMatch logic locally for the sidebar faceted counting
-  const checkGlobalMatchLocal = (p: any, excludeAttrId?: number) => {
-      const filters = Object.entries(selectedFilters);
-      for (const [idStr, terms] of filters) {
-        const id = Number(idStr);
-        if (id === excludeAttrId) continue;
-        const pAttr = p.attributes?.find((a: any) => a.id === id);
-        if (!pAttr) return false;
-        
-        const matchingTerms = pAttr.options.some((o: string) => {
-          const globalAttr = attributes.find(ga => ga.id === id);
-          const tMatch = globalAttr?.terms.find((t: AttributeTerm) => t.name.trim().toLowerCase() === o.trim().toLowerCase());
-          return tMatch && terms.has(tMatch.id);
-        });
-        if (!matchingTerms) return false;
-      }
-      if (afdichtingsspleetRange) {
-        const pVan = p.attributes?.find((a: any)=>a.name==="Afdichtingsspleet Van")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
-        const pTot = p.attributes?.find((a: any)=>a.name==="Afdichtingsspleet Tot")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
-        const pMin = pVan && pVan.length > 0 ? Math.min(...pVan) : null;
-        const pMax = pTot && pTot.length > 0 ? Math.max(...pTot) : null;
-        if (pMin === null && pMax === null) return false;
-        if (pMin !== null && pMin > afdichtingsspleetRange[1]) return false;
-        if (pMax !== null && pMax < afdichtingsspleetRange[0]) return false;
-      }
-      if (groefbreedteRange) {
-        const pVan = p.attributes?.find((a: any)=>a.name==="Groefbreedte Van")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
-        const pTot = p.attributes?.find((a: any)=>a.name==="Groefbreedte Tot")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
-        const pMin = pVan && pVan.length > 0 ? Math.min(...pVan) : null;
-        const pMax = pTot && pTot.length > 0 ? Math.max(...pTot) : null;
-        if (pMin === null && pMax === null) return false;
-        if (pMin !== null && pMin > groefbreedteRange[1]) return false;
-        if (pMax !== null && pMax < groefbreedteRange[0]) return false;
-      }
-      return true;
-  };
+  // Use the shared matchesFilters utility for facet count calculations
+  const checkGlobalMatchLocal = (p: any, excludeAttrId?: number) =>
+    matchesFilters(p, selectedFilters, attributes, afdichtingsspleetRange, groefbreedteRange, excludeAttrId);
 
   const relevantAttributes = useMemo(() => {
     const sourceProducts = allCategoryProductsForFilters || [];
@@ -367,6 +394,8 @@ function FilterSidebar({
           return { ...term, count };
         }).filter(Boolean) as AttributeTerm[];
 
+
+
         if (validTerms.length === 0) return null;
         return { ...attr, terms: validTerms };
       })
@@ -432,8 +461,8 @@ function FilterSidebar({
   }, [allCategoryProductsForFilters, category]);
 
   const regularAttributes = otherAttributes.filter(a => !["Afdichtingsspleet Van", "Afdichtingsspleet Tot", "Groefbreedte Van", "Groefbreedte Tot"].includes(a.name));
-  const validRegularAttributes = regularAttributes.filter(attr => attr.terms.length > 1);
-  const hasValidColorAttribute = !!colorAttribute && colorAttribute.terms.length > 1;
+  const validRegularAttributes = regularAttributes.filter(attr => attr.terms.length > 0);
+  const hasValidColorAttribute = !!colorAttribute && colorAttribute.terms.length > 0;
 
   const [isColorOpen, setIsColorOpen] = useState(true);
   const [isAfdichtOpen, setIsAfdichtOpen] = useState(true);
@@ -444,6 +473,8 @@ function FilterSidebar({
   useEffect(() => {
     if (onFilterCheck) onFilterCheck(hasAnyFilters);
   }, [hasAnyFilters, onFilterCheck]);
+
+
 
   if (!hasAnyFilters) return null;
 
@@ -624,7 +655,9 @@ export default function CategoryClient({
   const [hasFiltersAvailable, setHasFiltersAvailable] = useState<boolean>(true);
   const [unwrappedAttributes, setUnwrappedAttributes] = useState<Attribute[]>([]);
   const [allCategoryProductsForFilters, setAllCategoryProductsForFilters] = useState<any[]>([]);
-  const isInitialMount = useRef(true);
+  // Two separate refs: one guards the initial product load, one guards the page-reset effect.
+  const isFirstProductLoad = useRef(true);
+  const isFirstPageReset = useRef(true);
 
   useEffect(() => {
     Promise.resolve(attributes).then(res => setUnwrappedAttributes(res as Attribute[]));
@@ -676,180 +709,155 @@ export default function CategoryClient({
 
   // Handle scroll to top on page/filter changes
   useEffect(() => {
-    if (isInitialMount.current) return;
+    if (isFirstProductLoad.current) return;
     
     // Immediate scroll to top when navigation changes
     window.scrollTo({ top: 0, behavior: "instant" as any });
   }, [page, sortBy, selectedFilters]);
 
   // ------------------------------------------------------------------
-  // Filtering Logic
+  // Filtering Logic — delegates to shared matchesFilters utility
   // ------------------------------------------------------------------
-  const checkGlobalMatch = (p: any, excludeAttrId?: number) => {
-      // 1. Regular attributes - AND between groups, OR within group
-      const filters = Object.entries(selectedFilters);
-      for (const [idStr, terms] of filters) {
-        const id = Number(idStr);
-        if (id === excludeAttrId) continue;
-        const pAttr = p.attributes?.find((a: any) => a.id === id);
-        if (!pAttr) return false;
-        
-        const matchingTerms = pAttr.options.some((o: string) => {
-          const globalAttr = unwrappedAttributes.find(ga => ga.id === id);
-          const tMatch = globalAttr?.terms.find((t: AttributeTerm) => t.name.trim().toLowerCase() === o.trim().toLowerCase());
-          return tMatch && terms.has(tMatch.id);
-        });
-
-        if (!matchingTerms) return false;
-      }
-
-      // 2. Ranges (Special logic for existing attributes)
-      if (afdichtingsspleetRange) {
-        const pVan = p.attributes?.find((a: any)=>a.name==="Afdichtingsspleet Van")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
-        const pTot = p.attributes?.find((a: any)=>a.name==="Afdichtingsspleet Tot")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
-        const pMin = pVan && pVan.length > 0 ? Math.min(...pVan) : null;
-        const pMax = pTot && pTot.length > 0 ? Math.max(...pTot) : null;
-        if (pMin === null && pMax === null) return false;
-        
-        const vMin = pMin !== null ? pMin : 0;
-        const vMax = pMax !== null ? pMax : 9999;
-        if (!(vMin <= afdichtingsspleetRange[1] && vMax >= afdichtingsspleetRange[0])) return false;
-      }
-      if (groefbreedteRange) {
-        const pVan = p.attributes?.find((a: any)=>a.name==="Groefbreedte Van")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
-        const pTot = p.attributes?.find((a: any)=>a.name==="Groefbreedte Tot")?.options.map((o:any)=>parseFloat(o)).filter((n:any)=>!isNaN(n));
-        const pMin = pVan && pVan.length > 0 ? Math.min(...pVan) : null;
-        const pMax = pTot && pTot.length > 0 ? Math.max(...pTot) : null;
-        if (pMin === null && pMax === null) return false;
-
-        const vMin = pMin !== null ? pMin : 0;
-        const vMax = pMax !== null ? pMax : 9999;
-        if (!(vMin <= groefbreedteRange[1] && vMax >= groefbreedteRange[0])) return false;
-      }
-      return true;
-  };
+  const checkGlobalMatch = (p: any) =>
+    matchesFilters(p, selectedFilters, unwrappedAttributes, afdichtingsspleetRange, groefbreedteRange);
 
   useEffect(() => {
     async function loadProducts() {
       if (!category) return;
 
-      const hasFilters = Object.keys(selectedFilters).length > 0 || !!afdichtingsspleetRange || !!groefbreedteRange;
+      const hasFilters =
+        Object.keys(selectedFilters).length > 0 ||
+        !!afdichtingsspleetRange ||
+        !!groefbreedteRange;
 
-      // Logic: 
-      // 1. If we have NO filters AND NO custom sorting, we can use the server-side pre-fetched initialProducts for Page 1.
-      if (isInitialMount.current) {
-         if (!hasFilters && !sortBy && page === 1) {
-            setProducts(initialProducts);
-            setRawProducts(initialProducts);
-            setTotalPages(initialTotalPages);
-            setTotalProducts(initialTotalProducts);
-            isInitialMount.current = false;
-            return;
-         }
-         isInitialMount.current = false;
+      // On the very first render, use the server-prefetched products when
+      // there are no active filters, no custom sort, and we're on page 1.
+      if (isFirstProductLoad.current) {
+        if (!hasFilters && !sortBy && page === 1) {
+          setProducts(initialProducts);
+          setRawProducts(initialProducts);
+          setTotalPages(initialTotalPages);
+          setTotalProducts(initialTotalProducts);
+          isFirstProductLoad.current = false;
+          return;
+        }
+        isFirstProductLoad.current = false;
       }
-      
+
+      // When filters are active we MUST have both the filter base and the
+      // attribute list ready before we can match correctly.
+      // Both are populated asynchronously from streaming server props.
+      // If either is still empty, just show a loading indicator and wait —
+      // this effect re-runs automatically once they are populated because
+      // both are included in the dependency array below.
+      if (hasFilters && (allCategoryProductsForFilters.length === 0 || unwrappedAttributes.length === 0)) {
+        setProductsLoading(true);
+        return; // Effect will re-run when the missing data arrives
+      }
+
       setProductsLoading(true);
 
       try {
-        // Optimization: If we have filters active, we MUST use our local client-side Filter Base (full product list)
-        // to handle complex multi-select filtering and faceted counts correctly.
         if (hasFilters) {
-           // We need to wait until the full category products are loaded for filtering to work accurately across pages
-           if (allCategoryProductsForFilters.length === 0) {
-              // Wait for it to load via the other useEffect or promise resolution
-              return; 
-           }
+          // ── CLIENT-SIDE FILTERING ────────────────────────────────────────
+          let matches = allCategoryProductsForFilters.filter(p => checkGlobalMatch(p));
 
-           let matches = allCategoryProductsForFilters.filter(p => checkGlobalMatch(p));
-           
-           // Sort matches locally if needed
-           if (sortBy) {
-              matches.sort((a,b) => {
-                 if (sortBy === 'price-low-high') return parseFloat(a.price || "0") - parseFloat(b.price || "0");
-                 if (sortBy === 'price-high-low') return parseFloat(b.price || "0") - parseFloat(a.price || "0");
-                 if (sortBy === 'title-asc') return (a.name || "").localeCompare(b.name || "");
-                 if (sortBy === 'title-desc') return (b.name || "").localeCompare(a.name || "");
-                 if (sortBy === 'date') return new Date(b.date_created || 0).getTime() - new Date(a.date_created || 0).getTime();
-                 if (sortBy === 'popularity') return (b.total_sales || 0) - (a.total_sales || 0);
-                 return 0;
-              });
-           }
+          // Local sort (filter results are already in memory)
+          if (sortBy) {
+            matches.sort((a, b) => {
+              if (sortBy === 'price-low-high') return parseFloat(a.price || '0') - parseFloat(b.price || '0');
+              if (sortBy === 'price-high-low') return parseFloat(b.price || '0') - parseFloat(a.price || '0');
+              if (sortBy === 'title-asc') return (a.name || '').localeCompare(b.name || '');
+              if (sortBy === 'title-desc') return (b.name || '').localeCompare(a.name || '');
+              if (sortBy === 'date') return new Date(b.date_created || 0).getTime() - new Date(a.date_created || 0).getTime();
+              if (sortBy === 'popularity') return (b.total_sales || 0) - (a.total_sales || 0);
+              return 0;
+            });
+          }
 
-           const sliced = matches.slice((page - 1) * 20, page * 20);
-           const slicedIds = sliced.map(m => m.id);
+          const totalMatches = matches.length;
+          const sliced = matches.slice((page - 1) * 20, page * 20);
+          const slicedIds = sliced.map(m => m.id);
 
-           if (slicedIds.length === 0) {
-              setProducts([]);
-              setTotalProducts(matches.length);
-              setTotalPages(Math.ceil(matches.length / 20));
-           } else {
-              // Fetch full product details for just this page's matched IDs
-              const res = await fetch(`/api/products?include=${slicedIds.join(',')}&per_page=${slicedIds.length}`);
-              const data = await res.json();
-              
-              // Ensure order is preserved as per our local sort
-              const sortedData = slicedIds.map(id => data.find((p:any) => p.id === id)).filter(Boolean);
-              setProducts(sortedData);
-              setTotalProducts(matches.length);
-              setTotalPages(Math.ceil(matches.length / 20));
-           }
-
+          if (slicedIds.length === 0) {
+            setProducts([]);
+            setTotalProducts(totalMatches);
+            setTotalPages(Math.max(1, Math.ceil(totalMatches / 20)));
+          } else {
+            // Fetch full product details for this page's matched IDs
+            const res = await fetch(
+              `/api/products?include=${slicedIds.join(',')}&per_page=${slicedIds.length}`
+            );
+            if (!res.ok) throw new Error('Failed to fetch filtered products');
+            const data = await res.json();
+            // Preserve the sorted order
+            const sortedData = slicedIds.map(id => data.find((p: any) => p.id === id)).filter(Boolean);
+            setProducts(sortedData);
+            setTotalProducts(totalMatches);
+            setTotalPages(Math.max(1, Math.ceil(totalMatches / 20)));
+          }
         } else {
-           // Standard paginated fetch (No filters applied: Sorting can be handled by API)
-           const params: any = { per_page: 20, page: page, category: category.id };
-           
-           if (sortBy) {
-              switch(sortBy) {
-                case 'price-low-high': params.orderby = 'price'; params.order = 'asc'; break;
-                case 'price-high-low': params.orderby = 'price'; params.order = 'desc'; break;
-                case 'title-asc': params.orderby = 'title'; params.order = 'asc'; break;
-                case 'title-desc': params.orderby = 'title'; params.order = 'desc'; break;
-                case 'date': params.orderby = 'date'; params.order = 'desc'; break;
-                case 'popularity': params.orderby = 'popularity'; params.order = 'desc'; break;
-                case 'rating': params.orderby = 'rating'; params.order = 'desc'; break;
-              }
-           }
+          // ── SERVER-SIDE PAGINATED FETCH (no filters) ─────────────────────
+          const params: any = { per_page: 20, page, category: category.id };
 
-           const queryString = new URLSearchParams(params as any).toString();
-           const res = await fetch(`/api/products?${queryString}`, { cache: 'no-store' });
-           if (!res.ok) throw new Error('Failed to fetch products');
-           
-           const totalPagesHeader = res.headers.get('x-wp-totalpages');
-           const totalItemsHeader = res.headers.get('x-wp-total');
-           const data = await res.json();
-           
-           setProducts(data);
-           setRawProducts(data);
-           if (totalPagesHeader) setTotalPages(parseInt(totalPagesHeader));
-           if (totalItemsHeader) setTotalProducts(parseInt(totalItemsHeader));
+          if (sortBy) {
+            switch (sortBy) {
+              case 'price-low-high': params.orderby = 'price'; params.order = 'asc'; break;
+              case 'price-high-low': params.orderby = 'price'; params.order = 'desc'; break;
+              case 'title-asc':  params.orderby = 'title'; params.order = 'asc'; break;
+              case 'title-desc': params.orderby = 'title'; params.order = 'desc'; break;
+              case 'date':       params.orderby = 'date';  params.order = 'desc'; break;
+              case 'popularity': params.orderby = 'popularity'; params.order = 'desc'; break;
+              case 'rating':     params.orderby = 'rating';     params.order = 'desc'; break;
+            }
+          }
+
+          const qs = new URLSearchParams(params as any).toString();
+          const res = await fetch(`/api/products?${qs}`, { cache: 'no-store' });
+          if (!res.ok) throw new Error('Failed to fetch products');
+
+          const totalPagesHeader = res.headers.get('x-wp-totalpages');
+          const totalItemsHeader = res.headers.get('x-wp-total');
+          const data = await res.json();
+
+          setProducts(data);
+          setRawProducts(data);
+          if (totalPagesHeader) setTotalPages(parseInt(totalPagesHeader));
+          if (totalItemsHeader) setTotalProducts(parseInt(totalItemsHeader));
         }
       } catch (err) {
-        console.error("LoadProducts error:", err);
+        console.error('LoadProducts error:', err);
       } finally {
         setProductsLoading(false);
       }
     }
 
     loadProducts();
-  }, [category?.id, selectedFilters, afdichtingsspleetRange, groefbreedteRange, sortBy, page, allCategoryProductsForFilters]);
+  // unwrappedAttributes added so the effect re-runs once attributes resolve,
+  // preventing stale-closure mismatches when filtering.
+  }, [
+    category?.id,
+    selectedFilters,
+    afdichtingsspleetRange,
+    groefbreedteRange,
+    sortBy,
+    page,
+    allCategoryProductsForFilters,
+    unwrappedAttributes,
+  ]);
 
-  // Reset page when category OR filters OR sorting changes
+  // Reset page to 1 when category, filters, or sort change (but not on first render)
   useEffect(() => {
-    // Only reset if it's NOT the initial load
-    // We want to reset page to 1 if the USER changes the category, filters, or sorting.
-    // We use a flag to skip the initial mount reset.
-    if (isInitialMount.current) return;
-    
-    // We should NOT reset if the only change was 'page' itself.
-    // This effect only runs when catId, filters or sortBy change.
+    if (isFirstPageReset.current) {
+      isFirstPageReset.current = false;
+      return;
+    }
     setPage(1);
   }, [category?.id, selectedFilters, afdichtingsspleetRange, groefbreedteRange, sortBy]);
 
   const toggleFilter = (attrId: number, termId: number) => {
-    // Auto-close on mobile when selecting an item
-    setShowFilters(false);
-
+    // NOTE: Do NOT auto-close the mobile panel here — users need to
+    // select multiple options. Close is handled by the explicit X button.
     setSelectedFilters(prev => {
       const newFilters: { [key: number]: Set<number> } = {};
 
