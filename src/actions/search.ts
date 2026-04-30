@@ -11,6 +11,8 @@ export interface SearchResult {
     id: number;
     name: string;
     slug: string;
+    price?: string;
+    regular_price?: string;
     meta_data?: { key: string; value: any }[];
     resolved_cat_image?: string;
 }
@@ -167,6 +169,10 @@ export async function searchProducts(
             
             // Extract custom title if present
             const customTitle = meta_data.find((m: any) => m.key === "description_bouwbeslag_title")?.value || source.post_title;
+            
+            // Extract prices
+            const metaPrice = meta_data.find((m: any) => m.key === "_price")?.value || "";
+            const metaRegularPrice = meta_data.find((m: any) => m.key === "_regular_price")?.value || "";
 
             return {
                 ...source,
@@ -174,7 +180,9 @@ export async function searchProducts(
                 name: customTitle,
                 slug: source.post_name,
                 id: indexItem?.id || source.ID,
-                images: verifiedImages
+                images: verifiedImages,
+                price: indexItem?.price || metaPrice || "0",
+                regular_price: indexItem?.regular_price || metaRegularPrice || metaPrice || "0"
             } as SearchResult;
         });
 
