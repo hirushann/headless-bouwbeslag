@@ -181,8 +181,8 @@ export async function searchProducts(
                 slug: source.post_name,
                 id: indexItem?.id || source.ID,
                 images: verifiedImages,
-                price: indexItem?.price || metaPrice || "0",
-                regular_price: indexItem?.regular_price || metaRegularPrice || metaPrice || "0"
+                price: (indexItem as any)?.price || metaPrice || "0",
+                regular_price: (indexItem as any)?.regular_price || metaRegularPrice || metaPrice || "0"
             } as SearchResult;
         });
 
