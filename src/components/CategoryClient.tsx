@@ -102,8 +102,16 @@ function matchesFilters(
   allAttributes: Attribute[],
   afdichtingsspleetRange: [number, number] | null,
   groefbreedteRange: [number, number] | null,
+  showOnlyInStock: boolean,
   excludeAttrId?: number
 ): boolean {
+  // 0. Stock filter
+  if (showOnlyInStock) {
+    const qty = product.stock_quantity;
+    if (qty !== null && qty <= 0) return false;
+    if (qty === null && product.stock_status !== 'instock') return false;
+  }
+
   // 1. Regular attribute filters — AND across groups, OR within each group
   for (const [idStr, terms] of Object.entries(selectedFilters)) {
     const id = Number(idStr);
@@ -292,6 +300,8 @@ interface FilterSidebarProps {
   setGroefbreedteRange: (r: [number, number] | null) => void;
   showFilters: boolean;
   setShowFilters: (s: boolean) => void;
+  showOnlyInStock: boolean;
+  setShowOnlyInStock: (s: boolean) => void;
   onFilterCheck?: (hasFilters: boolean) => void;
 }
 
@@ -308,6 +318,8 @@ function FilterSidebar({
   setGroefbreedteRange,
   showFilters,
   setShowFilters,
+  showOnlyInStock,
+  setShowOnlyInStock,
   onFilterCheck
 }: FilterSidebarProps) {
   const attributes = typeof (attributesProp as any).then === 'function' 
@@ -322,7 +334,7 @@ function FilterSidebar({
 
   // Use the shared matchesFilters utility for facet count calculations
   const checkGlobalMatchLocal = (p: any, excludeAttrId?: number) =>
-    matchesFilters(p, selectedFilters, attributes, afdichtingsspleetRange, groefbreedteRange, excludeAttrId);
+    matchesFilters(p, selectedFilters, attributes, afdichtingsspleetRange, groefbreedteRange, showOnlyInStock, excludeAttrId);
 
   const relevantAttributes = useMemo(() => {
     const sourceProducts = allCategoryProductsForFilters || [];
@@ -468,7 +480,7 @@ function FilterSidebar({
   const [isAfdichtOpen, setIsAfdichtOpen] = useState(true);
   const [isGroefOpen, setIsGroefOpen] = useState(true);
 
-  const hasAnyFilters = hasValidColorAttribute || validRegularAttributes.length > 0 || afdichtspleetBounds !== null || groefbreedteBounds !== null;
+  const hasAnyFilters = hasValidColorAttribute || validRegularAttributes.length > 0 || afdichtspleetBounds !== null || groefbreedteBounds !== null || true; // Always show if we want to show stock filter
 
   useEffect(() => {
     if (onFilterCheck) onFilterCheck(hasAnyFilters);
@@ -485,6 +497,18 @@ function FilterSidebar({
           <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
         <div className={`${showFilters ? 'max-h-[2000px] opacity-100 p-4' : 'max-h-0 opacity-0 lg:p-4'} overflow-hidden transition-all lg:max-h-full lg:opacity-100 bg-white rounded-lg shadow-sm border border-gray-100`}>
+          <div className="mb-4 border-b border-[#F7F7F7] pb-4">
+            <h3 className="font-semibold text-lg text-[#212121] py-2">Voorraad</h3>
+            <label className="flex items-center gap-2 cursor-pointer py-1 group">
+              <input
+                type="checkbox"
+                className="w-5 h-5 rounded-sm border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                checked={showOnlyInStock}
+                onChange={(e) => setShowOnlyInStock(e.target.checked)}
+              />
+              <span className="text-sm text-gray-700 group-hover:text-[#0066FF] transition-colors">Alleen op voorraad</span>
+            </label>
+          </div>
           {hasValidColorAttribute && (
             <div className="mb-4 border-b border-[#F7F7F7] pb-4">
               <button 
@@ -616,8 +640,11 @@ function FilterSidebar({
           {validRegularAttributes.map((attr: Attribute) => (
             <FilterAttributeGroup key={attr.id} attr={attr} selectedFilters={selectedFilters} toggleFilter={toggleFilter} />
           ))}
-          {(Object.keys(selectedFilters).length > 0 || afdichtingsspleetRange || groefbreedteRange) && (
-            <button onClick={resetFilters} className="text-sm text-red-500 hover:text-red-700 font-bold mt-4 block w-full text-center py-2 border border-red-100 rounded-md bg-red-50 transition-colors">Filters wissen</button>
+          {(Object.keys(selectedFilters).length > 0 || afdichtingsspleetRange || groefbreedteRange || showOnlyInStock) && (
+            <button onClick={() => {
+              resetFilters();
+              setShowOnlyInStock(false);
+            }} className="text-sm text-red-500 hover:text-red-700 font-bold mt-4 block w-full text-center py-2 border border-red-100 rounded-md bg-red-50 transition-colors">Filters wissen</button>
           )}
         </div>
       </motion.div>
@@ -652,6 +679,7 @@ export default function CategoryClient({
   const [showFilters, setShowFilters] = useState(false);
   const [afdichtingsspleetRange, setAfdichtingsspleetRange] = useState<[number, number] | null>(null);
   const [groefbreedteRange, setGroefbreedteRange] = useState<[number, number] | null>(null);
+  const [showOnlyInStock, setShowOnlyInStock] = useState<boolean>(false);
   const [hasFiltersAvailable, setHasFiltersAvailable] = useState<boolean>(true);
   const [unwrappedAttributes, setUnwrappedAttributes] = useState<Attribute[]>([]);
   const [allCategoryProductsForFilters, setAllCategoryProductsForFilters] = useState<any[]>([]);
@@ -713,13 +741,13 @@ export default function CategoryClient({
     
     // Immediate scroll to top when navigation changes
     window.scrollTo({ top: 0, behavior: "instant" as any });
-  }, [page, sortBy, selectedFilters]);
+  }, [page, sortBy, selectedFilters, showOnlyInStock]);
 
   // ------------------------------------------------------------------
   // Filtering Logic — delegates to shared matchesFilters utility
   // ------------------------------------------------------------------
   const checkGlobalMatch = (p: any) =>
-    matchesFilters(p, selectedFilters, unwrappedAttributes, afdichtingsspleetRange, groefbreedteRange);
+    matchesFilters(p, selectedFilters, unwrappedAttributes, afdichtingsspleetRange, groefbreedteRange, showOnlyInStock);
 
   useEffect(() => {
     async function loadProducts() {
@@ -728,7 +756,8 @@ export default function CategoryClient({
       const hasFilters =
         Object.keys(selectedFilters).length > 0 ||
         !!afdichtingsspleetRange ||
-        !!groefbreedteRange;
+        !!groefbreedteRange ||
+        showOnlyInStock;
 
       // On the very first render, use the server-prefetched products when
       // there are no active filters, no custom sort, and we're on page 1.
@@ -844,6 +873,7 @@ export default function CategoryClient({
     page,
     allCategoryProductsForFilters,
     unwrappedAttributes,
+    showOnlyInStock,
   ]);
 
   // Reset page to 1 when category, filters, or sort change (but not on first render)
@@ -853,7 +883,7 @@ export default function CategoryClient({
       return;
     }
     setPage(1);
-  }, [category?.id, selectedFilters, afdichtingsspleetRange, groefbreedteRange, sortBy]);
+  }, [category?.id, selectedFilters, afdichtingsspleetRange, groefbreedteRange, sortBy, showOnlyInStock]);
 
   const toggleFilter = (attrId: number, termId: number) => {
     // NOTE: Do NOT auto-close the mobile panel here — users need to
@@ -913,6 +943,8 @@ export default function CategoryClient({
               setGroefbreedteRange={setGroefbreedteRange}
               showFilters={showFilters}
               setShowFilters={setShowFilters}
+              showOnlyInStock={showOnlyInStock}
+              setShowOnlyInStock={setShowOnlyInStock}
               onFilterCheck={setHasFiltersAvailable}
             />
           </Suspense>

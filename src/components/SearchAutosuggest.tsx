@@ -21,7 +21,8 @@ function FilterGroup({
     const [isOpen, setIsOpen] = useState(true);
     const [showAll, setShowAll] = useState(false);
 
-    if (!facet.buckets || facet.buckets.length <= 1) return null;
+    if (!facet.buckets || facet.buckets.length === 0) return null;
+    if (facet.buckets.length <= 1 && facet.name !== 'stock') return null;
 
     const visibleBuckets = showAll ? facet.buckets : facet.buckets.slice(0, 5);
 
@@ -353,14 +354,20 @@ export default function SearchAutosuggest({
                                                 )}
                                             </div>
 
-                                            {facets.map((facet) => (
-                                                <FilterGroup
-                                                    key={facet.name}
-                                                    facet={facet}
-                                                    filters={filters}
-                                                    onFilterChange={handleFilterChange}
-                                                />
-                                            ))}
+                                            {[...facets]
+                                                .sort((a, b) => {
+                                                    if (a.name === "stock") return -1;
+                                                    if (b.name === "stock") return 1;
+                                                    return 0;
+                                                })
+                                                .map((facet) => (
+                                                    <FilterGroup
+                                                        key={facet.name}
+                                                        facet={facet}
+                                                        filters={filters}
+                                                        onFilterChange={handleFilterChange}
+                                                    />
+                                                ))}
 
                                             {/* Clear Filters Button (Desktop) */}
                                             {Object.keys(filters).length > 0 && (

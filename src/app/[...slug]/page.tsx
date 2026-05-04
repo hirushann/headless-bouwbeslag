@@ -311,7 +311,7 @@ const fetchAllCategoryProductsForFiltersCached = cache(async (categoryId: number
       category: categoryId,
       per_page: 100,
       page: 1,
-      _fields: "id,attributes,price,name,date_created,total_sales",
+      _fields: "id,attributes,price,name,date_created,total_sales,stock_quantity,stock_status",
       status: 'publish',
       next: { revalidate: 3600 }
     });
@@ -330,7 +330,7 @@ const fetchAllCategoryProductsForFiltersCached = cache(async (categoryId: number
             category: categoryId,
             per_page: 100,
             page: p,
-            _fields: "id,attributes,price,name,date_created,total_sales",
+            _fields: "id,attributes,price,name,date_created,total_sales,stock_quantity,stock_status",
             status: 'publish',
             next: { revalidate: 3600 }
           })

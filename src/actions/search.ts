@@ -70,10 +70,26 @@ export async function searchProducts(
 
     Object.entries(filters).forEach(([key, values]) => {
         if (values.length > 0) {
-            const field = filterMap[key] || `terms.${key}.slug`;
-            filterClauses.push({
-                terms: { [field]: values }
-            });
+            if (key === 'stock' && values.includes('instock')) {
+                filterClauses.push({
+                    bool: {
+                        must: [
+                            { term: { "meta._stock_status.raw": "instock" } }
+                        ],
+                        must_not: [
+                            { range: { "meta._stock.long": { lte: 0 } } },
+                            { range: { "meta._stock.double": { lte: 0 } } },
+                            { range: { "meta.crucial_data_total_stock.long": { lte: 0 } } },
+                            { range: { "meta.crucial_data_total_stock.double": { lte: 0 } } }
+                        ]
+                    }
+                });
+            } else {
+                const field = filterMap[key] || `terms.${key}.slug`;
+                filterClauses.push({
+                    terms: { [field]: values }
+                });
+            }
         }
     });
 
@@ -134,7 +150,23 @@ export async function searchProducts(
                         }
                     },
                     stock: {
-                        terms: { field: "meta._stock_status.raw", size: 5 }
+                        filters: {
+                            filters: {
+                                instock: {
+                                    bool: {
+                                        must: [
+                                            { term: { "meta._stock_status.raw": "instock" } }
+                                        ],
+                                        must_not: [
+                                            { range: { "meta._stock.long": { lte: 0 } } },
+                                            { range: { "meta._stock.double": { lte: 0 } } },
+                                            { range: { "meta.crucial_data_total_stock.long": { lte: 0 } } },
+                                            { range: { "meta.crucial_data_total_stock.double": { lte: 0 } } }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -148,10 +180,9 @@ export async function searchProducts(
         const indexRes = await fetchProductIndexAction();
         const productIndex = indexRes.success ? indexRes.data : [];
 
-        const hits = result.hits.hits.map((hit: any) => {
+        // 1. Initial mapping and stock data extraction
+        let hits = result.hits.hits.map((hit: any) => {
             const source = hit._source as any;
-
-            // Transform ES meta object to WC-style meta_data array
             const meta_data: any[] = [];
             if (source.meta) {
                 Object.entries(source.meta).forEach(([key, value]: [string, any]) => {
@@ -160,35 +191,89 @@ export async function searchProducts(
                 });
             }
 
-            // Sync with fresh live index data to bypass stale ES image paths and missing thumbnails
+            // Extract stock info for filtering
+            const stock_status = meta_data.find(m => m.key === '_stock_status')?.value;
+            const rawQty = meta_data.find(m => m.key === '_stock')?.value || meta_data.find(m => m.key === 'crucial_data_total_stock')?.value;
+            const stock_quantity = rawQty !== undefined ? parseInt(rawQty, 10) : null;
+
+            return { source, meta_data, stock_status, stock_quantity };
+        });
+
+        // 2. Client-side safety filter for stock
+        if (filters.stock && filters.stock.includes('instock')) {
+            hits = hits.filter((h: any) => {
+                const qty = h.stock_quantity;
+                const status = h.stock_status;
+                if (qty !== null && !isNaN(qty) && qty <= 0) return false;
+                if ((qty === null || isNaN(qty)) && status !== 'instock') return false;
+                return true;
+            });
+        }
+
+        // 3. Final transformation to SearchResult type
+        const processedProducts: SearchResult[] = hits.map((h: any) => {
+            const { source, meta_data } = h;
             const indexItem = productIndex?.find((p: any) => p.slug === source.post_name);
+            
             const esImages = source.images && source.images.length > 0 ? source.images : (source.thumbnail?.src ? [{ src: source.thumbnail.src, alt: source.thumbnail?.alt || "" }] : []);
-            const verifiedImages = indexItem?.images && indexItem.images.length > 0
-                ? indexItem.images
-                : esImages;
+            const verifiedImages = indexItem?.images && indexItem.images.length > 0 ? indexItem.images : esImages;
             
-            // Extract custom title if present
             const customTitle = meta_data.find((m: any) => m.key === "description_bouwbeslag_title")?.value || source.post_title;
-            
-            // Extract prices
-            const metaPrice = meta_data.find((m: any) => m.key === "_price")?.value || "";
-            const metaRegularPrice = meta_data.find((m: any) => m.key === "_regular_price")?.value || "";
+            const metaPrice = meta_data.find((m: any) => m.key === "_price")?.value || "0";
+            const metaRegularPrice = meta_data.find((m: any) => m.key === "_regular_price")?.value || metaPrice;
 
             return {
-                ...source,
-                meta_data: meta_data,
+                id: indexItem?.id || source.ID,
                 name: customTitle,
                 slug: source.post_name,
-                id: indexItem?.id || source.ID,
+                sku: source.meta?._sku?.[0]?.value || source.meta?._sku || "",
+                price: (indexItem as any)?.price || metaPrice,
+                regular_price: (indexItem as any)?.regular_price || metaRegularPrice,
+                sale_price: source.meta?._sale_price?.[0]?.value || source.meta?._sale_price || "",
                 images: verifiedImages,
-                price: (indexItem as any)?.price || metaPrice || "0",
-                regular_price: (indexItem as any)?.regular_price || metaRegularPrice || metaPrice || "0"
+                meta_data,
+                identifiers: Array.from(new Set([...(source.terms?.product_tag?.map((t: any) => t.slug) || []), ...(indexItem?.identifiers || [])])),
+                stock_status: h.stock_status,
+                stock_quantity: h.stock_quantity,
             } as SearchResult;
         });
 
+        // 4. Fetch FRESH stock data from WooCommerce to ensure delivery notice accuracy
+        if (processedProducts.length > 0) {
+            try {
+                const productIds = processedProducts.map(p => p.id).filter(id => id);
+                if (productIds.length > 0) {
+                    const WP_BASE = process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "https://app.bouwbeslag.nl";
+                    const CK = process.env.NEXT_PUBLIC_WC_CONSUMER_KEY;
+                    const CS = process.env.NEXT_PUBLIC_WC_CONSUMER_SECRET;
+                    
+                    if (CK && CS) {
+                        const auth = btoa(`${CK}:${CS}`);
+                        const stockRes = await fetch(`${WP_BASE}/wp-json/wc/v3/products?include=${productIds.join(',')}&per_page=100&_fields=id,stock_status,stock_quantity,manage_stock`, {
+                            headers: { 'Authorization': `Basic ${auth}` },
+                            next: { revalidate: 60 } // Cache for 1 minute
+                        });
+                        const stockData = await stockRes.json();
+                        
+                        if (Array.isArray(stockData)) {
+                            stockData.forEach((s: any) => {
+                                const product = processedProducts.find(p => p.id === s.id);
+                                if (product) {
+                                    product.stock_status = s.stock_status;
+                                    product.stock_quantity = s.stock_quantity;
+                                }
+                            });
+                        }
+                    }
+                }
+            } catch (stockErr) {
+                // Fallback to ES data if WC fetch fails
+            }
+        }
+
         // Resolve category images for search results
         const mediaIds = new Set<string>();
-        hits.forEach((p: any) => {
+        processedProducts.forEach((p: any) => {
             const catImgId = p.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value ||
                              p.meta_data?.find((m: any) => m.key === "cat_image")?.value;
             if (catImgId && /^\d+$/.test(String(catImgId))) {
@@ -198,14 +283,6 @@ export async function searchProducts(
 
         if (mediaIds.size > 0) {
             try {
-                const { data: mediaItems } = await client.transport.request({
-                    method: 'GET',
-                    path: `/wp-json/wp/v2/media?include=${Array.from(mediaIds).join(',')}&per_page=100&_fields=id,source_url`,
-                }, {
-                    // This is a bit of a hack since we use a raw ES client, but we need to call the WP API
-                    // Actually we should just fetch it using global fetch
-                }) as any;
-                // Wait, use standard fetch for simplicity and to avoid ES client complexity
                 const WP_BASE = process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "https://app.bouwbeslag.nl";
                 const res = await fetch(`${WP_BASE}/wp-json/wp/v2/media?include=${Array.from(mediaIds).join(',')}&per_page=100&_fields=id,source_url`);
                 const mediaData = await res.json();
@@ -214,7 +291,7 @@ export async function searchProducts(
                     const mediaMap = new Map();
                     mediaData.forEach((m: any) => mediaMap.set(String(m.id), m.source_url));
 
-                    hits.forEach((p: any) => {
+                    processedProducts.forEach((p: any) => {
                         const catImgId = p.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value ||
                                          p.meta_data?.find((m: any) => m.key === "cat_image")?.value;
                         if (catImgId && mediaMap.has(String(catImgId))) {
@@ -256,16 +333,20 @@ export async function searchProducts(
             // Stock
             const stockAgg = result.aggregations.stock as any;
             if (stockAgg && stockAgg.buckets) {
-                const stocks = stockAgg.buckets.map((b: any) => ({
-                    key: b.key,
-                    doc_count: b.doc_count,
-                    label: b.key === "instock" ? "Op voorraad" : b.key === "outofstock" ? "Niet op voorraad" : b.key
-                }));
+                // For filters aggregation, buckets is an object keyed by our names
+                const stocks = Object.entries(stockAgg.buckets)
+                    .filter(([key]) => key === "instock")
+                    .map(([key, b]: [string, any]) => ({
+                        key,
+                        doc_count: b.doc_count,
+                        label: "Op voorraad"
+                    }));
                 if (stocks.length > 0) facets.push({ name: "stock", buckets: stocks });
             }
         }
 
-        return { products: hits, facets, totalItems, totalPages };
+
+        return { products: processedProducts, facets, totalItems, totalPages };
     } catch (error) {
         // console.error("Elasticsearch server action error:", error);
         return { products: [], facets: [], totalItems: 0, totalPages: 0 };
