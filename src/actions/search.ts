@@ -15,6 +15,8 @@ export interface SearchResult {
     regular_price?: string;
     meta_data?: { key: string; value: any }[];
     resolved_cat_image?: string;
+    stock_status?: string;
+    stock_quantity?: number | null;
 }
 
 export type FilterState = {
@@ -248,7 +250,7 @@ export async function searchProducts(
                     const CS = process.env.NEXT_PUBLIC_WC_CONSUMER_SECRET;
                     
                     if (CK && CS) {
-                        const auth = btoa(`${CK}:${CS}`);
+                        const auth = Buffer.from(`${CK}:${CS}`).toString('base64');
                         const stockRes = await fetch(`${WP_BASE}/wp-json/wc/v3/products?include=${productIds.join(',')}&per_page=100&_fields=id,stock_status,stock_quantity,manage_stock`, {
                             headers: { 'Authorization': `Basic ${auth}` },
                             next: { revalidate: 60 } // Cache for 1 minute
