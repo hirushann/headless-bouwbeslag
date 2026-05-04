@@ -4,9 +4,9 @@ import client from "@/lib/elasticsearch";
 import { fetchProductIndexAction } from "@/app/actions";
 
 export interface SearchResult {
-    ID: number;
-    post_title: string;
-    post_name: string;
+    ID?: number;
+    post_title?: string;
+    post_name?: string;
     images: { src: string; alt: string }[];
     id: number;
     name: string;
