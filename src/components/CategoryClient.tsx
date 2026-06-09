@@ -545,8 +545,11 @@ function FilterSidebar({
                         <div key={term.id} className={`flex flex-col items-center duration-300 ${isDisabled ? 'opacity-30 cursor-not-allowed' : ''}`}>
                           <button className={`w-8 h-8 rounded-full border-2 ${isSelected ? 'ring-2 ring-blue-500 scale-110' : 'border-gray-200'} ${isDisabled ? 'cursor-not-allowed' : ''}`}
                             disabled={isDisabled}
+                            title={term.name}
+                            aria-label={term.name}
                             style={{ backgroundColor: COLOR_MAP[term.name.toLowerCase()] || term.name.toLowerCase() }}
                             onClick={() => toggleFilter(colorAttribute.id, term.id)} />
+                          <span className="mt-1 text-xs text-center text-gray-700">{term.name}</span>
                         </div>
                       );
                     })}

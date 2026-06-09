@@ -82,6 +82,17 @@ export const COLOR_MAP: Record<string, string> = {
   "antique nickel distressed": "#6F716D",
   "antique nickel": "#8C8F8A",
   "antique brass unlacquered": "#7A5C29",
-  "antique brass lacquered": "#8C6B2F"
+  "antique brass lacquered": "#8C6B2F",
+  "brons pvd": "#925238",
+  "chroom glans": "#D9D9D9",
+  "chroom mat": "#BFC6CC",
+  "messing antiek": "#C9A227",
+  "messing pvd": "#D4AF37",
+  "nikkel": "#BFC3C7",
+  "nikkel antiek": "#8C8F8A",
+  "rvs look": "#9CA3AF",
+  "zwart rt": "#1A1A1A",
+  "mat zwart": "#222222",
+  "mat": "#555555"
 
 };
