@@ -5,7 +5,7 @@ import { createOrder, getOrder, updateOrder } from "@/lib/woocommerce-order";
 import mollieClient from "@/lib/mollie";
 import { redirect } from "next/navigation";
 import axios from "axios";
-import { validateVatEU } from "@salespark/validate-vat-eu";
+import validateVat, { CountryCodes } from "validate-vat-ts";
 
 
 export async function checkOrderStatusAction(orderId: number) {
@@ -300,7 +300,7 @@ export async function validateVatAction(vatNumber: string) {
             return { success: true, valid: false, message: "BTW-nummer ontbreekt na landcode" };
         }
 
-        const result = await validateVatEU(countryCode, number);
+        const result = await validateVat(countryCode as CountryCodes, number);
         
         if (result && typeof result.valid === 'boolean') {
             return { success: true, valid: result.valid, data: result };

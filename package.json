@@ -10,7 +10,6 @@
   "dependencies": {
     "@elastic/elasticsearch": "^9.2.0",
     "@mollie/api-client": "^4.3.3",
-    "@salespark/validate-vat-eu": "^1.0.5",
     "@types/nodemailer": "^7.0.5",
     "@woocommerce/woocommerce-rest-api": "^1.0.2",
     "axios": "^1.13.2",
@@ -25,6 +24,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-hot-toast": "^2.6.0",
+    "validate-vat-ts": "^1.3.0",
     "zustand": "^5.0.8"
   },
   "devDependencies": {

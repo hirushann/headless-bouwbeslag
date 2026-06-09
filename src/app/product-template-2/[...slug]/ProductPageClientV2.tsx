@@ -1722,21 +1722,43 @@ export default function ProductPageClientV2({
               <div className="flex border border-[#EDEDED] shadow-xs rounded-sm overflow-hidden bg-white w-auto">
                 <button
                   type="button"
-                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  onClick={() => setQuantity((q) => Math.max(1, (Number(q) || 1) - 1))}
                   className="px-5 py-3 text-2xl cursor-pointer border-r border-[#EDEDED] min-w-[50px]"
                 >-</button>
-                <div className="px-6 py-2 text-base font-medium text-center min-w-[60px] flex items-center justify-center">
-                  {quantity.toString().padStart(1, '0')}
-                </div>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={quantity === "" ? "" : quantity}
+                  onChange={(e) => {
+                    const rawVal = e.target.value.replace(/[^0-9]/g, '');
+                    if (rawVal === '') {
+                      setQuantity("" as any);
+                      return;
+                    }
+                    const val = parseInt(rawVal, 10);
+                    if (availableStock !== null && !backordersAllowed && val > availableStock) {
+                      setQuantity(availableStock);
+                    } else {
+                      setQuantity(val);
+                    }
+                  }}
+                  onBlur={() => {
+                    if (quantity === "" || quantity < 1 || isNaN(Number(quantity))) {
+                      setQuantity(1);
+                    }
+                  }}
+                  className="px-2 py-2 text-base font-medium text-center min-w-[60px] w-16 focus:outline-none focus:ring-0 appearance-none bg-transparent"
+                />
                 <button
                   type="button"
                   onClick={() =>
                     setQuantity((prev) => {
-                      // If limit exists AND backorders disabled, clamp. Else just increment.j
+                      const current = Number(prev) || 1;
                       if (availableStock !== null && !backordersAllowed) {
-                        return Math.min(prev + 1, availableStock);
+                        return Math.min(current + 1, availableStock);
                       }
-                      return prev + 1;
+                      return current + 1;
                     })
                   }
                   className="flex justify-center px-5 py-3 text-2xl cursor-pointer border-l border-[#EDEDED] min-w-[50px]"
@@ -2840,21 +2862,43 @@ export default function ProductPageClientV2({
             <div className="flex border border-[#EDEDED] shadow-xs rounded-sm overflow-hidden bg-white">
               <button
                 type="button"
-                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                onClick={() => setQuantity((q) => Math.max(1, (Number(q) || 1) - 1))}
                 className="px-2.5 py-1.5 text-lg cursor-pointer border-r border-[#EDEDED]"
               >-</button>
-              <div className="px-1.5 py-1 text-base font-medium text-center min-w-[40px] flex items-center justify-center">
-                {quantity.toString().padStart(1, '0')}
-              </div>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={quantity === "" ? "" : quantity}
+                onChange={(e) => {
+                  const rawVal = e.target.value.replace(/[^0-9]/g, '');
+                  if (rawVal === '') {
+                    setQuantity("" as any);
+                    return;
+                  }
+                  const val = parseInt(rawVal, 10);
+                  if (availableStock !== null && !backordersAllowed && val > availableStock) {
+                    setQuantity(availableStock);
+                  } else {
+                    setQuantity(val);
+                  }
+                }}
+                onBlur={() => {
+                  if (quantity === "" || quantity < 1 || isNaN(Number(quantity))) {
+                    setQuantity(1);
+                  }
+                }}
+                className="px-1 py-1 text-base font-medium text-center min-w-[40px] w-12 focus:outline-none focus:ring-0 appearance-none bg-transparent"
+              />
               <button
                 type="button"
                 onClick={() =>
                   setQuantity((prev) => {
-                    // If limit exists AND backorders disabled, clamp. Else just increment.
+                    const current = Number(prev) || 1;
                     if (availableStock !== null && !backordersAllowed) {
-                      return Math.min(prev + 1, availableStock);
+                      return Math.min(current + 1, availableStock);
                     }
-                    return prev + 1;
+                    return current + 1;
                   })
                 }
                 className="flex justify-center px-2.5 py-1.5 text-lg cursor-pointer border-l border-[#EDEDED]"
