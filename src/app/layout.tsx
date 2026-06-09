@@ -34,6 +34,8 @@ export const viewport = {
   initialScale: 1,
 };
 
+import Script from "next/script";
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -43,6 +45,24 @@ export default async function RootLayout({
 
   return (
     <html lang="nl" data-theme="light">
+      <head>
+        <Script
+          strategy="afterInteractive"
+          src="https://www.googletagmanager.com/gtag/js?id=G-F21GZC6NGG"
+        />
+        <Script
+          id="google-analytics"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-F21GZC6NGG');
+            `,
+          }}
+        />
+      </head>
       <body className={`${dmsans.variable} ${geistMono.variable} font-sans antialiased overflow-visible`} >
         <Toaster position="top-right" />
         <UserProvider>
