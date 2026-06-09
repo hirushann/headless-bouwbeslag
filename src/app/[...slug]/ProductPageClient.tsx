@@ -6,13 +6,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { checkStockAction, fetchProductByIdAction, fetchProductBySkuAction, fetchProductBySkuOrIdAction, fetchRelatedProductsBatchAction, fetchBrandImageUrlAction } from "@/app/actions";
 import Link from "next/link";
-// import Image from "next/image";
-import RecommendedProductItem from "@/components/RecommendedProductItem";
+import dynamic from "next/dynamic";
+import Image from "next/image";
+const RecommendedProductItem = dynamic(() => import("@/components/RecommendedProductItem"), { ssr: false });
 import { useCartStore } from "@/lib/cartStore";
 import { fetchMedia } from "@/lib/wordpress";
 import { COLOR_MAP } from "@/config/colorMap";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
-import ReviewsSection from "@/components/ReviewsSection";
+const ReviewsSection = dynamic(() => import("@/components/ReviewsSection"), { ssr: false });
 import PhotoSwipeLightbox from 'photoswipe/lightbox';
 import 'photoswipe/dist/photoswipe.css';
 import { useProductAddedModal } from "@/context/ProductAddedModalContext";
@@ -21,7 +22,9 @@ import { fixImageSrc } from "@/lib/image-utils";
 
 const formatSpecValue = (value: string | number | null | undefined): string => {
   if (value === null || value === undefined) return "";
-  const strVal = String(value);
+  let strVal = String(value);
+  if (strVal.toLowerCase() === "yes") return "Ja";
+  if (strVal.toLowerCase() === "no") return "Nee";
   if (!isNaN(Number(strVal)) && strVal.trim() !== "") {
     return String(parseFloat(strVal));
   }
@@ -127,7 +130,7 @@ export default function ProductPageClient({
   }, [selectedImage]);
 
   const [thumbIndex, setThumbIndex] = useState(0);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState<number | "">(1);
   const [selectedDiscount, setSelectedDiscount] = useState<number | null>(null);
   // --- DISCOUNTS LOGIC ---
   const discounts = React.useMemo(() => {
@@ -148,8 +151,21 @@ export default function ProductPageClient({
 
 
 
-  // --- PRICE CALCULATION LOGIC (Hoisted) ---
-  const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
+  const productMetaMap = React.useMemo(() => {
+    const map: Record<string, string> = {};
+    if (product?.meta_data) {
+      for (const m of product.meta_data) {
+        map[m.key] = m.value;
+      }
+    }
+    return map;
+  }, [product?.meta_data]);
+
+  const getMetaValue = React.useCallback((key: string) => {
+    return productMetaMap[key] || null;
+  }, [productMetaMap]);
+
+  const getMeta = getMetaValue;
 
   // Dynamic Price Logic
   const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
@@ -210,7 +226,7 @@ export default function ProductPageClient({
     }
   }
 
-  const totalPrice = displayBasePrice * quantity;
+  const totalPrice = displayBasePrice * (Number(quantity) || 1);
   const currency = product.currency_symbol || "€";
 
 
@@ -313,7 +329,7 @@ export default function ProductPageClient({
       if (selectedDiscount !== null) setSelectedDiscount(null);
       return;
     }
-    const idx = findDiscountIndex(quantity);
+    const idx = findDiscountIndex(Number(quantity) || 1);
     setSelectedDiscount(idx >= 0 ? idx : null);
   }, [quantity, discounts, findDiscountIndex]);
 
@@ -586,7 +602,7 @@ export default function ProductPageClient({
   const isQuantityInvalid =
     availableStock !== null &&
     !backordersAllowed && // Only block if backorders DISABLED
-    quantity > availableStock;
+    (Number(quantity) || 1) > availableStock;
   
   // Cart-aware: quantity of this product already in cart
   const cartItemQuantity =
@@ -764,8 +780,7 @@ export default function ProductPageClient({
   // const productTitle = product?.meta_data?.find((m: any) => m.key === "crucial_data_product_name")?.value || product?.name || "";
   const productTitle = product?.meta_data?.find((m: any) => m.key === "description_bouwbeslag_title")?.value || product?.name || "";
 
-  const getMetaValue = (key: string) =>
-    product?.meta_data?.find((m: any) => m.key === key)?.value || null;
+  
 
   // --- Core product info
   const productSKU = product?.sku;
@@ -865,7 +880,7 @@ export default function ProductPageClient({
     try {
       setIsAddingToCart(true);
 
-      const stockResult = await checkStockBeforeAdd(product.id, quantity);
+      const stockResult = await checkStockBeforeAdd(product.id, Number(quantity) || 1);
       if (!stockResult.success) {
         setIsAddingToCart(false);
         return;
@@ -881,7 +896,7 @@ export default function ProductPageClient({
 
       const deliveryInfo = getDeliveryInfo(
         product.stock_status,
-        quantity + cartItemQuantity,
+        (Number(quantity) || 1) + cartItemQuantity,
         freshAvailableStock ?? product.stock_quantity ?? null,
         leadTimeInStock,
         leadTimeNoStock
@@ -891,7 +906,7 @@ export default function ProductPageClient({
         id: product.id,
         name: productTitle,
         price: cartBasePrice, // Use the shared Ex-VAT price
-        quantity,
+        quantity: Number(quantity) || 1,
         image: targetProductImg,
         deliveryText: deliveryInfo.short,
         deliveryType: deliveryInfo.type,
@@ -906,7 +921,7 @@ export default function ProductPageClient({
       setAddCartSuccess(true);
       openModal({
         product,
-        quantity,
+        quantity: Number(quantity) || 1,
         totalPrice,
         currency,
         userRole: userRole || undefined,
@@ -1021,9 +1036,9 @@ export default function ProductPageClient({
                       data-pswp-height={img.height || 1200}
                       target="_blank"
                       rel="noreferrer"
-                      className="pswp-gallery-item cursor-zoom-in block"
+                      className="pswp-gallery-item cursor-zoom-in block relative w-full aspect-square max-h-[280px] lg:max-h-none rounded-lg overflow-hidden"
                     >
-                      <img src={img.src} alt={`Product view ${idx + 1}`} className="w-full h-auto rounded-lg object-contain bg-white aspect-square max-h-[280px] lg:max-h-none" />
+                      <Image src={img.src} alt={`Product view ${idx + 1}`} fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-contain bg-white" />
                     </a>
                   </div>
                 ))}
@@ -1083,8 +1098,8 @@ export default function ProductPageClient({
                             });
                           }
                         }} 
-                        className={`items-center justify-center border aspect-square rounded-md overflow-hidden flex-shrink-0 transition-all ${selectedImage === thumb.src ? 'border-blue-600 ring-2 ring-blue-100' : 'border-gray-200 hover:border-blue-400'}`} aria-label={`Thumbnail ${globalIdx + 1}`} type="button">
-                        <img src={thumb.src} alt={`Thumbnail ${globalIdx + 1}`} className="w-full h-full object-contain" />
+                        className={`items-center justify-center border aspect-square rounded-md overflow-hidden flex-shrink-0 transition-all relative ${selectedImage === thumb.src ? 'border-blue-600 ring-2 ring-blue-100' : 'border-gray-200 hover:border-blue-400'}`} aria-label={`Thumbnail ${globalIdx + 1}`} type="button">
+                        <Image src={thumb.src} alt={`Thumbnail ${globalIdx + 1}`} fill sizes="100px" className="object-contain" />
                       </button>
                     );
                   })}
@@ -1222,11 +1237,13 @@ export default function ProductPageClient({
             <div className="flex items-center gap-4">
               {/* <Image src="/productcatlogo.png" className="w-auto h-auto" alt="Product Category Logo" width={50} height={50} /> */}
               {brandImageUrl && (
-                <Link prefetch={true} href={product?.brands?.[0]?.slug ? `/merken/${product.brands[0].slug}` : "#"}>
-                  <img
+                <Link prefetch={true} href={product?.brands?.[0]?.slug ? `/merken/${product.brands[0].slug}` : "#"} className="relative h-10 w-24 block">
+                  <Image
                     src={brandImageUrl}
                     alt="Brand Logo"
-                    className="h-10 w-auto object-contain hover:opacity-80 transition-opacity"
+                    fill
+                    sizes="96px"
+                    className="object-contain hover:opacity-80 transition-opacity"
                   />
                 </Link>
               )}
@@ -1260,7 +1277,7 @@ export default function ProductPageClient({
 
             {/* Price and Discount */}
             {(() => {
-              const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
+              const getMeta = getMetaValue;
 
               // Dynamic Price Logic
               const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
@@ -1508,13 +1525,13 @@ export default function ProductPageClient({
                           key={`${model.id}-${index}`}
                           className="flex-shrink-0 w-32 flex flex-col items-center gap-2 group"
                         >
-                          <div className="h-32 w-full border border-[#E8E1DC] rounded-sm bg-white flex items-center justify-center overflow-hidden">
-                            <img
+                          <div className="h-32 w-full border border-[#E8E1DC] rounded-sm bg-white flex items-center justify-center overflow-hidden relative">
+                            <Image
                               src={fixImageSrc(model?.images?.[0]?.src || model?.resolved_cat_image)}
                               alt={model?.name || "Model"}
-                              className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300"
-                              loading="lazy"
-                              decoding="async"
+                              fill
+                              sizes="128px"
+                              className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
                             />
                           </div>
                           {model.displayText && (
@@ -1698,7 +1715,7 @@ export default function ProductPageClient({
 
             {/* Delivery Info Box */}
             {(() => {
-              const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
+              const getMeta = getMetaValue;
 
               // Defaults: 1 day if stock, 30 days if no stock (from user request)
               const stockLeadRaw = getMeta("crucial_data_delivery_if_stock");
@@ -1713,7 +1730,7 @@ export default function ProductPageClient({
 
               const info = getDeliveryInfo(
                 stockStatus,
-                quantity + cartItemQuantity,
+                (Number(quantity) || 1) + cartItemQuantity,
                 stockQty,
                 leadTimeInStock,
                 leadTimeNoStock
@@ -1961,7 +1978,14 @@ export default function ProductPageClient({
                                 <tr className="bg-[#F3F8FF]">
                                   <td className="px-6 py-3 font-medium text-gray-900">Categorie</td>
                                   <td className="px-6 py-3">
-                                    {productCategories.map((c: any) => c.name).join(", ")}
+                                    {productCategories.map((c: any, index: number) => (
+                                      <span key={c.id || index}>
+                                        <Link href={`/${c.slug}`} className="text-blue-600 hover:underline">
+                                          {c.name}
+                                        </Link>
+                                        {index < productCategories.length - 1 && ", "}
+                                      </span>
+                                    ))}
                                   </td>
                                 </tr>
                               )}
@@ -1970,7 +1994,14 @@ export default function ProductPageClient({
                                 <tr>
                                   <td className="px-6 py-3 font-medium text-gray-900">Merk</td>
                                   <td className="px-6 py-3">
-                                    {productBrands.map((b: any) => b.name).join(", ")}
+                                    {productBrands.map((b: any, index: number) => (
+                                      <span key={b.id || index}>
+                                        <Link href={`/merken/${b.slug}`} className="text-blue-600 hover:underline">
+                                          {b.name}
+                                        </Link>
+                                        {index < productBrands.length - 1 && ", "}
+                                      </span>
+                                    ))}
                                   </td>
                                 </tr>
                               )}
@@ -1992,13 +2023,48 @@ export default function ProductPageClient({
                                     const unitValue = unitAttr ? unitAttr.options?.[0] : "";
                                     const mainValue = attr.options?.join(", ");
 
+                                    const attrTranslations: Record<string, string> = {
+                                      "Material": "Materiaal",
+                                      "Color": "Kleur",
+                                      "Series": "Serie",
+                                      "Offset": "Verkropping",
+                                      "Finish": "Afwerking",
+                                      "Afsluitbaarheid": "Afsluitbaarheid",
+                                      "Package Content": "Verpakkingsinhoud",
+                                      "Size": "Maat",
+                                      "Width": "Breedte",
+                                      "Height": "Hoogte",
+                                      "Length": "Lengte",
+                                      "Thickness": "Dikte",
+                                      "Diameter": "Diameter",
+                                      "Weight": "Gewicht",
+                                      "Style": "Stijl",
+                                      "Brand": "Merk",
+                                      "Packing Type": "Verpakkingstype",
+                                      "Brandvertragend": "Brandvertragend",
+                                      "With Core Pulling Protection": "Met Kerntrekbeveiliging"
+                                    };
+                                    
+                                    const translatedName = attrTranslations[attr.name] || attr.name;
+                                    
+                                    // Add measurement units for specific attributes if they are missing
+                                    let displayUnit = unitValue;
+                                    if (!displayUnit) {
+                                      const lowerName = attr.name.toLowerCase();
+                                      if (['width', 'height', 'length', 'thickness', 'diameter', 'size', 'maat', 'dikte', 'breedte', 'hoogte', 'lengte', 'breedte tochtstrip', 'sponning tochtstrip', 'afdichtingsspleet van', 'afdichtingsspleet tot'].includes(lowerName)) {
+                                        displayUnit = 'mm';
+                                      } else if (['weight', 'gewicht'].includes(lowerName)) {
+                                        displayUnit = 'kg';
+                                      }
+                                    }
+
                                     return (
                                       <tr key={idx} className={isEven ? "" : "bg-[#F3F8FF]"}>
                                         <td className="px-6 py-3 font-medium text-gray-900">
-                                          {attr.name}
+                                          {translatedName}
                                         </td>
                                         <td className="px-6 py-3">
-                                          {formatSpecValue(mainValue)} {unitValue}
+                                          {formatSpecValue(mainValue)} {displayUnit}
                                         </td>
                                       </tr>
                                     );
@@ -2164,11 +2230,15 @@ export default function ProductPageClient({
                                           className="w-full h-[500px] rounded-md border-0"
                                           title="Technische documentatie"
                                       /> */}
-                      <img
-                        src={technicalDrawingUrl || ""}
-                        className="w-full h-[500px] object-contain rounded-md border-0"
-                        alt="Technische documentatie"
-                      />
+                      <div className="relative w-full h-[500px] rounded-md border-0 overflow-hidden">
+                        <Image
+                          src={technicalDrawingUrl || ""}
+                          fill
+                          sizes="(max-width: 1024px) 100vw, 50vw"
+                          className="object-contain"
+                          alt="Technische documentatie"
+                        />
+                      </div>
                     </div>
                   </details>
                 </div>
@@ -2195,10 +2265,12 @@ export default function ProductPageClient({
                             rel="noreferrer"
                             className="pswp-gallery-item block group relative overflow-hidden rounded-sm cursor-zoom-in"
                           >
-                            <img
+                            <Image
                               src={img.url}
-                              className='w-full h-34 lg:h-52 rounded-sm object-cover transition-transform duration-500 group-hover:scale-105'
-                              alt={img.alt}
+                              fill
+                              sizes="(max-width: 1024px) 50vw, 33vw"
+                              className='rounded-sm object-cover transition-transform duration-500 group-hover:scale-105'
+                              alt={img.alt || "Review image"}
                             />
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="white" className="w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity scale-75 group-hover:scale-100 duration-300">
@@ -2687,7 +2759,7 @@ export default function ProductPageClient({
             <div className='flex justify-center items-center w-[35%]'>
               <p className="text-lg lg:text-3xl font-bold text-[#1C2530]">
                 {(() => {
-                  const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
+                  const getMeta = getMetaValue;
                   const currency = product.currency_symbol || "€";
 
                   // Dynamic Price Logic (duped for now)
@@ -2728,7 +2800,7 @@ export default function ProductPageClient({
                     }
                   }
 
-                  const totalPrice = basePrice * quantity;
+                  const totalPrice = basePrice * (Number(quantity) || 1);
 
                   return isLoading ? "..." : `${currency}${totalPrice.toFixed(2)}`;
                 })()}

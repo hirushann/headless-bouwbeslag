@@ -396,7 +396,7 @@ export default function SearchAutosuggest({
                                             <div className="grid grid-cols-1 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                                 {results.map((result) => (
                                                     <div
-                                                        key={result.ID}
+                                                        key={result.id}
                                                         onClick={(e) => {
                                                             // Close on click, but NOT if clicking value inputs or buttons (like Add To Cart)
                                                             const target = e.target as HTMLElement;

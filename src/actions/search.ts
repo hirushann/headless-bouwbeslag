@@ -50,11 +50,25 @@ export async function searchProducts(
 
     if (query.trim()) {
         must.push({
-            multi_match: {
-                query: query,
-                fields: ["post_title^3", "post_content", "meta.*.value", "meta._sku.value^2",],
-                type: "bool_prefix"
-            },
+            bool: {
+                should: [
+                    {
+                        multi_match: {
+                            query: query,
+                            fields: ["post_title^5", "meta._sku.value^5", "terms.product_brand.name^3", "terms.product_cat.name^2"],
+                            type: "phrase_prefix"
+                        }
+                    },
+                    {
+                        multi_match: {
+                            query: query,
+                            fields: ["post_title^3", "post_content", "meta._sku.value^3"],
+                            fuzziness: "AUTO"
+                        }
+                    }
+                ],
+                minimum_should_match: 1
+            }
         });
     }
 
@@ -239,72 +253,6 @@ export async function searchProducts(
                 stock_quantity: h.stock_quantity,
             } as SearchResult;
         });
-
-        // 4. Fetch FRESH stock data from WooCommerce to ensure delivery notice accuracy
-        if (processedProducts.length > 0) {
-            try {
-                const productIds = processedProducts.map(p => p.id).filter(id => id);
-                if (productIds.length > 0) {
-                    const WP_BASE = process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "https://app.bouwbeslag.nl";
-                    const CK = process.env.NEXT_PUBLIC_WC_CONSUMER_KEY;
-                    const CS = process.env.NEXT_PUBLIC_WC_CONSUMER_SECRET;
-                    
-                    if (CK && CS) {
-                        const auth = Buffer.from(`${CK}:${CS}`).toString('base64');
-                        const stockRes = await fetch(`${WP_BASE}/wp-json/wc/v3/products?include=${productIds.join(',')}&per_page=100&_fields=id,stock_status,stock_quantity,manage_stock`, {
-                            headers: { 'Authorization': `Basic ${auth}` },
-                            next: { revalidate: 60 } // Cache for 1 minute
-                        });
-                        const stockData = await stockRes.json();
-                        
-                        if (Array.isArray(stockData)) {
-                            stockData.forEach((s: any) => {
-                                const product = processedProducts.find(p => p.id === s.id);
-                                if (product) {
-                                    product.stock_status = s.stock_status;
-                                    product.stock_quantity = s.stock_quantity;
-                                }
-                            });
-                        }
-                    }
-                }
-            } catch (stockErr) {
-                // Fallback to ES data if WC fetch fails
-            }
-        }
-
-        // Resolve category images for search results
-        const mediaIds = new Set<string>();
-        processedProducts.forEach((p: any) => {
-            const catImgId = p.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value ||
-                             p.meta_data?.find((m: any) => m.key === "cat_image")?.value;
-            if (catImgId && /^\d+$/.test(String(catImgId))) {
-                mediaIds.add(String(catImgId));
-            }
-        });
-
-        if (mediaIds.size > 0) {
-            try {
-                const WP_BASE = process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "https://app.bouwbeslag.nl";
-                const res = await fetch(`${WP_BASE}/wp-json/wp/v2/media?include=${Array.from(mediaIds).join(',')}&per_page=100&_fields=id,source_url`);
-                const mediaData = await res.json();
-
-                if (Array.isArray(mediaData)) {
-                    const mediaMap = new Map();
-                    mediaData.forEach((m: any) => mediaMap.set(String(m.id), m.source_url));
-
-                    processedProducts.forEach((p: any) => {
-                        const catImgId = p.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value ||
-                                         p.meta_data?.find((m: any) => m.key === "cat_image")?.value;
-                        if (catImgId && mediaMap.has(String(catImgId))) {
-                            p.resolved_cat_image = mediaMap.get(String(catImgId));
-                        }
-                    });
-                }
-            } catch (mediaErr) {
-                // Silent fail
-            }
-        }
 
         // Process Facets
         const facets: Facet[] = [];

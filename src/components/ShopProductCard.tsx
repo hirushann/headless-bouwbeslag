@@ -157,27 +157,26 @@ export default function ShopProductCard({ product }: { product: any }) {
         {isFetchingImg ? (
           <div className="w-full h-full bg-gray-100 animate-pulse" />
         ) : targetImgSrc ? (
-          <img 
+          <Image 
             src={fixImageSrc(targetImgSrc)} 
             alt={productTitle} 
-            loading="lazy" 
-            decoding="async"
-            className="w-full h-full object-contain p-2" 
-            onError={(e) => {
-              const target = e.currentTarget as HTMLImageElement;
-              const fallbackSrc = product.images?.[0]?.src ? fixImageSrc(product.images[0].src) : "/default-fallback-image.webp";
-              if (target.src !== fallbackSrc && target.src !== window.location.origin + fallbackSrc) {
-                target.src = fallbackSrc;
-              } else if (!target.src.includes("default-fallback-image.webp")) {
-                target.src = "/default-fallback-image.webp";
+            fill
+            sizes="(max-width: 768px) 150px, 300px"
+            className="object-contain p-2" 
+            onError={() => {
+              const fallbackSrc = product.images?.[0]?.src ? product.images[0].src : "/default-fallback-image.webp";
+              if (targetImgSrc !== fallbackSrc && !targetImgSrc.includes("default-fallback-image.webp")) {
+                setTargetImgSrc(fallbackSrc);
               }
             }}
           />
         ) : (
-          <img 
+          <Image 
             src="/default-fallback-image.webp" 
             alt={productTitle} 
-            className="w-full h-full object-contain p-2 opacity-50" 
+            fill
+            sizes="(max-width: 768px) 150px, 300px"
+            className="object-contain p-2 opacity-50" 
           />
         )}
 

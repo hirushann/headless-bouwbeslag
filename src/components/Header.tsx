@@ -153,7 +153,7 @@ export default function Header({
   return (
     <>
       <div className="bg-white w-full p-2 border-b border-gray-100">
-        {loadExternalScripts && (
+        {loadExternalScripts && process.env.NODE_ENV === "production" && (
           <Script
              id="webwinkelkeur-sidebar"
              src="https://www.webwinkelkeur.nl/js/sidebar.js?id=11199"
