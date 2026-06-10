@@ -48,7 +48,7 @@ export default function ProductPageClient({
 }) {
 
   useEffect(() => {
-    console.log("Product Details Response:", product);
+    // console.log("Product Details Response:", product);
   }, [product]);
 
   const fadeInUp = {

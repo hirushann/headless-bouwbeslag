@@ -515,6 +515,31 @@ function FilterSidebar({
   const validRegularAttributes = regularAttributes.filter(attr => attr.terms.length > 0);
   const hasValidColorAttribute = !!colorAttribute && colorAttribute.terms.length > 0;
 
+  const sortedColorTerms = useMemo(() => {
+    if (!colorAttribute || !colorAttribute.terms) return [];
+    
+    const getLuminance = (hex: string) => {
+      if (!hex.startsWith('#')) return 0;
+      hex = hex.replace(/^#/, '');
+      if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+      if (hex.length !== 6) return 0;
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      return 0.299 * r + 0.587 * g + 0.114 * b;
+    };
+
+    return [...colorAttribute.terms].sort((a, b) => {
+      const colorA = COLOR_MAP[a.name.toLowerCase()] || a.name.toLowerCase();
+      const colorB = COLOR_MAP[b.name.toLowerCase()] || b.name.toLowerCase();
+      
+      const lumA = colorA.startsWith('#') ? getLuminance(colorA) : 0;
+      const lumB = colorB.startsWith('#') ? getLuminance(colorB) : 0;
+      
+      return lumB - lumA; // Higher luminance (light) to lower (dark)
+    });
+  }, [colorAttribute]);
+
   const [isColorOpen, setIsColorOpen] = useState(true);
   const [isAfdichtOpen, setIsAfdichtOpen] = useState(true);
   const [isGroefOpen, setIsGroefOpen] = useState(true);
@@ -626,26 +651,29 @@ function FilterSidebar({
                 animate={{ height: "auto", opacity: 1 }}
                 className="mt-3"
               >
-                <div className="grid grid-cols-5 gap-4">
-                  {(showAllColors ? colorAttribute.terms : colorAttribute.terms.slice(0, 5)).map(term => {
+                <div className="flex flex-wrap gap-2.5">
+                  {(showAllColors ? sortedColorTerms : sortedColorTerms.slice(0, 10)).map(term => {
                     const isSelected = selectedFilters[colorAttribute.id]?.has(term.id);
                     const isDisabled = term.count === 0 && !isSelected;
                     return (
-                      <div key={term.id} className={`flex flex-col items-center duration-300 ${isDisabled ? 'opacity-30 cursor-not-allowed' : ''}`}>
-                        <button className={`w-8 h-8 rounded-full border-2 ${isSelected ? 'ring-2 ring-blue-500 scale-110' : 'border-gray-200'} ${isDisabled ? 'cursor-not-allowed' : ''}`}
+                      <div key={term.id} className={`relative group flex items-center justify-center duration-300 ${isDisabled ? 'opacity-30 cursor-not-allowed' : ''}`}>
+                        <button className={`w-7 h-7 rounded-full border-2 ${isSelected ? 'ring-2 ring-blue-500 scale-110' : 'border-gray-200'} ${isDisabled ? 'cursor-not-allowed' : ''} shadow-sm`}
                           disabled={isDisabled}
-                          title={term.name}
                           aria-label={term.name}
                           style={{ backgroundColor: COLOR_MAP[term.name.toLowerCase()] || term.name.toLowerCase() }}
                           onClick={() => toggleFilter(colorAttribute.id, term.id)} />
-                        <span className="mt-1 text-xs text-center text-gray-700">{term.name}</span>
+                        
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 w-max px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-sm">
+                          {term.name}
+                        </div>
                       </div>
                     );
                   })}
                 </div>
-                {colorAttribute.terms.length > 5 && (
+                {sortedColorTerms.length > 10 && (
                   <button className="text-sm text-blue-600 mt-2 font-medium" onClick={() => setShowAllColors(!showAllColors)}>
-                    {showAllColors ? "Toon minder" : `Toon meer (${colorAttribute.terms.length - 5})`}
+                    {showAllColors ? "Toon minder" : `Toon meer (${sortedColorTerms.length - 10})`}
                   </button>
                 )}
               </motion.div>
