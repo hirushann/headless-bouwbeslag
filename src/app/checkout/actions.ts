@@ -5,7 +5,6 @@ import { createOrder, getOrder, updateOrder } from "@/lib/woocommerce-order";
 import mollieClient from "@/lib/mollie";
 import { redirect } from "next/navigation";
 import axios from "axios";
-import validateVat, { CountryCodes } from "validate-vat-ts";
 
 
 export async function checkOrderStatusAction(orderId: number) {
@@ -300,10 +299,20 @@ export async function validateVatAction(vatNumber: string) {
             return { success: true, valid: false, message: "BTW-nummer ontbreekt na landcode" };
         }
 
-        const result = await validateVat(countryCode as CountryCodes, number);
+        const response = await fetch(`https://ec.europa.eu/taxation_customs/vies/rest-api/ms/${countryCode}/vat/${number}`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store' // Avoid caching validation results
+        });
+
+        if (!response.ok) {
+            return { success: false, message: `Verificatie service onbereikbaar (${response.status})` };
+        }
+
+        const data = await response.json();
         
-        if (result && typeof result.valid === 'boolean') {
-            return { success: true, valid: result.valid, data: result };
+        if (data && typeof data.isValid === 'boolean') {
+            return { success: true, valid: data.isValid, data: data };
         } else {
             return { success: true, valid: false, message: "Verificatie service gaf een onbekende reactie" };
         }

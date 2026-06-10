@@ -99,11 +99,13 @@ const ATTRIBUTE_TO_ACF_MAP: Record<string, string> = {
 function matchesFilters(
   product: any,
   selectedFilters: { [key: number]: Set<number> },
+  selectedBrands: Set<number>,
   allAttributes: Attribute[],
   afdichtingsspleetRange: [number, number] | null,
   groefbreedteRange: [number, number] | null,
   showOnlyInStock: boolean,
-  excludeAttrId?: number
+  excludeAttrId?: number,
+  excludeBrand?: boolean
 ): boolean {
   // 0. Stock filter
   if (showOnlyInStock) {
@@ -112,7 +114,14 @@ function matchesFilters(
     if (qty === null && product.stock_status !== 'instock') return false;
   }
 
-  // 1. Regular attribute filters — AND across groups, OR within each group
+  // 1. Brand filter
+  if (!excludeBrand && selectedBrands.size > 0) {
+    if (!product.brands || product.brands.length === 0) return false;
+    const hasBrandMatch = product.brands.some((b: any) => selectedBrands.has(Number(b.id)));
+    if (!hasBrandMatch) return false;
+  }
+
+  // 2. Regular attribute filters — AND across groups, OR within each group
   for (const [idStr, terms] of Object.entries(selectedFilters)) {
     const id = Number(idStr);
     if (id === excludeAttrId) continue;
@@ -128,7 +137,7 @@ function matchesFilters(
     if (!hasMatch) return false;
   }
 
-  // 2. Range: Afdichtingsspleet
+  // 3. Range: Afdichtingsspleet
   if (afdichtingsspleetRange) {
     const pVan = (product.attributes?.find((a: any) => a.name === "Afdichtingsspleet Van")?.options ?? [])
       .map((o: any) => parseFloat(o)).filter((n: number) => !isNaN(n));
@@ -142,7 +151,7 @@ function matchesFilters(
     if (!(vMin <= afdichtingsspleetRange[1] && vMax >= afdichtingsspleetRange[0])) return false;
   }
 
-  // 3. Range: Groefbreedte
+  // 4. Range: Groefbreedte
   if (groefbreedteRange) {
     const pVan = (product.attributes?.find((a: any) => a.name === "Groefbreedte Van")?.options ?? [])
       .map((o: any) => parseFloat(o)).filter((n: number) => !isNaN(n));
@@ -292,7 +301,9 @@ interface FilterSidebarProps {
   initialFilterBaseProducts: any[] | Promise<any[]>;
   category: any;
   selectedFilters: { [key: number]: Set<number> };
+  selectedBrands: Set<number>;
   toggleFilter: (attrId: number, termId: number) => void;
+  toggleBrandFilter: (brandId: number) => void;
   resetFilters: () => void;
   afdichtingsspleetRange: [number, number] | null;
   groefbreedteRange: [number, number] | null;
@@ -310,7 +321,9 @@ function FilterSidebar({
   initialFilterBaseProducts: filterBaseProp,
   category,
   selectedFilters,
+  selectedBrands,
   toggleFilter,
+  toggleBrandFilter,
   resetFilters,
   afdichtingsspleetRange,
   groefbreedteRange,
@@ -331,10 +344,36 @@ function FilterSidebar({
     : filterBaseProp as any[];
 
   const [showAllColors, setShowAllColors] = useState(false);
+  const [isBrandOpen, setIsBrandOpen] = useState(true);
 
   // Use the shared matchesFilters utility for facet count calculations
-  const checkGlobalMatchLocal = (p: any, excludeAttrId?: number) =>
-    matchesFilters(p, selectedFilters, attributes, afdichtingsspleetRange, groefbreedteRange, showOnlyInStock, excludeAttrId);
+  const checkGlobalMatchLocal = (p: any, excludeAttrId?: number, excludeBrand?: boolean) =>
+    matchesFilters(p, selectedFilters, selectedBrands, attributes, afdichtingsspleetRange, groefbreedteRange, showOnlyInStock, excludeAttrId, excludeBrand);
+
+  const availableBrands = useMemo(() => {
+    const sourceProducts = allCategoryProductsForFilters || [];
+    if (sourceProducts.length === 0) return [];
+
+    const brandCounts = new Map<number, { name: string; count: number }>();
+    const productsPassingOtherFilters = sourceProducts.filter(p => checkGlobalMatchLocal(p, undefined, true));
+
+    productsPassingOtherFilters.forEach(p => {
+      if (p.brands && p.brands.length > 0) {
+        p.brands.forEach((b: any) => {
+          const id = Number(b.id);
+          if (!brandCounts.has(id)) {
+            brandCounts.set(id, { name: b.name, count: 0 });
+          }
+          brandCounts.get(id)!.count++;
+        });
+      }
+    });
+
+    return Array.from(brandCounts.entries())
+      .map(([id, data]) => ({ id, name: data.name, count: data.count }))
+      .filter(b => b.count > 0 || selectedBrands.has(b.id))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [allCategoryProductsForFilters, selectedFilters, selectedBrands, attributes, afdichtingsspleetRange, groefbreedteRange, showOnlyInStock]);
 
   const relevantAttributes = useMemo(() => {
     const sourceProducts = allCategoryProductsForFilters || [];
@@ -492,165 +531,214 @@ function FilterSidebar({
 
   return (
     <aside className="w-full lg:w-1/4 relative">
-      <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-        <button onClick={() => setShowFilters(false)} className={`${showFilters ? 'block' : 'hidden'} lg:hidden absolute top-3 right-3 text-gray-500`}>
-          <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M6 18L18 6M6 6l12 12" /></svg>
+      <div className={`
+        ${showFilters ? 'fixed inset-0 z-[100] bg-white overflow-y-auto p-5 pt-16 block' : 'hidden'} 
+        lg:block lg:relative lg:max-h-full lg:opacity-100 lg:bg-white lg:rounded-lg lg:shadow-sm lg:border lg:border-gray-100 lg:p-4 lg:z-auto lg:overflow-visible transition-all
+      `}>
+        <button onClick={() => setShowFilters(false)} className={`${showFilters ? 'flex' : 'hidden'} lg:hidden absolute top-4 right-4 text-gray-500 z-[101] p-2 bg-gray-100 rounded-full items-center justify-center`}>
+          <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
-        <div className={`${showFilters ? 'max-h-[2000px] opacity-100 p-4' : 'max-h-0 opacity-0 lg:p-4'} overflow-hidden transition-all lg:max-h-full lg:opacity-100 bg-white rounded-lg shadow-sm border border-gray-100`}>
-          <div className="mb-4 border-b border-[#F7F7F7] pb-4">
-            <h3 className="font-semibold text-lg text-[#212121] py-2">Voorraad</h3>
-            <label className="flex items-center gap-2 cursor-pointer py-1 group">
-              <input
-                type="checkbox"
-                className="w-5 h-5 rounded-sm border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                checked={showOnlyInStock}
-                onChange={(e) => setShowOnlyInStock(e.target.checked)}
-              />
-              <span className="text-sm text-gray-700 group-hover:text-[#0066FF] transition-colors">Alleen op voorraad</span>
-            </label>
-          </div>
-          {hasValidColorAttribute && (
-            <div className="mb-4 border-b border-[#F7F7F7] pb-4">
-              <button 
-                onClick={() => setIsColorOpen(!isColorOpen)}
-                className="flex items-center justify-between w-full group py-2"
-              >
-                <h3 className="font-semibold text-lg text-[#212121] group-hover:text-[#0066FF] transition-colors">{colorAttribute?.name}</h3>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className={`text-gray-400 transition-transform duration-200 ${isColorOpen ? "rotate-180" : ""}`}
-                >
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </button>
-              {isColorOpen && colorAttribute && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  className="mt-3"
-                >
-                  <div className="grid grid-cols-5 gap-4">
-                    {(showAllColors ? colorAttribute.terms : colorAttribute.terms.slice(0, 5)).map(term => {
-                      const isSelected = selectedFilters[colorAttribute.id]?.has(term.id);
-                      const isDisabled = term.count === 0 && !isSelected;
-                      return (
-                        <div key={term.id} className={`flex flex-col items-center duration-300 ${isDisabled ? 'opacity-30 cursor-not-allowed' : ''}`}>
-                          <button className={`w-8 h-8 rounded-full border-2 ${isSelected ? 'ring-2 ring-blue-500 scale-110' : 'border-gray-200'} ${isDisabled ? 'cursor-not-allowed' : ''}`}
-                            disabled={isDisabled}
-                            title={term.name}
-                            aria-label={term.name}
-                            style={{ backgroundColor: COLOR_MAP[term.name.toLowerCase()] || term.name.toLowerCase() }}
-                            onClick={() => toggleFilter(colorAttribute.id, term.id)} />
-                          <span className="mt-1 text-xs text-center text-gray-700">{term.name}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {colorAttribute.terms.length > 5 && (
-                    <button className="text-sm text-blue-600 mt-2 font-medium" onClick={() => setShowAllColors(!showAllColors)}>
-                      {showAllColors ? "Toon minder" : `Toon meer (${colorAttribute.terms.length - 5})`}
-                    </button>
-                  )}
-                </motion.div>
-              )}
-            </div>
-          )}
-          {afdichtspleetBounds && (
-            <div className="mb-4 border-b border-[#F7F7F7] pb-4">
-               <button 
-                onClick={() => setIsAfdichtOpen(!isAfdichtOpen)}
-                className="flex items-center justify-between w-full group py-2"
-              >
-                <h3 className="font-semibold text-lg text-[#212121] group-hover:text-[#0066FF] transition-colors">Afdichtingsspleet (mm)</h3>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className={`text-gray-400 transition-transform duration-200 ${isAfdichtOpen ? "rotate-180" : ""}`}
-                >
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </button>
-              {isAfdichtOpen && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  className="mt-3 px-1"
-                >
-                  <DualRangeSlider 
-                    min={afdichtspleetBounds.min} 
-                    max={afdichtspleetBounds.max} 
-                    value={afdichtingsspleetRange ?? [afdichtspleetBounds.min, afdichtspleetBounds.max]} 
-                    onChange={setAfdichtingsspleetRange} 
-                  />
-                </motion.div>
-              )}
-            </div>
-          )}
-          {groefbreedteBounds && (
-            <div className="mb-4 border-b border-[#F7F7F7] pb-4">
-               <button 
-                onClick={() => setIsGroefOpen(!isGroefOpen)}
-                className="flex items-center justify-between w-full group py-2"
-              >
-                <h3 className="font-semibold text-lg text-[#212121] group-hover:text-[#0066FF] transition-colors">Groefbreedte (mm)</h3>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className={`text-gray-400 transition-transform duration-200 ${isGroefOpen ? "rotate-180" : ""}`}
-                >
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </button>
-              {isGroefOpen && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  className="mt-3 px-1"
-                >
-                  <DualRangeSlider 
-                    min={groefbreedteBounds.min} 
-                    max={groefbreedteBounds.max} 
-                    value={groefbreedteRange ?? [groefbreedteBounds.min, groefbreedteBounds.max]} 
-                    onChange={setGroefbreedteRange} 
-                  />
-                </motion.div>
-              )}
-            </div>
-          )}
+        {showFilters && <h2 className="text-2xl font-bold mb-6 lg:hidden">Filters</h2>}
 
-          {validRegularAttributes.map((attr: Attribute) => (
-            <FilterAttributeGroup key={attr.id} attr={attr} selectedFilters={selectedFilters} toggleFilter={toggleFilter} />
-          ))}
-          {(Object.keys(selectedFilters).length > 0 || afdichtingsspleetRange || groefbreedteRange || showOnlyInStock) && (
-            <button onClick={() => {
-              resetFilters();
-              setShowOnlyInStock(false);
-            }} className="text-sm text-red-500 hover:text-red-700 font-bold mt-4 block w-full text-center py-2 border border-red-100 rounded-md bg-red-50 transition-colors">Filters wissen</button>
-          )}
+        <div className="mb-4 border-b border-[#F7F7F7] pb-4">
+          <h3 className="font-semibold text-lg text-[#212121] py-2">Voorraad</h3>
+          <label className="flex items-center gap-2 cursor-pointer py-1 group">
+            <input
+              type="checkbox"
+              className="w-5 h-5 rounded-sm border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0 cursor-pointer"
+              checked={showOnlyInStock}
+              onChange={(e) => setShowOnlyInStock(e.target.checked)}
+            />
+            <span className="text-sm text-gray-700 group-hover:text-[#0066FF] transition-colors">Alleen op voorraad</span>
+          </label>
         </div>
-      </motion.div>
+        {availableBrands.length > 0 && (
+          <div className="mb-4 border-b border-[#F7F7F7] pb-4">
+            <button 
+              onClick={() => setIsBrandOpen(!isBrandOpen)}
+              className="flex items-center justify-between w-full group py-2"
+            >
+              <h3 className="font-semibold text-lg text-[#212121] group-hover:text-[#0066FF] transition-colors">Merk</h3>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`text-gray-400 transition-transform duration-200 ${isBrandOpen ? "rotate-180" : ""}`}
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            {isBrandOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                className="mt-3 flex flex-col gap-2 overflow-hidden"
+              >
+                {availableBrands.map(b => (
+                  <label key={b.id} className="flex items-center gap-2 cursor-pointer py-1 group">
+                    <input
+                      type="checkbox"
+                      className="w-5 h-5 rounded-sm border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                      checked={selectedBrands.has(b.id)}
+                      onChange={() => toggleBrandFilter(b.id)}
+                      disabled={b.count === 0 && !selectedBrands.has(b.id)}
+                    />
+                    <span className={`text-sm group-hover:text-[#0066FF] transition-colors ${b.count === 0 && !selectedBrands.has(b.id) ? 'text-gray-400' : 'text-gray-700'}`}>
+                      {b.name} <span className="text-gray-400 text-xs ml-1">({b.count})</span>
+                    </span>
+                  </label>
+                ))}
+              </motion.div>
+            )}
+          </div>
+        )}
+        {hasValidColorAttribute && (
+          <div className="mb-4 border-b border-[#F7F7F7] pb-4">
+            <button 
+              onClick={() => setIsColorOpen(!isColorOpen)}
+              className="flex items-center justify-between w-full group py-2"
+            >
+              <h3 className="font-semibold text-lg text-[#212121] group-hover:text-[#0066FF] transition-colors">{colorAttribute?.name}</h3>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`text-gray-400 transition-transform duration-200 ${isColorOpen ? "rotate-180" : ""}`}
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            {isColorOpen && colorAttribute && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                className="mt-3"
+              >
+                <div className="grid grid-cols-5 gap-4">
+                  {(showAllColors ? colorAttribute.terms : colorAttribute.terms.slice(0, 5)).map(term => {
+                    const isSelected = selectedFilters[colorAttribute.id]?.has(term.id);
+                    const isDisabled = term.count === 0 && !isSelected;
+                    return (
+                      <div key={term.id} className={`flex flex-col items-center duration-300 ${isDisabled ? 'opacity-30 cursor-not-allowed' : ''}`}>
+                        <button className={`w-8 h-8 rounded-full border-2 ${isSelected ? 'ring-2 ring-blue-500 scale-110' : 'border-gray-200'} ${isDisabled ? 'cursor-not-allowed' : ''}`}
+                          disabled={isDisabled}
+                          title={term.name}
+                          aria-label={term.name}
+                          style={{ backgroundColor: COLOR_MAP[term.name.toLowerCase()] || term.name.toLowerCase() }}
+                          onClick={() => toggleFilter(colorAttribute.id, term.id)} />
+                        <span className="mt-1 text-xs text-center text-gray-700">{term.name}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {colorAttribute.terms.length > 5 && (
+                  <button className="text-sm text-blue-600 mt-2 font-medium" onClick={() => setShowAllColors(!showAllColors)}>
+                    {showAllColors ? "Toon minder" : `Toon meer (${colorAttribute.terms.length - 5})`}
+                  </button>
+                )}
+              </motion.div>
+            )}
+          </div>
+        )}
+        {afdichtspleetBounds && (
+          <div className="mb-4 border-b border-[#F7F7F7] pb-4">
+             <button 
+              onClick={() => setIsAfdichtOpen(!isAfdichtOpen)}
+              className="flex items-center justify-between w-full group py-2"
+            >
+              <h3 className="font-semibold text-lg text-[#212121] group-hover:text-[#0066FF] transition-colors">Afdichtingsspleet (mm)</h3>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`text-gray-400 transition-transform duration-200 ${isAfdichtOpen ? "rotate-180" : ""}`}
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            {isAfdichtOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                className="mt-3 px-1"
+              >
+                <DualRangeSlider 
+                  min={afdichtspleetBounds.min} 
+                  max={afdichtspleetBounds.max} 
+                  value={afdichtingsspleetRange ?? [afdichtspleetBounds.min, afdichtspleetBounds.max]} 
+                  onChange={setAfdichtingsspleetRange} 
+                />
+              </motion.div>
+            )}
+          </div>
+        )}
+        {groefbreedteBounds && (
+          <div className="mb-4 border-b border-[#F7F7F7] pb-4">
+             <button 
+              onClick={() => setIsGroefOpen(!isGroefOpen)}
+              className="flex items-center justify-between w-full group py-2"
+            >
+              <h3 className="font-semibold text-lg text-[#212121] group-hover:text-[#0066FF] transition-colors">Groefbreedte (mm)</h3>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`text-gray-400 transition-transform duration-200 ${isGroefOpen ? "rotate-180" : ""}`}
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            {isGroefOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                className="mt-3 px-1"
+              >
+                <DualRangeSlider 
+                  min={groefbreedteBounds.min} 
+                  max={groefbreedteBounds.max} 
+                  value={groefbreedteRange ?? [groefbreedteBounds.min, groefbreedteBounds.max]} 
+                  onChange={setGroefbreedteRange} 
+                />
+              </motion.div>
+            )}
+          </div>
+        )}
+
+        {validRegularAttributes.map((attr: Attribute) => (
+          <FilterAttributeGroup key={attr.id} attr={attr} selectedFilters={selectedFilters} toggleFilter={toggleFilter} />
+        ))}
+        {(Object.keys(selectedFilters).length > 0 || afdichtingsspleetRange || groefbreedteRange || showOnlyInStock) && (
+          <button onClick={() => {
+            resetFilters();
+            setShowOnlyInStock(false);
+          }} className="text-sm text-red-500 hover:text-red-700 font-bold mt-4 block w-full text-center py-2 border border-red-100 rounded-md bg-red-50 transition-colors">Filters wissen</button>
+        )}
+      </div>
     </aside>
   );
 }
@@ -672,6 +760,7 @@ export default function CategoryClient({
   const [products, setProducts] = useState<any[]>(initialProducts);
   const [rawProducts, setRawProducts] = useState<any[]>(initialProducts);
   const [selectedFilters, setSelectedFilters] = useState<{ [key: number]: Set<number> }>({});
+  const [selectedBrands, setSelectedBrands] = useState<Set<number>>(new Set());
   const [productsLoading, setProductsLoading] = useState<boolean>(false);
   const [filtersLoading, setFiltersLoading] = useState<boolean>(false);
   const [showAllColors, setShowAllColors] = useState(false);
@@ -684,6 +773,15 @@ export default function CategoryClient({
   const [groefbreedteRange, setGroefbreedteRange] = useState<[number, number] | null>(null);
   const [showOnlyInStock, setShowOnlyInStock] = useState<boolean>(false);
   const [hasFiltersAvailable, setHasFiltersAvailable] = useState<boolean>(true);
+  const [isStuck, setIsStuck] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsStuck(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
   const [unwrappedAttributes, setUnwrappedAttributes] = useState<Attribute[]>([]);
   const [allCategoryProductsForFilters, setAllCategoryProductsForFilters] = useState<any[]>([]);
   // Two separate refs: one guards the initial product load, one guards the page-reset effect.
@@ -750,7 +848,7 @@ export default function CategoryClient({
   // Filtering Logic — delegates to shared matchesFilters utility
   // ------------------------------------------------------------------
   const checkGlobalMatch = (p: any) =>
-    matchesFilters(p, selectedFilters, unwrappedAttributes, afdichtingsspleetRange, groefbreedteRange, showOnlyInStock);
+    matchesFilters(p, selectedFilters, selectedBrands, unwrappedAttributes, afdichtingsspleetRange, groefbreedteRange, showOnlyInStock);
 
   useEffect(() => {
     async function loadProducts() {
@@ -870,6 +968,7 @@ export default function CategoryClient({
   }, [
     category?.id,
     selectedFilters,
+    selectedBrands,
     afdichtingsspleetRange,
     groefbreedteRange,
     sortBy,
@@ -886,7 +985,7 @@ export default function CategoryClient({
       return;
     }
     setPage(1);
-  }, [category?.id, selectedFilters, afdichtingsspleetRange, groefbreedteRange, sortBy, showOnlyInStock]);
+  }, [category?.id, selectedFilters, selectedBrands, afdichtingsspleetRange, groefbreedteRange, sortBy, showOnlyInStock]);
 
   const toggleFilter = (attrId: number, termId: number) => {
     // NOTE: Do NOT auto-close the mobile panel here — users need to
@@ -915,8 +1014,21 @@ export default function CategoryClient({
     });
   };
 
+  const toggleBrandFilter = (brandId: number) => {
+    setSelectedBrands(prev => {
+      const newBrands = new Set(prev);
+      if (newBrands.has(brandId)) {
+        newBrands.delete(brandId);
+      } else {
+        newBrands.add(brandId);
+      }
+      return newBrands;
+    });
+  };
+
   const resetFilters = () => {
     setSelectedFilters({});
+    setSelectedBrands(new Set());
     setAfdichtingsspleetRange(null);
     setGroefbreedteRange(null);
   };
@@ -938,7 +1050,9 @@ export default function CategoryClient({
               initialFilterBaseProducts={initialFilterBaseProducts}
               category={category}
               selectedFilters={selectedFilters}
+              selectedBrands={selectedBrands}
               toggleFilter={toggleFilter}
+              toggleBrandFilter={toggleBrandFilter}
               resetFilters={resetFilters}
               afdichtingsspleetRange={afdichtingsspleetRange}
               groefbreedteRange={groefbreedteRange}
@@ -952,14 +1066,13 @@ export default function CategoryClient({
             />
           </Suspense>
 
-
           {/* Main Content */}
           <main className="flex-1">
             <CategoryBreadcrumbs categoryNames={currentSlug.map(s => s.charAt(0).toUpperCase() + s.slice(1))} />
-            <div className="flex justify-between items-end mb-4 sticky top-[88px] bg-[#F7F7F7] z-40 py-4 -mx-5 px-5 lg:static lg:p-0 lg:mx-0"> 
-              <p className="text-xl lg:text-3xl font-bold">{category?.name ?? "Category"}</p>
-              <div className='flex gap-3 '>
-                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="select focus:outline-0 focus:ring-0 w-32 border border-[#808D9A] rounded-sm bg-[F7F7F7] h-8 w-full text-base">
+            <div className={`flex justify-between items-center mb-4 sticky top-[105px] z-40 py-3 -mx-5 px-5 transition-all duration-200 lg:static lg:p-0 lg:mx-0 ${isStuck ? 'bg-white shadow-[0_2px_4px_rgba(0,0,0,0.05)] border-b border-gray-200' : 'bg-transparent border-transparent shadow-none'} lg:bg-transparent lg:border-none lg:shadow-none`}> 
+              <p className="text-xl lg:text-3xl font-bold text-[#1C2530] truncate pr-2">{category?.name ?? "Category"}</p>
+              <div className='flex items-center gap-2 shrink-0'>
+                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="select focus:outline-0 focus:ring-0 border border-gray-300 rounded-md bg-white h-9 min-h-0 text-sm font-medium text-gray-700 pl-3 py-0 w-auto">
                   <option value="">Aanbevolen</option>
                   <option value="popularity">Populariteit</option>
                   <option value="rating">Beoordeling</option>
@@ -970,20 +1083,20 @@ export default function CategoryClient({
                   <option value="title-desc">Naam: Z - A</option>
                 </select>
                 {hasFiltersAvailable && (
-                  <button type="button" className="lg:hidden px-2 py-1 w-auto text-left bg-white border border-gray-300 rounded-md font-medium" onClick={() => setShowFilters(!showFilters)} aria-expanded={showFilters} aria-controls="filters-section">
+                  <button type="button" className="lg:hidden flex items-center justify-center gap-1.5 px-3 h-9 bg-[#0066FF] text-white rounded-md font-medium text-sm shadow-sm transition-colors hover:bg-blue-700" onClick={() => setShowFilters(!showFilters)} aria-expanded={showFilters} aria-controls="filters-section">
                     {showFilters ? (
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="size-4">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                       </svg>
                     ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="size-4">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
                       </svg>
                     )}
+                    <span>Filter</span>
                   </button>
                 )}
               </div>
-
             </div>
 
             <Suspense fallback={<div className="h-10 w-full animate-pulse bg-gray-100 rounded mb-4"></div>}>

@@ -191,7 +191,7 @@ export default function Header({
 
         
         <div className="transition-all duration-300 bg-[#F7F7F7] w-full border-b border-gray-200">
-          <div className="max-w-[1440px] mx-auto flex justify-between items-center py-4 font-sans px-2 lg:px-0">
+          <div className="max-w-[1440px] mx-auto flex justify-between items-center py-1.5 lg:py-4 font-sans px-2 lg:px-0">
             <Link prefetch={true} href="/">
               <Image 
                 src="/logo.webp" 

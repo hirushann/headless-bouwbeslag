@@ -18,12 +18,14 @@
     --foreground: #ededed;
   }
 } */
-html{
+html {
+  overflow-x: clip;
 }
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  overflow-x: clip;
 }
 .collapse-arrow > .collapse-title:after{
   top: 1.3rem;

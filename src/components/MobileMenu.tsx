@@ -11,7 +11,7 @@ export default function MobileMenu() {
   };
 
   return (
-    <div className="p-4 flex lg:hidden w-full gap-5 bg-[#1C2530]">
+    <div className="p-1.5 flex lg:hidden w-full gap-5 bg-[#1C2530]">
       <div>
         <div className="dropdown w-full">
           <div tabIndex={0} role="button" aria-label="Menu" className="btn btn-ghost btn-circle text-white">

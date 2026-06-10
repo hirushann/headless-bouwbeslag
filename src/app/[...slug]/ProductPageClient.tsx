@@ -48,6 +48,7 @@ export default function ProductPageClient({
 }) {
 
   useEffect(() => {
+    console.log("Product Details Response:", product);
   }, [product]);
 
   const fadeInUp = {
@@ -423,7 +424,7 @@ export default function ProductPageClient({
     // Type: 'color' | 'model' | 'simple'
     const groups = [
         { key: 'colors', prefix: 'related_order_color_', type: 'color', setter: setOrderColors },
-        { key: 'models', prefix: 'related_order_model_', type: 'model', textPrefix: 'related_other_model_text_', setter: setOrderModels },
+        { key: 'models', prefix: 'related_order_model_', type: 'model', getRepeaterTextKey: (i: number) => `related_other_models_repeater_${i - 1}_other_model_text`, setter: setOrderModels },
         { key: 'matching', prefix: 'related_matching_product_', type: 'simple', setter: setMatchingProducts },
         { key: 'knobrose', prefix: 'related_matching_knobrose_', type: 'simple', setter: setMatchingKnobRoseProducts },
         { key: 'keyrose', prefix: 'related_matching_keyrose_', type: 'simple', setter: setMatchingRoseKeys },
@@ -455,9 +456,12 @@ export default function ProductPageClient({
                 
                 // For models, we also need the display text
                 let extraData: any = {};
-                if (group.type === 'model' && group.textPrefix) {
-                    const textVal = product.meta_data.find((m: any) => m.key === `${group.textPrefix}${i}`)?.value;
-                    extraData.displayText = textVal;
+                if (group.type === 'model') {
+                    if (group.getRepeaterTextKey) {
+                        extraData.displayText = product.meta_data.find((m: any) => m.key === group.getRepeaterTextKey!(i))?.value;
+                    } else if ((group as any).textPrefix) {
+                        extraData.displayText = product.meta_data.find((m: any) => m.key === `${(group as any).textPrefix}${i}`)?.value;
+                    }
                 }
                 
                 requestMap[idStr].push({ 
@@ -1534,11 +1538,9 @@ export default function ProductPageClient({
                               className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
                             />
                           </div>
-                          {model.displayText && (
-                            <p className="text-xs text-center text-[#3D4752] leading-tight font-medium group-hover:text-blue-600 transition-colors">
-                              {model.displayText}
-                            </p>
-                          )}
+                          <p className="text-xs text-center text-[#3D4752] leading-tight font-medium group-hover:text-blue-600 transition-colors mt-2">
+                            {model.displayText || model.name}
+                          </p>
                         </Link>
                       ))
                   )}
@@ -2754,10 +2756,10 @@ export default function ProductPageClient({
                   transition-transform duration-300 ease-in-out z-50 ${isVisible ? 'translate-y-0' : 'translate-y-full'
         }`}>
 
-        <div className="flex flex-col lg:flex-row items-center gap-3 lg:gap-4 justify-center max-w-[1440px] mx-auto">
-          <div className="flex flex-nowrap lg:flex-nowrap items-center gap-1 lg:gap-4 justify-between">
-            <div className='flex justify-center items-center w-[35%]'>
-              <p className="text-lg lg:text-3xl font-bold text-[#1C2530]">
+        <div className="flex flex-nowrap items-center justify-between max-w-[1440px] mx-auto w-full gap-2">
+            <div className='flex flex-col justify-center items-start shrink-0'>
+              <div className='flex flex-col lg:flex-row items-start lg:items-baseline'>
+              <p className="text-base sm:text-xl lg:text-3xl font-bold text-[#1C2530] whitespace-nowrap leading-tight lg:leading-normal">
                 {(() => {
                   const getMeta = getMetaValue;
                   const currency = product.currency_symbol || "€";
@@ -2805,16 +2807,18 @@ export default function ProductPageClient({
                   return isLoading ? "..." : `${currency}${totalPrice.toFixed(2)}`;
                 })()}
               </p>
-              <span className="text-xs text-gray-500 font-normal ml-2">
+              <span className="text-[10px] lg:text-xs text-gray-500 font-normal ml-0 lg:ml-2 mt-0.5 lg:mt-0">
                 {userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator")) ? "(excl. BTW)" : "(incl. BTW)"}
               </span>
             </div>
+          </div>
 
-            <div className="flex border border-[#EDEDED] shadow-xs rounded-sm overflow-hidden bg-white">
+          <div className="flex items-center gap-2 lg:gap-4 flex-1 justify-end shrink-0">
+            <div className="flex border border-[#EDEDED] shadow-xs rounded-sm overflow-hidden bg-white shrink-0">
               <button
                 type="button"
                 onClick={() => setQuantity((q) => Math.max(1, (Number(q) || 1) - 1))}
-                className="px-2.5 py-1.5 text-lg cursor-pointer border-r border-[#EDEDED]"
+                className="px-2.5 py-1.5 lg:px-5 lg:py-3 text-xl lg:text-2xl cursor-pointer border-r border-[#EDEDED] min-w-[35px] lg:min-w-[50px] flex items-center justify-center"
               >-</button>
               <input
                 type="text"
@@ -2839,7 +2843,7 @@ export default function ProductPageClient({
                     setQuantity(1);
                   }
                 }}
-                className="px-1 py-1 text-base font-medium text-center min-w-[40px] w-12 focus:outline-none focus:ring-0 appearance-none bg-transparent"
+                className="px-1 py-1.5 lg:px-2 lg:py-2 text-sm lg:text-base font-medium text-center min-w-[35px] lg:min-w-[60px] w-10 lg:w-16 focus:outline-none focus:ring-0 appearance-none bg-transparent"
               />
               <button
                 type="button"
@@ -2852,12 +2856,11 @@ export default function ProductPageClient({
                     return current + 1;
                   })
                 }
-                className="flex justify-center px-2.5 py-1.5 text-lg cursor-pointer border-l border-[#EDEDED]"
+                className="flex justify-center px-2.5 py-1.5 lg:px-5 lg:py-3 text-xl lg:text-2xl cursor-pointer border-l border-[#EDEDED] min-w-[35px] lg:min-w-[50px] items-center"
               >+</button>
             </div>
 
-            <div className=''>
-              <div className="relative group">
+            <div className='relative group flex-1 max-w-[200px] lg:max-w-[400px] shrink-0'>
                 <button
                   type="button"
                   disabled={
@@ -2866,7 +2869,7 @@ export default function ProductPageClient({
                     isQuantityInvalid ||
                     isStockLimitReached
                   }
-                  className={`cursor-pointer flex-1 px-2.5 py-2.5 rounded-sm transition font-semibold flex items-center justify-center gap-3 w-full text-sm
+                  className={`cursor-pointer w-full px-3 py-2 lg:px-6 lg:py-4 rounded-sm transition font-semibold flex items-center justify-center gap-1.5 lg:gap-3 text-[11px] sm:text-sm lg:text-base whitespace-nowrap
                             ${isOutOfStock || isQuantityInvalid || isStockLimitReached
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-blue-600 text-white hover:bg-blue-700"
@@ -2875,18 +2878,18 @@ export default function ProductPageClient({
                 >
                   {/* Loader spinner if adding, else success, error or cart icon */}
                   {isAddingToCart ? (
-                    <svg className="size-5 lg:size-6 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4"></circle><path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
+                    <svg className="size-4 lg:size-6 animate-spin shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4"></circle><path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
                   ) : addCartSuccess ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="white" className="size-5 lg:size-6"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="white" className="size-4 lg:size-6 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                   ) : addCartError ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="#FF3B3B" className="size-5 lg:size-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="#FF3B3B" className="size-4 lg:size-6 shrink-0">
                       <circle cx="12" cy="12" r="10" stroke="#FF3B3B" strokeWidth="2" fill="none" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5m0 4h.01" stroke="#FF3B3B" strokeWidth="2" />
                     </svg>
                   ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="white" className="size-5 lg:size-6 hidden"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="white" className="size-4 lg:size-6 shrink-0 block"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>
                   )}
-                  In winkelwagen
+                  <span className="block">In winkelwagen</span>
                 </button>
                 {(isOutOfStock || isQuantityInvalid || isStockLimitReached) && (
                   <div className="absolute z-20 bottom-full mb-3 hidden group-hover:block w-full">
@@ -2904,7 +2907,6 @@ export default function ProductPageClient({
                     </div>
                   </div>
                 )}
-              </div>
             </div>
           </div>
         </div>

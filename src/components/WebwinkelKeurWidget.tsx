@@ -114,7 +114,7 @@ export default function WebwinkelKeurWidget({ variant = "header" }: WebwinkelKeu
              ))}
         </div>
 
-        <span className="text-gray-600 font-medium">
+        <span className="text-gray-600 font-medium hidden lg:block">
             {data.data.amount} Reviews
         </span>
       </div>
