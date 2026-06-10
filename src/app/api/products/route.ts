@@ -10,7 +10,7 @@ export async function GET(request: Request) {
     });
 
     try {
-        const res = await api.get('products', params);
+        const res = await api.get('products', { ...params, next: { revalidate: 60 } });
         const products = Array.isArray(res.data) ? res.data : [];
 
         // --- ENHANCEMENT: Pre-resolve category images for speed ---

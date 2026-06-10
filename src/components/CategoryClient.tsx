@@ -945,7 +945,8 @@ export default function CategoryClient({
           } else {
             // Fetch full product details for this page's matched IDs
             const res = await fetch(
-              `/api/products?include=${slicedIds.join(',')}&per_page=${slicedIds.length}`
+              `/api/products?include=${slicedIds.join(',')}&per_page=${slicedIds.length}`,
+              { cache: 'no-store' }
             );
             if (!res.ok) throw new Error('Failed to fetch filtered products');
             const data = await res.json();

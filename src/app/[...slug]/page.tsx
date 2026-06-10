@@ -313,7 +313,7 @@ const fetchAllCategoryProductsForFiltersCached = cache(async (categoryId: number
       page: 1,
       _fields: "id,attributes,brands,price,name,date_created,total_sales,stock_quantity,stock_status",
       status: 'publish',
-      next: { revalidate: 3600 }
+      next: { revalidate: 60 }
     });
 
     if (!firstPage.data || firstPage.data.length === 0) return [];
@@ -332,7 +332,7 @@ const fetchAllCategoryProductsForFiltersCached = cache(async (categoryId: number
             page: p,
             _fields: "id,attributes,brands,price,name,date_created,total_sales,stock_quantity,stock_status",
             status: 'publish',
-            next: { revalidate: 3600 }
+            next: { revalidate: 60 }
           })
         );
       }
