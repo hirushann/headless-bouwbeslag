@@ -451,7 +451,7 @@ function FilterSidebar({
         return { ...attr, terms: validTerms };
       })
       .filter(Boolean) as Attribute[];
-  }, [allCategoryProductsForFilters, attributes, category, selectedFilters, afdichtingsspleetRange, groefbreedteRange]);
+  }, [allCategoryProductsForFilters, attributes, category, selectedFilters, selectedBrands, afdichtingsspleetRange, groefbreedteRange]);
 
   const colorAttribute = relevantAttributes.find(
     (attr) => attr.name.toLowerCase() === "color" || attr.name.toLowerCase() === "kleur"
@@ -760,7 +760,7 @@ function FilterSidebar({
         {validRegularAttributes.map((attr: Attribute) => (
           <FilterAttributeGroup key={attr.id} attr={attr} selectedFilters={selectedFilters} toggleFilter={toggleFilter} />
         ))}
-        {(Object.keys(selectedFilters).length > 0 || afdichtingsspleetRange || groefbreedteRange || showOnlyInStock) && (
+        {(Object.keys(selectedFilters).length > 0 || selectedBrands.size > 0 || afdichtingsspleetRange || groefbreedteRange || showOnlyInStock) && (
           <button onClick={() => {
             resetFilters();
             setShowOnlyInStock(false);
@@ -884,6 +884,7 @@ export default function CategoryClient({
 
       const hasFilters =
         Object.keys(selectedFilters).length > 0 ||
+        selectedBrands.size > 0 ||
         !!afdichtingsspleetRange ||
         !!groefbreedteRange ||
         showOnlyInStock;
