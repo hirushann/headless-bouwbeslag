@@ -80,8 +80,10 @@ export async function searchProducts(
         category: "terms.product_cat.slug",
         brand: "terms.product_brand.slug",
         stock: "meta._stock_status.raw",
-        color: "terms.pa_color.slug" // Assuming pa_color exists similarly, checking dump... dump didn't show pa_color but standard WP uses it. 
-        // If not present, it won't break, just empty.
+        color: "terms.pa_color.slug",
+        size: "terms.pa_size.slug",
+        material: "terms.pa_material.slug",
+        finish: "terms.pa_finish.slug"
     };
 
     Object.entries(filters).forEach(([key, values]) => {
@@ -163,6 +165,30 @@ export async function searchProducts(
                         terms: { field: "terms.product_brand.slug", size: 20 },
                         aggs: {
                             names: { terms: { field: "terms.product_brand.name.keyword", size: 1 } }
+                        }
+                    },
+                    color: {
+                        terms: { field: "terms.pa_color.slug", size: 20 },
+                        aggs: {
+                            names: { terms: { field: "terms.pa_color.name.keyword", size: 1 } }
+                        }
+                    },
+                    size: {
+                        terms: { field: "terms.pa_size.slug", size: 20 },
+                        aggs: {
+                            names: { terms: { field: "terms.pa_size.name.keyword", size: 1 } }
+                        }
+                    },
+                    material: {
+                        terms: { field: "terms.pa_material.slug", size: 20 },
+                        aggs: {
+                            names: { terms: { field: "terms.pa_material.name.keyword", size: 1 } }
+                        }
+                    },
+                    finish: {
+                        terms: { field: "terms.pa_finish.slug", size: 20 },
+                        aggs: {
+                            names: { terms: { field: "terms.pa_finish.name.keyword", size: 1 } }
                         }
                     },
                     stock: {
@@ -279,6 +305,23 @@ export async function searchProducts(
                 }));
                 if (brands.length > 0) facets.push({ name: "brand", buckets: brands });
             }
+
+            // Additional Filters (color, size, material, finish)
+            const processAgg = (aggData: any, name: string) => {
+                if (aggData && aggData.buckets) {
+                    const buckets = aggData.buckets.map((b: any) => ({
+                        key: b.key,
+                        doc_count: b.doc_count,
+                        label: b.names?.buckets?.[0]?.key || b.key
+                    }));
+                    if (buckets.length > 0) facets.push({ name, buckets });
+                }
+            };
+            
+            processAgg(result.aggregations.color, "color");
+            processAgg(result.aggregations.size, "size");
+            processAgg(result.aggregations.material, "material");
+            processAgg(result.aggregations.finish, "finish");
 
             // Stock
             const stockAgg = result.aggregations.stock as any;

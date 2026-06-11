@@ -22,7 +22,6 @@ function FilterGroup({
     const [showAll, setShowAll] = useState(false);
 
     if (!facet.buckets || facet.buckets.length === 0) return null;
-    if (facet.buckets.length <= 1 && facet.name !== 'stock') return null;
 
     const visibleBuckets = showAll ? facet.buckets : facet.buckets.slice(0, 5);
 
