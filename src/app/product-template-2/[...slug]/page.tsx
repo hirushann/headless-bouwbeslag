@@ -619,6 +619,8 @@ function generateStructuredData(product: any, taxRate: number, reviews: any[] = 
   const schema: any = {
     "@context": "https://schema.org/",
     "@type": "Product",
+    "@id": `https://bouwbeslag.nl/${product.slug}#product`,
+    url: `https://bouwbeslag.nl/${product.slug}`,
     name: product.name,
     image: images,
     description: finalDescription,
@@ -628,7 +630,37 @@ function generateStructuredData(product: any, taxRate: number, reviews: any[] = 
       "@type": "Brand",
       name: brandName,
     },
-    offers: {
+  };
+
+  if (product.categories && product.categories.length > 0) {
+    schema.category = product.categories.map((c: any) => c.name).join(' > ');
+  }
+
+  if (product.weight) {
+    schema.weight = {
+      "@type": "QuantitativeValue",
+      "value": product.weight,
+      "unitCode": "KGM"
+    };
+  }
+
+  const attributes = product.attributes || [];
+  const colorAttr = attributes.find((a: any) => a.name && (a.name.toLowerCase().includes('kleur') || a.name.toLowerCase().includes('color')));
+  if (colorAttr && colorAttr.options && colorAttr.options.length > 0) {
+    schema.color = colorAttr.options.join(' / ');
+  }
+
+  const materialAttr = attributes.find((a: any) => a.name && (a.name.toLowerCase().includes('materiaal') || a.name.toLowerCase().includes('material')));
+  if (materialAttr && materialAttr.options && materialAttr.options.length > 0) {
+    schema.material = materialAttr.options.join(' / ');
+  }
+
+  const sizeAttr = attributes.find((a: any) => a.name && (a.name.toLowerCase().includes('maat') || a.name.toLowerCase().includes('afmeting') || a.name.toLowerCase().includes('size')));
+  if (sizeAttr && sizeAttr.options && sizeAttr.options.length > 0) {
+    schema.size = sizeAttr.options.join(' / ');
+  }
+
+  schema.offers = {
       "@type": "Offer",
       url: `https://bouwbeslag.nl/${product.slug}`,
       priceCurrency: currency,
