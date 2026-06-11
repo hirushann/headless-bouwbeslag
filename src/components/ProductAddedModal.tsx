@@ -29,40 +29,40 @@ export default function ProductAddedModal() {
             className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-white/20"
           >
             {/* Header */}
-            <div className="p-5 lg:p-6 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
-              <div className="flex items-center gap-3 lg:gap-4">
-                <div className="bg-[#EDFCF2] p-2 rounded-full flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="3" stroke="#03B955" className="size-5 lg:size-6">
+            <div className="p-4 lg:p-6 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
+              <div className="flex items-center gap-3">
+                <div className="bg-[#EDFCF2] p-2 rounded-full flex items-center justify-center shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="3" stroke="#03B955" className="size-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                   </svg>
                 </div>
-                <h2 className="text-lg lg:text-2xl font-bold text-[#1C2530]">Product toegevoegd aan winkelwagen</h2>
+                <h2 className="text-base sm:text-lg lg:text-2xl font-bold text-[#1C2530] leading-tight">Product toegevoegd aan winkelwagen</h2>
               </div>
               <button 
                 onClick={closeModal}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors group"
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors group shrink-0"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="size-5 lg:size-6 text-gray-400 group-hover:text-gray-600">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="size-5 text-gray-400 group-hover:text-gray-600">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-5 lg:p-8 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-8 custom-scrollbar">
               {/* Just Added Product */}
-              <div className="flex flex-row md:flex-row gap-4 lg:gap-6 lg:items-center p-4 lg:p-3 bg-white lg:bg-[#F8FAFC] rounded-xl border border-[#E2E8F0] mb-3 lg:mb-8 lg:mb-10">
-                <div className="w-20 h-20 lg:w-24 lg:h-24 bg-white rounded-lg border border-[#E2E8F0] overflow-hidden flex-shrink-0 flex items-center justify-center p-2 shadow-sm relative">
+              <div className="flex flex-row gap-3 sm:gap-4 lg:gap-6 items-center p-3 lg:p-4 bg-[#F8FAFC] rounded-xl border border-[#E2E8F0] mb-6">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-white rounded-lg border border-[#E2E8F0] overflow-hidden shrink-0 flex items-center justify-center p-1.5 shadow-sm relative">
                   <img 
                     src={fixImageSrc(modalData.image || modalData.product?.images?.[0]?.src)} 
                     alt={modalData.product?.name || "Product"} 
                     className="max-w-full max-h-full object-contain"
                   />
                 </div>
-                <div className="flex-1 lg:text-center text-left">
-                  <h3 className="font-bold text-base lg:text-base text-[#1C2530] leading-tight">{modalData.product?.name}</h3>
-                  <div className="flex flex-col md:flex-row items-start lg:items-center gap-2 justify-center mt-2">
-                     <span className="bg-blue-100 text-[#0066FF] px-2 py-0.5 rounded text-[10px] lg:text-xs font-bold uppercase tracking-wider">Aantal: {modalData.quantity}</span>
-                      <div className="text-[10px] lg:text-xs">
+                <div className="flex-1 flex flex-col justify-center min-w-0">
+                  <h3 className="font-bold text-sm sm:text-base lg:text-lg text-[#1C2530] leading-snug line-clamp-2">{modalData.product?.name}</h3>
+                  <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                     <span className="bg-blue-100 text-[#0066FF] px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold uppercase tracking-wider">Aantal: {modalData.quantity}</span>
+                      <div className="text-[10px] sm:text-xs">
                         {modalData.deliveryText && (
                             <span className={`font-bold ${
                               modalData.deliveryType === 'IN_STOCK' ? 'text-[#03B955]' : 
@@ -75,11 +75,11 @@ export default function ProductAddedModal() {
                       </div>
                   </div>
                 </div>
-                <div className="text-center md:text-right flex flex-col items-center md:items-end">
-                  <p className="text-xl lg:text-2xl font-bold text-[#0066FF] tracking-tight">
+                <div className="text-right shrink-0">
+                  <p className="text-base sm:text-xl lg:text-2xl font-bold text-[#0066FF] tracking-tight">
                     {modalData.currency || "€"}{modalData.totalPrice?.toFixed(2).replace('.', ',')}
                   </p>
-                  <p className="text-[10px] lg:text-xs text-[#64748B] font-medium mt-1">
+                  <p className="text-[10px] sm:text-xs text-[#64748B] font-medium mt-0.5">
                     {modalData.userRole && (modalData.userRole.includes("b2b_customer") || modalData.userRole.includes("administrator")) ? "Excl. BTW" : "Incl. BTW"}
                   </p>
                 </div>
@@ -182,10 +182,10 @@ export default function ProductAddedModal() {
             </div>
 
             {/* Footer Actions */}
-            <div className="p-5 lg:p-8 bg-white border-t border-gray-100 flex flex-col-reverse md:flex-row gap-4 items-center justify-between shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
+            <div className="p-4 lg:p-6 bg-white border-t border-gray-100 flex flex-col-reverse sm:flex-row gap-3 items-center justify-between shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
               <button 
                 onClick={closeModal}
-                className="w-full md:w-auto px-10 py-4 text-[#475569] font-bold hover:text-[#1C2530] transition-all bg-gray-50 hover:bg-gray-100 rounded-lg text-base"
+                className="w-full sm:w-auto px-6 py-3.5 sm:py-2.5 text-[#475569] font-bold hover:text-[#1C2530] transition-all bg-gray-50 hover:bg-gray-100 rounded-lg text-sm sm:text-base"
               >
                 Verder winkelen
               </button>
@@ -194,7 +194,7 @@ export default function ProductAddedModal() {
                   closeModal();
                   useCartStore.getState().setCartOpen(true);
                 }}
-                className="w-full md:w-auto px-5 py-2 bg-[#0066FF] text-white font-semibold rounded-lg hover:bg-blue-700 transition-all text-center text-base shadow-lg shadow-blue-200 tracking-wide cursor-pointer"
+                className="w-full sm:w-auto px-6 py-3.5 sm:py-2.5 bg-[#0066FF] text-white font-bold rounded-lg hover:bg-blue-700 transition-all text-center text-sm sm:text-base shadow-lg shadow-blue-200 tracking-wide cursor-pointer"
               >
                 Nu bestellen
               </button>

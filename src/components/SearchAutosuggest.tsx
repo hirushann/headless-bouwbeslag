@@ -242,36 +242,47 @@ export default function SearchAutosuggest({
                         {/* Header */}
                         <div className="bg-white border-b border-[#E2E2E2] px-4 py-4 shadow-sm shrink-0">
                             <div className="max-w-[1440px] mx-auto flex flex-col md:flex-row items-center gap-4">
-                                <form
-                                    onSubmit={(e) => e.preventDefault()}
-                                    className="flex-1 join border border-[#E2E2E2] rounded-[4px] bg-white h-[50px] w-full"
-                                >
-                                    <div className="w-full h-full">
-                                        <input
-                                            ref={inputRef}
-                                            className="input border-0 focus:outline-none w-full h-full px-2 lg:px-4 text-base lg:text-lg bg-transparent"
-                                            type="text"
-                                            placeholder={placeholder}
-                                            value={query}
-                                            onChange={(e) => setQuery(e.target.value)}
-                                            autoComplete="off"
-                                        />
-                                    </div>
-                                    <button
-                                        type="submit"
-                                        className="btn bg-[#2332C51A] border-0 shadow-none px-6 h-full rounded-r-[4px]"
+                                <div className="flex items-center gap-2 w-full flex-1">
+                                    <form
+                                        onSubmit={(e) => e.preventDefault()}
+                                        className="flex-1 join border border-[#E2E2E2] rounded-[4px] bg-white h-[50px] w-full"
                                     >
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 640 640"
-                                            width="20"
-                                            height="20"
-                                            fill="#0066FF"
+                                        <div className="w-full h-full">
+                                            <input
+                                                ref={inputRef}
+                                                className="input border-0 focus:outline-none w-full h-full px-2 lg:px-4 text-base lg:text-lg bg-transparent"
+                                                type="text"
+                                                placeholder={placeholder}
+                                                value={query}
+                                                onChange={(e) => setQuery(e.target.value)}
+                                                autoComplete="off"
+                                            />
+                                        </div>
+                                        <button
+                                            type="submit"
+                                            className="btn bg-[#2332C51A] border-0 shadow-none px-6 h-full rounded-r-[4px]"
                                         >
-                                            <path d="M480 272C480 317.9 465.1 360.3 440 394.7L566.6 521.4C579.1 533.9 579.1 554.2 566.6 566.7C554.1 579.2 533.8 579.2 521.3 566.7L394.7 440C360.3 465.1 317.9 480 272 480C157.1 480 64 386.9 64 272C64 157.1 157.1 64 272 64C386.9 64 480 157.1 480 272zM272 416C351.5 416 416 351.5 416 272C416 192.5 351.5 128 272 128C192.5 128 128 192.5 128 272C128 351.5 192.5 416 272 416z" />
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                viewBox="0 0 640 640"
+                                                width="20"
+                                                height="20"
+                                                fill="#0066FF"
+                                            >
+                                                <path d="M480 272C480 317.9 465.1 360.3 440 394.7L566.6 521.4C579.1 533.9 579.1 554.2 566.6 566.7C554.1 579.2 533.8 579.2 521.3 566.7L394.7 440C360.3 465.1 317.9 480 272 480C157.1 480 64 386.9 64 272C64 157.1 157.1 64 272 64C386.9 64 480 157.1 480 272zM272 416C351.5 416 416 351.5 416 272C416 192.5 351.5 128 272 128C192.5 128 128 192.5 128 272C128 351.5 192.5 416 272 416z" />
+                                            </svg>
+                                        </button>
+                                    </form>
+                                    
+                                    <button
+                                        onClick={handleClose}
+                                        className="btn btn-ghost btn-circle shrink-0 md:hidden"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                         </svg>
                                     </button>
-                                </form>
+                                </div>
 
                                 <div className="flex items-center gap-3 w-full md:w-auto">
                                     <select
@@ -296,7 +307,7 @@ export default function SearchAutosuggest({
 
                                     <button
                                         onClick={handleClose}
-                                        className="btn btn-ghost btn-circle shrink-0"
+                                        className="btn btn-ghost btn-circle shrink-0 hidden md:flex"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

@@ -176,101 +176,98 @@ export default function RecommendedProductItem({ item, onAddToCart }: { item: an
     };
 
     return (
-        <div className="flex items-center flex-row gap-4 p-4 border border-gray-100 rounded-lg bg-gray-50/50 hover:bg-white hover:border-blue-200 transition-colors">
-            {/* Image */}
-            <div className="w-28 h-28 lg:w-16 lg:h-16 bg-white rounded-md border border-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
-                {isFetchingImg ? (
-                    <div className="w-full h-full bg-gray-100 animate-pulse" />
-                ) : item.slug ? (
-                    <Link prefetch={true} href={`/${item.slug}`} className="block w-full h-full">
-                        {mImg ? <img src={mImg} alt={item.name} className="w-full h-full object-contain rounded-md" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">No Img</div>}
-                    </Link>
-                ) : (
-                    mImg ? <img src={mImg} alt={item.name} className="w-full h-full object-contain rounded-md" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">No Img</div>
-                )}
-            </div>
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 p-3 sm:p-4 border border-gray-200 rounded-xl bg-white hover:border-blue-200 transition-all shadow-sm">
+            {/* Image & Info */}
+            <div className="flex gap-3 flex-1 min-w-0">
+                {/* Image */}
+                <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 border border-gray-100 rounded-lg p-1 bg-white flex items-center justify-center overflow-hidden">
+                    {isFetchingImg ? (
+                        <div className="w-full h-full bg-gray-100 animate-pulse" />
+                    ) : item.slug ? (
+                        <Link prefetch={true} href={`/${item.slug}`} className="block w-full h-full">
+                            {mImg ? <img src={mImg} alt={item.name} className="w-full h-full object-contain rounded-md" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">No Img</div>}
+                        </Link>
+                    ) : (
+                        mImg ? <img src={mImg} alt={item.name} className="w-full h-full object-contain rounded-md" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">No Img</div>
+                    )}
+                </div>
 
-            {/* Content */}
-            <div className="flex-1 flex flex-col lg:flex-row justify-between">
-                <div className="flex justify-center items-start flex-col w-full lg:gap-1.5">
-                    <div className="flex justify-center items-start flex-row lg:flex-col w-full lg:gap-1.5">
-                        <div className='max-w-[70%]'>
-                            {item.slug ? (
-                                <Link prefetch={true} href={`/${item.slug}`} className="hover:text-blue-600 transition-colors">
-                                    <h4 className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</h4>
-                                </Link>
-                            ) : (
-                                <h4 className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</h4>
-                            )}
-                        </div>
-                        <div className="flex items-center flex-col lg:flex-row lg:gap-1.5">
+                {/* Info */}
+                <div className="flex-1 flex flex-col min-w-0">
+                    <div className="flex justify-between gap-2 items-start">
+                        {item.slug ? (
+                            <Link prefetch={true} href={`/${item.slug}`} className="hover:text-blue-600 transition-colors">
+                                <h4 className="text-sm sm:text-base font-semibold text-gray-800 line-clamp-2 leading-snug">{item.name}</h4>
+                            </Link>
+                        ) : (
+                            <h4 className="text-sm sm:text-base font-semibold text-gray-800 line-clamp-2 leading-snug">{item.name}</h4>
+                        )}
+                        <div className="text-right shrink-0">
                             {isLoading ? (
-                                <div className="h-4 w-16 bg-gray-200 animate-pulse rounded"></div>
+                                <div className="h-4 w-12 bg-gray-200 animate-pulse rounded"></div>
                             ) : (
                                 <>
-                                    <span className="text-sm font-bold text-gray-900 whitespace-nowrap">€ {finalPrice.toFixed(2).replace('.', ',')}</span>
-                                    <div className="text-xs text-gray-500 font-normal">{taxLabel}</div>
+                                    <div className="text-sm sm:text-base font-bold text-gray-900 whitespace-nowrap">€ {finalPrice.toFixed(2).replace('.', ',')}</div>
+                                    <div className="text-[10px] sm:text-xs text-gray-500 font-medium">{taxLabel}</div>
                                 </>
                             )}
                         </div>
                     </div>
+
                     {/* Delivery Notice */}
-                    <div className="text-xs w-full lg:w-auto mb-2 lg:mb-0 ml-1">
+                    <div className="text-xs mt-1.5">
                         {deliveryInfo.type === 'IN_STOCK' ? (
                             <span className="text-[#03B955] font-semibold flex items-center gap-1">
-                                <span className="w-2 h-2 rounded-full bg-[#03B955]"></span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#03B955]"></span>
                                 {deliveryInfo.short}
                             </span>
                         ) : deliveryInfo.type === 'PARTIAL_STOCK' ? (
                             <span className="text-[#B28900] font-semibold flex items-center gap-1">
-                                <span className="w-2 h-2 rounded-full bg-[#B28900]"></span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#B28900]"></span>
                                 {deliveryInfo.short}
                             </span>
                         ) : (
                              <span className="text-[#FF5E00] font-semibold flex items-center gap-1">
-                                <span className="w-2 h-2 rounded-full bg-[#FF5E00]"></span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#FF5E00]"></span>
                                 {deliveryInfo.short}
                             </span>
                         )}
                     </div>
                 </div>
+            </div>
 
-                <div className="flex justify-between items-center mt-2 flex-wrap gap-2">
-                    <div className="flex items-center gap-2 lg:ml-auto flex-row items-start lg:items-end">
-                        {/* Quantity Selector */}
-                        <div className="flex border border-gray-300 rounded-sm overflow-hidden bg-white h-8">
-                            <button
-                                type="button"
-                                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                                className="px-2 text-lg leading-none cursor-pointer border-r border-gray-300 hover:bg-gray-50 text-gray-600"
-                            >-</button>
-                            <div className="w-8 flex items-center justify-center text-sm font-medium text-gray-900">
-                                {quantity}
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setQuantity((q) => q + 1)}
-                                className="px-2 text-lg leading-none cursor-pointer border-l border-gray-300 hover:bg-gray-50 text-gray-600"
-                            >+</button>
-                        </div>
-
-                        {/* Add to Cart Button */}
-                        <button 
-                            onClick={handleAddToCart}
-                            disabled={isAdding}
-                            className={`h-8 px-3 rounded-sm text-xs font-bold transition-colors flex items-center gap-1 whitespace-nowrap ${isAdding ? 'bg-gray-300 text-white cursor-not-allowed' : 'bg-[#0066FF] text-white hover:bg-blue-700'}`}
-                        >
-                            {isAdding ? "Laden..." : (
-                                <>
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                                    </svg>
-                                    In winkelwagen
-                                </>
-                            )}
-                        </button>
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-2 sm:mt-0 sm:self-center border-t sm:border-0 border-gray-100 pt-3 sm:pt-0">
+                <div className="flex border border-gray-300 rounded-lg overflow-hidden bg-white h-9 shrink-0">
+                    <button
+                        type="button"
+                        onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                        className="px-2.5 text-lg leading-none cursor-pointer border-r border-gray-300 hover:bg-gray-50 text-gray-600"
+                    >-</button>
+                    <div className="w-8 flex items-center justify-center text-sm font-semibold text-gray-900">
+                        {quantity}
                     </div>
+                    <button
+                        type="button"
+                        onClick={() => setQuantity((q) => q + 1)}
+                        className="px-2.5 text-lg leading-none cursor-pointer border-l border-gray-300 hover:bg-gray-50 text-gray-600"
+                    >+</button>
                 </div>
+
+                <button 
+                    onClick={handleAddToCart}
+                    disabled={isAdding}
+                    className={`h-9 px-4 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-1.5 shrink-0 flex-1 sm:flex-none ${isAdding ? 'bg-gray-300 text-white cursor-not-allowed' : 'bg-[#0066FF] text-white hover:bg-blue-700'}`}
+                >
+                    {isAdding ? "Laden..." : (
+                        <>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                            </svg>
+                            In winkelwagen
+                        </>
+                    )}
+                </button>
             </div>
         </div>
     );
