@@ -368,11 +368,16 @@ function FilterSidebar({
         });
       }
     });
-
-    return Array.from(brandCounts.entries())
+    const brandsArray = Array.from(brandCounts.entries())
       .map(([id, data]) => ({ id, name: data.name, count: data.count }))
       .filter(b => b.count > 0 || selectedBrands.has(b.id))
       .sort((a, b) => a.name.localeCompare(b.name));
+
+    if (brandsArray.length <= 1 && selectedBrands.size === 0) {
+      return [];
+    }
+
+    return brandsArray;
   }, [allCategoryProductsForFilters, selectedFilters, selectedBrands, attributes, afdichtingsspleetRange, groefbreedteRange, showOnlyInStock]);
 
   const relevantAttributes = useMemo(() => {
@@ -445,7 +450,12 @@ function FilterSidebar({
           return { ...term, count };
         }).filter(Boolean) as AttributeTerm[];
 
-
+        if (validTerms.length <= 1) {
+            const isAnySelected = selectedFilters[attr.id] && selectedFilters[attr.id].size > 0;
+            if (!isAnySelected) {
+               return null;
+            }
+        }
 
         if (validTerms.length === 0) return null;
         return { ...attr, terms: validTerms };
@@ -565,18 +575,6 @@ function FilterSidebar({
         </button>
         {showFilters && <h2 className="text-2xl font-bold mb-6 lg:hidden">Filters</h2>}
 
-        <div className="mb-4 border-b border-[#F7F7F7] pb-4">
-          <h3 className="font-semibold text-lg text-[#212121] py-2">Voorraad</h3>
-          <label className="flex items-center gap-2 cursor-pointer py-1 group">
-            <input
-              type="checkbox"
-              className="w-5 h-5 rounded-sm border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0 cursor-pointer"
-              checked={showOnlyInStock}
-              onChange={(e) => setShowOnlyInStock(e.target.checked)}
-            />
-            <span className="text-sm text-gray-700 group-hover:text-[#0066FF] transition-colors">Alleen op voorraad</span>
-          </label>
-        </div>
         {availableBrands.length > 0 && (
           <div className="mb-4 border-b border-[#F7F7F7] pb-4">
             <button 
@@ -760,6 +758,20 @@ function FilterSidebar({
         {validRegularAttributes.map((attr: Attribute) => (
           <FilterAttributeGroup key={attr.id} attr={attr} selectedFilters={selectedFilters} toggleFilter={toggleFilter} />
         ))}
+
+        <div className="mb-4 pt-4 border-t border-[#F7F7F7] pb-4">
+          <h3 className="font-semibold text-lg text-[#212121] py-2">Voorraad</h3>
+          <label className="flex items-center gap-2 cursor-pointer py-1 group">
+            <input
+              type="checkbox"
+              className="w-5 h-5 rounded-sm border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0 cursor-pointer"
+              checked={showOnlyInStock}
+              onChange={(e) => setShowOnlyInStock(e.target.checked)}
+            />
+            <span className="text-sm text-gray-700 group-hover:text-[#0066FF] transition-colors">Alleen op voorraad</span>
+          </label>
+        </div>
+
         {(Object.keys(selectedFilters).length > 0 || selectedBrands.size > 0 || afdichtingsspleetRange || groefbreedteRange || showOnlyInStock) && (
           <button onClick={() => {
             resetFilters();
