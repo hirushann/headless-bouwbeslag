@@ -632,7 +632,7 @@ function generateStructuredData(product: any, taxRate: number, reviews: any[] = 
     offers: {
       "@type": "Offer",
       url: `https://bouwbeslag.nl/${product.slug}`,
-      currency: currency,
+      priceCurrency: currency,
       price: priceWithVat.toFixed(2),
       priceValidUntil: "2027-12-31", 
       itemCondition: "https://schema.org/NewCondition",
