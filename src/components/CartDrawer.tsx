@@ -131,99 +131,105 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods }: CartDra
               </div>
             ) : (
               items.map((item) => (
-                <div key={item.id} className="flex gap-2 items-center justify-between p-3 mb-3 border border-[#DEDEDE] rounded-sm relative flex-col lg:flex-row">
-                  <div className="flex items-center gap-4 justify-start w-8/12">
-                    {item.slug ? (
-                      <Link className="w-1/3 flex items-center justify-start" href={`/${item.slug}`} onClick={() => setCartOpen(false)}>
-                        {item.image ? (
-                          <div className="w-28 h-28 relative">
-                            <Image src={fixImageSrc(item.image)} alt={item.name} fill sizes="112px" className="object-cover rounded bg-gray-100 cursor-pointer hover:opacity-80 transition" />
-                          </div>
+                <div key={item.id} className="flex p-3 mb-3 border border-[#DEDEDE] rounded-md relative bg-white flex-col sm:flex-row gap-3 sm:gap-4 group">
+                  {/* Delete Button */}
+                  <button onClick={() => removeItem(item.id)} aria-label={`${item.name} verwijderen uit winkelmand`} className="text-red-600 hover:text-red-800 cursor-pointer bg-[#FFEAEB] rounded-full p-1.5 absolute -top-2.5 -right-2.5 shadow-sm z-10 transition-colors opacity-100 sm:opacity-0 group-hover:opacity-100">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-4"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                  </button>
+
+                  <div className="flex gap-3 sm:gap-4 w-full">
+                    {/* Image Column */}
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 relative bg-gray-50 rounded border border-gray-100 overflow-hidden flex items-center justify-center">
+                      {item.slug ? (
+                        <Link href={`/${item.slug}`} onClick={() => setCartOpen(false)} className="w-full h-full block">
+                          {item.image ? (
+                            <Image src={fixImageSrc(item.image)} alt={item.name} fill sizes="96px" className="object-contain p-1 hover:opacity-80 transition" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-8"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
+                            </div>
+                          )}
+                        </Link>
+                      ) : (
+                        item.image ? (
+                          <Image src={fixImageSrc(item.image)} alt={item.name} fill sizes="96px" className="object-contain p-1" />
                         ) : (
-                          <div className="w-28 h-28 bg-gray-100 rounded flex items-center justify-center text-gray-400 cursor-pointer">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-8"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-8 text-gray-400"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
+                        )
+                      )}
+                    </div>
+
+                    {/* Details Column */}
+                    <div className="flex flex-col flex-1 justify-between min-w-0">
+                      <div>
+                        {item.slug ? (
+                          <Link href={`/${item.slug}`} className="hover:text-blue-600 transition block pr-2" onClick={() => setCartOpen(false)}>
+                            <h3 className="font-semibold text-[13px] sm:text-base leading-snug truncate whitespace-normal line-clamp-2">{item.name}</h3>
+                          </Link>
+                        ) : (
+                          <h3 className="font-semibold text-[13px] sm:text-base leading-snug pr-2 truncate whitespace-normal line-clamp-2">{item.name}</h3>
+                        )}
+                        
+                        {(item.color || item.brand || item.model) && (
+                          <div className="flex gap-1.5 flex-wrap mt-0.5">
+                            {item.color && <p className="text-[11px] text-gray-500 border-r border-gray-200 pr-1.5 last:border-0 last:pr-0">Kleur: {item.color}</p>}
+                            {item.brand && <p className="text-[11px] text-gray-500 border-r border-gray-200 pr-1.5 last:border-0 last:pr-0">Merk: {item.brand}</p>}
+                            {item.model && <p className="text-[11px] text-gray-500 border-r border-gray-200 pr-1.5 last:border-0 last:pr-0">Model: {item.model}</p>}
                           </div>
                         )}
-                      </Link>
-                    ) : (
-                      <div className="w-1/3 flex items-center justify-start">
-                        {item.image ? (
-                          <div className="w-28 h-28 relative">
-                            <Image src={fixImageSrc(item.image)} alt={item.name} fill sizes="112px" className="object-cover rounded bg-gray-100 cursor-pointer hover:opacity-80 transition" />
-                          </div>
+
+                        {isFetchingStock ? (
+                          <div className="h-3 w-3/4 bg-gray-200 animate-pulse rounded mt-1.5" />
                         ) : (
-                          <div className="w-28 h-28 bg-gray-100 rounded flex items-center justify-center text-gray-400 cursor-pointer">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-8"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
+                          (() => {
+                            let message = item.deliveryText;
+                            let type = item.deliveryType;
+
+                            if (!message || isCartOpen) {
+                              const info = getDeliveryInfo(
+                                item.stockStatus || 'instock',
+                                item.quantity,
+                                item.stockQuantity !== undefined ? item.stockQuantity : null,
+                                item.leadTimeInStock || 1,
+                                item.leadTimeNoStock || 30
+                              );
+                              message = info.short;
+                              type = info.type;
+                            }
+
+                            let colorClass = "text-[#03B955]";
+                            if (type === "PARTIAL_STOCK") colorClass = "text-[#B28900]";
+                            else if (type === "BACKORDER" || type === "OUT_OF_STOCK") colorClass = "text-[#FF5E00]";
+                            return <p className={`${colorClass} text-[11px] sm:text-xs font-semibold mt-1`}>{message}</p>;
+                          })()
+                        )}
+
+                        {item.isMaatwerk && (
+                          <div className="flex items-start gap-1 mt-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-3.5 text-amber-600 flex-shrink-0 mt-0.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>
+                            <p className="text-[10px] sm:text-[11px] text-amber-700 font-medium leading-tight">Maatwerk. Uitgesloten van retourrecht.</p>
                           </div>
                         )}
                       </div>
-                    )}
-                    <div className="w-2/3">
-                      {item.slug ? (
-                        <Link href={`/${item.slug}`} className="hover:text-blue-600 transition" onClick={() => setCartOpen(false)}>
-                          <h3 className="font-semibold break-all">{item.name}</h3>
-                        </Link>
-                      ) : (
-                        <h3 className="font-semibold break-all">{item.name}</h3>
-                      )}
-                      {(item.color || item.brand || item.model) && (
-                        <div className="flex gap-2 flex-wrap mt-1 mb-2">
-                          {item.color && <p className="text-sm text-gray-600 border-r border-[#E6E6E6] pr-2 last:border-0 last:pr-0">Color: {item.color}</p>}
-                          {item.brand && <p className="text-sm text-gray-600 border-r border-[#E6E6E6] pr-2 last:border-0 last:pr-0">Brand: {item.brand}</p>}
-                          {item.model && <p className="text-sm text-gray-600 border-r border-[#E6E6E6] pr-2 last:border-0 last:pr-0">Model: {item.model}</p>}
+
+                      {/* Price & Quantity Controls */}
+                      <div className="flex items-end justify-between mt-2 gap-2">
+                        <div className="text-left leading-none">
+                          <span className="font-bold text-base sm:text-lg tracking-tight text-[#1C2530]">
+                            €{((isB2B ? item.price : item.price * 1.21) * item.quantity).toFixed(2)}
+                          </span>
+                          <div className="text-[10px] text-gray-500 mt-0.5">
+                            {taxLabel}
+                          </div>
                         </div>
-                      )}
-                      {isFetchingStock ? (
-                        <div className="h-4 w-3/4 bg-gray-200 animate-pulse rounded mt-1" />
-                      ) : (
-                        (() => {
-                          // If we have baked-in text AND calculated text, which one to use?
-                          // We prefer to re-calculate if we have stock info.
-                          // If deliveryText is undefined (cleared by sync), we calculate.
 
-                          // Check if calculations needed
-                          let message = item.deliveryText;
-                          let type = item.deliveryType;
-
-                          if (!message || isCartOpen) { // Force recalc on open if we have data?
-                            // Actually better to always recalc if possible using latest stock data
-                            const info = getDeliveryInfo(
-                              item.stockStatus || 'instock',
-                              item.quantity,
-                              item.stockQuantity !== undefined ? item.stockQuantity : null,
-                              item.leadTimeInStock || 1,
-                              item.leadTimeNoStock || 30
-                            );
-                            message = info.short;
-                            type = info.type;
-                          }
-
-                          let colorClass = "text-[#03B955]";
-                          if (type === "PARTIAL_STOCK") colorClass = "text-[#B28900]";
-                          else if (type === "BACKORDER" || type === "OUT_OF_STOCK") colorClass = "text-[#FF5E00]";
-                          return <p className={`${colorClass} text-xs font-semibold mt-1`}>{message}</p>;
-                        })()
-                      )}
-                      {item.isMaatwerk && (
-                        <div className="flex items-start gap-1 mt-1">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4 text-amber-600 flex-shrink-0 mt-0.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>
-                          <p className="text-xs text-amber-700 font-medium leading-tight">Let op: maatwerk product. Uitgesloten van retourrecht</p>
+                        <div className="flex items-center border border-[#EDEDED] shadow-sm rounded-sm bg-white shrink-0 h-8 sm:h-9">
+                          <button onClick={() => decreaseQuantity(item.id)} aria-label={`${item.name} aantal verlagen`} className="border-r border-[#EDEDED] cursor-pointer w-8 h-full flex items-center justify-center text-lg font-bold text-gray-700 hover:bg-gray-50 transition-colors">−</button>
+                          <input type="number" min={1} aria-label="Aantal" className="w-10 h-full text-center px-1 py-1 outline-none text-[13px] sm:text-sm font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-transparent" value={item.quantity} onChange={(e) => useCartStore.getState().updateQty(item.id, Math.max(1, parseInt(e.target.value) || 1))} />
+                          <button onClick={() => increaseQuantity(item.id)} aria-label={`${item.name} aantal verhogen`} className="border-l border-[#EDEDED] cursor-pointer w-8 h-full flex items-center justify-center text-lg font-bold text-gray-700 hover:bg-gray-50 transition-colors">+</button>
                         </div>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex w-4/12 lg:w-auto flex-row-reverse lg:flex-col items-center lg:items-end gap-2">
-                    <div className="flex items-center border border-[#EDEDED] shadow-xs rounded-sm w-auto">
-                      <button onClick={() => decreaseQuantity(item.id)} aria-label={`${item.name} aantal verlagen`} className="border-r border-[#EDEDED] cursor-pointer px-3 py-1 text-lg font-bold text-gray-700 hover:bg-gray-200">−</button>
-                      <input type="number" min={1} aria-label="Aantal" className="w-14 text-center px-2 py-1 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" value={item.quantity} onChange={(e) => useCartStore.getState().updateQty(item.id, Math.max(1, parseInt(e.target.value) || 1))} />
-                      <button onClick={() => increaseQuantity(item.id)} aria-label={`${item.name} aantal verhogen`} className="border-l border-[#EDEDED] cursor-pointer px-3 py-1 text-lg font-bold text-gray-700 hover:bg-gray-200">+</button>
-                    </div>
-                    <span className="font-bold text-lg flex flex-col">
-                      €{((isB2B ? item.price : item.price * 1.21) * item.quantity).toFixed(2)} <span className="text-xs font-normal text-gray-500">{taxLabel}</span>
-                    </span>
-                    <button onClick={() => removeItem(item.id)} aria-label={`${item.name} verwijderen uit winkelmand`} className="text-red-600 hover:text-red-800 cursor-pointer bg-[#FFEAEB] rounded-full p-1 absolute -top-2 -right-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-4"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
-                    </button>
                   </div>
                 </div>
               ))
