@@ -94,7 +94,7 @@ export default function ProductAddedModal() {
                 (modalData.blindtoiletroseKeys && modalData.blindtoiletroseKeys.length > 0)) && (
                 <div className="mt-6 border-t border-gray-100 pt-6">
                    <div className="flex items-center justify-between mb-4">
-                     <div>
+                     <div className="hidden lg:block">
                        <h3 className="text-lg lg:text-xl font-bold text-[#1C2530]">Vaak samen gekocht</h3>
                        <p className="text-sm text-gray-500 font-medium">Handige accessoires voor een nog beter resultaat</p>
                      </div>
