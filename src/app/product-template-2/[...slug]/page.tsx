@@ -43,11 +43,22 @@ interface Attribute {
  ---------------------------------------------------- */
 const getProductMetadataCached = cache(async (slug: string) => {
   try {
-    const res = await api.get("products", { 
+    let res = await api.get("products", { 
       slug, 
       _fields: "id,name,slug,meta_data,short_description,sku,images",
       next: { revalidate: 3600 }
     });
+
+    // Fallback for hyphenated slugs that might be stored with underscores in WooCommerce
+    if ((!Array.isArray(res.data) || !res.data[0]) && slug.includes('-')) {
+      const fallbackSlug = slug.replace(/-/g, '_');
+      res = await api.get("products", { 
+        slug: fallbackSlug, 
+        _fields: "id,name,slug,meta_data,short_description,sku,images",
+        next: { revalidate: 3600 }
+      });
+    }
+
     if (!Array.isArray(res.data) || !res.data[0]) return null;
     return res.data[0];
   } catch (error) {
@@ -104,7 +115,14 @@ const getAllCategoriesCached = cache(async () => {
 const getProductBySlugCached = cache(async (slug: string) => {
   try {
     // 1. Fetch search by slug - WooCommerce returns the full product here already
-    const res = await api.get("products", { slug, next: { revalidate: 3600 } });
+    let res = await api.get("products", { slug, next: { revalidate: 3600 } });
+
+    // Fallback for hyphenated slugs that might be stored with underscores in WooCommerce
+    if ((!Array.isArray(res.data) || !res.data[0]) && slug.includes('-')) {
+      const fallbackSlug = slug.replace(/-/g, '_');
+      res = await api.get("products", { slug: fallbackSlug, next: { revalidate: 3600 } });
+    }
+
     if (!Array.isArray(res.data) || !res.data[0]) return null;
     
     const product = res.data[0];
