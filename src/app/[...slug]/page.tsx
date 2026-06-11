@@ -484,11 +484,12 @@ export async function generateMetadata(
 
     const imageUrl = product.images?.[0]?.src || "https://bouwbeslag.nl/ogimg-new.png";
 
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl";
     const result = {
       title: metaTitle,
       description: metaDescription,
       alternates: {
-        canonical: `/${product.slug}`,
+        canonical: `${siteUrl}/${product.slug}`,
       },
       openGraph: {
         title: metaTitle,
@@ -543,7 +544,7 @@ export async function generateMetadata(
       title,
       description,
       alternates: {
-        canonical: `/${correctPath}`,
+        canonical: `${siteUrl}/${correctPath}`,
       },
       openGraph: {
         title,

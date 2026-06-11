@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: 'Laagste Prijs Garantie | Bouwbeslag',
   description: 'Profiteer van onze laagste prijsgarantie. Ziet u het ergens anders goedkoper? Wij passen de prijs aan.',
   alternates: {
-    canonical: '/laagste-prijs-garantie',
+    canonical: 'https://bouwbeslag.nl/laagste-prijs-garantie',
   },
   robots: {
     index: true,
