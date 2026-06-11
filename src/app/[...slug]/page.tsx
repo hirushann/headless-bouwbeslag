@@ -708,8 +708,7 @@ function generateStructuredData(product: any, taxRate: number, reviews: any[] = 
         returnMethod: "https://schema.org/ReturnByMail",
         returnFees: "https://schema.org/FreeReturn"
       }
-    },
-  };
+    };
 
   if (eanCode) {
     const eanStr = String(eanCode).trim();
