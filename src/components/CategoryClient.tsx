@@ -813,15 +813,12 @@ function FilterSidebar({
 }
 
 export default function CategoryClient({
-
   category,
   subCategories,
-  attributes,
   currentSlug,
   initialProducts = [],
   initialTotalPages = 1,
   initialTotalProducts = 0,
-  initialFilterBaseProducts = [],
 }: CategoryClientProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
