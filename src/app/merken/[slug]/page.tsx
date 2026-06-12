@@ -80,7 +80,8 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
             title: title,
             description: description,
             url: canonicalPath,
-        }
+        },
+        robots: categorySlug ? { index: false, follow: false } : { index: true, follow: true }
     };
 }
 
@@ -225,6 +226,7 @@ export default async function BrandPage({ params, searchParams }: { params: Prom
                                 <li key={cat.id}>
                                     <Link 
                                         href={`/merken/${slug}?category=${cat.slug}`}
+                                        rel="nofollow"
                                         className={`flex items-center justify-between p-2 rounded-lg transition-colors ${categorySlug === cat.slug ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}
                                     >
                                         <span>{cat.name}</span>

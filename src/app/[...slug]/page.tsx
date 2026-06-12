@@ -478,9 +478,13 @@ async function resolveProductImages(products: any[]) {
  | ✅ SEO METADATA (ACF-powered)
  ---------------------------------------------------- */
 export async function generateMetadata(
-  { params }: PageProps
+  { params, searchParams }: PageProps
 ): Promise<Metadata> {
   const { slug } = await params;
+  const sp = await searchParams;
+  
+  // If there are any query parameters (like ?filter_something=, ?sort=, ?page=), do not index or follow
+  const hasQueryParams = sp && Object.keys(sp).length > 0;
   
   const { product, category } = await getPageMetadata(slug);
 
@@ -527,10 +531,7 @@ export async function generateMetadata(
         description: metaDescription,
         images: [imageUrl],
       },
-      robots: {
-        index: true,
-        follow: true,
-      }
+      robots: hasQueryParams ? { index: false, follow: false } : { index: true, follow: true }
     };
     return result;
   }
@@ -582,10 +583,7 @@ export async function generateMetadata(
         description: description,
         images: [catImageUrl], // Corrected to use catImageUrl
       },
-      robots: {
-        index: true,
-        follow: true,
-      },
+      robots: hasQueryParams ? { index: false, follow: false } : { index: true, follow: true }
     };
   }
 

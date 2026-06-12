@@ -521,13 +521,21 @@ export default function NewCheckoutPage() {
     // Custom Free Shipping Logic: Free standard shipping over 74 Euro
     const cartTotalForShipping = isB2B ? subtotal : subtotal * 1.21;
     if (cartTotalForShipping >= 74) {
-        methodsToReturn = methodsToReturn.map(method => {
-            // Apply only to regular shipping methods, not lengtevracht
-            if (method.methodId !== 'length_freight' && !method.title.toLowerCase().includes('lengtevracht')) {
-                return { ...method, cost: 0 };
-            }
-            return method;
-        });
+        const hasNativeFreeShipping = methodsToReturn.some(m => m.methodId === 'free_shipping');
+        
+        if (hasNativeFreeShipping) {
+            // If WooCommerce naturally provides Free Shipping, hide the Flat Rate (Verzendkosten)
+            methodsToReturn = methodsToReturn.filter(m => m.methodId !== 'flat_rate');
+        } else {
+            // If no native Free Shipping, force the Flat Rate to be 0
+            methodsToReturn = methodsToReturn.map(method => {
+                // Apply only to regular shipping methods, not lengtevracht
+                if (method.methodId !== 'length_freight' && !method.title.toLowerCase().includes('lengtevracht')) {
+                    return { ...method, cost: 0 };
+                }
+                return method;
+            });
+        }
     }
 
     return methodsToReturn;
@@ -1439,6 +1447,46 @@ export default function NewCheckoutPage() {
                              </div>
                         ) : null;
                      })()}
+                     {/* Shipment Consolidation Upsell (Moved from Sidebar) */}
+                     {deliveryState.canConsolidate && (
+                         <label 
+                             htmlFor="consolidate-shipment" 
+                             className={`block w-full cursor-pointer mb-6 p-5 rounded-2xl border-2 transition-all duration-300 relative overflow-hidden group ${isConsolidated ? 'bg-[#F4F9FF] border-blue-500 shadow-[0_0_0_4px_rgba(59,130,246,0.1)]' : 'bg-white border-gray-200 hover:border-blue-300 shadow-sm'}`}
+                         >
+                             {/* Decorative background element */}
+                             {isConsolidated && <div className="absolute top-0 right-0 w-32 h-32 bg-blue-200 rounded-full blur-3xl -mr-10 -mt-10 opacity-30 pointer-events-none" />}
+                             
+                             <div className="flex items-start gap-4 relative z-10">
+                                 <div className="pt-0.5">
+                                      <input 
+                                         type="checkbox" 
+                                         id="consolidate-shipment" 
+                                         checked={isConsolidated}
+                                         onChange={(e) => setConsolidated(e.target.checked)}
+                                         className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                                      />
+                                 </div>
+                                 <div className="flex-1">
+                                     <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                                         <span className="font-bold text-gray-900 text-base">Samen verzenden en besparen</span>
+                                         <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${isConsolidated ? 'bg-blue-600 text-white' : 'bg-green-100 text-green-700'}`}>
+                                             Direct -€3,00 korting
+                                         </span>
+                                     </div>
+                                     <p className="text-sm text-gray-600 leading-relaxed pr-2">
+                                         Wij verzenden al uw artikelen in één groen pakket op <span className="font-bold text-gray-900">{deliveryState.latest.short.replace('Levering: ', '')}</span>. Beter voor het milieu én uw portemonnee!
+                                     </p>
+                                     
+                                     {isConsolidated && (
+                                         <div className="mt-4 flex items-center gap-2 text-blue-800 text-sm font-semibold bg-blue-100/50 py-2 px-3.5 rounded-lg w-fit border border-blue-200/50">
+                                             <Check className="w-4 h-4 text-blue-600" />
+                                             Zodra alles binnen is verzenden we alles tegelijk.
+                                         </div>
+                                     )}
+                                 </div>
+                             </div>
+                         </label>
+                     )}
 
                     <div className="relative group w-full">
                         <button 
@@ -1556,36 +1604,7 @@ export default function NewCheckoutPage() {
                   })}
               </div>
 
-              {/* Shipment Consolidation Upsell */}
-              {deliveryState.canConsolidate && (
-                  <div className={`p-5 rounded-xl border-2 transition-all duration-300 ${isConsolidated ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-100 hover:border-blue-100'}`}>
-                      <div className="flex items-start gap-4">
-                          <div className="pt-1">
-                               <input 
-                                  type="checkbox" 
-                                  id="consolidate-shipment" 
-                                  checked={isConsolidated}
-                                  onChange={(e) => setConsolidated(e.target.checked)}
-                                  className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
-                               />
-                          </div>
-                          <div className="flex-1">
-                              <label htmlFor="consolidate-shipment" className="font-bold text-gray-900 cursor-pointer select-none">
-                                  Samen verzenden en besparen
-                              </label>
-                              <p className="text-sm text-gray-600 mt-1 leading-relaxed">
-                                  Wij verzenden al uw artikelen in één pakket op <span className="font-bold text-gray-900">{deliveryState.latest.short.replace('Levering: ', '')}</span> en u ontvangt direct <span className="text-green-600 font-bold text-base">€3,00 korting</span> op uw bestelling.
-                              </p>
-                              {isConsolidated && (
-                                  <div className="mt-3 flex items-center gap-2 text-blue-600 text-xs font-bold bg-blue-100/50 py-1.5 px-3 rounded-full w-fit">
-                                      <Check className="w-3.5 h-3.5" />
-                                      Zodra alles binnen is verzenden we alles tegelijk.
-                                  </div>
-                              )}
-                          </div>
-                      </div>
-                  </div>
-              )}
+
 
               {/* Totals Card */}
                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-3 sticky top-40 z-10">
