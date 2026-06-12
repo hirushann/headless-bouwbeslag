@@ -841,13 +841,11 @@ async function CategoryLoader({ category, slug, sp }: { category: any, slug: str
         <CategoryClient
           key={category.id}
           category={category}
-          attributes={attributesPromise}
           subCategories={subCategoriesPromise}
           currentSlug={slug}
           initialProducts={currentPageData.prods}
           initialTotalPages={currentPageData.totalPages}
           initialTotalProducts={currentPageData.total}
-          initialFilterBaseProducts={filterBasePromise}
         />
     );
 }

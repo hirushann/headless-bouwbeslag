@@ -171,12 +171,10 @@ function matchesFilters(
 type CategoryClientProps = {
   category: any;
   subCategories: any[] | Promise<any[]>;
-  attributes: any[] | Promise<any[]>;
   currentSlug: string[];
   initialProducts?: any[];
   initialTotalPages?: number;
   initialTotalProducts?: number;
-  initialFilterBaseProducts?: any[] | Promise<any[]>;
 };
 
 
@@ -296,9 +294,35 @@ function SubCategoryGrid({
   );
 }
 
+function FilterSidebarSkeleton() {
+  const shimmer = "bg-gradient-to-r from-gray-200 via-gray-50 to-gray-200 bg-[length:400%_100%] animate-[shimmer_1.6s_ease-in-out_infinite]";
+  return (
+    <aside className="w-full lg:w-1/4">
+      <div className="hidden lg:block bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+        {[
+          { title: 0.4, items: [0.7, 0.55, 0.8] },
+          { title: 0.35, items: [0.6, 0.75, 0.5, 0.65, 0.8] },
+          { title: 0.45, items: [0.7, 0.6, 0.5] },
+          { title: 0.38, items: [0.55, 0.7, 0.65, 0.6] },
+        ].map((group, gi) => (
+          <div key={gi} className={`mb-5 pb-5 ${gi < 3 ? "border-b border-gray-100" : ""}`}>
+            <div className={`h-5 rounded mb-4 ${shimmer}`} style={{ width: `${group.title * 100}%`, animationDelay: `${gi * 0.1}s` }} />
+            {group.items.map((w, ii) => (
+              <div key={ii} className="flex items-center gap-3 mb-3">
+                <div className={`w-5 h-5 rounded-sm flex-shrink-0 ${shimmer}`} style={{ animationDelay: `${(gi * 3 + ii) * 0.06}s` }} />
+                <div className={`h-3.5 rounded ${shimmer}`} style={{ width: `${w * 100}%`, animationDelay: `${(gi * 3 + ii) * 0.06}s` }} />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
 interface FilterSidebarProps {
-  attributes: any[] | Promise<any[]>;
-  initialFilterBaseProducts: any[] | Promise<any[]>;
+  attributes: Attribute[];
+  allCategoryProductsForFilters: any[];
   category: any;
   selectedFilters: { [key: number]: Set<number> };
   selectedBrands: Set<number>;
@@ -317,8 +341,8 @@ interface FilterSidebarProps {
 }
 
 function FilterSidebar({
-  attributes: attributesProp,
-  initialFilterBaseProducts: filterBaseProp,
+  attributes,
+  allCategoryProductsForFilters,
   category,
   selectedFilters,
   selectedBrands,
@@ -335,13 +359,6 @@ function FilterSidebar({
   setShowOnlyInStock,
   onFilterCheck
 }: FilterSidebarProps) {
-  const attributes = typeof (attributesProp as any).then === 'function' 
-    ? use(attributesProp as Promise<Attribute[]>) 
-    : attributesProp as Attribute[];
-    
-  const allCategoryProductsForFilters = typeof (filterBaseProp as any).then === 'function'
-    ? use(filterBaseProp as Promise<any[]>)
-    : filterBaseProp as any[];
 
   const [showAllColors, setShowAllColors] = useState(false);
   const [isBrandOpen, setIsBrandOpen] = useState(true);
@@ -398,20 +415,28 @@ function FilterSidebar({
 
     const activeGlobalAttrs = attributes.filter(ga => globalTermPresence.has(ga.id));
 
-    return activeGlobalAttrs
+    console.log("---- FILTER DEBUG START ----");
+    console.log("Category ACF data:", category?.acf);
+
+    const result = activeGlobalAttrs
       .map((attr) => {
         const rawSlug = attr.slug || (attr.name || "").toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '').replace(/-+/g, '-');
         const normalizedSlug = (rawSlug.startsWith('pa_') ? rawSlug.slice(3) : rawSlug).trim().toLowerCase();
         let acfKey = ATTRIBUTE_TO_ACF_MAP[normalizedSlug] || normalizedSlug.replace(/-/g, '_');
         
+        let acfEnabled = true;
         // Only hide if ACF explicitly tells us to (is false/0). 
         // If it's undefined (not configured) or true, we show it.
         if (category?.acf && typeof category.acf === 'object' && category.acf.hasOwnProperty(acfKey)) {
           const val = category.acf[acfKey];
           if (val === false || val === "false" || val === 0 || val === "0") {
-            return null;
+            acfEnabled = false;
           }
         }
+        
+        console.log(`Filter [${attr.name}] -> ACF Key: ${acfKey} -> ACF Enabled: ${acfEnabled}`);
+
+        if (!acfEnabled) return null;
         if (attr.name === "Inhoud van de verpakking") return null;
 
         // Get subset of products passing OTHER filters
@@ -458,9 +483,13 @@ function FilterSidebar({
         }
 
         if (validTerms.length === 0) return null;
+        console.log(`Filter [${attr.name}] -> Shown with ${validTerms.length} options.`);
         return { ...attr, terms: validTerms };
       })
       .filter(Boolean) as Attribute[];
+      
+    console.log("---- FILTER DEBUG END ----");
+    return result;
   }, [allCategoryProductsForFilters, attributes, category, selectedFilters, selectedBrands, afdichtingsspleetRange, groefbreedteRange]);
 
   const colorAttribute = relevantAttributes.find(
@@ -824,14 +853,27 @@ export default function CategoryClient({
   }, []);
   const [unwrappedAttributes, setUnwrappedAttributes] = useState<Attribute[]>([]);
   const [allCategoryProductsForFilters, setAllCategoryProductsForFilters] = useState<any[]>([]);
+  const [freshCategory, setFreshCategory] = useState<any>(category); // starts with server value, updates client-side
+  const [filterDataLoading, setFilterDataLoading] = useState<boolean>(true);
   // Two separate refs: one guards the initial product load, one guards the page-reset effect.
   const isFirstProductLoad = useRef(true);
   const isFirstPageReset = useRef(true);
 
+  // Fetch filter data client-side on every mount so WooCommerce/ACF changes
+  // are reflected immediately — bypasses the Next.js Router Cache entirely.
   useEffect(() => {
-    Promise.resolve(attributes).then(res => setUnwrappedAttributes(res as Attribute[]));
-    Promise.resolve(initialFilterBaseProducts).then(res => setAllCategoryProductsForFilters(res as any[]));
-  }, [attributes, initialFilterBaseProducts]);
+    if (!category?.id) return;
+    setFilterDataLoading(true);
+    fetch(`/api/category-filters?categoryId=${category.id}`, { cache: 'no-store' })
+      .then(res => res.json())
+      .then(data => {
+        setUnwrappedAttributes(data.attributes || []);
+        setAllCategoryProductsForFilters(data.filterBaseProducts || []);
+        if (data.category) setFreshCategory(data.category); // use fresh ACF from API
+      })
+      .catch(err => console.error('Failed to load filter data:', err))
+      .finally(() => setFilterDataLoading(false));
+  }, [category?.id]);
 
   
   // Initialize page from URL
@@ -1015,9 +1057,12 @@ export default function CategoryClient({
     groefbreedteRange,
     sortBy,
     page,
-    allCategoryProductsForFilters,
-    unwrappedAttributes,
     showOnlyInStock,
+  // Note: allCategoryProductsForFilters and unwrappedAttributes are intentionally
+  // excluded — their arrival from the client-side fetch should NOT re-trigger
+  // a product reload when no filters are active. The guard above waits for them
+  // only when a filter is actually selected.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   ]);
 
   // Reset page to 1 when category, filters, or sort change (but not on first render)
@@ -1086,11 +1131,13 @@ export default function CategoryClient({
       <div className="max-w-[1440px] mx-auto py-4 lg:py-8 px-5 lg:px-0">
         <div className="flex flex-col lg:flex-row gap-2 lg:gap-8">
           
-          <Suspense fallback={<div className="w-full lg:w-1/4 animate-pulse bg-white rounded-lg h-[600px]"></div>}>
+          {filterDataLoading ? (
+            <FilterSidebarSkeleton />
+          ) : (
             <FilterSidebar 
-              attributes={attributes}
-              initialFilterBaseProducts={initialFilterBaseProducts}
-              category={category}
+              attributes={unwrappedAttributes}
+              allCategoryProductsForFilters={allCategoryProductsForFilters}
+              category={freshCategory}
               selectedFilters={selectedFilters}
               selectedBrands={selectedBrands}
               toggleFilter={toggleFilter}
@@ -1106,7 +1153,7 @@ export default function CategoryClient({
               setShowOnlyInStock={setShowOnlyInStock}
               onFilterCheck={setHasFiltersAvailable}
             />
-          </Suspense>
+          )}
 
           {/* Main Content */}
           <main className="flex-1">

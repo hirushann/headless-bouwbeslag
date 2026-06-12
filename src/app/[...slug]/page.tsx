@@ -71,7 +71,7 @@ const getCategoryMetadataCached = cache(async (slug: string) => {
     const res = await api.get("products/categories", { 
       slug, 
       _fields: "id,name,slug,description,acf,parent,image",
-      next: { revalidate: 3600 }
+      cache: 'no-store' // Always fetch fresh — ACF filter toggles must update instantly
     });
     if (!res.data || res.data.length === 0) return null;
     return res.data[0];
@@ -267,7 +267,7 @@ const fetchTermsForAttribute = cache(async (attributeId: number): Promise<Attrib
     const res = await api.get(`products/attributes/${attributeId}/terms`, {
         per_page: 100,
         _fields: "id,name",
-        next: { revalidate: 3600 }
+        cache: 'no-store' // Always fresh — attribute terms must update instantly
     });
     return res.data || [];
   } catch (error) {
@@ -280,7 +280,7 @@ const fetchAttributes = cache(async (): Promise<Attribute[]> => {
     const res = await api.get("products/attributes", { 
         per_page: 100,
         _fields: "id,name,slug",
-        next: { revalidate: 86400 } 
+        cache: 'no-store' // Always fresh — attribute list must update instantly
     });
     const attributesData = res.data || [];
     
@@ -312,7 +312,7 @@ const fetchAllSubCategoriesCached = cache(async (parentId: number) => {
         page, 
         hide_empty: false,
         _fields: "id,name,slug,parent,count",
-        next: { revalidate: 3600 } // Subcategories don't change that often
+        next: { revalidate: 1 }
     });
     if (!res.data || res.data.length === 0) break;
     allSubs = [...allSubs, ...res.data];
@@ -331,7 +331,7 @@ const fetchAllCategoryProductsForFiltersCached = cache(async (categoryId: number
       page: 1,
       _fields: "id,attributes,brands,price,name,date_created,total_sales,stock_quantity,stock_status",
       status: 'publish',
-      next: { revalidate: 60 }
+      cache: 'no-store' // Always fresh — product list for filters must update instantly
     });
 
     if (!firstPage.data || firstPage.data.length === 0) return [];
@@ -350,7 +350,7 @@ const fetchAllCategoryProductsForFiltersCached = cache(async (categoryId: number
             page: p,
             _fields: "id,attributes,brands,price,name,date_created,total_sales,stock_quantity,stock_status",
             status: 'publish',
-            next: { revalidate: 60 }
+            cache: 'no-store'
           })
         );
       }
@@ -842,13 +842,11 @@ async function CategoryLoader({ category, slug, sp }: { category: any, slug: str
         <CategoryClient
           key={category.id}
           category={category}
-          attributes={attributesPromise}
           subCategories={subCategoriesPromise}
           currentSlug={slug}
           initialProducts={currentPageData.prods}
           initialTotalPages={currentPageData.totalPages}
           initialTotalProducts={currentPageData.total}
-          initialFilterBaseProducts={filterBasePromise}
         />
     );
 }
