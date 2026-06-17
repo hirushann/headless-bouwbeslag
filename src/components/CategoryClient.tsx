@@ -10,6 +10,33 @@ import { motion } from "framer-motion";
 import CategoryBreadcrumbs from "@/components/CategoryBreadcrumbs";
 import DualRangeSlider from "@/components/DualRangeSlider";
 import { COLOR_MAP } from "@/config/colorMap";
+import { useUserContext } from "@/context/UserContext";
+import { getDutchFilterTitle } from "@/lib/dutchTranslations";
+
+export const getFinalPrice = (product: any, isB2B: boolean) => {
+  const getMeta = (k: string) => product?.meta_data?.find((m: any) => m.key === k)?.value;
+  const taxRate = 21;
+  const taxMultiplier = 1 + (taxRate / 100);
+
+  let sale = 0;
+
+  if (isB2B) {
+    if (product.regular_price) {
+      sale = parseFloat(product.regular_price);
+    } else if (product.price) {
+      sale = parseFloat(product.price);
+    }
+  } else {
+    sale = product.price ? parseFloat(product.price) : 0;
+    const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
+    const acfPriceRaw = getMeta(b2cKey);
+    if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
+      sale = parseFloat(acfPriceRaw);
+    }
+  }
+
+  return isB2B ? sale : (sale ? sale * taxMultiplier : 0);
+};
 
 const container = {
   hidden: { opacity: 0 },
@@ -104,6 +131,8 @@ function matchesFilters(
   afdichtingsspleetRange: [number, number] | null,
   groefbreedteRange: [number, number] | null,
   showOnlyInStock: boolean,
+  priceRange: [number, number] | null,
+  isB2B: boolean,
   excludeAttrId?: number,
   excludeBrand?: boolean
 ): boolean {
@@ -165,6 +194,16 @@ function matchesFilters(
     if (!(vMin <= groefbreedteRange[1] && vMax >= groefbreedteRange[0])) return false;
   }
 
+  // 5. Range: Price
+  if (priceRange) {
+    const productPrice = getFinalPrice(product, isB2B);
+    if (productPrice > 0) {
+      if (productPrice < priceRange[0] || productPrice > priceRange[1]) return false;
+    } else {
+      return false; // hide invalid prices when filtering by price
+    }
+  }
+
   return true;
 }
 
@@ -201,7 +240,7 @@ function FilterAttributeGroup({
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center justify-between w-full group py-2"
       >
-        <h3 className="font-semibold text-lg text-[#212121] capitalize group-hover:text-[#0066FF] transition-colors">{attr.name}</h3>
+        <h3 className="font-semibold text-lg text-[#212121] capitalize group-hover:text-[#0066FF] transition-colors">{getDutchFilterTitle(attr.name)}</h3>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="20"
@@ -337,7 +376,10 @@ interface FilterSidebarProps {
   setShowFilters: (s: boolean) => void;
   showOnlyInStock: boolean;
   setShowOnlyInStock: (s: boolean) => void;
+  priceRange: [number, number] | null;
+  setPriceRange: (r: [number, number] | null) => void;
   onFilterCheck?: (hasFilters: boolean) => void;
+  isB2B: boolean;
 }
 
 function FilterSidebar({
@@ -357,15 +399,45 @@ function FilterSidebar({
   setShowFilters,
   showOnlyInStock,
   setShowOnlyInStock,
-  onFilterCheck
+  priceRange,
+  setPriceRange,
+  onFilterCheck,
+  isB2B
 }: FilterSidebarProps) {
 
   const [showAllColors, setShowAllColors] = useState(false);
   const [isBrandOpen, setIsBrandOpen] = useState(true);
+  const [isPriceOpen, setIsPriceOpen] = useState(true);
+
+  const isBrandsEnabled = useMemo(() => {
+    let enabled = true;
+    if (category?.acf && typeof category.acf === 'object' && category.acf.hasOwnProperty('brands')) {
+      const val = category.acf.brands;
+      enabled = val !== false && val !== "false" && val !== 0 && val !== "0";
+    }
+    console.log(`[FilterSidebar] isBrandsEnabled: ${enabled}, category.acf.brands:`, category?.acf?.brands);
+    return enabled;
+  }, [category]);
+
+  const isInStockEnabled = useMemo(() => {
+    if (category?.acf && typeof category.acf === 'object' && category.acf.hasOwnProperty('in_stock')) {
+      const val = category.acf.in_stock;
+      return val !== false && val !== "false" && val !== 0 && val !== "0";
+    }
+    return true;
+  }, [category]);
+
+  const isPriceSliderEnabled = useMemo(() => {
+    if (category?.acf && typeof category.acf === 'object' && category.acf.hasOwnProperty('price_slider')) {
+      const val = category.acf.price_slider;
+      return val !== false && val !== "false" && val !== 0 && val !== "0";
+    }
+    return true;
+  }, [category]);
 
   // Use the shared matchesFilters utility for facet count calculations
   const checkGlobalMatchLocal = (p: any, excludeAttrId?: number, excludeBrand?: boolean) =>
-    matchesFilters(p, selectedFilters, selectedBrands, attributes, afdichtingsspleetRange, groefbreedteRange, showOnlyInStock, excludeAttrId, excludeBrand);
+    matchesFilters(p, selectedFilters, selectedBrands, attributes, afdichtingsspleetRange, groefbreedteRange, showOnlyInStock, priceRange, isB2B, excludeAttrId, excludeBrand);
 
   const availableBrands = useMemo(() => {
     const sourceProducts = allCategoryProductsForFilters || [];
@@ -394,6 +466,7 @@ function FilterSidebar({
       return [];
     }
 
+    console.log(`[FilterSidebar] availableBrands:`, brandsArray);
     return brandsArray;
   }, [allCategoryProductsForFilters, selectedFilters, selectedBrands, attributes, afdichtingsspleetRange, groefbreedteRange, showOnlyInStock]);
 
@@ -415,7 +488,7 @@ function FilterSidebar({
 
     const activeGlobalAttrs = attributes.filter(ga => globalTermPresence.has(ga.id));
 
-    console.log("---- FILTER DEBUG START ----");
+    // console.log("---- FILTER DEBUG START ----");
     console.log("Category ACF data:", category?.acf);
 
     const result = activeGlobalAttrs
@@ -434,7 +507,7 @@ function FilterSidebar({
           }
         }
         
-        console.log(`Filter [${attr.name}] -> ACF Key: ${acfKey} -> ACF Enabled: ${acfEnabled}`);
+        // console.log(`Filter [${attr.name}] -> ACF Key: ${acfKey} -> ACF Enabled: ${acfEnabled}`);
 
         if (!acfEnabled) return null;
         if (attr.name === "Inhoud van de verpakking") return null;
@@ -550,6 +623,25 @@ function FilterSidebar({
     return min === Infinity ? null : { min, max };
   }, [allCategoryProductsForFilters, category]);
 
+  const priceBounds = useMemo(() => {
+    if (!isPriceSliderEnabled) return null;
+    if (!allCategoryProductsForFilters || allCategoryProductsForFilters.length === 0) return null;
+
+    let min = Infinity, max = -Infinity;
+    allCategoryProductsForFilters.forEach(p => {
+      const price = getFinalPrice(p, isB2B);
+      if (price > 0) {
+        min = Math.min(min, price);
+        max = Math.max(max, price);
+      }
+    });
+    
+    // If min and max are the same, don't show the slider
+    if (min === Infinity || min === max) return null;
+    
+    return { min, max };
+  }, [allCategoryProductsForFilters, isPriceSliderEnabled]);
+
   const regularAttributes = otherAttributes.filter(a => !["Afdichtingsspleet Van", "Afdichtingsspleet Tot", "Groefbreedte Van", "Groefbreedte Tot"].includes(a.name));
   const validRegularAttributes = regularAttributes.filter(attr => attr.terms.length > 0);
   const hasValidColorAttribute = !!colorAttribute && colorAttribute.terms.length > 0;
@@ -583,7 +675,7 @@ function FilterSidebar({
   const [isAfdichtOpen, setIsAfdichtOpen] = useState(true);
   const [isGroefOpen, setIsGroefOpen] = useState(true);
 
-  const hasAnyFilters = hasValidColorAttribute || validRegularAttributes.length > 0 || afdichtspleetBounds !== null || groefbreedteBounds !== null || true; // Always show if we want to show stock filter
+  const hasAnyFilters = hasValidColorAttribute || validRegularAttributes.length > 0 || afdichtspleetBounds !== null || groefbreedteBounds !== null || priceBounds !== null || true; // Always show if we want to show stock filter
 
   useEffect(() => {
     if (onFilterCheck) onFilterCheck(hasAnyFilters);
@@ -604,7 +696,18 @@ function FilterSidebar({
         </button>
         {showFilters && <h2 className="text-2xl font-bold mb-6 lg:hidden">Filters</h2>}
 
-        {availableBrands.length > 0 && (
+        {/* TEMPORARY DEBUG VISUAL */}
+        {/* <div className="bg-red-100 text-red-800 p-2 text-xs mb-4 rounded">
+          <b>Brand Debug:</b><br/>
+          isBrandsEnabled: {String(isBrandsEnabled)}<br/>
+          acf.brands: {String(category?.acf?.brands)}<br/>
+          sourceProducts (allCategoryProductsForFilters): {allCategoryProductsForFilters.length}<br/>
+          products with 'brands' field: {allCategoryProductsForFilters.filter(p => p.brands && p.brands.length > 0).length}<br/>
+          availableBrands.length: {availableBrands.length}<br/>
+          brands: {availableBrands.map(b => b.name).join(', ')}
+        </div> */}
+
+        {isBrandsEnabled && availableBrands.length > 0 && (
           <div className="mb-4 border-b border-[#F7F7F7] pb-4">
             <button 
               onClick={() => setIsBrandOpen(!isBrandOpen)}
@@ -656,7 +759,7 @@ function FilterSidebar({
               onClick={() => setIsColorOpen(!isColorOpen)}
               className="flex items-center justify-between w-full group py-2"
             >
-              <h3 className="font-semibold text-lg text-[#212121] group-hover:text-[#0066FF] transition-colors">{colorAttribute?.name}</h3>
+              <h3 className="font-semibold text-lg text-[#212121] group-hover:text-[#0066FF] transition-colors">{getDutchFilterTitle(colorAttribute?.name)}</h3>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="20"
@@ -707,6 +810,46 @@ function FilterSidebar({
             )}
           </div>
         )}
+
+        {priceBounds && (
+          <div className="mb-4 border-b border-[#F7F7F7] pb-4">
+             <button 
+              onClick={() => setIsPriceOpen(!isPriceOpen)}
+              className="flex items-center justify-between w-full group py-2"
+            >
+              <h3 className="font-semibold text-lg text-[#212121] group-hover:text-[#0066FF] transition-colors">Prijs (€)</h3>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`text-gray-400 transition-transform duration-200 ${isPriceOpen ? "rotate-180" : ""}`}
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            {isPriceOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                className="mt-3 px-1"
+              >
+                <DualRangeSlider 
+                  min={priceBounds.min} 
+                  max={priceBounds.max} 
+                  value={priceRange ?? [priceBounds.min, priceBounds.max]} 
+                  onChange={setPriceRange} 
+                />
+              </motion.div>
+            )}
+          </div>
+        )}
+
         {afdichtspleetBounds && (
           <div className="mb-4 border-b border-[#F7F7F7] pb-4">
              <button 
@@ -788,20 +931,22 @@ function FilterSidebar({
           <FilterAttributeGroup key={attr.id} attr={attr} selectedFilters={selectedFilters} toggleFilter={toggleFilter} />
         ))}
 
-        <div className="mb-4 pt-4 border-t border-[#F7F7F7] pb-4">
-          <h3 className="font-semibold text-lg text-[#212121] py-2">Voorraad</h3>
-          <label className="flex items-center gap-2 cursor-pointer py-1 group">
-            <input
-              type="checkbox"
-              className="w-5 h-5 rounded-sm border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0 cursor-pointer"
-              checked={showOnlyInStock}
-              onChange={(e) => setShowOnlyInStock(e.target.checked)}
-            />
-            <span className="text-sm text-gray-700 group-hover:text-[#0066FF] transition-colors">Alleen op voorraad</span>
-          </label>
-        </div>
+        {isInStockEnabled && (
+          <div className="mb-4 pt-4 border-t border-[#F7F7F7] pb-4">
+            <h3 className="font-semibold text-lg text-[#212121] py-2">Voorraad</h3>
+            <label className="flex items-center gap-2 cursor-pointer py-1 group">
+              <input
+                type="checkbox"
+                className="w-5 h-5 rounded-sm border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                checked={showOnlyInStock}
+                onChange={(e) => setShowOnlyInStock(e.target.checked)}
+              />
+              <span className="text-sm text-gray-700 group-hover:text-[#0066FF] transition-colors">Alleen op voorraad</span>
+            </label>
+          </div>
+        )}
 
-        {(Object.keys(selectedFilters).length > 0 || selectedBrands.size > 0 || afdichtingsspleetRange || groefbreedteRange || showOnlyInStock) && (
+        {(Object.keys(selectedFilters).length > 0 || selectedBrands.size > 0 || afdichtingsspleetRange || groefbreedteRange || priceRange || showOnlyInStock) && (
           <button onClick={() => {
             resetFilters();
             setShowOnlyInStock(false);
@@ -823,6 +968,9 @@ export default function CategoryClient({
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  const { userRole } = useUserContext();
+  const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
+
   const [products, setProducts] = useState<any[]>(initialProducts);
   const [rawProducts, setRawProducts] = useState<any[]>(initialProducts);
   const [selectedFilters, setSelectedFilters] = useState<{ [key: number]: Set<number> }>({});
@@ -837,6 +985,7 @@ export default function CategoryClient({
   const [showFilters, setShowFilters] = useState(false);
   const [afdichtingsspleetRange, setAfdichtingsspleetRange] = useState<[number, number] | null>(null);
   const [groefbreedteRange, setGroefbreedteRange] = useState<[number, number] | null>(null);
+  const [priceRange, setPriceRange] = useState<[number, number] | null>(null);
   const [showOnlyInStock, setShowOnlyInStock] = useState<boolean>(false);
   const [hasFiltersAvailable, setHasFiltersAvailable] = useState<boolean>(true);
   const [isStuck, setIsStuck] = useState(false);
@@ -927,7 +1076,7 @@ export default function CategoryClient({
   // Filtering Logic — delegates to shared matchesFilters utility
   // ------------------------------------------------------------------
   const checkGlobalMatch = (p: any) =>
-    matchesFilters(p, selectedFilters, selectedBrands, unwrappedAttributes, afdichtingsspleetRange, groefbreedteRange, showOnlyInStock);
+    matchesFilters(p, selectedFilters, selectedBrands, unwrappedAttributes, afdichtingsspleetRange, groefbreedteRange, showOnlyInStock, priceRange, isB2B);
 
   useEffect(() => {
     async function loadProducts() {
@@ -938,6 +1087,7 @@ export default function CategoryClient({
         selectedBrands.size > 0 ||
         !!afdichtingsspleetRange ||
         !!groefbreedteRange ||
+        !!priceRange ||
         showOnlyInStock;
 
       // On the very first render, use the server-prefetched products when
@@ -975,8 +1125,8 @@ export default function CategoryClient({
           // Local sort (filter results are already in memory)
           if (sortBy) {
             matches.sort((a, b) => {
-              if (sortBy === 'price-low-high') return parseFloat(a.price || '0') - parseFloat(b.price || '0');
-              if (sortBy === 'price-high-low') return parseFloat(b.price || '0') - parseFloat(a.price || '0');
+              if (sortBy === 'price-low-high') return getFinalPrice(a, isB2B) - getFinalPrice(b, isB2B);
+              if (sortBy === 'price-high-low') return getFinalPrice(b, isB2B) - getFinalPrice(a, isB2B);
               if (sortBy === 'title-asc') return (a.name || '').localeCompare(b.name || '');
               if (sortBy === 'title-desc') return (b.name || '').localeCompare(a.name || '');
               if (sortBy === 'date') return new Date(b.date_created || 0).getTime() - new Date(a.date_created || 0).getTime();
@@ -1052,9 +1202,11 @@ export default function CategoryClient({
     selectedBrands,
     afdichtingsspleetRange,
     groefbreedteRange,
+    priceRange,
     sortBy,
     page,
     showOnlyInStock,
+    isB2B,
   // Note: allCategoryProductsForFilters and unwrappedAttributes are intentionally
   // excluded — their arrival from the client-side fetch should NOT re-trigger
   // a product reload when no filters are active. The guard above waits for them
@@ -1069,7 +1221,7 @@ export default function CategoryClient({
       return;
     }
     setPage(1);
-  }, [category?.id, selectedFilters, selectedBrands, afdichtingsspleetRange, groefbreedteRange, sortBy, showOnlyInStock]);
+  }, [category?.id, selectedFilters, selectedBrands, afdichtingsspleetRange, groefbreedteRange, priceRange, sortBy, showOnlyInStock, isB2B]);
 
   const toggleFilter = (attrId: number, termId: number) => {
     // NOTE: Do NOT auto-close the mobile panel here — users need to
@@ -1115,6 +1267,7 @@ export default function CategoryClient({
     setSelectedBrands(new Set());
     setAfdichtingsspleetRange(null);
     setGroefbreedteRange(null);
+    setPriceRange(null);
   };
 
   // Relevant attributes moved to FilterSidebar component for streaming support
@@ -1144,11 +1297,14 @@ export default function CategoryClient({
               groefbreedteRange={groefbreedteRange}
               setAfdichtingsspleetRange={setAfdichtingsspleetRange}
               setGroefbreedteRange={setGroefbreedteRange}
+              priceRange={priceRange}
+              setPriceRange={setPriceRange}
               showFilters={showFilters}
               setShowFilters={setShowFilters}
               showOnlyInStock={showOnlyInStock}
               setShowOnlyInStock={setShowOnlyInStock}
               onFilterCheck={setHasFiltersAvailable}
+              isB2B={!!isB2B}
             />
           )}
 

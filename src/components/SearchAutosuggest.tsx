@@ -8,6 +8,7 @@ import { searchProducts, SearchResult, Facet, FilterState } from "@/actions/sear
 import { useUserContext } from "@/context/UserContext";
 import ProductCard from "./ProductCard";
 import ShopProductCard from "./ShopProductCard";
+import { getDutchFilterTitle } from "@/lib/dutchTranslations";
 
 function FilterGroup({
     facet,
@@ -32,7 +33,7 @@ function FilterGroup({
                 className="flex items-center justify-between w-full group"
             >
                 <h3 className="font-semibold text-base capitalize text-gray-800">
-                    {facet.name === "category" ? "Categorieën" : facet.name === 'brand' ? 'Merk' : facet.name === 'color' ? 'Kleur' : facet.name === 'size' ? 'Grootte' : facet.name === 'material' ? 'Material' : facet.name === 'finish' ? 'Finish' : facet.name === 'stock' ? 'Voorraad' : facet.name}
+                    {getDutchFilterTitle(facet.name)}
                 </h3>
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -69,7 +70,7 @@ function FilterGroup({
                                     className={`text-sm group-hover:text-blue-600 transition capitalize ${isChecked ? "font-medium text-gray-900" : "text-gray-600"
                                         }`}
                                 >
-                                    {bucket.label}
+                                    {bucket.label === "instock" ? "Op voorraad" : bucket.label === "outofstock" ? "Niet op voorraad" : bucket.label === "true" ? "Ja" : bucket.label === "false" ? "Nee" : bucket.label}
                                 </span>
                                 <span className="text-xs text-gray-400 ml-auto tabular-nums">
                                     ({bucket.doc_count})
@@ -416,7 +417,7 @@ export default function SearchAutosuggest({
                                                             handleClose();
                                                         }}
                                                     >
-                                                        <ShopProductCard product={result} />
+                                                        <ShopProductCard product={result} useCategoryImage={true} />
                                                     </div>
                                                 ))}
                                             </div>

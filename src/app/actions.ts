@@ -43,11 +43,15 @@ export async function fetchProductIndexAction() {
             identifiers.add(String(p.id));
 
             // Extract EANs/Identifiers from meta
+            let catImgId = null;
             if (Array.isArray(p.meta_data)) {
                 p.meta_data.forEach((m: any) => {
                     // Check strict key match
                     if (targetMetaKeys.includes(m.key) && m.value) {
                         identifiers.add(String(m.value).trim().toLowerCase());
+                    }
+                    if (m.key === "assets_cat_image" || m.key === "cat_image") {
+                        catImgId = m.value;
                     }
                 });
             }
@@ -58,6 +62,7 @@ export async function fetchProductIndexAction() {
                 slug: p.slug, // Needed for links
                 sku: p.sku,
                 identifiers: Array.from(identifiers),
+                cat_image: catImgId,
                 // We keep enough data to render the link without another fetch
                 images: p.images || [], // If available in restricted fields? No, need to ask for images
                 attributes: p.attributes || [], // Order Colors needs this?
@@ -618,3 +623,16 @@ export async function refreshCartStockAction(productIds: number[]) {
     }
 }
 
+export async function fetchCategoriesAction() {
+    try {
+        const categories = await fetchAllWoo("products/categories", {
+            per_page: 100,
+            hide_empty: true,
+            _fields: "id,name,slug,parent,image",
+            next: { revalidate: 60 } // Sync changes within 60 seconds!
+        });
+        return { success: true, data: categories };
+    } catch (error: any) {
+        return { success: false, error: error?.message || "Failed to fetch categories" };
+    }
+}

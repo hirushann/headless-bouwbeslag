@@ -13,7 +13,7 @@ import { fixImageSrc } from "@/lib/image-utils";
 
 const globalMediaCache: Record<string, string> = {};
 
-export default function ShopProductCard({ product }: { product: any }) {
+export default function ShopProductCard({ product, useCategoryImage = false }: { product: any; useCategoryImage?: boolean }) {
   // Format price safely (remove weird HTML entities)
   const cleanPrice = (price: string) =>
     price?.replace(/&#[0-9]+;|&[a-z]+;/gi, "").trim();
@@ -36,23 +36,28 @@ export default function ShopProductCard({ product }: { product: any }) {
   const [isAdding, setIsAdding] = useState(false);
 
   // Pre-calculate image state to avoid flash
-  const catImgMeta = product?.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value || 
-                    product?.meta_data?.find((m: any) => m.key === "cat_image")?.value;
-                    
+  const catImgMetaRaw = useCategoryImage 
+    ? (product?.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value || 
+       product?.meta_data?.find((m: any) => m.key === "cat_image")?.value)
+    : null;
+
+  const catImgMeta = catImgMetaRaw ? String(catImgMetaRaw) : null;
   const isNumericCatImg = typeof catImgMeta === "string" && /^\d+$/.test(catImgMeta);
-  const isCached = isNumericCatImg && !!globalMediaCache[catImgMeta];
+  const isCached = isNumericCatImg && !!globalMediaCache[catImgMeta as string];
   
-  const initialImgSrc = product.resolved_cat_image || (catImgMeta && catImgMeta.trim() !== ""
-      ? (isNumericCatImg ? (isCached ? globalMediaCache[catImgMeta] : undefined) : catImgMeta)
+  const resolvedCatImage = useCategoryImage ? product.resolved_cat_image : null;
+  
+  const initialImgSrc = resolvedCatImage || (catImgMeta && catImgMeta.trim() !== ""
+      ? (isNumericCatImg ? (isCached ? globalMediaCache[catImgMeta as string] : undefined) : catImgMeta)
       : product.images?.[0]?.src);
 
   const [targetImgSrc, setTargetImgSrc] = useState<string | undefined>(initialImgSrc);
-  const [isFetchingImg, setIsFetchingImg] = useState<boolean>(!product.resolved_cat_image && isNumericCatImg && !isCached);
+  const [isFetchingImg, setIsFetchingImg] = useState<boolean>(!resolvedCatImage && isNumericCatImg && !isCached);
 
   useEffect(() => {
     // If we have it from server already, don't do anything
-    if (product.resolved_cat_image) {
-        setTargetImgSrc(product.resolved_cat_image);
+    if (resolvedCatImage) {
+        setTargetImgSrc(resolvedCatImage);
         setIsFetchingImg(false);
         return;
     }
@@ -75,13 +80,13 @@ export default function ShopProductCard({ product }: { product: any }) {
         .then(res => res.json())
         .then(data => {
           if (data && data.source_url) {
-            globalMediaCache[catImgMeta] = data.source_url;
+            globalMediaCache[catImgMeta as string] = data.source_url;
             setTargetImgSrc(data.source_url);
           } else {
             setTargetImgSrc(product.images?.[0]?.src);
           }
         })
-        .catch(() => {
+        .catch((e) => {
           setTargetImgSrc(product.images?.[0]?.src);
         })
         .finally(() => {

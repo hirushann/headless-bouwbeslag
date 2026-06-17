@@ -1,7 +1,7 @@
 "use server";
 
 import client from "@/lib/elasticsearch";
-import { fetchProductIndexAction } from "@/app/actions";
+import { fetchProductIndexAction, fetchCategoriesAction } from "@/app/actions";
 
 export interface SearchResult {
     ID?: number;
@@ -219,8 +219,12 @@ export async function searchProducts(
         const totalItems = typeof result.hits.total === 'object' ? result.hits.total.value : (result.hits.total || 0);
         const totalPages = Math.ceil(totalItems / limit);
 
-        const indexRes = await fetchProductIndexAction();
+        const [indexRes, catRes] = await Promise.all([
+            fetchProductIndexAction(),
+            fetchCategoriesAction()
+        ]);
         const productIndex = indexRes.success ? indexRes.data : [];
+        const categoryIndex = catRes.success ? catRes.data : [];
 
         // 1. Initial mapping and stock data extraction
         let hits = result.hits.hits.map((hit: any) => {
@@ -263,6 +267,25 @@ export async function searchProducts(
             const customTitle = meta_data.find((m: any) => m.key === "description_bouwbeslag_title")?.value || source.post_title;
             const metaPrice = meta_data.find((m: any) => m.key === "_price")?.value || "0";
             const metaRegularPrice = meta_data.find((m: any) => m.key === "_regular_price")?.value || metaPrice;
+            
+            let resolvedCatImage = undefined;
+            
+            if (indexItem?.cat_image && !meta_data.find((m: any) => m.key === "assets_cat_image" || m.key === "cat_image")) {
+                meta_data.push({ key: "assets_cat_image", value: indexItem.cat_image });
+            } else {
+                // If it DOES NOT have assets_cat_image, try to resolve the actual category's image
+                if (!meta_data.find((m: any) => m.key === "assets_cat_image") && source.terms?.product_cat) {
+                    // Try to find the first category that has an image
+                    const cats = Array.isArray(source.terms.product_cat) ? source.terms.product_cat : [source.terms.product_cat];
+                    for (const cat of cats) {
+                        const matchedCat = categoryIndex.find((c: any) => c.slug === cat.slug || c.name === cat.name);
+                        if (matchedCat && matchedCat.image?.src) {
+                            resolvedCatImage = matchedCat.image.src;
+                            break;
+                        }
+                    }
+                }
+            }
 
             return {
                 id: indexItem?.id || source.ID,
@@ -277,6 +300,7 @@ export async function searchProducts(
                 identifiers: Array.from(new Set([...(source.terms?.product_tag?.map((t: any) => t.slug) || []), ...(indexItem?.identifiers || [])])),
                 stock_status: h.stock_status,
                 stock_quantity: h.stock_quantity,
+                resolved_cat_image: resolvedCatImage
             } as SearchResult;
         });
 

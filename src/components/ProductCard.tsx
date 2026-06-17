@@ -21,7 +21,7 @@ import { useProductAddedModal } from "@/context/ProductAddedModalContext";
 
 const globalMediaCache: Record<string, string> = {};
 
-export default function ProductCard({ product, userRole: propUserRole }: { product: any; userRole?: string[] | null }) {
+export default function ProductCard({ product, userRole: propUserRole, useCategoryImage = false }: { product: any; userRole?: string[] | null; useCategoryImage?: boolean }) {
   const { userRole: contextUserRole, isLoading } = useUserContext();
   const userRole = propUserRole || contextUserRole;
   const { openModal } = useProductAddedModal();
@@ -80,22 +80,27 @@ export default function ProductCard({ product, userRole: propUserRole }: { produ
   const [isAdding, setIsAdding] = useState(false);
 
   // Pre-calculate image state to avoid flash
-  const catImgMeta = product?.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value ||
-                    product?.meta_data?.find((m: any) => m.key === "cat_image")?.value;
+  const catImgMetaRaw = useCategoryImage 
+    ? (product?.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value ||
+       product?.meta_data?.find((m: any) => m.key === "cat_image")?.value)
+    : null;
+  const catImgMeta = catImgMetaRaw ? String(catImgMetaRaw) : null;
   const isNumericCatImg = typeof catImgMeta === "string" && /^\d+$/.test(catImgMeta);
-  const isCached = isNumericCatImg && !!globalMediaCache[catImgMeta];
+  const isCached = isNumericCatImg && !!globalMediaCache[catImgMeta as string];
   
-  const initialImgSrc = product.resolved_cat_image || (catImgMeta && catImgMeta.trim() !== ""
-      ? (isNumericCatImg ? (isCached ? globalMediaCache[catImgMeta] : undefined) : catImgMeta)
+  const resolvedCatImage = useCategoryImage ? product.resolved_cat_image : null;
+  
+  const initialImgSrc = resolvedCatImage || (catImgMeta && catImgMeta.trim() !== ""
+      ? (isNumericCatImg ? (isCached ? globalMediaCache[catImgMeta as string] : undefined) : catImgMeta)
       : product.images?.[0]?.src);
 
   const [targetImgSrc, setTargetImgSrc] = useState<string | undefined>(initialImgSrc);
-  const [isFetchingImg, setIsFetchingImg] = useState<boolean>(!product.resolved_cat_image && isNumericCatImg && !isCached);
+  const [isFetchingImg, setIsFetchingImg] = useState<boolean>(!resolvedCatImage && isNumericCatImg && !isCached);
 
   useEffect(() => {
     // Priority for server-resolved image
-    if (product.resolved_cat_image) {
-        setTargetImgSrc(product.resolved_cat_image);
+    if (resolvedCatImage) {
+        setTargetImgSrc(resolvedCatImage);
         setIsFetchingImg(false);
         return;
     }

@@ -7,7 +7,7 @@ import api from '@/lib/woocommerce';
 // within one minute of any WooCommerce/ACF change. No hard refresh needed.
 export const dynamic = 'force-dynamic';
 
-const FILTER_REVALIDATE = 60; // seconds
+const FILTER_REVALIDATE = 0; // seconds
 
 async function fetchTermsForAttribute(attributeId: number) {
   try {
@@ -44,9 +44,19 @@ async function fetchAttributes() {
 async function fetchCategoryWithAcf(categoryId: number) {
   try {
     const res = await api.get(`products/categories/${categoryId}`, {
-      _fields: 'id,name,slug,description,acf,parent,image',
+      _fields: 'id,name,slug,description,acf,parent,image,acf_product_cat,acf_term',
       next: { revalidate: FILTER_REVALIDATE },
     });
+    
+    if (res.data) {
+      if (res.data.acf_product_cat && !res.data.acf) {
+        res.data.acf = res.data.acf_product_cat;
+      } else if (res.data.acf_term && !res.data.acf) {
+        res.data.acf = res.data.acf_term;
+      }
+    }
+    
+    console.log("Raw WooCommerce API Response for Category:", JSON.stringify(res.data, null, 2));
     return res.data || null;
   } catch {
     return null;
@@ -59,7 +69,7 @@ async function fetchAllCategoryProducts(categoryId: number) {
       category: categoryId,
       per_page: 100,
       page: 1,
-      _fields: 'id,attributes,brands,price,name,date_created,total_sales,stock_quantity,stock_status',
+      _fields: 'id,attributes,brands,price,regular_price,meta_data,name,date_created,total_sales,stock_quantity,stock_status',
       status: 'publish',
       next: { revalidate: FILTER_REVALIDATE },
     });
@@ -78,7 +88,7 @@ async function fetchAllCategoryProducts(categoryId: number) {
             category: categoryId,
             per_page: 100,
             page: p,
-            _fields: 'id,attributes,brands,price,name,date_created,total_sales,stock_quantity,stock_status',
+            _fields: 'id,attributes,brands,price,regular_price,meta_data,name,date_created,total_sales,stock_quantity,stock_status',
             status: 'publish',
             next: { revalidate: FILTER_REVALIDATE },
           })

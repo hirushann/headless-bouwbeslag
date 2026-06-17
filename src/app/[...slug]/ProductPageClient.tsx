@@ -957,70 +957,71 @@ export default function ProductPageClient({
   return (
     <div className='bg-[#F5F5F5] font-sans'>
       <motion.div
-        className="max-w-[1440px] mx-auto py-2 lg:py-8 px-5 lg:px-0"
+        className="max-w-[1440px] mx-auto py-2 lg:py-6 px-5 lg:px-0"
         initial="hidden"
         animate="visible"
         variants={staggerContainer}
       >
-        {/* ✅ Dynamic Breadcrumb */}
-        <motion.div variants={fadeInUp} className="text-sm text-gray-500 mb-3 lg:mb-6 flex items-center gap-2 flex-wrap">
-          {/* Home */}
-          <Link href="/" className="hover:underline flex items-center gap-1 text-black">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="1.5"
-              stroke="currentColor"
-              className="size-4"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
-              />
-            </svg>
-            <span>Home</span>
-          </Link>
-
-          {/* Categories */}
-          {(() => {
-            if (!Array.isArray(product?.categories) || product.categories.length === 0) {
-              return null;
-            }
-
-            // Sort: parent category first, then child
-            const sorted = [...product.categories].sort(
-              (a: any, b: any) => (a.parent || 0) - (b.parent || 0)
-            );
-
-            return sorted.slice(0, 2).map((cat: any, idx: number) => {
-              // Construct nested path using the sorted array up to the current index
-              // e.g. Parent -> /parent-slug
-              //      Child  -> /parent-slug/child-slug
-              const nestedPath = sorted
-                .slice(0, idx + 1)
-                .map((c: any) => c.slug)
-                .join("/");
-
-              return (
-                <React.Fragment key={cat.id}>
-                  <span>/</span>
-                  <Link
-                    href={`/${nestedPath}`}
-                    className="hover:underline text-black"
-                  >
-                    {cat.name}
-                  </Link>
-                </React.Fragment>
-              );
-            });
-          })()}
-        </motion.div>
+        
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
           {/* Left side: Images */}
-          <motion.div variants={fadeInUp} className="w-full lg:w-[40%] pswp-gallery md:max-w-2xl mx-auto lg:max-w-none" id="product-gallery">
-            <div className="mb-2 lg:mb-4 relative group">
+          <motion.div variants={fadeInUp} className="w-full lg:w-[50%] pswp-gallery md:max-w-2xl mr-auto lg:max-w-none" id="product-gallery">
+                {/* ✅ Dynamic Breadcrumb */}
+            <motion.div variants={fadeInUp} className="text-sm text-gray-500 mb-3 lg:mb-6 flex items-center gap-2 flex-wrap">
+              {/* Home */}
+              <Link href="/" className="hover:underline flex items-center gap-1 text-black">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="1.5"
+                  stroke="currentColor"
+                  className="size-4"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
+                  />
+                </svg>
+                <span>Home</span>
+              </Link>
+
+              {/* Categories */}
+              {(() => {
+                if (!Array.isArray(product?.categories) || product.categories.length === 0) {
+                  return null;
+                }
+
+                // Sort: parent category first, then child
+                const sorted = [...product.categories].sort(
+                  (a: any, b: any) => (a.parent || 0) - (b.parent || 0)
+                );
+
+                return sorted.slice(0, 2).map((cat: any, idx: number) => {
+                  // Construct nested path using the sorted array up to the current index
+                  // e.g. Parent -> /parent-slug
+                  //      Child  -> /parent-slug/child-slug
+                  const nestedPath = sorted
+                    .slice(0, idx + 1)
+                    .map((c: any) => c.slug)
+                    .join("/");
+
+                  return (
+                    <React.Fragment key={cat.id}>
+                      <span>/</span>
+                      <Link
+                        href={`/${nestedPath}`}
+                        className="hover:underline text-black"
+                      >
+                        {cat.name}
+                      </Link>
+                    </React.Fragment>
+                  );
+                });
+              })()}
+            </motion.div>
+            <div className="mb-2 lg:mb-4 relative group w-[90%]">
               <div 
                 ref={mainImageScrollRef}
                 className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide scroll-smooth"
@@ -2146,13 +2147,14 @@ export default function ProductPageClient({
                     </summary>
                     <div className="px-6 pb-4 text-gray-700 space-y-4">
                       <div className='flex flex-col gap-4'>
-                        <p className='text-[#3D4752] font-normal text-base'>Download Technische documentatie, Installatie instructies, Product certificaat en Onderhoudsinstructies.</p>
+                        {/* <p className='text-[#3D4752] font-normal text-base'>Download Technische documentatie, Installatie instructies, Product certificaat en Onderhoudsinstructies.</p> */}
+                        <p className='text-[#3D4752] font-normal text-base'>Hieronder staat beschikbare informatie over dit product. Denk aan technische documentatie, catalogi, installatie instructies en overige documenten indien aanwezig.</p>
                         <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
                           {manualPdf && (
                             <div className='bg-[#F3F8FF] rounded-sm p-4 flex items-center justify-between'>
                               <div>
                                 <p className='text-[#1C2530] font-semibold text-base'>Technische Tekening</p>
-                                <p className='text-[#3D4752] font-normal text-xs'>CAD-bestand met afmetingen</p>
+                                <p className='text-[#3D4752] font-normal text-xs'>Bekijk de maten van dit product</p>
                               </div>
                               <div>
                                 <a href={manualPdf} target="_blank" rel="noopener noreferrer" className='w-max border border-[#03B955] px-5 py-1 rounded-full text-[#03B955] font-normal text-sm'>Downloaden</a>
@@ -2758,62 +2760,139 @@ export default function ProductPageClient({
 
         <div className="flex flex-nowrap items-center justify-between max-w-[1440px] mx-auto w-full gap-2">
             <div className='flex flex-col justify-center items-start shrink-0'>
-              <div className='flex flex-col lg:flex-row items-start lg:items-baseline'>
-              <p className="text-base sm:text-xl lg:text-3xl font-bold text-[#1C2530] whitespace-nowrap leading-tight lg:leading-normal">
-                {(() => {
-                  const getMeta = getMetaValue;
-                  const currency = product.currency_symbol || "€";
+              {(() => {
+                const getMeta = getMetaValue;
+                const currency = product.currency_symbol || "€";
 
-                  // Dynamic Price Logic (duped for now)
-                  const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
-                  const b2bKey = "crucial_data_b2b_and_b2c_sales_price_b2b";
-                  const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
+                // Dynamic Price Logic (duped for now)
+                const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
+                const b2bKey = "crucial_data_b2b_and_b2c_sales_price_b2b";
+                const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
 
-                  let sale = 0;
+                let sale = 0;
 
-                  if (isB2B) {
-                    if (product.regular_price) {
-                      sale = parseFloat(product.regular_price);
-                    } else if (product.price) {
-                      sale = parseFloat(product.price);
-                    }
-                  } else {
-                    sale = product.price ? parseFloat(product.price) : 0;
-                    const acfPriceRaw = getMeta(b2cKey);
-                    if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
-                      sale = parseFloat(acfPriceRaw);
-                    }
+                if (isB2B) {
+                  if (product.regular_price) {
+                    sale = parseFloat(product.regular_price);
+                  } else if (product.price) {
+                    sale = parseFloat(product.price);
                   }
-
-                  const advisedRaw = getMeta("crucial_data_unit_price");
-                  const advised = advisedRaw && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
-
-                  // Tax Logic
-                  const taxMultiplier = 1 + (taxRate / 100);
-                  const finalPrice = isB2B ? sale : (sale ? sale * taxMultiplier : 0);
-
-                  let basePrice = finalPrice ?? advised ?? 0;
-
-                  // Apply volume discount if selected
-                  if (selectedDiscount !== null) {
-                    const pct = discounts[selectedDiscount]?.percentage ?? 0;
-                    if (pct > 0) {
-                      basePrice = basePrice - (basePrice * pct) / 100;
-                    }
+                } else {
+                  sale = product.price ? parseFloat(product.price) : 0;
+                  const acfPriceRaw = getMeta(b2cKey);
+                  if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
+                    sale = parseFloat(acfPriceRaw);
                   }
+                }
 
-                  const totalPrice = basePrice * (Number(quantity) || 1);
+                const advisedRaw = getMeta("crucial_data_unit_price");
+                const advised = advisedRaw && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
 
-                  return isLoading ? "..." : `${currency}${totalPrice.toFixed(2)}`;
-                })()}
-              </p>
-              <span className="text-[10px] lg:text-xs text-gray-500 font-normal ml-0 lg:ml-2 mt-0.5 lg:mt-0">
-                {userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator")) ? "(excl. BTW)" : "(incl. BTW)"}
-              </span>
-            </div>
+                // Tax Logic
+                const taxMultiplier = 1 + (taxRate / 100);
+                const finalPrice = isB2B ? sale : (sale ? sale * taxMultiplier : 0);
+
+                let basePrice = finalPrice ?? advised ?? 0;
+
+                // Apply volume discount if selected
+                if (selectedDiscount !== null) {
+                  const pct = discounts[selectedDiscount]?.percentage ?? 0;
+                  if (pct > 0) {
+                    basePrice = basePrice - (basePrice * pct) / 100;
+                  }
+                }
+
+                const qtyNum = Number(quantity) || 1;
+                const totalPrice = basePrice * qtyNum;
+                const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
+
+                if (qtyNum > 1) {
+                  return (
+                    <>
+                      <div className='flex flex-col lg:flex-row items-start lg:items-baseline'>
+                        <p className="text-base sm:text-xl lg:text-3xl font-bold text-[#1C2530] whitespace-nowrap leading-tight lg:leading-normal">
+                          {isLoading ? "..." : `${currency}${totalPrice.toFixed(2)}`}
+                        </p>
+                        <span className="text-[10px] lg:text-xs text-gray-500 font-normal ml-0 lg:ml-2 mt-0.5 lg:mt-0">
+                          {taxLabel}
+                        </span>
+                      </div>
+                      <div className="flex flex-row items-baseline gap-1 mt-0.5">
+                        <span className="text-[10px] lg:text-xs text-gray-500 font-normal">
+                          {currency}{basePrice.toFixed(2)}
+                        </span>
+                        {packingType && (
+                          <span className="text-[10px] lg:text-xs text-[#3D4752] font-normal lowercase">
+                            per {packingType}
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  );
+                } else {
+                  return (
+                    <div className='flex flex-col lg:flex-row items-start lg:items-baseline gap-1 lg:gap-0'>
+                      <div className="flex flex-row items-baseline">
+                        <p className="text-base sm:text-xl lg:text-3xl font-bold text-[#1C2530] whitespace-nowrap leading-tight lg:leading-normal">
+                          {isLoading ? "..." : `${currency}${totalPrice.toFixed(2)}`}
+                        </p>
+                        <span className="text-[10px] lg:text-xs text-gray-500 font-normal ml-1 lg:ml-2">
+                          {taxLabel}
+                        </span>
+                      </div>
+                      {packingType && (
+                        <span className="text-[10px] lg:text-xs text-[#3D4752] font-normal ml-0 lg:ml-2 lowercase">
+                          per {packingType}
+                        </span>
+                      )}
+                    </div>
+                  );
+                }
+              })()}
           </div>
 
-          <div className="flex items-center gap-2 lg:gap-4 flex-1 justify-end shrink-0">
+          {mounted && (
+            <div className="hidden md:flex flex-col justify-center px-4 xl:px-6 flex-1 border-l border-[#EDEDED] mx-2 xl:mx-4 overflow-hidden">
+              {(() => {
+                const getMeta = getMetaValue;
+                const stockLeadRaw = getMeta("crucial_data_delivery_if_stock");
+                const noStockLeadRaw = getMeta("crucial_data_delivery_if_no_stock");
+                const leadTimeInStock = stockLeadRaw && !isNaN(parseInt(stockLeadRaw)) ? parseInt(stockLeadRaw) : 1;
+                const leadTimeNoStock = noStockLeadRaw && !isNaN(parseInt(noStockLeadRaw)) ? parseInt(noStockLeadRaw) : 30;
+                
+                const stockStatus = product?.stock_status || 'instock';
+                const stockQty = availableStock;
+                
+                const info = getDeliveryInfo(
+                  stockStatus,
+                  (Number(quantity) || 1) + cartItemQuantity,
+                  stockQty,
+                  leadTimeInStock,
+                  leadTimeNoStock
+                );
+
+                const isPartial = info.type === "PARTIAL_STOCK";
+                const isNoStock = info.type === "BACKORDER";
+                const isStock = info.type === "IN_STOCK";
+
+                return (
+                  <>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${isStock ? 'bg-[#03B955]' : isPartial ? 'bg-[#FFCC00]' : 'bg-[#FF5E00]'}`}></span>
+                      <span className={`text-[11px] lg:text-sm font-semibold truncate ${isStock ? 'text-[#03B955]' : isPartial ? 'text-[#B28900]' : 'text-[#FF5E00]'}`}>
+                        {isStock ? "Op voorraad" : isPartial ? "Beperkte voorraad" : "Niet op voorraad"}
+                      </span>
+                    </div>
+                    <span className="text-[10px] lg:text-xs text-[#3D4752] font-normal truncate mt-0.5" title={info.short}>
+                      {info.short}
+                    </span>
+                  </>
+                );
+              })()}
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 lg:gap-4 flex-1 md:flex-none justify-end shrink-0">
             <div className="flex border border-[#EDEDED] shadow-xs rounded-sm overflow-hidden bg-white shrink-0">
               <button
                 type="button"
