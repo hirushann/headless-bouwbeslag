@@ -1,46 +1,80 @@
 "use server";
 
 import { getShippingSettings, getCouponByCode } from "@/lib/woocommerce";
-import { createOrder, getOrder, updateOrder } from "@/lib/woocommerce-order";
+import { getCheckoutSession, saveCheckoutSession, deleteCheckoutSession } from "@/lib/checkout-session";
 import mollieClient from "@/lib/mollie";
 import { redirect } from "next/navigation";
 import axios from "axios";
+import { getOrder, updateOrder } from "@/lib/woocommerce-order";
 
 
-export async function checkOrderStatusAction(orderId: number) {
+export async function checkOrderStatusAction(orderId: string | number) {
     try {
-        const order = await getOrder(orderId);
-        if (!order) {
-            return { success: false, message: "Order not found" };
-        }
-
-        // Check if it's still pending but should be processing
-        if ((order.status === 'pending' || order.status === 'pending-payment') && order.transaction_id) {
-            // console.log(`🔎 Order ${orderId} is still pending but has transaction_id. Checking Mollie...`);
-            const payment = await mollieClient.payments.get(order.transaction_id);
-            if (payment.status === 'paid') {
-                // console.log(`✅ Mollie says paid! Updating order ${orderId} to processing...`);
-                await updateOrder(orderId, {
-                    status: 'processing',
-                    set_paid: true
-                });
-                order.status = 'processing'; // Update local object for return
+        const orderIdStr = String(orderId);
+        
+        // New Flow (Session-based)
+        if (orderIdStr.startsWith("NEXT-")) {
+            try {
+                const session = await getCheckoutSession(orderIdStr);
+                if (!session) {
+                    return { success: true, status: 'processing' };
+                }
+                
+                if (session.transaction_id) {
+                    const payment = await mollieClient.payments.get(session.transaction_id);
+                    if (payment.status === 'paid') {
+                        const empireUrl = (process.env.EMPIRE_BACKEND_API_URL || "http://empire.test").replace(/\/$/, "");
+                        const isGuest = session.customer_id === 0;
+                        const endpoint = isGuest ? "/api/guest/orders" : "/api/account/orders";
+                        
+                        const headers: any = { "Accept": "application/json", "Content-Type": "application/json" };
+                        if (!isGuest && session.auth_token) {
+                            headers["Authorization"] = `Bearer ${session.auth_token}`;
+                        }
+                        
+                        const payloadToSend = { ...session };
+                        delete payloadToSend.auth_token;
+                        
+                        try {
+                            await axios.post(`${empireUrl}${endpoint}`, payloadToSend, { headers });
+                            await deleteCheckoutSession(orderIdStr);
+                        } catch (e: any) {
+                            // ignore, maybe webhook just processed it
+                            console.error("Empire API Error in success check:", e?.response?.data || e.message);
+                        }
+                        return { success: true, status: 'processing' };
+                    } else if (['canceled', 'expired', 'failed'].includes(payment.status)) {
+                        await deleteCheckoutSession(orderIdStr);
+                        return { success: true, status: payment.status === 'canceled' ? 'cancelled' : 'failed' };
+                    }
+                    return { success: true, status: 'pending' };
+                }
+                
+                return { success: true, status: 'pending' };
+            } catch (innerError: any) {
+                console.error("Inner Error in checkOrderStatusAction:", innerError);
+                return { success: false, message: "Error checking status: " + innerError.message };
             }
         }
 
-        return {
-            success: true,
-            status: order.status,
-            orderKey: order.order_key,
-            total: order.total
-        };
+        // Old WooCommerce flow fallback
+        const order = await getOrder(Number(orderId));
+        if (!order) return { success: false, message: "Order not found" };
+
+        if ((order.status === 'pending' || order.status === 'pending-payment') && order.transaction_id) {
+            const payment = await mollieClient.payments.get(order.transaction_id);
+            if (payment.status === 'paid') {
+                await updateOrder(Number(orderId), { status: 'processing', set_paid: true });
+                order.status = 'processing';
+            }
+        }
+        return { success: true, status: order.status, orderKey: order.order_key, total: order.total };
     } catch (error) {
-        // console.error("Failed to check order status:", error);
         return { success: false, message: "Error checking status" };
     }
 }
 
-export async function verifyPaymentStatusAction(orderId: number) {
+export async function verifyPaymentStatusAction(orderId: string | number) {
     return checkOrderStatusAction(orderId);
 }
 
@@ -172,79 +206,124 @@ export async function getPaymentMethodsAction() {
 
 export async function placeOrderAction(data: any) {
     try {
-        // console.log("🚀 Starting placeOrderAction. Input data:", JSON.stringify(data, null, 2));
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+        
+        // Generate a unique order reference
+        const orderReference = `NEXT-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
-        const order = await createOrder(
-            data.cart,
-            data.billing,
-            data.shipping, // Pass separate shipping object
-            data.shipping_line,
-            "mollie",
-            "Mollie Payment",
-            data.coupon_lines,
-            data.customer_note, // Pass customer note
-            data.customer_id || 0, // Pass customer ID
-            data.fee_lines || [], // Pass fee lines (e.g., card payment fee)
-            data.meta_data || [] // Pass explicit metadata like vat numbers
-        );
-
-        // console.log("📦 WooCommerce Order Created:", JSON.stringify({
-        //     id: order?.id,
-        //     total: order?.total,
-        //     total_tax: order?.total_tax,
-        //     shipping_total: order?.shipping_total,
-        //     shipping_tax: order?.shipping_tax,
-        //     status: order?.status
-        // }, null, 2));
-
-        if (order && order.id) {
-            const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-            const isLocal = siteUrl.includes('localhost');
-
-            // Mollie webhook must be reachable. If local, we omit it or need ngrok.
-            // For now, if local, we omit it so payment creation succeeds (but status won't update automatically).
-            const webhookUrl = isLocal ? undefined : `${siteUrl}/api/webhooks/mollie`;
-
-            const paymentValue = parseFloat(order.total).toFixed(2);
-            // console.log(`💳 Creating Mollie Payment. Value: ${paymentValue}, Webhook: ${webhookUrl}`);
-
-            // Create Mollie Payment
-            const payment = await mollieClient.payments.create({
-                amount: {
-                    currency: "EUR",
-                    value: paymentValue,
-                },
-                description: `Order #${order.id}`,
-                redirectUrl: `${siteUrl}/checkout/success?orderId=${order.id}`,
-                webhookUrl: webhookUrl,
-                metadata: {
-                    order_id: order.id,
-                },
-                method: data.mollie_method_id, // Pass selected method to Mollie
-            });
-
-            // console.log("💸 Mollie Payment Response:", JSON.stringify({
-            //     id: payment?.id,
-            //     status: payment?.status,
-            //     checkoutUrl: payment?._links?.checkout?.href
-            // }, null, 2));
-
-            // CRITICAL: Save the payment ID to the order
-            if (payment && payment.id) {
-                // console.log(`📝 Saving transaction_id ${payment.id} to order ${order.id}...`);
-                await updateOrder(order.id, {
-                    transaction_id: payment.id
-                });
-            }
-
-            if (payment && payment._links.checkout) {
-                return { success: true, redirectUrl: payment._links.checkout.href };
+        // Calculate totals for Empire Payload
+        const shippingLine = data.shipping_line?.[0];
+        const shippingTotal = shippingLine ? parseFloat(shippingLine.total) : 0;
+        
+        let subtotal = 0;
+        
+        // Ensure all items have a valid SKU (especially old cart items missing the sku field)
+        const itemsToProcess = [...data.cart];
+        const missingSkuItems = itemsToProcess.filter((item: any) => !item.sku && !isNaN(Number(item.id)));
+        
+        if (missingSkuItems.length > 0) {
+            const idsToFetch = missingSkuItems.map((item: any) => item.id).join(",");
+            try {
+                // Quick fetch from WooCommerce to get missing SKUs
+                const { default: api } = await import("@/lib/woocommerce");
+                const res = await api.get("products", { include: idsToFetch, _fields: "id,sku", per_page: 100 });
+                if (Array.isArray(res.data)) {
+                    res.data.forEach((p: any) => {
+                        const target = itemsToProcess.find((item: any) => Number(item.id) === Number(p.id));
+                        if (target && p.sku) {
+                            target.sku = p.sku;
+                        }
+                    });
+                }
+            } catch (e) {
+                // console.error("Failed to fetch missing SKUs", e);
             }
         }
-        return { success: false, message: "Failed to create order" };
+
+        const items = itemsToProcess.map((item: any) => {
+            const price = parseFloat(item.price || 0);
+            const qty = parseInt(item.quantity || 1);
+            subtotal += (price * qty);
+            
+            return {
+                sync_id: item.sku || item.slug, // Empire relies on sync_id/sku being the actual product SKU
+                sku: item.sku || item.slug, 
+                name: item.name,
+                quantity: qty,
+                price: price,
+                manual_unit_price: 0
+            };
+        });
+
+        // Add fee lines and coupons to total calculation (roughly)
+        let totalFees = 0;
+        if (data.fee_lines) {
+            for (const fee of data.fee_lines) {
+                totalFees += parseFloat(fee.total || 0);
+            }
+        }
+
+        const netTotal = subtotal + shippingTotal + totalFees;
+        const taxRate = 0.21;
+        const totalTax = netTotal * taxRate;
+        const totalAmount = netTotal + totalTax;
+
+        // Build Empire API payload
+        const empirePayload = {
+            website_url: siteUrl,
+            order_reference: orderReference,
+            status: "processing", // Status to set when payment completes
+            billing: data.billing,
+            shipping: data.shipping,
+            items: items,
+            shipping_total: shippingTotal,
+            total: totalAmount,
+            total_tax: totalTax,
+            payment_method: data.mollie_method_id || "mollie",
+            payment_method_title: "Mollie",
+            customer_note: data.customer_note || "",
+            eu_vat_number: data.meta_data?.find((m: any) => m.key === "vat_number")?.value || "",
+            customer_id: data.customer_id,
+            auth_token: data.auth_token || ""
+        };
+
+        // Save session locally FIRST (without transaction_id)
+        await saveCheckoutSession(orderReference, empirePayload);
+
+        // Mollie webhook must be reachable. If local, omit it or use ngrok.
+        const isLocal = siteUrl.includes('localhost');
+        const webhookUrl = isLocal ? undefined : `${siteUrl}/api/webhooks/mollie`;
+
+        const paymentValue = totalAmount.toFixed(2);
+
+        // Create Mollie Payment
+        const payment = await mollieClient.payments.create({
+            amount: {
+                currency: "EUR",
+                value: paymentValue,
+            },
+            description: `Order ${orderReference}`,
+            redirectUrl: `${siteUrl}/checkout/success?orderId=${orderReference}`,
+            webhookUrl: webhookUrl,
+            metadata: {
+                order_reference: orderReference,
+                is_guest: !data.customer_id
+            },
+            method: data.mollie_method_id, 
+        });
+
+        // Update session with transaction_id so checkOrderStatus can find it
+        if (payment && payment.id) {
+            empirePayload.transaction_id = payment.id;
+            await saveCheckoutSession(orderReference, empirePayload);
+        }
+
+        if (payment && payment._links.checkout) {
+            return { success: true, redirectUrl: payment._links.checkout.href };
+        }
+        
+        return { success: false, message: "Failed to create Mollie payment" };
     } catch (error: any) {
-        // console.error("❌ Failed to place order:", error);
-        // Return the actual error message for debugging
         return { success: false, message: error.message || "An unexpected error occurred" };
     }
 }

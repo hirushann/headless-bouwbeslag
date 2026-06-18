@@ -1,0 +1,68 @@
+{
+  "website_url": "https://bouwbeslag.nl",
+  "order_reference": "NEXT-1781759731981-7770",
+  "status": "processing",
+  "billing": {
+    "first_name": "test",
+    "last_name": "test",
+    "company": "",
+    "address_1": "Heerderdwarsstraat 30",
+    "address_2": "",
+    "city": "Maastricht",
+    "state": "",
+    "postcode": "6224 LT",
+    "country": "NL",
+    "email": "hirushan@dayzsolutions.com",
+    "phone": "",
+    "vat_number": ""
+  },
+  "shipping": {
+    "first_name": "test",
+    "last_name": "test",
+    "company": "",
+    "address_1": "Heerderdwarsstraat 30",
+    "address_2": "",
+    "city": "Maastricht",
+    "state": "",
+    "postcode": "6224 LT",
+    "country": "NL",
+    "email": "hirushan@dayzsolutions.com",
+    "phone": "",
+    "vat_number": ""
+  },
+  "items": [
+    {
+      "sync_id": "zoo-matzwarte-deurklink-maggiore-op-rond-rozet-rt",
+      "sku": "zoo-matzwarte-deurklink-maggiore-op-rond-rozet-rt",
+      "name": "ZOO Matzwarte deurklink Maggiore op rond rozet",
+      "quantity": 1,
+      "price": 40.4,
+      "manual_unit_price": 0
+    },
+    {
+      "sync_id": "zoo_matzwarte_deurklink_como_op_rond_rozet_rt",
+      "sku": "zoo_matzwarte_deurklink_como_op_rond_rozet_rt",
+      "name": "ZOO Matzwarte deurklink Como op rond rozet",
+      "quantity": 1,
+      "price": 54.88,
+      "manual_unit_price": 0
+    },
+    {
+      "sync_id": "zoo_brons_pvd_deurklink_varese_op_rond_rozet",
+      "sku": "zoo_brons_pvd_deurklink_varese_op_rond_rozet",
+      "name": "ZOO Brons PVD deurklink Varese op rond rozet",
+      "quantity": 2,
+      "price": 55.31,
+      "manual_unit_price": 0
+    }
+  ],
+  "shipping_total": 0,
+  "total": 246.1382,
+  "total_tax": 42.7182,
+  "payment_method": "ideal",
+  "payment_method_title": "Mollie",
+  "customer_note": "\n\n⚠️ SAMENBUNDELING: Alle artikelen in één pakket verzenden op de laatst mogelijke leverdatum.",
+  "eu_vat_number": "",
+  "customer_id": 0,
+  "transaction_id": "tr_PhdVw5FUVH4i3GKfc7mSJ"
+}

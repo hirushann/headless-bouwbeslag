@@ -1,7 +1,7 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import mollieClient from "@/lib/mollie";
-import api from "@/lib/woocommerce";
+import { getCheckoutSession, deleteCheckoutSession } from "@/lib/checkout-session";
+import axios from "axios";
 
 export async function POST(req: NextRequest) {
     try {
@@ -15,25 +15,66 @@ export async function POST(req: NextRequest) {
         }
 
         const payment = await mollieClient.payments.get(paymentId);
-        const orderId = (payment.metadata as any)?.order_id;
+        const metadata = payment.metadata as any;
+        const orderReference = metadata?.order_reference || metadata?.order_id; // Support old & new
 
-        if (!orderId) {
-            // console.error("Order ID not found in payment metadata");
-            return NextResponse.json({ message: "Order ID missing" }, { status: 200 }); // Return 200 to acknowledge webhook
+        if (!orderReference) {
+            return NextResponse.json({ message: "Order Reference missing" }, { status: 200 });
         }
 
+        // Check if this is the new checkout session flow
+        if (orderReference.startsWith("NEXT-")) {
+            const isPaid = payment.status === 'paid';
+            
+            // If paid, send to Empire!
+            if (isPaid) {
+                const sessionPayload = await getCheckoutSession(orderReference);
+                
+                if (sessionPayload) {
+                    const empireUrl = (process.env.EMPIRE_BACKEND_API_URL || "http://empire.test").replace(/\/$/, "");
+                    
+                    try {
+                        const isGuest = metadata.is_guest !== false && sessionPayload.customer_id === 0;
+                        const endpoint = isGuest ? "/api/guest/orders" : "/api/account/orders";
+                        
+                        const headers: any = {
+                            "Accept": "application/json",
+                            "Content-Type": "application/json"
+                        };
+                        
+                        if (!isGuest && sessionPayload.auth_token) {
+                            headers["Authorization"] = `Bearer ${sessionPayload.auth_token}`;
+                        }
+                        
+                        const payloadToSend = { ...sessionPayload };
+                        delete payloadToSend.auth_token;
+                        
+                        await axios.post(`${empireUrl}${endpoint}`, payloadToSend, { headers });
+                        
+                        // Delete session once processed
+                        await deleteCheckoutSession(orderReference);
+                    } catch (empireError: any) {
+                        console.error("Failed to push order to Empire:", empireError?.response?.data || empireError.message);
+                        return NextResponse.json({ message: "Empire API Error" }, { status: 500 });
+                    }
+                }
+            } else if (['canceled', 'expired', 'failed'].includes(payment.status)) {
+                // Delete session if payment failed to free up space
+                await deleteCheckoutSession(orderReference);
+            }
+            
+            return NextResponse.json({ message: "Webhook processed" }, { status: 200 });
+        }
+
+        // Fallback for old WooCommerce logic (while migrating)
         let newStatus = "";
-
-        if (payment.status == 'paid') {
-            newStatus = "processing";
-        } else if (payment.status == 'canceled' || payment.status == 'expired') {
-            newStatus = "cancelled";
-        } else if (payment.status == 'failed') {
-            newStatus = "failed";
-        }
+        if (payment.status == 'paid') newStatus = "processing";
+        else if (['canceled', 'expired'].includes(payment.status)) newStatus = "cancelled";
+        else if (payment.status == 'failed') newStatus = "failed";
 
         if (newStatus) {
-            await api.put(`orders/${orderId}`, {
+            const api = (await import("@/lib/woocommerce")).default;
+            await api.put(`orders/${orderReference}`, {
                 status: newStatus,
                 transaction_id: payment.id,
             });
@@ -41,7 +82,6 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ message: "Webhook received" }, { status: 200 });
     } catch (error) {
-        // console.error("Mollie Webhook Error:", error);
         return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
     }
 }

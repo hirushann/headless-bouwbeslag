@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import api from "@/lib/woocommerce";
 
 export async function GET(request: NextRequest) {
     const authHeader = request.headers.get("Authorization");
@@ -7,38 +6,27 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Missing Authorization header" }, { status: 401 });
     }
 
-    const WP_API_URL = process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "https://app.bouwbeslag.nl";
+    const EMPIRE_API_URL = process.env.EMPIRE_BACKEND_API_URL || process.env.NEXT_PUBLIC_EMPIRE_API_URL || "http://empire.test";
+    const BASE_URL = EMPIRE_API_URL.replace(/\/$/, "");
 
     try {
-        // 1. Verify User and Get ID
-        const userRes = await fetch(`${WP_API_URL}/wp-json/wp/v2/users/me?context=edit`, {
+        const res = await fetch(`${BASE_URL}/api/account/orders`, {
             headers: {
                 Authorization: authHeader,
+                Accept: "application/json"
             },
         });
 
-        if (!userRes.ok) {
-            return NextResponse.json({ error: "Invalid Token" }, { status: 401 });
+        if (!res.ok) {
+            return NextResponse.json({ error: "Failed to fetch orders from backend" }, { status: res.status });
         }
 
-        const user = await userRes.json();
-        const userId = user.id;
-
-        if (!userId) {
-            return NextResponse.json({ error: "User ID not found" }, { status: 404 });
-        }
-
-        // 2. Fetch Orders using Admin/Consumer Keys via lib/woocommerce
-        // api.get uses the configured Consumer Key/Secret which has admin read access.
-        // Query parameters explicitly filtering by customer ID.
-        const { data: orders } = await api.get("orders", {
-            customer: userId,
-            per_page: 50, // Reasonable limit
-        });
+        const data = await res.json();
+        // Empire API might return { data: [...] } or just [...]
+        const orders = data.data || data || [];
 
         return NextResponse.json(orders);
     } catch (error: any) {
-        // console.error("Order fetch error:", error);
         return NextResponse.json({ error: error.message || "Failed to fetch orders" }, { status: 500 });
     }
 }

@@ -26,26 +26,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Helper to parse JWT
-  const parseJwt = (token: string) => {
-    try {
-      const base64Url = token.split(".")[1];
-      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-      const jsonPayload = decodeURIComponent(
-        window
-          .atob(base64)
-          .split("")
-          .map(function (c) {
-            return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-          })
-          .join("")
-      );
-      return JSON.parse(jsonPayload);
-    } catch (e) {
-      return null;
-    }
-  };
-
   const fetchUserRole = async () => {
     if (typeof window === "undefined") return;
     
@@ -55,7 +35,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       const token = localStorage.getItem("token");
 
       if (token) {
-        // 1. Try to get from localStorage user first (optimization)
         let role = null;
         let userData = null;
 
@@ -65,40 +44,32 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
           userData = user;
         }
 
-        // 2. If not found, decoding token might help (for role only)
-        if (!role) {
-          const decoded = parseJwt(token);
-          if (decoded) {
-            if (decoded.data?.user?.roles) role = decoded.data.user.roles;
-            else if (decoded.roles) role = decoded.roles;
-          }
-        }
-
-        // 3. If still no role OR for full data refresh, fetch from API
-        // Fetching from API is better for "context=edit" data like addresses
-        if (token) {
-           // We always fetch ME to get latest addresses if possible, or lazy load?
-           // Strategy: If we have userData from local, usage is fast. But we might want fresh data.
-           // Let's fetch if we don't have userData OR if we want to ensure fresh role.
-           // For now, let's prioritize API fetch to get billing/shipping
-           try {
-            const res = await axios.get(
-              `/api/user/me`,
-              {
-                headers: { Authorization: `Bearer ${token}` },
-              }
-            );
-            if (res.data) {
-                userData = res.data;
-                if (res.data.roles) {
-                  role = res.data.roles;
-                }
-                // Update local storage to keep it fresh
-                localStorage.setItem("user", JSON.stringify(res.data));
+        // Always fetch ME to get latest addresses and roles
+        try {
+          const res = await axios.get(
+            `/api/user/me`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
             }
-           } catch (apiErr) {
-            //  console.error("Failed to fetch user data from API:", apiErr);
-           }
+          );
+          if (res.data) {
+              userData = res.data;
+              if (res.data.roles) {
+                role = res.data.roles;
+              }
+              // Update local storage to keep it fresh
+              localStorage.setItem("user", JSON.stringify(res.data));
+          }
+        } catch (apiErr) {
+          // If the token is invalid, clear it
+          if ((apiErr as any).response?.status === 401) {
+             localStorage.removeItem("token");
+             localStorage.removeItem("user");
+             setUserRole(null);
+             setUser(null);
+             setIsLoading(false);
+             return;
+          }
         }
 
         // Normalize role to array

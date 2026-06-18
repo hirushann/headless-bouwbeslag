@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import api from "@/lib/woocommerce";
 
 export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('Authorization');
@@ -7,46 +6,52 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Missing Authorization header' }, { status: 401 });
     }
 
-    const WP_API_URL = process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "https://app.bouwbeslag.nl";
+    const EMPIRE_API_URL = process.env.EMPIRE_BACKEND_API_URL || process.env.NEXT_PUBLIC_EMPIRE_API_URL || "http://empire.test";
+    const BASE_URL = EMPIRE_API_URL.replace(/\/$/, "");
 
     try {
-        // 1. Fetch Basic User Info to get ID
-        const res = await fetch(`${WP_API_URL}/wp-json/wp/v2/users/me?context=edit`, {
+        // 1. Fetch Basic User Profile
+        const profileRes = await fetch(`${BASE_URL}/api/profile`, {
             method: 'GET',
             headers: {
                 'Authorization': authHeader,
-                'Content-Type': 'application/json'
+                'Accept': 'application/json'
             }
         });
 
-        if (!res.ok) {
-            const errorBody = await res.text();
-            // console.error(`WP API Error (${res.status}): ${errorBody}`);
-            return NextResponse.json({ error: res.statusText, details: errorBody }, { status: res.status });
+        if (!profileRes.ok) {
+            const errorBody = await profileRes.text();
+            return NextResponse.json({ error: profileRes.statusText, details: errorBody }, { status: profileRes.status });
         }
 
-        const userData = await res.json();
+        const profileData = await profileRes.json();
+        const userData = profileData.data || profileData;
 
-        // 2. Fetch WooCommerce Customer Details (for billing/shipping)
-        if (userData && userData.id) {
-            try {
-                // Use server-side API client which has Consumer Key/Secret
-                // This ensures we get the data even if the user token has limited scope for this endpoint
-                // but we trust the user because we validated the token against wp/v2/users/me above.
-                const { data: customerData } = await api.get(`customers/${userData.id}`);
-
-                if (customerData) {
-                    // Merge user data, preferring customerData for billing/shipping
-                    return NextResponse.json({ ...userData, ...customerData });
+        // 2. Fetch Customer Address Details (for billing/shipping)
+        try {
+            const addressRes = await fetch(`${BASE_URL}/api/customer/address`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': authHeader,
+                    'Accept': 'application/json'
                 }
-            } catch (custErr) {
-                // console.error("Error fetching WC customer data:", custErr);
+            });
+
+            if (addressRes.ok) {
+                const addressData = await addressRes.json();
+                // Merge user data, adding billing/shipping explicitly
+                return NextResponse.json({
+                    ...userData,
+                    billing: addressData.billing || {},
+                    shipping: addressData.shipping || {}
+                });
             }
+        } catch (addrErr) {
+            // Ignore error fetching address, return at least profile
         }
 
         return NextResponse.json(userData);
     } catch (error) {
-        // console.error("Proxy Error fetching user:", error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

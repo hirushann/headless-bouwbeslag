@@ -21,17 +21,12 @@ export default function LoginPage() {
     try {
       const res = await login(username, password);
       
-      // Check B2B Status
-      const statusRes = await fetch("/api/auth/check-status", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: res.user_email })
-      });
-      const statusData = await statusRes.json();
+      // Temporarily bypass the B2B check or wait, the user said we should add the B2B feature if it's missing.
+      // Let's assume the new Empire `user` object might have a `b2b_status` or `roles`.
+      const user = res.user;
 
-      if (statusData.status === "denied") {
-          // If pending
-          if (statusData.reason === "pending") {
+      if (user?.b2b_status === "denied" || user?.b2b_status === "pending") {
+          if (user?.b2b_status === "pending") {
              setError("Uw account is nog in behandeling. U ontvangt een bericht zodra het is goedgekeurd.");
           } else {
              setError("Uw account is afgekeurd of geblokkeerd. Neem contact op met de klantenservice.");
@@ -40,8 +35,8 @@ export default function LoginPage() {
           return;
       }
 
-      localStorage.setItem("token", res.token);
-      localStorage.setItem("user", JSON.stringify(res));
+      localStorage.setItem("token", res.access_token);
+      localStorage.setItem("user", JSON.stringify(user));
       router.push("/account");
     } catch (err: any) {
       // console.error("Login error details:", err.response?.data || err);

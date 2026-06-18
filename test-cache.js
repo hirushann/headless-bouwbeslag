@@ -1,1 +1,0 @@
-const { NextConfig } = require('next');

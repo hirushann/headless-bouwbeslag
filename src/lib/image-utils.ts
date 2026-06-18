@@ -8,6 +8,11 @@ export function fixImageSrc(src: string | undefined | null): string {
         finalSrc = `https:${finalSrc}`;
     }
 
+    // Rewrite Meilisearch local domains to actual staging server
+    if (finalSrc.includes("http://empire.test")) {
+        finalSrc = finalSrc.replace("http://empire.test", "https://empire.dayzsolutions.nl");
+    }
+
     // Replace staging domains or specific backend domains to use local proxy
     const WP_URL = "https://app.bouwbeslag.nl";
     if (finalSrc.startsWith(WP_URL)) {

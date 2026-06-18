@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import api from "@/lib/woocommerce";
 import { fetchPosts } from "@/lib/wordpress";
+import { fetchMeiliProducts } from "@/lib/meilisearch-products";
 import dynamic from "next/dynamic";
 
 // Client Components
@@ -47,12 +48,12 @@ import { Suspense } from "react";
 
 // Async data components
 async function BestSellersSection() {
-  const products = await api.get("products", { per_page: 10 }).then((res: any) => res.data).catch(() => []);
+  const products = await fetchMeiliProducts(10);
   return <BestSellersCarousel products={products} />;
 }
 
 async function RecommendedSection() {
-  const products = await api.get("products", { featured: true, per_page: 10 }).then((res: any) => res.data).catch(() => []);
+  const products = await fetchMeiliProducts(10, 10);
   if (products.length === 0) return null;
   return <RecommendedCarousel products={products} />;
 }

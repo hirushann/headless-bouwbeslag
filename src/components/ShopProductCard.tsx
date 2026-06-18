@@ -260,8 +260,9 @@ export default function ShopProductCard({ product, useCategoryImage = false }: {
             setIsAdding(true);
 
             try {
-              // 1. Fetch real-time stock
-              const stockRes = await checkStockAction(product.id);
+              // 1. Fetch real-time stock using the most reliable identifier (SKU > slug > ID)
+              const identifier = product.sku || product.slug || product.id;
+              const stockRes = await checkStockAction(identifier);
 
               if (!stockRes.success || !stockRes.data) {
                 toast.error(stockRes.error || "Fout bij ophalen voorraad.");
@@ -294,13 +295,15 @@ export default function ShopProductCard({ product, useCategoryImage = false }: {
               const { cartPrice, displayPrice } = priceData;
               const deliveryInfo = getDeliveryInfo(stockData.stock_status, 1, stockData.stock_quantity ?? null);
               addItem({
-                id: product.id,
+                id: stockData.id,
                 name: customTitle,
                 price: cartPrice,
                 quantity: 1,
                 image: targetImgSrc || product.images?.[0]?.src,
                 deliveryText: deliveryInfo.short,
                 deliveryType: deliveryInfo.type,
+                slug: product.slug,
+                sku: stockData.sku || product.sku
               });
 
               openModal({

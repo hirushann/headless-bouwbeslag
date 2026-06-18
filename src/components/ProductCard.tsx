@@ -26,6 +26,10 @@ export default function ProductCard({ product, userRole: propUserRole, useCatego
   const userRole = propUserRole || contextUserRole;
   const { openModal } = useProductAddedModal();
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const showLoadingState = !mounted || isLoading;
+
   // Format price safely (remove weird HTML entities)
   const cleanPrice = (price: string) =>
     price?.replace(/&#[0-9]+;|&[a-z]+;/gi, "").trim();
@@ -180,7 +184,7 @@ export default function ProductCard({ product, userRole: propUserRole, useCatego
         )} */}
 
         <div className="flex items-center gap-2 mb-2">
-          {isLoading ? (
+          {showLoadingState ? (
              <div className="h-8 w-24 bg-gray-200 animate-pulse rounded"></div>
           ) : (
              <>
@@ -248,8 +252,9 @@ export default function ProductCard({ product, userRole: propUserRole, useCatego
             setIsAdding(true);
 
             try {
-               // 1. Fetch real-time stock
-               const stockRes = await checkStockAction(product.id);
+               // 1. Fetch real-time stock using the most reliable identifier (SKU > slug > ID)
+               const identifier = product.sku || product.slug || product.id;
+               const stockRes = await checkStockAction(identifier);
                
                if (!stockRes.success || !stockRes.data) {
                   toast.error(stockRes.error || "Fout bij ophalen voorraad.");
@@ -280,7 +285,7 @@ export default function ProductCard({ product, userRole: propUserRole, useCatego
                const deliveryInfo = getDeliveryInfo(product.stock_status, 1, product.stock_quantity ?? null);
 
                addItem({
-                  id: product.id,
+                  id: stockData.id,
                   name: product.name,
                   price: sale !== null ? sale : Number(product.regular_price || product.price || 0),
                   quantity: 1,
@@ -288,6 +293,7 @@ export default function ProductCard({ product, userRole: propUserRole, useCatego
                   deliveryText: deliveryInfo.short,
                   deliveryType: deliveryInfo.type,
                   slug: product.slug,
+                  sku: stockData.sku || product.sku
                });
                
                openModal({

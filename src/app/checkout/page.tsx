@@ -125,37 +125,28 @@ export default function NewCheckoutPage() {
 
   // Auto-fill form data if user is logged in
   useEffect(() => {
-    if (user && user.billing) {
+    if (user) {
         // console.log("👤 Auto-filling checkout with user data:", user);
         
-        // Split address_1 into street and house number if possible?
-        // User data usually has address_1. We need to split it if our form separates them.
-        // Or if user meta has separate fields.
-        // Assuming address_1 is street + number.
-        // A simple regex might try to split, or we just put it in street for now and let user fix.
-        // Alternatively, if we saved it properly before...
-        // Let's assume standard Woo billing:
+        const b = user.billing || {};
+        let street = b.address_1 || "";
+        let houseNumber = b.house_number || "";
         
-        const b = user.billing;
-        const address1 = b.address_1 || "";
-        // Try to split street and number. 
-        // Heuristic: Last token is number?
-        // Many NL addresses: "Main Street 12"
-        const match = address1.match(/^(.+)\s+(\d+[a-zA-Z]*)$/);
-        let street = address1;
-        let houseNumber = "";
-        
-        if (match) {
-            street = match[1];
-            houseNumber = match[2];
+        // If there's no explicit house number but address_1 has one, try to split
+        if (!houseNumber && street) {
+            const match = street.match(/^(.+)\s+(\d+[a-zA-Z]*)$/);
+            if (match) {
+                street = match[1];
+                houseNumber = match[2];
+            }
         }
 
         setFormData(prev => ({
             ...prev,
-            firstName: b.first_name || prev.firstName,
-            lastName: b.last_name || prev.lastName,
-            companyName: b.company || prev.companyName,
-            country: getCountryNameFromIso(b.country, prev.country),
+            firstName: b.first_name || user.first_name || prev.firstName,
+            lastName: b.last_name || user.last_name || prev.lastName,
+            companyName: b.company || user.company_name || prev.companyName,
+            country: b.country ? getCountryNameFromIso(b.country, prev.country) : prev.country,
             street: street || prev.street,
             houseNumber: houseNumber || prev.houseNumber,
             apartment: b.address_2 || prev.apartment,
@@ -165,31 +156,30 @@ export default function NewCheckoutPage() {
             email: b.email || user.email || prev.email,
         }));
         
-        if (user.shipping) {
-             const s = user.shipping;
-             const sAddress1 = s.address_1 || "";
-             const sMatch = sAddress1.match(/^(.+)\s+(\d+[a-zA-Z]*)$/);
-             let sStreet = sAddress1;
-             let sHouseNumber = "";
+        const s = user.shipping || {};
+        let sStreet = s.address_1 || "";
+        let sHouseNumber = s.house_number || "";
 
-             if (sMatch) {
+        if (!sHouseNumber && sStreet) {
+            const sMatch = sStreet.match(/^(.+)\s+(\d+[a-zA-Z]*)$/);
+            if (sMatch) {
                 sStreet = sMatch[1];
                 sHouseNumber = sMatch[2];
-             }
-
-             setShippingData(prev => ({
-                 ...prev,
-                 firstName: s.first_name || prev.firstName,
-                 lastName: s.last_name || prev.lastName,
-                 companyName: s.company || prev.companyName,
-                 country: getCountryNameFromIso(s.country, prev.country),
-                 street: sStreet || prev.street,
-                 houseNumber: sHouseNumber || prev.houseNumber,
-                 apartment: s.address_2 || prev.apartment,
-                 postcode: s.postcode || prev.postcode,
-                 city: s.city || prev.city,
-             }));
+            }
         }
+
+        setShippingData(prev => ({
+            ...prev,
+            firstName: s.first_name || user.first_name || prev.firstName,
+            lastName: s.last_name || user.last_name || prev.lastName,
+            companyName: s.company || user.company_name || prev.companyName,
+            country: s.country ? getCountryNameFromIso(s.country, prev.country) : prev.country,
+            street: sStreet || prev.street,
+            houseNumber: sHouseNumber || prev.houseNumber,
+            apartment: s.address_2 || prev.apartment,
+            postcode: s.postcode || prev.postcode,
+            city: s.city || prev.city,
+        }));
     }
   }, [user]);
 
@@ -859,7 +849,8 @@ export default function NewCheckoutPage() {
             { key: "BTW Nummer", value: formData.vatNumber }
         ] : [],
         mollie_method_id: selectedPaymentMethod, // Pass selected method
-        customer_id: user?.id || 0
+        customer_id: user?.id || 0,
+        auth_token: localStorage.getItem("token") || ""
     };
 
     // console.log("🛒 Frontend: Submitting orderData:", orderData);

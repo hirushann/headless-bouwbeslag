@@ -26,7 +26,7 @@ function SuccessContent() {
 
     const verifyOrder = async () => {
         try {
-            const result = await checkOrderStatusAction(parseInt(orderId));
+            const result = await checkOrderStatusAction(orderId);
             
             if (result.success) {
                 const s = result.status;

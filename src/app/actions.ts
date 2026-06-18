@@ -80,8 +80,17 @@ export async function fetchProductIndexAction() {
 
 
 
-export async function checkStockAction(productId: number) {
+export async function checkStockAction(identifier: string | number) {
     try {
+        // Use the flexible resolver so that string slugs/UUIDs from Meilisearch
+        // are properly resolved to the real WooCommerce product ID first
+        const resolveRes = await fetchProductBySkuOrIdAction(identifier);
+        
+        if (!resolveRes.success || !resolveRes.data) {
+            return { success: false, error: "Product not found" };
+        }
+
+        const productId = resolveRes.data.id;
         const res = await api.get(`products/${productId}`, { cache: "no-store" });
         return { success: true, data: res.data };
     } catch (error: any) {
@@ -195,27 +204,35 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
                 const esRes = await elasticClient.search({
                     index: esIndex,
                     size: 1,
-                    query: {
-                        bool: {
-                            must: [
-                                { match: { post_type: "product" } },
-                                {
-                                    multi_match: {
-                                        query: idStr,
-                                        fields: [
-                                            "ID",
-                                            "meta._sku.value.keyword",
-                                            "meta.crucial_data_product_ean_code.value.keyword",
-                                            "meta.crucial_data_product_factory_sku.value.keyword",
-                                            "meta.*.value.keyword"
-                                        ],
-                                        type: "best_fields"
-                                    }
+                    query: (() => {
+                        const shouldClauses: any[] = [
+                            {
+                                multi_match: {
+                                    query: idStr,
+                                    fields: [
+                                        "meta._sku.value.keyword",
+                                        "meta.crucial_data_product_ean_code.value.keyword",
+                                        "meta.crucial_data_product_factory_sku.value.keyword",
+                                        "meta.*.value.keyword"
+                                    ],
+                                    type: "best_fields"
                                 }
-                            ],
-                            filter: numericExcludeId ? [{ bool: { must_not: { term: { ID: numericExcludeId } } } }] : []
+                            }
+                        ];
+                        
+                        if (!isNaN(Number(idStr))) {
+                            shouldClauses.push({ term: { "ID": Number(idStr) } });
                         }
-                    }
+
+                        return {
+                            bool: {
+                                must: [{ match: { post_type: "product" } }],
+                                should: shouldClauses,
+                                minimum_should_match: 1,
+                                filter: numericExcludeId ? [{ bool: { must_not: { term: { ID: numericExcludeId } } } }] : []
+                            }
+                        };
+                    })()
                 });
 
                 if (esRes.hits.hits.length > 0) {
@@ -417,27 +434,34 @@ export async function fetchRelatedProductsBatchAction(identifiers: string[], exc
         // 2. MEDIUM FETCH: Resolve missing items via Elasticsearch (SINGLE BATCH QUERY)
         const missingQueries = identifiers.filter(q => !foundMap.has(q));
         if (missingQueries.length > 0) {
+            const numericMissingQueries = missingQueries.filter(q => !isNaN(Number(q)));
+            
             const esIndex = process.env.SEARCH_INDEX || process.env.ELASTICSEARCH_INDEX;
             if (esIndex) {
+                const shouldClauses: any[] = [
+                    { terms: { "meta._sku.value.keyword": missingQueries } },
+                    { terms: { "meta.crucial_data_product_ean_code.value.keyword": missingQueries } },
+                    { terms: { "meta.crucial_data_product_factory_sku.value.keyword": missingQueries } },
+                    {
+                        multi_match: {
+                            query: missingQueries.join(" "),
+                            fields: ["meta.*.value.keyword"],
+                            type: "best_fields"
+                        }
+                    }
+                ];
+
+                if (numericMissingQueries.length > 0) {
+                    shouldClauses.push({ terms: { "ID": numericMissingQueries } });
+                }
+
                 const esRes = await elasticClient.search({
                     index: esIndex,
                     size: missingQueries.length * 2,
                     query: {
                         bool: {
                             must: [{ match: { post_type: "product" } }],
-                            should: [
-                                { terms: { "ID": missingQueries } },
-                                { terms: { "meta._sku.value.keyword": missingQueries } },
-                                { terms: { "meta.crucial_data_product_ean_code.value.keyword": missingQueries } },
-                                { terms: { "meta.crucial_data_product_factory_sku.value.keyword": missingQueries } },
-                                {
-                                    multi_match: {
-                                        query: missingQueries.join(" "),
-                                        fields: ["meta.*.value.keyword"],
-                                        type: "best_fields"
-                                    }
-                                }
-                            ],
+                            should: shouldClauses,
                             minimum_should_match: 1,
                             filter: excludeId ? [{ bool: { must_not: { term: { ID: excludeId } } } }] : []
                         }

@@ -1,24 +1,43 @@
 import axios from "axios";
 
-const WP_API_URL = `${(process.env.NEXT_PUBLIC_WORDPRESS_API_URL || "").replace(/\/$/, "")}/wp-json`;
+// Fallback to internal API or absolute URL
+const EMPIRE_API_URL = process.env.NEXT_PUBLIC_EMPIRE_API_URL || "http://empire.test";
+const BASE_URL = EMPIRE_API_URL.replace(/\/$/, "");
 
-// Login with username & password
-export async function login(username: string, password: string) {
-  const url = `${WP_API_URL}/jwt-auth/v1/token`;
-  // console.log("Attempting login at:", url);
+// Login with email & password
+export async function login(email: string, password: string) {
+  const url = `${BASE_URL}/api/login`;
   const res = await axios.post(url, {
-    username,
+    email,
     password,
+    device_name: "nextjs-storefront"
   });
-  return res.data; // { token, user_email, user_nicename, user_display_name }
+  return res.data; // { message, user, access_token, token_type }
 }
 
-// Validate token
+// Register with name, email, password
+export async function register(data: { name: string; email: string; password: string; password_confirmation: string }) {
+    const url = `${BASE_URL}/api/register`;
+    const res = await axios.post(url, data);
+    return res.data; // { message, user, access_token, token_type }
+}
+
+// Logout
+export async function logout(token: string) {
+    const url = `${BASE_URL}/api/logout`;
+    const res = await axios.post(
+      url,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return res.data;
+}
+
+// Validate token (by fetching profile)
 export async function validateToken(token: string) {
-  const res = await axios.post(
-    `${WP_API_URL}/jwt-auth/v1/token/validate`,
-    {},
+  const res = await axios.get(
+    `${BASE_URL}/api/profile`,
     { headers: { Authorization: `Bearer ${token}` } }
   );
-  return res.data; // success or error
+  return res.data;
 }

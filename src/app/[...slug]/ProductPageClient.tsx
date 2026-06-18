@@ -782,7 +782,7 @@ export default function ProductPageClient({
   }, [product]);
 
   // const productTitle = product?.meta_data?.find((m: any) => m.key === "crucial_data_product_name")?.value || product?.name || "";
-  const productTitle = product?.meta_data?.find((m: any) => m.key === "description_bouwbeslag_title")?.value || product?.name || "";
+  const productTitle = product?.description?.bouwbeslag_title || product?.meta_data?.find((m: any) => m.key === "description_bouwbeslag_title")?.value || product?.name || "";
 
   
 
@@ -1400,7 +1400,12 @@ export default function ProductPageClient({
             {/* Features */}
             {(() => {
               const usps = [];
-              if (product?.meta_data) {
+              if (product?.description?.fields) {
+                for (let i = 1; i <= 8; i++) {
+                  const usp = product.description.fields[`usp_${i}`];
+                  if (usp) usps.push(usp);
+                }
+              } else if (product?.meta_data) {
                 for (let i = 1; i <= 8; i++) {
                   const usp = product.meta_data.find((m: any) => m.key === `description_usp_${i}`)?.value;
                   if (usp) {
@@ -1890,36 +1895,47 @@ export default function ProductPageClient({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 h-full">
             <div className='flex flex-col gap-5'>
               {/* first row left accordion */}
-              {product?.meta_data?.find((m: any) => m.key === "description_description")?.value && (
-                <div className="bg-white rounded-lg border border-white">
-                  <details className="group" open>
-                    <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
-                      Product omschrijving
-                      <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
-                      <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
-                    </summary>
-                    <div className="px-6 pb-4 text-[#3D4752] space-y-4 font-normal text-sm lg:text-base">
-                      {(() => {
-                        // const desc = product?.meta_data?.find((m: any) => m.key === "description_description")?.value;
-                        const desc = product?.description;
-                        if (!desc) return null;
-                        return (
-                          <div
-                            className="prose prose-sm lg:prose-base text-[#3D4752]"
-                            dangerouslySetInnerHTML={{ 
-                              __html: desc
-                                .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '')
-                                .replace(/<meta[^>]*>/gi, '')
-                                .replace(/<link[^>]*>/gi, '')
-                                .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-                            }}
-                          />
-                        );
-                      })()}
-                    </div>
-                  </details>
-                </div>
-              )}
+              {(() => {
+                let hasDesc = false;
+                let descStr = "";
+                
+                if (product?.description?.fields?.description_1 || product?.description?.fields?.description_2) {
+                  hasDesc = true;
+                  descStr = [product.description.fields.description_1, product.description.fields.description_2].filter(Boolean).join("<br/>");
+                } else if (product?.meta_data?.find((m: any) => m.key === "description_description")?.value) {
+                  hasDesc = true;
+                  descStr = product.meta_data.find((m: any) => m.key === "description_description")?.value || "";
+                } else if (typeof product?.description === "string" && product.description.trim() !== "") {
+                  hasDesc = true;
+                  descStr = product.description;
+                }
+
+                if (!hasDesc || !descStr) return null;
+
+                return (
+                  <div className="bg-white rounded-lg border border-white">
+                    <details className="group" open>
+                      <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
+                        Product omschrijving
+                        <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-500 group-open:hidden text-2xl">+</span>
+                        <span className="items-center justify-center w-7 h-7 rounded-full bg-[#0066FF] text-white hidden group-open:flex text-2xl">−</span>
+                      </summary>
+                      <div className="px-6 pb-4 text-[#3D4752] space-y-4 font-normal text-sm lg:text-base">
+                        <div
+                          className="prose prose-sm lg:prose-base text-[#3D4752]"
+                          dangerouslySetInnerHTML={{ 
+                            __html: descStr
+                              .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '')
+                              .replace(/<meta[^>]*>/gi, '')
+                              .replace(/<link[^>]*>/gi, '')
+                              .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                          }}
+                        />
+                      </div>
+                    </details>
+                  </div>
+                );
+              })()}
 
               {/* second row left accordion */}
               {(productSKU ||

@@ -25,7 +25,10 @@ function AccountContent() {
   const [shippingError, setShippingError] = useState<string | null>(null);
   const [billingSuccess, setBillingSuccess] = useState<string | null>(null);
   const [shippingSuccess, setShippingSuccess] = useState<string | null>(null);
-  // ... other states ...
+  const [detailsForm, setDetailsForm] = useState<any>(null);
+  const [detailsSaving, setDetailsSaving] = useState(false);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
+  const [detailsSuccess, setDetailsSuccess] = useState<string | null>(null);
   // Password reset state
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -36,15 +39,31 @@ function AccountContent() {
   const [oldPasswordError, setOldPasswordError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const WP_API_URL = process.env.NEXT_PUBLIC_WORDPRESS_API_URL;
+  const EMPIRE_API_URL = (process.env.NEXT_PUBLIC_EMPIRE_API_URL || "http://empire.test").replace(/\/$/, "");
   
   // Sync local user state with Context User
   useEffect(() => {
     if (contextUser) {
         // console.log("👤 AccountClient: Context User Loaded:", contextUser);
         setUser(contextUser);
-        setBillingForm((prev: any) => prev || contextUser.billing || {});
-        setShippingForm((prev: any) => prev || contextUser.shipping || {});
+        setBillingForm((prev: any) => prev || {
+            ...contextUser.billing,
+            first_name: contextUser.billing?.first_name || contextUser.first_name || "",
+            last_name: contextUser.billing?.last_name || contextUser.last_name || "",
+            company: contextUser.billing?.company || contextUser.company_name || "",
+            email: contextUser.billing?.email || contextUser.email || "",
+        });
+        setShippingForm((prev: any) => prev || {
+            ...contextUser.shipping,
+            first_name: contextUser.shipping?.first_name || contextUser.first_name || "",
+            last_name: contextUser.shipping?.last_name || contextUser.last_name || "",
+            company: contextUser.shipping?.company || contextUser.company_name || "",
+        });
+        setDetailsForm((prev: any) => prev || {
+            first_name: contextUser.first_name || contextUser.billing?.first_name || "",
+            last_name: contextUser.last_name || contextUser.billing?.last_name || "",
+            company_name: contextUser.company_name || contextUser.billing?.company || "",
+        });
     }
   }, [contextUser]);
 
@@ -94,11 +113,38 @@ function AccountContent() {
     }
   }, [searchParams]);
 
+    // Handlers for details forms
+  const handleDetailsInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDetailsForm({ ...detailsForm, [e.target.name]: e.target.value });
+  };
+
+  const saveDetails = async (e: React.FormEvent) => {
+      e.preventDefault();
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      
+      setDetailsSaving(true);
+      setDetailsError(null);
+      setDetailsSuccess(null);
+
+      try {
+          // We can use the NextJS API route if it exists, or call EMPIRE_API_URL directly like password reset does
+          await axios.put(`${EMPIRE_API_URL}/api/profile`, detailsForm, {
+              headers: { Authorization: `Bearer ${token}` }
+          });
+          setDetailsSuccess("Account details updated successfully.");
+      } catch (err: any) {
+          setDetailsError(err?.response?.data?.message || "Failed to update account details.");
+      } finally {
+          setDetailsSaving(false);
+      }
+  };
+
     // Handlers for address forms
-  const handleBillingInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBillingInput = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setBillingForm({ ...billingForm, [e.target.name]: e.target.value });
   };
-  const handleShippingInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleShippingInput = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setShippingForm({ ...shippingForm, [e.target.name]: e.target.value });
   };
 
@@ -111,8 +157,8 @@ function AccountContent() {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("No auth token");
       await axios.put(
-        `${WP_API_URL}/wp-json/wc/v3/customers/${user.id}`,
-        { billing: billingForm },
+        `${EMPIRE_API_URL}/api/customer/address`,
+        { billing: billingForm, shipping: shippingForm },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setBillingSuccess("Billing address updated!");
@@ -133,8 +179,8 @@ function AccountContent() {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("No auth token");
       await axios.put(
-        `${WP_API_URL}/wp-json/wc/v3/customers/${user.id}`,
-        { shipping: shippingForm },
+        `${EMPIRE_API_URL}/api/customer/address`,
+        { billing: billingForm, shipping: shippingForm },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setShippingSuccess("Shipping address updated!");
@@ -148,20 +194,22 @@ function AccountContent() {
 
   // Validate old password on blur (immediate check)
   const handleOldPasswordBlur = async () => {
+    // We will validate password by attempting a login
     setOldPasswordError(null);
     if (!oldPassword) {
       setOldPasswordError("Old password is required.");
       return;
     }
-    let loginIdentifier = user?.username || user?.email || user?.billing?.email;
+    let loginIdentifier = user?.email || user?.billing?.email;
     if (!loginIdentifier) {
-      setOldPasswordError("Could not determine your login username or email.");
+      setOldPasswordError("Could not determine your login email.");
       return;
     }
     try {
-      await axios.post(`${WP_API_URL}/wp-json/jwt-auth/v1/token`, {
-        username: loginIdentifier,
+      await axios.post(`${EMPIRE_API_URL}/api/login`, {
+        email: loginIdentifier,
         password: oldPassword,
+        device_name: "nextjs-storefront"
       });
       setOldPasswordError(null);
     } catch (loginErr: any) {
@@ -180,13 +228,14 @@ function AccountContent() {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("No auth token");
 
-      // 1. Validate old password by calling JWT validate endpoint
-      let loginIdentifier = user?.username || user?.email || user?.billing?.email;
-      if (!loginIdentifier) throw new Error("Could not determine your login username or email.");
+      // 1. Validate old password
+      let loginIdentifier = user?.email || user?.billing?.email;
+      if (!loginIdentifier) throw new Error("Could not determine your login email.");
       try {
-        await axios.post(`${WP_API_URL}/wp-json/jwt-auth/v1/token`, {
-          username: loginIdentifier,
+        await axios.post(`${EMPIRE_API_URL}/api/login`, {
+          email: loginIdentifier,
           password: oldPassword,
+          device_name: "nextjs-storefront"
         });
         setOldPasswordError(null);
       } catch (loginErr: any) {
@@ -213,10 +262,14 @@ function AccountContent() {
         return;
       }
 
-      // 3. Update password via WP REST API
+      // 3. Update password via API
       await axios.put(
-        `${WP_API_URL}/wp-json/wp/v2/users/me`,
-        { password: newPassword },
+        `${EMPIRE_API_URL}/api/profile/password`,
+        { 
+            current_password: oldPassword,
+            password: newPassword,
+            password_confirmation: confirmPassword 
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setPasswordResetSuccess("Password has been updated successfully!");
@@ -241,19 +294,61 @@ function AccountContent() {
     return (
       <main className="bg-[#F5F5F5] min-h-screen">
         <div className="max-w-[1440px] mx-auto py-12 px-6 lg:px-12 font-sans">
-          {/* Breadcrumb */}
-          <div className="mb-8">
-            <div className="text-sm text-gray-500 mb-6 flex items-center gap-2">
-              <Link href="/" className="hover:text-[#0066FF] flex items-center gap-1 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-4"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>
-                Home
-              </Link>
-              <span className="text-gray-300">/</span>
-              <span>Mijn Account</span>
+          
+          {/* Breadcrumb Skeleton */}
+          <div className="mb-8 animate-pulse">
+            <div className="flex items-center gap-2 mb-6">
+              <div className="w-16 h-4 bg-gray-200 rounded"></div>
+              <div className="w-4 h-4 bg-gray-200 rounded"></div>
+              <div className="w-24 h-4 bg-gray-200 rounded"></div>
             </div>
-            <h1 className="font-bold text-4xl text-[#1C2530]">Mijn Account</h1>
+            <div className="w-64 h-10 bg-gray-300 rounded"></div>
           </div>
-          <div className="p-10 text-gray-500 flex justify-center mt-10">Je account wordt geladen...</div>
+
+          <div className="flex flex-col lg:flex-row gap-8 items-start">
+            {/* Sidebar Navigation Skeleton */}
+            <nav className="flex flex-col w-full lg:w-[280px] shrink-0 gap-2 animate-pulse">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-14 bg-gray-200 rounded-md w-full"></div>
+              ))}
+            </nav>
+
+            {/* Main Content Area Skeleton */}
+            <section className="flex-1 w-full min-w-0 space-y-8 animate-pulse">
+              {/* Profile Intro Skeleton */}
+              <div>
+                <div className="h-8 bg-gray-300 rounded w-1/3 mb-4"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              </div>
+
+              {/* Stats / Cards Skeleton */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[...Array(2)].map((_, i) => (
+                  <div key={i} className="h-32 bg-white rounded-lg shadow-sm border border-gray-100 flex flex-col p-6 gap-4">
+                    <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                    <div className="h-8 bg-gray-300 rounded w-1/4"></div>
+                    <div className="h-3 bg-gray-100 rounded w-1/2"></div>
+                  </div>
+                ))}
+              </div>
+
+              {/* List / Details Skeleton */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 space-y-6 mt-8">
+                <div className="h-6 bg-gray-200 rounded w-1/4 mb-6"></div>
+                <div className="space-y-6">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="flex gap-4 items-center">
+                      <div className="h-12 w-12 bg-gray-200 rounded-full shrink-0"></div>
+                      <div className="flex-1 space-y-3 py-1">
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-4 bg-gray-100 rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          </div>
         </div>
       </main>
     );
@@ -353,12 +448,12 @@ function AccountContent() {
                   />
                   <StatCard 
                     title="Total Spent" 
-                    value={`€${orders.reduce((sum, o) => sum + parseFloat(o.total || 0), 0).toFixed(2)}`} 
+                    value={`€${orders.reduce((sum, o) => sum + parseFloat(o.totals?.net_total_with_tax || o.total || 0), 0).toFixed(2)}`} 
                     desc="Lifetime spend" 
                   />
                   <StatCard 
                     title="Avg. Order" 
-                    value={`€${orders.length > 0 ? (orders.reduce((sum, o) => sum + parseFloat(o.total || 0), 0) / orders.length).toFixed(2) : "0.00"}`} 
+                    value={`€${orders.length > 0 ? (orders.reduce((sum, o) => sum + parseFloat(o.totals?.net_total_with_tax || o.total || 0), 0) / orders.length).toFixed(2) : "0.00"}`} 
                     desc="Per order average" 
                   />
                 </div>
@@ -390,11 +485,11 @@ function AccountContent() {
                         orders.slice(0, 3).map((order) => (
                           <div key={order.id} className="bg-white border border-[#DBE3EA] p-5 rounded-lg flex flex-wrap justify-between items-center shadow-sm hover:shadow-md transition-shadow">
                             <div>
-                              <p className="font-bold text-[#1C2530]">Order #{order.id}</p>
-                              <p className="text-sm text-gray-500">{new Date(order.date_created).toLocaleDateString()}</p>
+                              <p className="font-bold text-[#1C2530]">Order #{order.order_reference || order.id}</p>
+                              <p className="text-sm text-gray-500">{new Date(order.created_at || order.date_created).toLocaleDateString()}</p>
                             </div>
                             <div className="text-right">
-                              <p className="font-bold text-[#1C2530]">€{order.total}</p>
+                              <p className="font-bold text-[#1C2530]">€{parseFloat(order.totals?.net_total_with_tax || order.total || 0).toFixed(2)}</p>
                               <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                                 order.status === "completed" ? "bg-green-100 text-green-700" :
                                 order.status === "processing" ? "bg-blue-100 text-blue-700" :
@@ -430,7 +525,7 @@ function AccountContent() {
                         <div key={order.id} className="bg-white border border-[#DBE3EA] p-6 rounded-lg shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                           <div>
                             <div className="flex items-center gap-3 mb-1">
-                              <span className="font-bold text-lg text-[#1C2530]">Order #{order.id}</span>
+                              <span className="font-bold text-lg text-[#1C2530]">Order #{order.order_reference || order.id}</span>
                               <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                                 order.status === "completed" ? "bg-green-100 text-green-700" :
                                 order.status === "processing" ? "bg-blue-100 text-blue-700" :
@@ -439,11 +534,11 @@ function AccountContent() {
                                 {order.status}
                               </span>
                             </div>
-                            <p className="text-gray-500 text-sm">Placed on {new Date(order.date_created).toLocaleDateString()}</p>
+                            <p className="text-gray-500 text-sm">Placed on {new Date(order.created_at || order.date_created).toLocaleDateString()}</p>
                           </div>
                           <div className="text-right">
-                            <p className="text-xl font-bold text-[#1C2530] mb-1">€{order.total}</p>
-                            <p className="text-sm text-gray-500">{order.line_items?.length} items</p>
+                            <p className="text-xl font-bold text-[#1C2530] mb-1">€{parseFloat(order.totals?.net_total_with_tax || order.total || 0).toFixed(2)}</p>
+                            <p className="text-sm text-gray-500">{(order.items || order.line_items || []).length} items</p>
                           </div>
                         </div>
                       ))
@@ -457,27 +552,45 @@ function AccountContent() {
               <div className="animate-fade-in">
                 <h2 className="text-2xl font-bold mb-6">Account Details</h2>
                 <div className="bg-white p-8 rounded-lg border border-[#DBE3EA] shadow-sm">
-                  <form className="space-y-6">
+                  <form className="space-y-6" onSubmit={saveDetails}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-[#1C2530]">First Name</label>
-                        <input className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF] bg-gray-50" type="text" defaultValue={user?.first_name || user?.billing?.first_name || ""} readOnly />
+                        <input className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF]" type="text" name="first_name" value={detailsForm?.first_name || ""} onChange={handleDetailsInput} />
                       </div>
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-[#1C2530]">Last Name</label>
-                        <input className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF] bg-gray-50" type="text" defaultValue={user?.last_name || user?.billing?.last_name || ""} readOnly />
+                        <input className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF]" type="text" name="last_name" value={detailsForm?.last_name || ""} onChange={handleDetailsInput} />
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-[#1C2530]">Company Name</label>
+                      <input className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF]" type="text" name="company_name" value={detailsForm?.company_name || ""} onChange={handleDetailsInput} />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-[#1C2530]">Username</label>
-                        <input className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF] bg-gray-50" type="text" defaultValue={user?.username || user?.name || ""} readOnly />
+                        <input className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF] bg-gray-50 text-gray-500 cursor-not-allowed" type="text" defaultValue={user?.username || user?.name || ""} readOnly />
                       </div>
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-[#1C2530]">Email Address</label>
-                        <input className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF] bg-gray-50" type="text" defaultValue={user?.email || user?.billing?.email || ""} readOnly />
+                        <input className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF] bg-gray-50 text-gray-500 cursor-not-allowed" type="text" defaultValue={user?.email || user?.billing?.email || ""} readOnly />
                       </div>
+                    </div>
+
+                    {detailsError && <p className="text-red-600 text-sm mt-2">{detailsError}</p>}
+                    {detailsSuccess && <p className="text-green-600 text-sm mt-2">{detailsSuccess}</p>}
+
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={detailsSaving}
+                        className="bg-[#0066FF] text-white font-bold py-3 px-6 rounded-sm hover:bg-[#0052CC] transition-colors disabled:opacity-50"
+                      >
+                        {detailsSaving ? "Saving..." : "Save Changes"}
+                      </button>
                     </div>
                   </form>
 
@@ -563,6 +676,11 @@ function AccountContent() {
                       </div>
 
                       <div className="space-y-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Company Name</label>
+                        <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="company" value={billingForm?.company || ""} onChange={handleBillingInput} />
+                      </div>
+
+                      <div className="space-y-1">
                         <label className="text-xs font-semibold text-gray-500 uppercase">Address Line 1</label>
                         <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="address_1" value={billingForm?.address_1 || ""} onChange={handleBillingInput} />
                       </div>
@@ -584,7 +702,13 @@ function AccountContent() {
 
                       <div className="space-y-1">
                         <label className="text-xs font-semibold text-gray-500 uppercase">Country</label>
-                        <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="country" value={billingForm?.country || ""} onChange={handleBillingInput} />
+                        <select className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF] bg-white" name="country" value={billingForm?.country || "NL"} onChange={handleBillingInput}>
+                          <option value="NL">Netherlands</option>
+                          <option value="BE">Belgium</option>
+                          <option value="DE">Germany</option>
+                          <option value="FR">France</option>
+                          <option value="LU">Luxembourg</option>
+                        </select>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
@@ -627,6 +751,11 @@ function AccountContent() {
                       </div>
 
                       <div className="space-y-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Company Name</label>
+                        <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="company" value={shippingForm?.company || ""} onChange={handleShippingInput} />
+                      </div>
+
+                      <div className="space-y-1">
                         <label className="text-xs font-semibold text-gray-500 uppercase">Address Line 1</label>
                         <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="address_1" value={shippingForm?.address_1 || ""} onChange={handleShippingInput} />
                       </div>
@@ -648,7 +777,13 @@ function AccountContent() {
 
                       <div className="space-y-1">
                         <label className="text-xs font-semibold text-gray-500 uppercase">Country</label>
-                        <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="country" value={shippingForm?.country || ""} onChange={handleShippingInput} />
+                        <select className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF] bg-white" name="country" value={shippingForm?.country || "NL"} onChange={handleShippingInput}>
+                          <option value="NL">Netherlands</option>
+                          <option value="BE">Belgium</option>
+                          <option value="DE">Germany</option>
+                          <option value="FR">France</option>
+                          <option value="LU">Luxembourg</option>
+                        </select>
                       </div>
                     </div>
                     

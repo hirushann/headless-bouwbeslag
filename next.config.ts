@@ -13,6 +13,18 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "**",
       },
+      {
+        protocol: "http",
+        hostname: "empire.test",
+      },
+      {
+        protocol: "https",
+        hostname: "empire.test",
+      },
+      {
+        protocol: "https",
+        hostname: "empire.dayzsolutions.nl",
+      },
     ],
   },
   async rewrites() {
