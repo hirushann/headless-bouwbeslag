@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { syncAddItem, syncRemoveItem, syncUpdateItem, fetchRemoteCart } from "./cartApi";
 
 interface CartItem {
   id: number;
@@ -20,6 +19,7 @@ interface CartItem {
   leadTimeNoStock?: number;
   isMaatwerk?: boolean;
   hasLengthFreight?: boolean;
+  sku?: string;
 }
 
 interface CartState {
@@ -45,11 +45,7 @@ export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
-      // ... existing addItem ...
       addItem: (item) => {
-        // Sync with backend in background
-        syncAddItem(item.id, item.quantity).catch(err => console.error("Error syncing cart add:", err));
-
         set((state) => {
           const exists = state.items.find((i) => i.id === item.id);
           if (exists) {
@@ -65,9 +61,6 @@ export const useCartStore = create<CartState>()(
         });
       },
       addToCart: (item) => {
-        // Sync with backend in background
-        syncAddItem(item.id, item.quantity).catch(err => console.error("Error syncing cart add:", err));
-
         set((state) => {
           const exists = state.items.find((i) => i.id === item.id);
           if (exists) {
@@ -83,15 +76,9 @@ export const useCartStore = create<CartState>()(
         });
       },
       removeItem: (id) => {
-        // Sync with backend in background
-        syncRemoveItem(id).catch(err => console.error("Error syncing cart removal:", err));
-
         set((state) => ({ items: state.items.filter((i) => i.id !== id) }));
       },
       updateQty: (id, qty) => {
-        // Sync with backend
-        syncUpdateItem(id, qty).catch(err => console.error("Error syncing qty:", err));
-
         set((state) => ({
           items: state.items.map((i) =>
             i.id === id ? { ...i, quantity: qty, deliveryText: undefined, deliveryType: undefined } : i
@@ -120,30 +107,9 @@ export const useCartStore = create<CartState>()(
         }));
       },
       clearCart: () => set({ items: [] }),
-      // ... existing syncWithServer ...
       syncWithServer: async () => {
-        try {
-          const remote = await fetchRemoteCart();
-          if (remote && remote.data) {
-            const remoteItems = remote.data.items; // items from WP
-            const localItems = get().items;
-
-            // 1. If remote is empty but local is not, CLEAR local (Order success case)
-            if (remoteItems.length === 0 && localItems.length > 0) {
-              // console.log("Smart Sync: Remote cart is empty (Order placed?), clearing local cart.");
-              set({ items: [] });
-              return;
-            }
-
-            // 2. Optional: If remote has items... (same as before)
-            if (remoteItems.length > 0) {
-              // ...
-              // console.log("Smart Sync: Remote has items", remoteItems.length);
-            }
-          }
-        } catch (err) {
-          console.warn("Smart Sync failed:", err);
-        }
+        // Feature deprecated: The cart is now purely client-side.
+        return Promise.resolve();
       },
       total: () =>
         get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),

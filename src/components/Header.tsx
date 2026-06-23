@@ -8,7 +8,6 @@ import { useCartStore } from "@/lib/cartStore";
 import { useUserContext } from "@/context/UserContext";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { syncRemoveItem } from "@/lib/cartApi";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
 
 import { ShippingMethod } from "@/lib/woocommerce";
@@ -96,8 +95,6 @@ export default function Header({
 
   const removeItem = (id: number) => {
     useCartStore.getState().removeItem(Number(id));
-    // Trigger background sync to remove from WP session
-    syncRemoveItem(Number(id)).catch(err => console.error("Background sync failed:", err));
   };
 
   useEffect(() => {
@@ -242,36 +239,30 @@ export default function Header({
                   Mijn account
                 </Link>
               ) : (
-                <select
-                  className="select select-ghost font-medium text-base !border-0 focus:border-0 !outline-0 !box-shadow-none hidden lg:block cursor-pointer"
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === "account") {
-                      router.push("/account");
-                    } else if (val === "orders") {
-                      router.push("/account?tab=orders");
-                    } else if (val === "addresses") {
-                      router.push("/account?tab=addresses");
-                    } else if (val === "details") {
-                      router.push("/account?tab=details");
-                    } else if (val === "logout") {
-                      if (typeof window !== "undefined") {
-                        localStorage.clear();
-                        setIsLoggedIn(false);
-                        router.push("/");
-                      }
-                    }
-                    e.target.value = "account";
-                  }}
-                >
-                  <option className="cursor-pointer" value="account">
+                <div className="dropdown dropdown-hover dropdown-end hidden lg:block">
+                  <div tabIndex={0} role="button" className="font-medium text-base cursor-pointer flex items-center gap-1 py-1">
                     Mijn account
-                  </option>
-                  <option className="cursor-pointer" value="orders">Orders</option>
-                  <option className="cursor-pointer" value="addresses">Addresses</option>
-                  <option className="cursor-pointer" value="details">Account Details</option>
-                  <option className="cursor-pointer" value="logout">Logout</option>
-                </select>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                    </svg>
+                  </div>
+                  <ul tabIndex={0} className="dropdown-content z-[60] menu p-2 shadow-lg border border-gray-100 bg-white rounded-box w-52 mt-0 font-medium text-[#1C2530]">
+                    <li><button className="hover:bg-gray-100" onClick={() => { (document.activeElement as HTMLElement)?.blur(); router.push("/account"); }}>Mijn account</button></li>
+                    <li><button className="hover:bg-gray-100" onClick={() => { (document.activeElement as HTMLElement)?.blur(); router.push("/account?tab=orders"); }}>Orders</button></li>
+                    <li><button className="hover:bg-gray-100" onClick={() => { (document.activeElement as HTMLElement)?.blur(); router.push("/account?tab=addresses"); }}>Addresses</button></li>
+                    <li><button className="hover:bg-gray-100" onClick={() => { (document.activeElement as HTMLElement)?.blur(); router.push("/account?tab=details"); }}>Account Details</button></li>
+                    <li>
+                      <button className="hover:bg-gray-100" onClick={() => { 
+                        (document.activeElement as HTMLElement)?.blur();
+                        if (typeof window !== "undefined") { 
+                          localStorage.clear(); 
+                          setIsLoggedIn(false); 
+                          router.push("/"); 
+                        } 
+                      }}>Logout</button>
+                    </li>
+                  </ul>
+                </div>
               )}
             </div>
           </div>

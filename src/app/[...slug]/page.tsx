@@ -41,225 +41,62 @@ interface Attribute {
 /* ----------------------------------------------------
  | Server-side Fetch Helpers (Deduplicated with cache)
  ---------------------------------------------------- */
-const getProductMetadataCached = cache(async (slug: string) => {
-  try {
-    let res = await api.get("products", { 
-      slug, 
-      _fields: "id,name,slug,meta_data,short_description,sku,images",
-      next: { revalidate: 3600 }
-    });
-
-    // Fallback for hyphenated slugs that might be stored with underscores in WooCommerce
-    if ((!Array.isArray(res.data) || !res.data[0]) && slug.includes('-')) {
-      const fallbackSlug = slug.replace(/-/g, '_');
-      res = await api.get("products", { 
-        slug: fallbackSlug, 
-        _fields: "id,name,slug,meta_data,short_description,sku,images",
-        next: { revalidate: 3600 }
-      });
-    }
-
-    if (!Array.isArray(res.data) || !res.data[0]) return null;
-    return res.data[0];
-  } catch (error) {
-    return null;
-  }
-});
-
-const getCategoryMetadataCached = cache(async (slug: string) => {
-  try {
-    const res = await api.get("products/categories", { 
-      slug, 
-      _fields: "id,name,slug,description,acf,parent,image",
-      cache: 'no-store' // Always fetch fresh — ACF filter toggles must update instantly
-    });
-    if (!res.data || res.data.length === 0) return null;
-    return res.data[0];
-  } catch (error) {
-    return null;
-  }
-});
 
 /**
  * Optimization: Fetch all categories once and cache them.
  * This allows synchronous traversal of the category tree.
  */
+import { fetchCategories } from "@/lib/woocommerce";
+import { fetchProductBySlug, fetchMeiliProducts, mapMeiliToWooProduct } from "@/lib/meilisearch-products";
+
 const getAllCategoriesCached = cache(async () => {
-    try {
-        const res = await api.get("products/categories", {
-            per_page: 100,
-            _fields: "id,slug,parent",
-            next: { revalidate: 3600 }
-        });
-        let all = [...(res.data || [])];
-        const totalPages = parseInt(res.totalPages || "1");
-        if (totalPages > 1) {
-            const promises = [];
-            for (let i = 2; i <= totalPages; i++) {
-                promises.push(api.get("products/categories", {
-                    per_page: 100,
-                    page: i,
-                    _fields: "id,slug,parent",
-                    next: { revalidate: 3600 }
-                }));
-            }
-            const results = await Promise.all(promises);
-            results.forEach(r => all = [...all, ...(r.data || [])]);
-        }
-        return all;
-    } catch (e) {
-        return [];
-    }
+    return await fetchCategories();
 });
 
 const getProductBySlugCached = cache(async (slug: string) => {
-  try {
-    // 1. Fetch search by slug - WooCommerce returns the full product here already
-    let res = await api.get("products", { slug, next: { revalidate: 3600 } });
-
-    // Fallback for hyphenated slugs that might be stored with underscores in WooCommerce
-    if ((!Array.isArray(res.data) || !res.data[0]) && slug.includes('-')) {
-      const fallbackSlug = slug.replace(/-/g, '_');
-      res = await api.get("products", { slug: fallbackSlug, next: { revalidate: 3600 } });
-    }
-
-    if (!Array.isArray(res.data) || !res.data[0]) return null;
-    
-    const product = res.data[0];
-
-    // 2. Fetch Brand Logo in parallel if present
-    if (product.brands && product.brands.length > 0) {
-      const brandId = product.brands[0].id;
-      api.get(`wp/v2/product_brand/${brandId}`, { next: { revalidate: 3600 } })
-        .then(async (brandRes) => {
-          const brandData = brandRes.data;
-          if (brandData?.acf?.brand_logo) {
-            const logoData = brandData.acf.brand_logo;
-            if (typeof logoData === 'number') {
-              const mediaRes = await api.get(`wp/v2/media/${logoData}`, { next: { revalidate: 3600 } });
-              product.brands[0].logoUrl = mediaRes.data?.source_url || null;
-            } else if (typeof logoData === 'string') {
-              product.brands[0].logoUrl = logoData;
-            } else if (logoData?.url) {
-              product.brands[0].logoUrl = logoData.url;
-            }
-          }
-        }).catch(() => {});
-    }
-
-    return product;
-  } catch (error) {
-    return null;
-  }
+    return await fetchProductBySlug(slug);
 });
 
 const getCategoryBySlugCached = cache(async (slug: string): Promise<Category | null> => {
-  try {
-    const res = await api.get("products/categories", { 
-      slug, 
-      next: { revalidate: 3600 }
-    });
-    if (!res.data || res.data.length === 0) return null;
-    return res.data[0];
-  } catch (error) {
-    return null;
-  }
+    const categories = await getAllCategoriesCached();
+    return categories.find((c: any) => c.slug.toLowerCase() === slug.toLowerCase()) || null;
 });
 
-const getProductByIdCached = cache(async (id: number) => {
-  try {
-    const res = await api.get(`products/${id}`, { next: { revalidate: 3600 } });
-    
-    const product = res.data;
-    if (!product || !product.id) return null;
-
-    // Fetch Brand Logo in parallel if present
-    if (product.brands && product.brands.length > 0) {
-      const brandId = product.brands[0].id;
-      api.get(`wp/v2/product_brand/${brandId}`, { next: { revalidate: 3600 } })
-        .then(async (brandRes) => {
-          const brandData = brandRes.data;
-          if (brandData?.acf?.brand_logo) {
-            const logoData = brandData.acf.brand_logo;
-            if (typeof logoData === 'number') {
-              const mediaRes = await api.get(`wp/v2/media/${logoData}`, { next: { revalidate: 3600 } });
-              product.brands[0].logoUrl = mediaRes.data?.source_url || null;
-            } else if (typeof logoData === 'string') {
-              product.brands[0].logoUrl = logoData;
-            } else if (logoData?.url) {
-              product.brands[0].logoUrl = logoData.url;
-            }
-          }
-        }).catch(() => {});
-    }
-
-    return product;
-  } catch (error) {
-    return null;
-  }
-});
-
-const getCategoryByIdCached = cache(async (id: number) => {
-  try {
-    const res = await api.get(`products/categories/${id}`, { 
-      _fields: "id,name,slug,parent" 
-    });
-    return res.data;
-  } catch (error) {
-    return null;
-  }
-});
 
 const getPageMetadata = cache(async (slugArray: string[]) => {
   const currentSlug = decodeURIComponent(slugArray[slugArray.length - 1]);
   
-  // 1. Resolve slug to ID & Type
-  const resolved = await resolveSlugAction(currentSlug);
-
-  if (resolved.success && resolved.type === 'product' && resolved.id) {
-    // Fetch minimal product by ID for metadata (FAST)
-    const product = await getProductByIdCached(resolved.id);
-    return { product, category: null };
+  // 1. Check if it's a product in Meilisearch
+  const product = await getProductBySlugCached(currentSlug);
+  if (product) {
+      return { product, category: null };
   }
 
-  if (resolved.success && resolved.type === 'category') {
-    // Fetch minimal category by slug (FAST)
-    const category = await getCategoryMetadataCached(currentSlug);
-    return { product: null, category };
+  // 2. Check if it's a category in Empire
+  const category = await getCategoryBySlugCached(currentSlug);
+  if (category) {
+      return { product: null, category };
   }
 
-  // 2. Fallback (If ES failed or missing index)
-  const [product, category] = await Promise.all([
-    getProductMetadataCached(currentSlug),
-    getCategoryMetadataCached(currentSlug)
-  ]);
-  return { product, category };
+  return { product: null, category: null };
 });
 
 const getPageData = cache(async (slugArray: string[]) => {
   const currentSlug = decodeURIComponent(slugArray[slugArray.length - 1]);
   
-  // 1. Resolve slug to ID & Type
-  const resolved = await resolveSlugAction(currentSlug);
-
-  if (resolved.success && resolved.type === 'product' && resolved.id) {
-    // Fetch full product by ID (FAST)
-    const product = await getProductByIdCached(resolved.id);
-    return { product, category: null };
+  // 1. Check if it's a product in Meilisearch
+  const product = await getProductBySlugCached(currentSlug);
+  if (product) {
+      return { product, category: null };
   }
 
-  if (resolved.success && resolved.type === 'category') {
-    // Fetch full category by slug (FAST)
-    const category = await getCategoryBySlugCached(currentSlug);
-    return { product: null, category };
+  // 2. Check if it's a category in Empire
+  const category = await getCategoryBySlugCached(currentSlug);
+  if (category) {
+      return { product: null, category };
   }
 
-  // 2. Parallel Fallback
-  const [product, category] = await Promise.all([
-    getProductBySlugCached(currentSlug),
-    getCategoryBySlugCached(currentSlug)
-  ]);
-  return { product, category };
+  return { product: null, category: null };
 });
 
 const fetchTermsForAttribute = cache(async (attributeId: number): Promise<AttributeTerm[]> => {
@@ -325,41 +162,45 @@ const fetchAllSubCategoriesCached = cache(async (parentId: number) => {
 
 const fetchAllCategoryProductsForFiltersCached = cache(async (categoryId: number) => {
   try {
-    const firstPage = await api.get("products", {
-      category: categoryId,
-      per_page: 100,
-      page: 1,
-      _fields: "id,attributes,brands,price,name,date_created,total_sales,stock_quantity,stock_status",
-      status: 'publish',
-      cache: 'no-store' // Always fresh — product list for filters must update instantly
-    });
-
-    if (!firstPage.data || firstPage.data.length === 0) return [];
+    const filters = [`category_id = ${categoryId}`];
+    const { products } = await fetchMeiliProducts(1000, 0, "", filters);
     
-    let allProducts = [...firstPage.data];
-    const totalPagesCount = parseInt(firstPage.totalPages || '1');
-    const pagesToFetch = Math.min(totalPagesCount, 10);
+    // The products from Meilisearch need to be somewhat compatible with what CategoryClient expects.
+    // CategoryClient expects products to have attributes mapped properly.
+    // fetchMeiliProducts returns the Meilisearch format which CategoryClient is already processing in the main list.
+    // However, CategoryClient parses `allCategoryProductsForFilters` looking for `attributes` array (WooCommerce style).
+    // Let's map Meilisearch products to have an `attributes` array so `CategoryClient` filter extraction still works!
+    
+    return products.map((p: any) => {
+      // Map Meilisearch flat attributes back to WooCommerce-like attributes for filter extraction
+      const wooAttributes: any[] = [];
+      
+      const tryAddAttr = (key: string, name: string, isTerms: boolean = false) => {
+        if (p[key]) {
+          wooAttributes.push({
+            name,
+            options: Array.isArray(p[key]) ? p[key] : [p[key]]
+          });
+        }
+      };
 
-    if (pagesToFetch > 1) {
-      const pagePromises = [];
-      for (let p = 2; p <= pagesToFetch; p++) {
-        pagePromises.push(
-          api.get("products", {
-            category: categoryId,
-            per_page: 100,
-            page: p,
-            _fields: "id,attributes,brands,price,name,date_created,total_sales,stock_quantity,stock_status",
-            status: 'publish',
-            cache: 'no-store'
-          })
-        );
-      }
-      const results = await Promise.all(pagePromises);
-      results.forEach(res => {
-        if (res.data) allProducts = [...allProducts, ...res.data];
-      });
-    }
-    return allProducts;
+      tryAddAttr('color', 'Kleur');
+      tryAddAttr('material', 'Materiaal');
+      tryAddAttr('finish', 'Finish');
+      tryAddAttr('brand_name', 'Merk');
+
+      // We don't have all attributes in Meilisearch currently as an object, but we have some direct fields.
+      // CategoryClient handles some flat fields directly (like color, finish, material).
+      // We pass the raw Meilisearch product and CategoryClient might just need a few tweaks if it relies on `attributes` array.
+      
+      return {
+        ...p,
+        attributes: wooAttributes,
+        brands: p.brand_name ? [{ name: p.brand_name }] : [],
+        price: p.price_amount?.toString(),
+        stock_status: p.stock_status,
+      };
+    });
   } catch (error) {
     return [];
   }
@@ -419,7 +260,7 @@ const clean = (s: string | undefined) => s ? s.replace(/<[^>]+>/g, "").replace(/
 
 async function traverseCategoryPath(category: any): Promise<string> {
   const allCategories = await getAllCategoriesCached();
-  const catMap = new Map(allCategories.map((c: any) => [c.id, c]));
+  const catMap = new Map<number, any>(allCategories.map((c: any) => [c.id, c]));
   
   const path = [category.slug];
   let currentParentId = category.parent;
@@ -557,7 +398,7 @@ export async function generateMetadata(
     }
 
     const correctPath = await traverseCategoryPath(category);
-    const catImageUrl = category.image?.src || "https://bouwbeslag.nl/logo.webp";
+    const catImageUrl = (category as any).image?.src || "https://bouwbeslag.nl/logo.webp";
 
     return {
       title,
@@ -580,8 +421,7 @@ export async function generateMetadata(
       twitter: {
         card: "summary_large_image",
         title: title,
-        description: description,
-        images: [catImageUrl], // Corrected to use catImageUrl
+        description: String(category.description || ""),
       },
       robots: hasQueryParams ? { index: false, follow: false } : { index: true, follow: true }
     };
@@ -807,19 +647,25 @@ async function CategoryLoader({ category, slug, sp }: { category: any, slug: str
     }
 
     const fetchCurrentPage = async () => {
-      const res = await api.get("products", { 
-          per_page: 20, 
-          page: initialPage, 
-          category: category.id,
-          status: 'publish',
-          ...sortParams,
-          next: { revalidate: 60 }
-      });
-      const prods = await resolveProductImages(res.data || []);
+      const limit = 20;
+      const offset = (initialPage - 1) * limit;
+      
+      // Filter by category slug — matches the Empire category slug stored in Meilisearch
+      // (WooCommerce category IDs ≠ Empire category IDs stored in Meilisearch)
+      const categorySlug = category.slug;
+      const filters = [`category_slug = ${categorySlug}`];
+
+      // Handle sortParams for Meilisearch if necessary
+      // Note: Meilisearch sorting must be configured in settings.
+      // E.g. sort: ['price:asc'] if `sortParams.orderby === "price"`
+      // For now we'll stick to default sorting and just filter by category.
+      
+      const { products: prods, total } = await fetchMeiliProducts(limit, offset, "", filters);
+      
       return {
-        prods,
-        totalPages: parseInt(res.totalPages || '1'),
-        total: parseInt(res.total || '0')
+        prods: prods.map(mapMeiliToWooProduct),
+        totalPages: Math.ceil(total / limit) || 1,
+        total: total
       };
     };
     

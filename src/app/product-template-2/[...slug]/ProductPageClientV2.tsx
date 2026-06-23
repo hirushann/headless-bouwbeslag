@@ -599,6 +599,8 @@ export default function ProductPageClientV2({
     return product.backorders === "yes" || product.backorders === "notify" || product.backorders_allowed === true;
   });
 
+  const [empireDeliveryData, setEmpireDeliveryData] = useState<any>(null);
+
   const [addCartSuccess, setAddCartSuccess] = useState(false);
   const [addCartError, setAddCartError] = useState(false);
   const { openModal } = useProductAddedModal();
@@ -620,32 +622,27 @@ export default function ProductPageClientV2({
 
   // UX-grade stock check on page load
   useEffect(() => {
-    if (!product?.id) return;
+    if (!product?.sku) return;
 
     const checkInitialStock = async () => {
       try {
-        const res = await checkStockAction(product.id);
-        if (!res.success || !res.data) return;
-        const wcProduct = res.data;
+        const { fetchProductStock } = await import("@/lib/woocommerce");
+        const res = await fetchProductStock(product.sku);
+        if (!res) return;
 
-        const isBackorder = wcProduct.backorders === "yes" || wcProduct.backorders === "notify" || wcProduct.backorders_allowed === true;
+        setEmpireDeliveryData(res);
+
+        const isBackorder = product.backorders === "yes" || product.backorders === "notify" || product.backorders_allowed === true;
         setBackordersAllowed(isBackorder);
 
-        const totalStockMeta = wcProduct.meta_data?.find((m: any) => m.key === "crucial_data_total_stock")?.value;
-        const totalStock = totalStockMeta !== undefined && totalStockMeta !== null && totalStockMeta !== "" 
-          ? parseInt(totalStockMeta, 10) 
-          : (typeof wcProduct.stock_quantity === "number" ? wcProduct.stock_quantity : null);
+        const totalStock = res.total_stock !== undefined ? res.total_stock : null;
 
-        if (wcProduct.stock_status !== "instock" && !isBackorder) {
-          setIsOutOfStock(true);
-          return;
+        if (totalStock <= 0 && !isBackorder) {
+           setIsOutOfStock(true);
         }
 
         if (totalStock !== null) {
           setAvailableStock(totalStock);
-          if (totalStock <= 0 && !isBackorder) {
-             setIsOutOfStock(true);
-          }
         }
       } catch (err) {
         // console.error("❌ Initial stock fetch failed:", err);
@@ -653,7 +650,7 @@ export default function ProductPageClientV2({
     };
 
     checkInitialStock();
-  }, [product?.id]);
+  }, [product?.sku, product?.backorders, product?.backorders_allowed]);
 
   type MetaData = {
     key: string;
@@ -893,8 +890,8 @@ export default function ProductPageClientV2({
 
       const freshAvailableStock = stockResult.totalStock !== undefined ? stockResult.totalStock : availableStock;
 
-      const stockLeadRaw = getMetaValue("crucial_data_delivery_if_stock");
-      const noStockLeadRaw = getMetaValue("crucial_data_delivery_if_no_stock");
+      const stockLeadRaw = empireDeliveryData ? empireDeliveryData.delivery_if_stock : getMetaValue("crucial_data_delivery_if_stock");
+      const noStockLeadRaw = empireDeliveryData ? empireDeliveryData.delivery_if_no_stock : getMetaValue("crucial_data_delivery_if_no_stock");
 
       const leadTimeInStock = stockLeadRaw && !isNaN(parseInt(stockLeadRaw)) ? parseInt(stockLeadRaw) : 1;
       const leadTimeNoStock = noStockLeadRaw && !isNaN(parseInt(noStockLeadRaw)) ? parseInt(noStockLeadRaw) : 30;
@@ -1842,8 +1839,8 @@ export default function ProductPageClientV2({
               const getMeta = getMetaValue;
 
               // Defaults: 1 day if stock, 30 days if no stock (from user request)
-              const stockLeadRaw = getMeta("crucial_data_delivery_if_stock");
-              const noStockLeadRaw = getMeta("crucial_data_delivery_if_no_stock");
+              const stockLeadRaw = empireDeliveryData ? empireDeliveryData.delivery_if_stock : getMeta("crucial_data_delivery_if_stock");
+              const noStockLeadRaw = empireDeliveryData ? empireDeliveryData.delivery_if_no_stock : getMeta("crucial_data_delivery_if_no_stock");
 
               const leadTimeInStock = stockLeadRaw && !isNaN(parseInt(stockLeadRaw)) ? parseInt(stockLeadRaw) : 1;
               const leadTimeNoStock = noStockLeadRaw && !isNaN(parseInt(noStockLeadRaw)) ? parseInt(noStockLeadRaw) : 30;

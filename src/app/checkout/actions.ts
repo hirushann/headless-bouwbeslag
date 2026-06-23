@@ -269,7 +269,7 @@ export async function placeOrderAction(data: any) {
         const totalAmount = netTotal + totalTax;
 
         // Build Empire API payload
-        const empirePayload = {
+        const empirePayload: Record<string, any> = {
             website_url: siteUrl,
             order_reference: orderReference,
             status: "processing", // Status to set when payment completes

@@ -155,15 +155,22 @@ function matchesFilters(
     const id = Number(idStr);
     if (id === excludeAttrId) continue;
     const pAttr = product.attributes?.find((a: any) => a.id === id);
-    if (!pAttr) return false;
+    if (!pAttr) {
+      console.log(`[matchesFilters] Product ${product.name} missing attribute ${id}`);
+      return false;
+    }
     const hasMatch = pAttr.options.some((o: string) => {
       const globalAttr = allAttributes.find(ga => ga.id === id);
       const tMatch = globalAttr?.terms.find(
         (t: AttributeTerm) => t.name.trim().toLowerCase() === o.trim().toLowerCase()
       );
+      if (!tMatch) console.log(`[matchesFilters] No term match for option "${o}" in attr ${id}`);
       return tMatch && terms.has(tMatch.id);
     });
-    if (!hasMatch) return false;
+    if (!hasMatch) {
+      console.log(`[matchesFilters] Product ${product.name} failed filter ${id}. Options:`, pAttr.options, 'Selected terms:', Array.from(terms));
+      return false;
+    }
   }
 
   // 3. Range: Afdichtingsspleet
@@ -409,31 +416,30 @@ function FilterSidebar({
   const [isBrandOpen, setIsBrandOpen] = useState(true);
   const [isPriceOpen, setIsPriceOpen] = useState(true);
 
-  const isBrandsEnabled = useMemo(() => {
-    let enabled = true;
-    if (category?.acf && typeof category.acf === 'object' && category.acf.hasOwnProperty('brands')) {
-      const val = category.acf.brands;
-      enabled = val !== false && val !== "false" && val !== 0 && val !== "0";
+  /**
+   * Helper that reads a filter flag from either:
+   *  1. Empire category flags (has_brands, has_colors, …)  ← preferred
+   *  2. WooCommerce ACF object (legacy fallback)
+   * Returns true when the flag is enabled (or when it is simply absent/undefined).
+   */
+  const getCategoryFlag = (empireKey: string, acfKey?: string): boolean => {
+    // 1. Empire flag (e.g. category.has_brands)
+    if (category && empireKey in category) {
+      return Boolean(category[empireKey]);
     }
-    console.log(`[FilterSidebar] isBrandsEnabled: ${enabled}, category.acf.brands:`, category?.acf?.brands);
-    return enabled;
-  }, [category]);
+    // 2. WooCommerce ACF fallback
+    const key = acfKey || empireKey.replace(/^has_/, '');
+    if (category?.acf && typeof category.acf === 'object' && key in category.acf) {
+      const val = category.acf[key];
+      return val !== false && val !== 'false' && val !== 0 && val !== '0';
+    }
+    return true; // default: show the filter
+  };
 
-  const isInStockEnabled = useMemo(() => {
-    if (category?.acf && typeof category.acf === 'object' && category.acf.hasOwnProperty('in_stock')) {
-      const val = category.acf.in_stock;
-      return val !== false && val !== "false" && val !== 0 && val !== "0";
-    }
-    return true;
-  }, [category]);
+  const isBrandsEnabled = getCategoryFlag('has_brands', 'brands');
+  const isInStockEnabled = getCategoryFlag('has_in_stock', 'in_stock');
+  const isPriceSliderEnabled = getCategoryFlag('price_slider', 'price_slider');
 
-  const isPriceSliderEnabled = useMemo(() => {
-    if (category?.acf && typeof category.acf === 'object' && category.acf.hasOwnProperty('price_slider')) {
-      const val = category.acf.price_slider;
-      return val !== false && val !== "false" && val !== 0 && val !== "0";
-    }
-    return true;
-  }, [category]);
 
   // Use the shared matchesFilters utility for facet count calculations
   const checkGlobalMatchLocal = (p: any, excludeAttrId?: number, excludeBrand?: boolean) =>
@@ -493,23 +499,9 @@ function FilterSidebar({
 
     const result = activeGlobalAttrs
       .map((attr) => {
-        const rawSlug = attr.slug || (attr.name || "").toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '').replace(/-+/g, '-');
-        const normalizedSlug = (rawSlug.startsWith('pa_') ? rawSlug.slice(3) : rawSlug).trim().toLowerCase();
-        let acfKey = ATTRIBUTE_TO_ACF_MAP[normalizedSlug] || normalizedSlug.replace(/-/g, '_');
-        
-        let acfEnabled = true;
-        // Only hide if ACF explicitly tells us to (is false/0). 
-        // If it's undefined (not configured) or true, we show it.
-        if (category?.acf && typeof category.acf === 'object' && category.acf.hasOwnProperty(acfKey)) {
-          const val = category.acf[acfKey];
-          if (val === false || val === "false" || val === 0 || val === "0") {
-            acfEnabled = false;
-          }
-        }
-        
-        // console.log(`Filter [${attr.name}] -> ACF Key: ${acfKey} -> ACF Enabled: ${acfEnabled}`);
-
-        if (!acfEnabled) return null;
+        // The 'attributes' array passed to FilterSidebar is already pre-filtered 
+        // by the backend API route based on the Empire 'has_*' flags. 
+        // We no longer need to perform complex slug-matching against category.acf here.
         if (attr.name === "Inhoud van de verpakking") return null;
 
         // Get subset of products passing OTHER filters
@@ -576,11 +568,7 @@ function FilterSidebar({
   const afdichtTotAttr = otherAttributes.find(a => a.name === "Afdichtingsspleet Tot");
 
   const afdichtspleetBounds = useMemo(() => {
-    let isEnabled = true;
-    if (category?.acf && typeof category.acf === 'object' && category.acf.hasOwnProperty('afdichtingsspleet')) {
-        const val = category.acf.afdichtingsspleet;
-        isEnabled = val !== false && val !== "false" && val !== 0 && val !== "0";
-    }
+    const isEnabled = getCategoryFlag('has_afdichtingsspleet', 'afdichtingsspleet');
     if (!isEnabled) return null;
     if (!allCategoryProductsForFilters || allCategoryProductsForFilters.length === 0) return null;
 
@@ -600,11 +588,7 @@ function FilterSidebar({
   }, [allCategoryProductsForFilters, category]);
 
   const groefbreedteBounds = useMemo(() => {
-    let isEnabled = true;
-    if (category?.acf && typeof category.acf === 'object' && category.acf.hasOwnProperty('groefbreedte')) {
-      const val = category.acf.groefbreedte;
-      isEnabled = val !== false && val !== "false" && val !== 0 && val !== "0";
-    }
+    const isEnabled = getCategoryFlag('has_groefbreedte', 'groefbreedte');
     if (!isEnabled) return null;
     if (!allCategoryProductsForFilters || allCategoryProductsForFilters.length === 0) return null;
 
@@ -1010,7 +994,8 @@ export default function CategoryClient({
   useEffect(() => {
     if (!category?.id) return;
     setFilterDataLoading(true);
-    fetch(`/api/category-filters?categoryId=${category.id}`, { cache: 'no-store' })
+    const slugParam = category.slug ? `&categorySlug=${encodeURIComponent(category.slug)}` : '';
+    fetch(`/api/category-filters?categoryId=${category.id}${slugParam}`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         setUnwrappedAttributes(data.attributes || []);
@@ -1076,7 +1061,7 @@ export default function CategoryClient({
   // Filtering Logic — delegates to shared matchesFilters utility
   // ------------------------------------------------------------------
   const checkGlobalMatch = (p: any) =>
-    matchesFilters(p, selectedFilters, selectedBrands, unwrappedAttributes, afdichtingsspleetRange, groefbreedteRange, showOnlyInStock, priceRange, isB2B);
+    matchesFilters(p, selectedFilters, selectedBrands, unwrappedAttributes, afdichtingsspleetRange, groefbreedteRange, showOnlyInStock, priceRange, isB2B ?? false);
 
   useEffect(() => {
     async function loadProducts() {
@@ -1125,8 +1110,8 @@ export default function CategoryClient({
           // Local sort (filter results are already in memory)
           if (sortBy) {
             matches.sort((a, b) => {
-              if (sortBy === 'price-low-high') return getFinalPrice(a, isB2B) - getFinalPrice(b, isB2B);
-              if (sortBy === 'price-high-low') return getFinalPrice(b, isB2B) - getFinalPrice(a, isB2B);
+              if (sortBy === 'price-low-high') return getFinalPrice(a, isB2B ?? false) - getFinalPrice(b, isB2B ?? false);
+              if (sortBy === 'price-high-low') return getFinalPrice(b, isB2B ?? false) - getFinalPrice(a, isB2B ?? false);
               if (sortBy === 'title-asc') return (a.name || '').localeCompare(b.name || '');
               if (sortBy === 'title-desc') return (b.name || '').localeCompare(a.name || '');
               if (sortBy === 'date') return new Date(b.date_created || 0).getTime() - new Date(a.date_created || 0).getTime();
@@ -1137,54 +1122,54 @@ export default function CategoryClient({
 
           const totalMatches = matches.length;
           const sliced = matches.slice((page - 1) * 20, page * 20);
-          const slicedIds = sliced.map(m => m.id);
 
-          if (slicedIds.length === 0) {
-            setProducts([]);
-            setTotalProducts(totalMatches);
-            setTotalPages(Math.max(1, Math.ceil(totalMatches / 20)));
-          } else {
-            // Fetch full product details for this page's matched IDs
-            const res = await fetch(
-              `/api/products?include=${slicedIds.join(',')}&per_page=${slicedIds.length}`,
-              { cache: 'no-store' }
-            );
-            if (!res.ok) throw new Error('Failed to fetch filtered products');
-            const data = await res.json();
-            // Preserve the sorted order
-            const sortedData = slicedIds.map(id => data.find((p: any) => p.id === id)).filter(Boolean);
-            setProducts(sortedData);
-            setTotalProducts(totalMatches);
-            setTotalPages(Math.max(1, Math.ceil(totalMatches / 20)));
-          }
+          // Use the Meilisearch products directly — they already have all
+          // the fields needed for ProductCard (name, slug, price, images, etc.)
+          setProducts(sliced);
+          setTotalProducts(totalMatches);
+          setTotalPages(Math.max(1, Math.ceil(totalMatches / 20)));
+
+          // BACKGROUND DEBUG TRACE - Log state unconditionally when filters apply
+          fetch('/api/debug-log', {
+            method: 'POST',
+            body: JSON.stringify({
+              event: 'filtering_applied',
+              hasFilters,
+              matchesCount: totalMatches,
+              slicedCount: sliced.length,
+              page,
+              selectedFiltersKeys: Object.keys(selectedFilters),
+              selectedBrandsSize: selectedBrands.size,
+              priceRange,
+              firstMatchName: sliced.length > 0 ? sliced[0].name : null,
+            })
+          }).catch(console.error);
+
         } else {
-          // ── SERVER-SIDE PAGINATED FETCH (no filters) ─────────────────────
-          const params: any = { per_page: 20, page, category: category.id };
+          // ── SERVER-SIDE PAGINATED FETCH via Meilisearch (no filters) ─────
+          const limit = 20;
+          const offset = (page - 1) * limit;
+          const categorySlug = category.slug;
 
-          if (sortBy) {
-            switch (sortBy) {
-              case 'price-low-high': params.orderby = 'price'; params.order = 'asc'; break;
-              case 'price-high-low': params.orderby = 'price'; params.order = 'desc'; break;
-              case 'title-asc':  params.orderby = 'title'; params.order = 'asc'; break;
-              case 'title-desc': params.orderby = 'title'; params.order = 'desc'; break;
-              case 'date':       params.orderby = 'date';  params.order = 'desc'; break;
-              case 'popularity': params.orderby = 'popularity'; params.order = 'desc'; break;
-              case 'rating':     params.orderby = 'rating';     params.order = 'desc'; break;
-            }
-          }
+          // Build sort for Meilisearch if supported
+          let sort: string[] | undefined;
+          if (sortBy === 'price-low-high') sort = ['price_amount:asc'];
+          else if (sortBy === 'price-high-low') sort = ['price_amount:desc'];
 
-          const qs = new URLSearchParams(params as any).toString();
-          const res = await fetch(`/api/products?${qs}`, { cache: 'no-store' });
+          const res = await fetch('/api/meili-products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ limit, offset, filter: [`category_slug = ${categorySlug}`], sort }),
+            cache: 'no-store'
+          });
+
           if (!res.ok) throw new Error('Failed to fetch products');
+          const { products: meiliProds, total } = await res.json();
 
-          const totalPagesHeader = res.headers.get('x-wp-totalpages');
-          const totalItemsHeader = res.headers.get('x-wp-total');
-          const data = await res.json();
-
-          setProducts(data);
-          setRawProducts(data);
-          if (totalPagesHeader) setTotalPages(parseInt(totalPagesHeader));
-          if (totalItemsHeader) setTotalProducts(parseInt(totalItemsHeader));
+          setProducts(meiliProds);
+          setRawProducts(meiliProds);
+          setTotalPages(Math.ceil(total / limit) || 1);
+          setTotalProducts(total);
         }
       } catch (err) {
         console.error('LoadProducts error:', err);
@@ -1207,11 +1192,8 @@ export default function CategoryClient({
     page,
     showOnlyInStock,
     isB2B,
-  // Note: allCategoryProductsForFilters and unwrappedAttributes are intentionally
-  // excluded — their arrival from the client-side fetch should NOT re-trigger
-  // a product reload when no filters are active. The guard above waits for them
-  // only when a filter is actually selected.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    allCategoryProductsForFilters,
+    unwrappedAttributes
   ]);
 
   // Reset page to 1 when category, filters, or sort change (but not on first render)
@@ -1224,30 +1206,26 @@ export default function CategoryClient({
   }, [category?.id, selectedFilters, selectedBrands, afdichtingsspleetRange, groefbreedteRange, priceRange, sortBy, showOnlyInStock, isB2B]);
 
   const toggleFilter = (attrId: number, termId: number) => {
-    // NOTE: Do NOT auto-close the mobile panel here — users need to
-    // select multiple options. Close is handled by the explicit X button.
     setSelectedFilters(prev => {
-      const newFilters: { [key: number]: Set<number> } = {};
-
-      for (const [id, terms] of Object.entries(prev)) {
-        newFilters[Number(id)] = new Set(terms);
+      const next = { ...prev };
+      if (!next[attrId]) {
+        next[attrId] = new Set();
+      } else {
+        next[attrId] = new Set(next[attrId]);
       }
 
-      if (!newFilters[attrId]) {
-        newFilters[attrId] = new Set();
-      }
-
-      if (newFilters[attrId].has(termId)) {
-        newFilters[attrId].delete(termId);
-        if (newFilters[attrId].size === 0) {
-          delete newFilters[attrId];
+      if (next[attrId].has(termId)) {
+        next[attrId].delete(termId);
+        if (next[attrId].size === 0) {
+          delete next[attrId];
         }
       } else {
-        newFilters[attrId].add(termId);
+        next[attrId].add(termId);
       }
 
-      return newFilters;
+      return next;
     });
+    setPage(1);
   };
 
   const toggleBrandFilter = (brandId: number) => {
@@ -1260,6 +1238,7 @@ export default function CategoryClient({
       }
       return newBrands;
     });
+    setPage(1);
   };
 
   const resetFilters = () => {
@@ -1268,6 +1247,17 @@ export default function CategoryClient({
     setAfdichtingsspleetRange(null);
     setGroefbreedteRange(null);
     setPriceRange(null);
+    setPage(1);
+  };
+
+  const handleSetPriceRange = (val: [number, number] | null) => {
+    setPriceRange(val);
+    setPage(1);
+  };
+
+  const handleSetShowOnlyInStock = (val: boolean) => {
+    setShowOnlyInStock(val);
+    setPage(1);
   };
 
   // Relevant attributes moved to FilterSidebar component for streaming support
@@ -1295,14 +1285,14 @@ export default function CategoryClient({
               resetFilters={resetFilters}
               afdichtingsspleetRange={afdichtingsspleetRange}
               groefbreedteRange={groefbreedteRange}
-              setAfdichtingsspleetRange={setAfdichtingsspleetRange}
-              setGroefbreedteRange={setGroefbreedteRange}
+              setAfdichtingsspleetRange={(val) => { setAfdichtingsspleetRange(val); setPage(1); }}
+              setGroefbreedteRange={(val) => { setGroefbreedteRange(val); setPage(1); }}
               priceRange={priceRange}
-              setPriceRange={setPriceRange}
+              setPriceRange={handleSetPriceRange}
               showFilters={showFilters}
               setShowFilters={setShowFilters}
               showOnlyInStock={showOnlyInStock}
-              setShowOnlyInStock={setShowOnlyInStock}
+              setShowOnlyInStock={handleSetShowOnlyInStock}
               onFilterCheck={setHasFiltersAvailable}
               isB2B={!!isB2B}
             />
@@ -1356,18 +1346,15 @@ export default function CategoryClient({
             ) : products.length === 0 ? (
               <p>Geen producten gevonden in deze categorie.</p>
             ) : (
-              <motion.div 
-                variants={container}
-                initial="hidden"
-                animate="show"
-                className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 lg:gap-6"
-              >
-                {products.map((product) => (
-                  <motion.div key={product.id} variants={item} className="h-full">
-                    <ShopProductCard product={product} />
-                  </motion.div>
-                ))}
-              </motion.div>
+              <div className="flex flex-col w-full">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 lg:gap-6">
+                  {products.map((product) => (
+                    <div key={product.id} className="h-full">
+                      <ShopProductCard product={product} />
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
 
             {/* Pagination */}

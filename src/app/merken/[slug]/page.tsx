@@ -1,5 +1,6 @@
-import api, { getBrand, fetchProducts } from "@/lib/woocommerce";
+import api, { getBrand } from "@/lib/woocommerce";
 import { searchProducts } from "@/actions/search";
+import { fetchMeiliProducts, mapMeiliToWooProduct } from "@/lib/meilisearch-products";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ShopProductCard from "@/components/ShopProductCard";
@@ -111,59 +112,16 @@ export default async function BrandPage({ params, searchParams }: { params: Prom
     
     const allProductsCount = brandEsRes.totalItems;
 
-    // 2. Fetch Actual Products from WooCommerce API (Correct source of truth)
-    let filteredProducts: any[] = [];
-    
-    const queryParams: any = {
-        brand: brand.id,
-        per_page: 60,
-        status: 'publish',
-        next: { revalidate: 3600 }
-    };
-
+    // 2. Fetch Actual Products from Meilisearch
+    const filters = [`brand_id = '${slug}'`];
     if (categorySlug) {
-        try {
-            const { data: catData } = await api.get("products/categories", { slug: categorySlug });
-            if (catData && catData.length > 0) {
-                queryParams.category = catData[0].id;
-            }
-        } catch (e) {
-            console.error("Error resolving category ID:", e);
-        }
+        filters.push(`category_slug = '${categorySlug}'`);
     }
 
-    const { data: wcProducts } = await api.get("products", queryParams);
-    filteredProducts = Array.isArray(wcProducts) ? wcProducts : [];
-    if (filteredProducts.length > 0) {
-        // Pre-resolve media to prevent client-side fetching in ShopProductCard
-        const mediaIds = new Set<string>();
-        filteredProducts.forEach((p: any) => {
-            const catImgId = p.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value ||
-                             p.meta_data?.find((m: any) => m.key === "cat_image")?.value;
-            if (catImgId && /^\d+$/.test(String(catImgId))) {
-                mediaIds.add(String(catImgId));
-            }
-        });
-
-        if (mediaIds.size > 0) {
-            try {
-                const mediaRes = await api.get('wp/v2/media', {
-                    include: Array.from(mediaIds).join(','), per_page: 100, _fields: 'id,source_url'
-                });
-                if (Array.isArray(mediaRes.data)) {
-                    const mediaMap = new Map();
-                    mediaRes.data.forEach((m: any) => mediaMap.set(String(m.id), m.source_url));
-                    filteredProducts.forEach((p: any) => {
-                        const catImgId = p.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value ||
-                                         p.meta_data?.find((m: any) => m.key === "cat_image")?.value;
-                        if (catImgId && mediaMap.has(String(catImgId))) {
-                            p.resolved_cat_image = mediaMap.get(String(catImgId));
-                        }
-                    });
-                }
-            } catch(e) {}
-        }
-    }
+    const { products: meiliHits } = await fetchMeiliProducts(60, 0, "", filters);
+    
+    // Map Meilisearch hits to the expected WooCommerce format for the ShopProductCard
+    const filteredProducts = meiliHits.map(mapMeiliToWooProduct).filter(Boolean);
 
     return (
         <div className="max-w-[1440px] container mx-auto px-1 py-8">

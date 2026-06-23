@@ -1,80 +1,47 @@
 "use server";
 
-
 import api, { fetchAllWoo } from "@/lib/woocommerce";
 import elasticClient from "@/lib/elasticsearch";
+import { fetchMeiliProducts, mapMeiliToWooProduct } from "@/lib/meilisearch-products";
 
 export async function fetchProductIndexAction() {
     try {
-        // Fetch ALL products lightweight
-        // We select fields: id, name, slug, sku, meta_data (to get EANs)
-        // INCREASED CACHE: Revalidates every 1 hour (3600s) to be super fast. 
-        const allProducts = await fetchAllWoo("products", {
-            status: "publish",
-            per_page: 30, // Reduced from 100 to keep JSON response under 2MB for Next.js cache
-            _fields: "id,name,slug,sku,meta_data",
-            next: { revalidate: 3600 }
-        });
+        const { products } = await fetchMeiliProducts(1000, 0, "", []);
 
-        const targetMetaKeys = [
-            "crucial_data_product_ean_code",
-            "_sku",
-            "crucial_data_product_factory_sku",
-            "ean_code",
-            "ean",
-            "_global_unique_id",
-            "global_unique_id",
-            "gtin",
-            "upc",
-            "isbn",
-            "_wpm_gtin_code",
-            "_wpm_gtin",
-            "_gtin",
-            "_ean"
-        ];
-
-        // Transform to minimal index
-        const index = allProducts.map((p: any) => {
-            const identifiers = new Set<string>();
-
-            // Add SKU
-            if (p.sku) identifiers.add(String(p.sku).trim().toLowerCase());
-            // Add ID
-            identifiers.add(String(p.id));
-
-            // Extract EANs/Identifiers from meta
-            let catImgId = null;
-            if (Array.isArray(p.meta_data)) {
+        const index = products.map((p: any) => {
+            const mapped = mapMeiliToWooProduct(p);
+            
+            const ids: string[] = [];
+            if (p.id) ids.push(String(p.id).trim().toLowerCase());
+            if (p.sku) ids.push(String(p.sku).trim().toLowerCase());
+            
+            if (p.meta_data && Array.isArray(p.meta_data)) {
                 p.meta_data.forEach((m: any) => {
-                    // Check strict key match
-                    if (targetMetaKeys.includes(m.key) && m.value) {
-                        identifiers.add(String(m.value).trim().toLowerCase());
-                    }
-                    if (m.key === "assets_cat_image" || m.key === "cat_image") {
-                        catImgId = m.value;
+                    const k = m.key;
+                    if (["crucial_data_product_ean_code", "_sku", "crucial_data_product_factory_sku", "ean_code", "ean"].includes(k)) {
+                        if (m.value && typeof m.value === 'string' && m.value.trim() !== "") {
+                            ids.push(m.value.trim().toLowerCase());
+                        }
                     }
                 });
             }
 
             return {
-                id: p.id,
+                id: mapped?.id || p.id,
                 name: p.name,
-                slug: p.slug, // Needed for links
-                sku: p.sku,
-                identifiers: Array.from(identifiers),
-                cat_image: catImgId,
-                // We keep enough data to render the link without another fetch
-                images: p.images || [], // If available in restricted fields? No, need to ask for images
-                attributes: p.attributes || [], // Order Colors needs this?
-                // Actually, for Order Colors we need attributes. 
-                // FETCHING full attributes for 5000 products might be heavy but let's try just ID first.
-                // For now, let's keep it lightweight. The caller can fetch full product if needed.
+                slug: p.slug,
+                sku: p.sku || "",
+                price: mapped?.price || "",
+                regular_price: mapped?.regular_price || "",
+                cat_image: mapped?.images?.[0]?.src || p.main_image_url || undefined,
+                images: mapped?.images || [],
+                identifiers: Array.from(new Set(ids))
             };
         });
 
         return { success: true, data: index };
-    } catch (error: any) {
-        return { success: false, error: error?.message || "Failed to fetch index" };
+    } catch (e: any) {
+        return { success: false, error: e.message };
     }
 }
 
@@ -403,152 +370,9 @@ export async function fetchProductsByIdentifiersAction(identifiers: string[], ex
 export async function fetchRelatedProductsBatchAction(identifiers: string[], excludeId?: number) {
     if (!identifiers || identifiers.length === 0) return { success: true, data: [] };
 
-    const cleanIds = identifiers.map(id => String(id).trim().toLowerCase());
-    const foundMap = new Map<string, any>(); // Map original query -> product
-
     try {
-        // 1. FAST FETCH: Try fetching via WooCommerce API using comma-separated SKUs
-        // WC API supports `sku` with multiple values separated by commas, making this insanely fast!
-        const skuString = cleanIds.join(",");
-        const skuRes = await api.get("products", {
-            sku: skuString,
-            per_page: 100,
-            status: "publish",
-            next: { revalidate: 3600 }
-        });
-
-        if (Array.isArray(skuRes.data)) {
-            skuRes.data.forEach((p: any) => {
-                if (p.sku && p.id !== excludeId) {
-                    const skuLower = String(p.sku).trim().toLowerCase();
-                    // Map back to original query based on EXACT SKU match
-                    identifiers.forEach(id => {
-                        if (String(id).trim().toLowerCase() === skuLower) {
-                            foundMap.set(id, p);
-                        }
-                    });
-                }
-            });
-        }
-
-        // 2. MEDIUM FETCH: Resolve missing items via Elasticsearch (SINGLE BATCH QUERY)
-        const missingQueries = identifiers.filter(q => !foundMap.has(q));
-        if (missingQueries.length > 0) {
-            const numericMissingQueries = missingQueries.filter(q => !isNaN(Number(q)));
-            
-            const esIndex = process.env.SEARCH_INDEX || process.env.ELASTICSEARCH_INDEX;
-            if (esIndex) {
-                const shouldClauses: any[] = [
-                    { terms: { "meta._sku.value.keyword": missingQueries } },
-                    { terms: { "meta.crucial_data_product_ean_code.value.keyword": missingQueries } },
-                    { terms: { "meta.crucial_data_product_factory_sku.value.keyword": missingQueries } },
-                    {
-                        multi_match: {
-                            query: missingQueries.join(" "),
-                            fields: ["meta.*.value.keyword"],
-                            type: "best_fields"
-                        }
-                    }
-                ];
-
-                if (numericMissingQueries.length > 0) {
-                    shouldClauses.push({ terms: { "ID": numericMissingQueries } });
-                }
-
-                const esRes = await elasticClient.search({
-                    index: esIndex,
-                    size: missingQueries.length * 2,
-                    query: {
-                        bool: {
-                            must: [{ match: { post_type: "product" } }],
-                            should: shouldClauses,
-                            minimum_should_match: 1,
-                            filter: excludeId ? [{ bool: { must_not: { term: { ID: excludeId } } } }] : []
-                        }
-                    }
-                });
-
-                if (esRes.hits.hits.length > 0) {
-                    // Fetch full WooCommerce data for these in parallel
-                    const matchedIDs = esRes.hits.hits.map((h: any) => h._source.ID);
-
-                    const fullProducts = await Promise.all(
-                        matchedIDs.map(id => api.get(`products/${id}`, { next: { revalidate: 3600 } }).then(r => r.data).catch(() => null))
-                    );
-
-                    const validProducts = fullProducts.filter(Boolean);
-
-                    // Resolve category images for these batch products
-                    const mediaIds = new Set<string>();
-                    validProducts.forEach((p: any) => {
-                        const catImgId = p.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value ||
-                            p.meta_data?.find((m: any) => m.key === "cat_image")?.value;
-                        if (catImgId && /^\d+$/.test(String(catImgId))) {
-                            mediaIds.add(String(catImgId));
-                        }
-                    });
-
-                    if (mediaIds.size > 0) {
-                        try {
-                            const mediaRes = await api.get('wp/v2/media', {
-                                include: Array.from(mediaIds).join(','),
-                                per_page: 100,
-                                _fields: 'id,source_url'
-                            });
-                            if (Array.isArray(mediaRes.data)) {
-                                const mediaMap = new Map();
-                                mediaRes.data.forEach((m: any) => mediaMap.set(String(m.id), m.source_url));
-
-                                validProducts.forEach((p: any) => {
-                                    const catImgId = p.meta_data?.find((m: any) => m.key === "assets_cat_image")?.value ||
-                                        p.meta_data?.find((m: any) => m.key === "cat_image")?.value;
-                                    if (catImgId && mediaMap.has(String(catImgId))) {
-                                        p.resolved_cat_image = mediaMap.get(String(catImgId));
-                                    }
-                                });
-                            }
-                        } catch (e) { }
-                    }
-
-                    validProducts.forEach((p: any) => {
-                        // Map back to ALL queries that might match this product
-                        const pId = String(p.id);
-                        const pSku = String(p.sku).trim().toLowerCase();
-                        const pMeta = (p.meta_data || []).map((m: any) => String(m.value).trim().toLowerCase());
-
-                        identifiers.forEach(q => {
-                            const cq = String(q).trim().toLowerCase();
-                            if (cq === pId || cq === pSku || pMeta.includes(cq)) {
-                                foundMap.set(q, p);
-                            }
-                        });
-                    });
-                }
-            }
-
-            // 3. SLOW FETCH fallback (only for things still missing)
-            const remainingQueries = identifiers.filter(q => !foundMap.has(q));
-            if (remainingQueries.length > 0) {
-                const fallbackResults = await Promise.all(
-                    remainingQueries.map(id => fetchProductBySkuOrIdAction(id, excludeId))
-                );
-
-                fallbackResults.forEach((res, i) => {
-                    if (res.success && res.data && res.data.id !== excludeId) {
-                        foundMap.set(remainingQueries[i], res.data);
-                    }
-                });
-            }
-        }
-
-        // 3. Return mapped results in original identifiers order (to slot correctly)
-        const finalResults = identifiers.map(id => {
-            const match = foundMap.get(id);
-            return match ? { query: id, product: match } : null;
-        }).filter(Boolean);
-
-        return { success: true, data: finalResults };
-
+        const results = await fetchProductsByIdentifiersAction(identifiers, excludeId);
+        return results;
     } catch (e: any) {
         console.error("[BATCH] Error:", e);
         return { success: false, error: e.message };
@@ -613,36 +437,28 @@ export async function resolveSlugAction(slug: string) {
 }
 
 
-export async function refreshCartStockAction(productIds: number[]) {
+export async function refreshCartStockAction(items: { id: number; sku?: string }[]) {
     try {
-        if (!productIds || productIds.length === 0) return { success: true, data: [] };
+        if (!items || items.length === 0) return { success: true, data: [] };
 
-        const res = await api.get("products", {
-            include: productIds,
-            per_page: 50,
+        const EMPIRE_BASE_URL = (process.env.NEXT_PUBLIC_EMPIRE_API_URL || process.env.EMPIRE_BACKEND_API_URL || "http://localhost:8000").replace(/\/$/, "");
+        
+        const res = await fetch(`${EMPIRE_BASE_URL}/api/products/batch-stock`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            body: JSON.stringify({ items }),
             cache: "no-store"
-        }); // Assume max 50 items in cart for now
+        });
 
-        // Map response to just what we need
-        const updates = Array.isArray(res.data) ? res.data.map((p: any) => {
-            const totalStockMeta = p.meta_data?.find((m: any) => m.key === "crucial_data_total_stock")?.value;
-            const parsedStock = parseInt(totalStockMeta, 10);
-            const totalStock = totalStockMeta !== undefined && totalStockMeta !== null && totalStockMeta !== "" && !isNaN(parsedStock)
-                ? parsedStock
-                : null;
+        if (!res.ok) throw new Error("Failed to fetch stock from Empire");
 
-            return {
-                id: p.id,
-                stockStatus: p.stock_status,
-                stockQuantity: totalStock !== null ? totalStock : p.stock_quantity,
-                leadTimeInStock: p.meta_data?.find((m: any) => m.key === "crucial_data_delivery_if_stock")?.value,
-                leadTimeNoStock: p.meta_data?.find((m: any) => m.key === "crucial_data_delivery_if_no_stock")?.value,
-            };
-        }) : [];
-
-        return { success: true, data: updates };
+        const data = await res.json();
+        return { success: true, data: data.data || [] };
     } catch (error: any) {
-        // console.error("Refresh cart stock error:", error?.message);
+        console.error("Refresh cart stock error:", error?.message);
         return { success: false, error: error?.message || "Failed to refresh stock" };
     }
 }
@@ -658,5 +474,39 @@ export async function fetchCategoriesAction() {
         return { success: true, data: categories };
     } catch (error: any) {
         return { success: false, error: error?.message || "Failed to fetch categories" };
+    }
+}
+
+/**
+ * Fetch blogs from Empire API
+ */
+export async function fetchBlogsAction(page = 1, limit = 10) {
+    try {
+        const EMPIRE_BASE_URL = (process.env.NEXT_PUBLIC_EMPIRE_API_URL || process.env.EMPIRE_BACKEND_API_URL || "http://localhost:8000").replace(/\/$/, "");
+        const res = await fetch(`${EMPIRE_BASE_URL}/api/blogs?page=${page}&limit=${limit}`, {
+            next: { revalidate: 3600 }
+        });
+        if (!res.ok) throw new Error("Failed to fetch blogs");
+        return { success: true, data: await res.json() };
+    } catch (error: any) {
+        console.error("fetchBlogsAction error:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Fetch a single blog by slug from Empire API
+ */
+export async function fetchBlogBySlugAction(slug: string) {
+    try {
+        const EMPIRE_BASE_URL = (process.env.NEXT_PUBLIC_EMPIRE_API_URL || process.env.EMPIRE_BACKEND_API_URL || "http://localhost:8000").replace(/\/$/, "");
+        const res = await fetch(`${EMPIRE_BASE_URL}/api/blogs/${encodeURIComponent(slug)}`, {
+            next: { revalidate: 3600 }
+        });
+        if (!res.ok) throw new Error("Blog not found");
+        return { success: true, data: await res.json() };
+    } catch (error: any) {
+        console.error("fetchBlogBySlugAction error:", error);
+        return { success: false, error: error.message };
     }
 }

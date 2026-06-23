@@ -112,11 +112,19 @@ export const fetchProducts = async (params: any = {}) => {
     }
 };
 
+const EMPIRE_API_URL = process.env.NEXT_PUBLIC_EMPIRE_API_URL || "http://empire.test";
+const EMPIRE_BASE_URL = EMPIRE_API_URL.replace(/\/$/, "");
+
 export const fetchCategories = async () => {
-    const res = await api.get("products/categories", {
-        params: { per_page: 100, _fields: "id,name,slug,parent", next: { revalidate: 86400 } },
-    });
-    return res.data;
+    try {
+        const res = await fetch(`${EMPIRE_BASE_URL}/api/categories`, {
+            next: { revalidate: 86400 }
+        });
+        if (!res.ok) return [];
+        return await res.json();
+    } catch (e) {
+        return [];
+    }
 };
 
 export const fetchMedia = async (id: number | string) => {
@@ -158,113 +166,24 @@ const resolveBrandLogo = async (brand: Brand): Promise<Brand> => {
 
 export const getBrands = async (): Promise<Brand[]> => {
     try {
-        const firstPageRes = await api.get("wp/v2/product_brand", {
-            params: { per_page: 100, page: 1, hide_empty: true, _embed: true, next: { revalidate: 3600 } }
+        const res = await fetch(`${EMPIRE_BASE_URL}/api/brands`, {
+            next: { revalidate: 3600 }
         });
-
-        let allBrands: Brand[] = Array.isArray(firstPageRes.data) ? firstPageRes.data : [];
-        const totalPages = Number(firstPageRes.totalPages) || 1;
-
-        if (totalPages > 1) {
-            const promises = [];
-            for (let p = 2; p <= totalPages; p++) {
-                promises.push(
-                    api.get("wp/v2/product_brand", {
-                        params: { per_page: 100, page: p, hide_empty: true, _embed: true, next: { revalidate: 3600 } }
-                    })
-                );
-            }
-            const results = await Promise.all(promises);
-            results.forEach(res => {
-                if (Array.isArray(res.data)) {
-                    allBrands.push(...res.data);
-                }
-            });
-        }
-
-        // Bulk resolve ACF images
-        const mediaIds = new Set<string>();
-        allBrands.forEach(brand => {
-            if (brand.acf?.brand_logo && !isNaN(Number(brand.acf.brand_logo))) {
-                mediaIds.add(String(brand.acf.brand_logo));
-            }
-        });
-
-        const mediaMap = new Map<string, string>();
-        if (mediaIds.size > 0) {
-            const idsArray = Array.from(mediaIds);
-            const mediaPromises = [];
-            for (let i = 0; i < idsArray.length; i += 100) {
-                const chunk = idsArray.slice(i, i + 100);
-                mediaPromises.push(
-                    api.get('wp/v2/media', {
-                        params: { include: chunk.join(','), per_page: 100, _fields: 'id,source_url', next: { revalidate: 86400 } }
-                    }).catch(() => null)
-                );
-            }
-
-            const mediaResults = await Promise.all(mediaPromises);
-            mediaResults.forEach(res => {
-                if (res && Array.isArray(res.data)) {
-                    res.data.forEach((m: any) => mediaMap.set(String(m.id), m.source_url));
-                }
-            });
-        }
-
-        // Fetch native WooCommerce brand images in parallel for better reliability
-        const wcBrandsRes = await api.get("products/brands", {
-            params: { per_page: 100, hide_empty: true, next: { revalidate: 3600 } }
-        }).catch(() => ({ data: [] }));
-
-        const wcImageMap = new Map<number, string>();
-        if (Array.isArray(wcBrandsRes.data)) {
-            wcBrandsRes.data.forEach((b: any) => {
-                if (b.image?.src) {
-                    wcImageMap.set(Number(b.id), b.image.src);
-                }
-            });
-        }
-
-        // Assign resolved images and native images
-        allBrands = allBrands.map(brand => {
-            // 1. Priority: Native WooCommerce Brand Image (Most accurate)
-            const wcLogo = wcImageMap.get(Number(brand.id));
-            if (wcLogo) {
-                if (!brand.acf) brand.acf = {};
-                brand.acf.brand_logo = wcLogo;
-                return brand;
-            }
-
-            // 2. Check native WP API embedded image
-            const embeddedMedia = brand._embedded?.['wp:featuredmedia']?.[0]?.source_url;
-            if (embeddedMedia) {
-                if (!brand.acf) brand.acf = {};
-                brand.acf.brand_logo = embeddedMedia;
-            } 
-            // 3. Fallback to ACF resolved images
-            else if (brand.acf?.brand_logo && mediaMap.has(String(brand.acf.brand_logo))) {
-                brand.acf.brand_logo = mediaMap.get(String(brand.acf.brand_logo));
-            }
-            return brand;
-        });
-
-        return allBrands;
+        if (!res.ok) return [];
+        return await res.json();
     } catch (error) {
-        // console.error("Error fetching brands:", error);
         return [];
     }
 };
 
 export const getBrand = async (slug: string): Promise<Brand | null> => {
     try {
-        const { data: brands } = await api.get("wp/v2/product_brand", {
-            params: { slug: slug, _embed: true, next: { revalidate: 3600 } }
+        const res = await fetch(`${EMPIRE_BASE_URL}/api/brands/${slug}`, {
+            next: { revalidate: 3600 }
         });
-
-        if (brands.length > 0) {
-            return await resolveBrandLogo(brands[0]);
-        }
-        return null;
+        if (!res.ok) return null;
+        const brands = await res.json();
+        return brands.length > 0 ? brands[0] : null;
     } catch (error) {
         return null;
     }
@@ -280,43 +199,21 @@ export interface ShippingMethod {
 
 export const getShippingMethods = async () => {
     try {
-        const { data: zones } = await api.get("shipping/zones", { _fields: "id,name", next: { revalidate: 86400 } });
-        const nlZone = zones.find((z: any) => z.name.toLowerCase() === "nederland" || z.name.toLowerCase() === "netherlands");
-        const primaryZone = nlZone || zones.find((z: any) => z.id !== 0) || zones[0];
-        const zoneId = primaryZone?.id || 0;
-
-        const { data: methods } = await api.get(`shipping/zones/${zoneId}/methods`, { next: { revalidate: 86400 } });
-
-        const availableMethods: ShippingMethod[] = [];
-
-        for (const method of methods) {
-            if (!method.enabled) continue;
-
-            let cost = 0;
-
-            if (method.method_id === "flat_rate") {
-                const val = parseFloat(method.settings.cost?.value || "0");
-                cost = isNaN(val) ? 0 : val;
-            } else if (method.method_id === "local_pickup") {
-                const val = parseFloat(method.settings.cost?.value || "0");
-                cost = isNaN(val) ? 0 : val;
-            }
-
-            availableMethods.push({
-                id: method.instance_id,
-                methodId: method.method_id,
-                title: method.title,
-                cost: cost,
-                enabled: true,
-                ...(method.method_id === "free_shipping" && {
-                    requires: method.settings?.requires?.value,
-                    minAmount: method.settings?.min_amount?.value
-                })
-            } as any);
-        }
-
-        return availableMethods;
-
+        const res = await fetch(`${EMPIRE_BASE_URL}/api/shipping/settings`, {
+            next: { revalidate: 3600 }
+        });
+        if (!res.ok) return [];
+        
+        const methods = await res.json();
+        
+        return methods.map((m: any) => ({
+            id: m.method_id,
+            methodId: m.method_id,
+            title: m.title,
+            cost: m.cost || 0,
+            enabled: m.enabled,
+            minAmount: m.min_amount?.toString()
+        }));
     } catch (error) {
         return [];
     }
@@ -327,14 +224,14 @@ export const getShippingSettings = async () => {
 };
 
 
-export const fetchProductStock = async (id: number) => {
+export const fetchProductStock = async (sku: string) => {
     try {
-        const res = await api.get(`products/${id}`, {
-            params: { _fields: "id,stock_quantity,stock_status,manage_stock,backorders,backorders_allowed" }
+        const res = await fetch(`${EMPIRE_BASE_URL}/api/products/${encodeURIComponent(sku)}/stock`, {
+            cache: 'no-store' // We want real-time stock
         });
-        return res.data;
+        if (!res.ok) return null;
+        return await res.json();
     } catch (error) {
-        // console.error("Error fetching product stock:", error);
         return null;
     }
 };
@@ -368,75 +265,6 @@ export interface Brand {
     _embedded?: any;
 }
 
-export const getProductsByBrand = async (brandId: number): Promise<any[]> => {
-    try {
-        // 1. Fetch first page of product IDs
-        const firstPageRes = await api.get("wp/v2/product", {
-            params: {
-                product_brand: brandId,
-                per_page: 100,
-                page: 1,
-                _fields: 'id',
-                next: { revalidate: 3600 }
-            }
-        });
-
-        let wpProducts = Array.isArray(firstPageRes.data) ? firstPageRes.data : [];
-        const totalPages = Number(firstPageRes.totalPages) || 1;
-
-        // 2. Fetch remaining pages of product IDs in parallel
-        if (totalPages > 1) {
-            const promises = [];
-            for (let p = 2; p <= totalPages; p++) {
-                promises.push(
-                    api.get("wp/v2/product", {
-                        params: { product_brand: brandId, per_page: 100, page: p, _fields: 'id', next: { revalidate: 3600 } }
-                    })
-                );
-            }
-            const results = await Promise.all(promises);
-            results.forEach(res => {
-                if (Array.isArray(res.data)) {
-                    wpProducts.push(...res.data);
-                }
-            });
-        }
-
-        const ids = wpProducts.map((p: any) => p.id);
-        if (ids.length === 0) return [];
-
-        // 3. Fetch full product details from WC API in parallel chunks
-        const chunkSize = 50;
-        const wcProducts: any[] = [];
-        const chunkPromises = [];
-
-        for (let i = 0; i < ids.length; i += chunkSize) {
-            const chunk = ids.slice(i, i + chunkSize);
-            chunkPromises.push(
-                api.get("products", {
-                    params: {
-                        include: chunk.join(','),
-                        per_page: chunkSize,
-                        status: 'publish',
-                        next: { revalidate: 3600 }
-                    }
-                }).catch(() => null)
-            );
-        }
-
-        const chunkResults = await Promise.all(chunkPromises);
-        chunkResults.forEach(res => {
-            if (res && Array.isArray(res.data)) {
-                wcProducts.push(...res.data);
-            }
-        });
-
-        return wcProducts;
-
-    } catch (error) {
-        return [];
-    }
-};
 
 
 export const fetchAllWoo = async (endpoint: string, extraParams: any = {}) => {

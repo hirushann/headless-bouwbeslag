@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import api from "@/lib/woocommerce";
 import { fetchPosts } from "@/lib/wordpress";
-import { fetchMeiliProducts } from "@/lib/meilisearch-products";
+import { fetchMeiliProducts, mapMeiliToWooProduct } from "@/lib/meilisearch-products";
 import dynamic from "next/dynamic";
 
 // Client Components
@@ -48,14 +48,14 @@ import { Suspense } from "react";
 
 // Async data components
 async function BestSellersSection() {
-  const products = await fetchMeiliProducts(10);
-  return <BestSellersCarousel products={products} />;
+  const { products } = await fetchMeiliProducts(10);
+  return <BestSellersCarousel products={products.map(mapMeiliToWooProduct)} />;
 }
 
 async function RecommendedSection() {
-  const products = await fetchMeiliProducts(10, 10);
+  const { products } = await fetchMeiliProducts(10, 10);
   if (products.length === 0) return null;
-  return <RecommendedCarousel products={products} />;
+  return <RecommendedCarousel products={products.map(mapMeiliToWooProduct)} />;
 }
 
 async function CategoriesSection() {

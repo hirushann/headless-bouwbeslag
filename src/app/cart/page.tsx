@@ -12,6 +12,7 @@ interface CartItem {
   color?: string;
   brand?: string;
   model?: string;
+  sku?: string;
 }
 
 export default function CartPage() {

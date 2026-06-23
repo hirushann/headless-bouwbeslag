@@ -1,13 +1,7 @@
 import { Metadata } from "next";
-import axios from "axios";
 import Image from "next/image";
 import Link from "next/link";
-
-const WP_API_URL = process.env.NEXT_PUBLIC_WORDPRESS_API_URL;
-
-const api = axios.create({
-  baseURL: `${WP_API_URL}/wp-json/wp/v2`,
-});
+import { fetchBlogBySlugAction } from "../../actions";
 
 export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> }
@@ -15,14 +9,8 @@ export async function generateMetadata(
   const { slug } = await params;
 
   try {
-    const res = await api.get("/posts", {
-      params: {
-        slug,
-        _embed: true,
-      },
-    });
-
-    const post = Array.isArray(res.data) && res.data[0] ? res.data[0] : null;
+    const res = await fetchBlogBySlugAction(slug);
+    const post = res.success ? res.data : null;
 
     if (!post) {
       return {
@@ -31,20 +19,9 @@ export async function generateMetadata(
       };
     }
 
-    const seoTitle =
-      post.rank_math_title ||
-      post.yoast_head_json?.title ||
-      post.title?.rendered;
-
-    const seoDescription =
-      post.rank_math_description ||
-      post.yoast_head_json?.description ||
-      post.excerpt?.rendered?.replace(/<[^>]+>/g, "");
-
-    const image =
-      post._embedded?.["wp:featuredmedia"]?.[0]?.source_url ??
-      post._embedded?.["wp:featuredmedia"]?.[0]?.media_details?.sizes?.full
-        ?.source_url;
+    const seoTitle = post.seo_title || post.title;
+    const seoDescription = post.seo_description || (post.excerpt ? post.excerpt.replace(/<[^>]+>/g, "") : "");
+    const image = post.featured_image;
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
 
@@ -70,17 +47,6 @@ export async function generateMetadata(
   }
 }
 
-async function getPostBySlug(slug: string) {
-  const res = await api.get("/posts", {
-    params: {
-      slug,
-      _embed: true,
-    },
-  });
-
-  return Array.isArray(res.data) && res.data[0] ? res.data[0] : null;
-}
-
 export default async function SingleBlogPage({
   params,
 }: {
@@ -88,7 +54,8 @@ export default async function SingleBlogPage({
 }) {
   const { slug } = await params;
 
-  const post = await getPostBySlug(slug);
+  const res = await fetchBlogBySlugAction(slug);
+  const post = res.success ? res.data : null;
 
   if (!post) {
     return (
@@ -125,28 +92,24 @@ export default async function SingleBlogPage({
         </Link>
         / <Link href="/kennisbank">Kennisbank</Link>
         /{" "}
-        <span
-          dangerouslySetInnerHTML={{ __html: post.title.rendered }}
-        />
+        <span>{post.title}</span>
       </div>
 
       <div className="max-w-[1024px] mx-auto py-5">
         <Image
-          className="mb-3 rounded-lg h-[300px] lg:h-[480px] w-full object-cover"
+          className="mb-3 rounded-lg h-[300px] lg:h-[480px] w-full object-cover bg-gray-100"
           src={
-            post._embedded?.["wp:featuredmedia"]?.[0]?.source_url ||
-            post._embedded?.["wp:featuredmedia"]?.[0]?.media_details?.sizes
-              ?.full?.source_url ||
+            post.featured_image ||
             "/default-fallback-image.webp"
           }
-          alt={post.title.rendered}
+          alt={post.title}
           width={1200}
           height={600}
         />
 
         <div className="flex flex-col gap-2">
           <p className="text-[#0066FF] font-semibold text-xl lg:text-2xl mt-5">
-            {new Date(post.date).toLocaleDateString("nl-NL", {
+            {new Date(post.published_at).toLocaleDateString("nl-NL", {
               year: "numeric",
               month: "long",
               day: "numeric",
@@ -155,17 +118,14 @@ export default async function SingleBlogPage({
 
           <h1
             className="text-[#1C2530] font-semibold text-4xl lg:text-6xl mt-5"
-            dangerouslySetInnerHTML={{ __html: post.title.rendered }}
-          />
+          >
+            {post.title}
+          </h1>
 
           <div
             className="text-[#3D4752] font-normal text-base [&>p]:mb-5 max-w-none mt-5"
             dangerouslySetInnerHTML={{ 
-              __html: post.content.rendered
-                .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '')
-                .replace(/<meta[^>]*>/gi, '')
-                .replace(/<link[^>]*>/gi, '')
-                .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+              __html: post.content
             }}
           />
         </div>

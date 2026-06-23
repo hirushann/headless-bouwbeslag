@@ -1,43 +1,15 @@
-import axios from "axios";
 import Image from "next/image";
 import Link from "next/link";
 import { Metadata } from "next";
 import FadeIn from "@/components/animations/FadeIn";
-
-const WP_API_URL = process.env.NEXT_PUBLIC_WORDPRESS_API_URL;
-
-const api = axios.create({
-  baseURL: `${WP_API_URL}/wp-json/wp/v2`,
-});
-
-async function getPosts() {
-  try {
-    const res = await api.get("/posts", {
-      params: { per_page: 50, _embed: true },
-    });
-    return res.data;
-  } catch (error) {
-    // console.error("Error fetching blog posts:", error);
-    return [];
-  }
-}
-
-async function getCategories() {
-  try {
-    const res = await api.get("/categories", { params: { per_page: 100 } });
-    return res.data;
-  } catch (error) {
-    // console.error("Error fetching blog categories:", error);
-    return [];
-  }
-}
+import { fetchBlogsAction } from "../actions";
 
 function stripHtml(html: string = "") {
   return html.replace(/<[^>]*>/g, "");
 }
 
 function formatDate(date: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("nl-NL", {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -68,10 +40,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function BlogPage() {
-  const [posts, categories] = await Promise.all([
-    getPosts(),
-    getCategories(),
-  ]);
+  const res = await fetchBlogsAction(1, 50);
+  const posts = res.success ? res.data?.data || [] : [];
 
   return (
     <main className=" pt-10 px-5 lg:px-0 bg-[#F5F5F5]">
@@ -99,27 +69,28 @@ export default async function BlogPage() {
             {posts.map((post: any, index: number) => (
               <FadeIn key={post.id} delay={index * 0.1}>
                 <Link href={`/kennisbank/${post.slug}`}>
-                  <div className="border-0 rounded-md overflow-hidden">
+                  <div className="border-0 rounded-md overflow-hidden bg-white shadow-sm hover:shadow-md transition duration-300">
                     <Image
                       src={
-                        post._embedded?.["wp:featuredmedia"]?.[0]?.source_url ||
+                        post.featured_image ||
                         "/default-fallback-image.webp"
                       }
-                      alt={post.title.rendered}
+                      alt={post.title}
                       width={600}
                       height={400}
-                      className="w-full h-[250px] object-cover rounded-sm"
+                      className="w-full h-[250px] object-cover rounded-t-md"
                     />
-                    <div className="py-4 px-1 flex flex-col gap-2">
+                    <div className="py-4 px-3 flex flex-col gap-2">
                       <p className="text-[#0066FF] text-sm">
-                        {formatDate(post.date)}
+                        {formatDate(post.published_at)}
                       </p>
                       <p
                         className="text-xl font-semibold hover:underline text-[#1C2530]"
-                        dangerouslySetInnerHTML={{ __html: post.title.rendered }}
-                      />
+                      >
+                        {post.title}
+                      </p>
                       <p className="text-[#3D4752] text-sm line-clamp-2 font-normal">
-                        {stripHtml(post.excerpt?.rendered || "")}
+                        {stripHtml(post.excerpt || post.content || "")}
                       </p>
                     </div>
                   </div>

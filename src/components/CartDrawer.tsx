@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useCartStore } from "@/lib/cartStore";
-import { syncRemoveItem } from "@/lib/cartApi";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
 import { useEffect, useState } from "react";
 import { refreshCartStockAction } from "@/app/actions";
@@ -33,8 +32,8 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods }: CartDra
 
       setIsFetchingStock(true);
       try {
-        const ids = items.map(i => i.id);
-        const res = await refreshCartStockAction(ids);
+        const payload = items.map(i => ({ id: i.id, sku: i.sku }));
+        const res = await refreshCartStockAction(payload);
 
         if (active && res.success && res.data) {
           updateStockForItems(res.data);
@@ -96,7 +95,6 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods }: CartDra
 
   const removeItem = (id: number) => {
     useCartStore.getState().removeItem(id);
-    syncRemoveItem(id).catch((err) => console.error("Background sync failed:", err));
   };
 
   return (
