@@ -13,7 +13,7 @@ export async function checkOrderStatusAction(orderId: string | number) {
         const orderIdStr = String(orderId);
         
         // New Flow (Session-based)
-        if (orderIdStr.startsWith("NEXT-")) {
+        if (orderIdStr.startsWith("BW-") || orderIdStr.startsWith("NEXT-")) {
             try {
                 const session = await getCheckoutSession(orderIdStr);
                 if (!session) {
@@ -209,7 +209,7 @@ export async function placeOrderAction(data: any) {
         const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
         
         // Generate a unique order reference
-        const orderReference = `NEXT-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+        const orderReference = `BW-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
         // Calculate totals for Empire Payload
         const shippingLine = data.shipping_line?.[0];
