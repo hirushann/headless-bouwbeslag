@@ -49,19 +49,42 @@ export async function fetchProductIndexAction() {
 
 export async function checkStockAction(identifier: string | number) {
     try {
-        // Use the flexible resolver so that string slugs/UUIDs from Meilisearch
-        // are properly resolved to the real WooCommerce product ID first
-        const resolveRes = await fetchProductBySkuOrIdAction(identifier);
+        const idStr = String(identifier).trim();
+        if (!idStr) return { success: false, error: "Product not found" };
+
+        const EMPIRE_BASE_URL = (process.env.NEXT_PUBLIC_EMPIRE_API_URL || process.env.EMPIRE_BACKEND_API_URL || "http://empire.test").replace(/\/$/, "");
         
-        if (!resolveRes.success || !resolveRes.data) {
+        const res = await fetch(`${EMPIRE_BASE_URL}/api/products/${encodeURIComponent(idStr)}/stock`, { 
+            cache: "no-store",
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        
+        if (!res.ok) {
             return { success: false, error: "Product not found" };
         }
+        
+        const data = await res.json();
+        
+        // Mock the shape of WooCommerce product for the frontend component
+        const wcMockProduct = {
+            id: identifier,
+            sku: data.sku,
+            stock_status: data.total_stock > 0 ? "instock" : "outofstock",
+            stock_quantity: data.total_stock,
+            backorders: "notify", // Default for Bouwbeslag if backorders are allowed
+            backorders_allowed: true, // We will just permit backorders/notify generally or map it
+            meta_data: [
+                {
+                    key: "crucial_data_total_stock",
+                    value: String(data.total_stock)
+                }
+            ]
+        };
 
-        const productId = resolveRes.data.id;
-        const res = await api.get(`products/${productId}`, { cache: "no-store" });
-        return { success: true, data: res.data };
+        return { success: true, data: wcMockProduct };
     } catch (error: any) {
-        // console.error("Stock check error:", error?.message);
         return { success: false, error: error?.message || "Failed to fetch stock" };
     }
 }
