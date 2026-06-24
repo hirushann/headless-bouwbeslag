@@ -969,7 +969,7 @@ export default function CategoryClient({
   const router = useRouter();
 
   const { userRole } = useUserContext();
-  const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
+  const isB2B = !!(userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator")));
 
   const [products, setProducts] = useState<any[]>(initialProducts);
   const [rawProducts, setRawProducts] = useState<any[]>(initialProducts);
