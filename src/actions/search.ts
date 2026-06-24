@@ -278,7 +278,7 @@ export async function searchProducts(
                     // Try to find the first category that has an image
                     const cats = Array.isArray(source.terms.product_cat) ? source.terms.product_cat : [source.terms.product_cat];
                     for (const cat of cats) {
-                        const matchedCat = categoryIndex.find((c: any) => c.slug === cat.slug || c.name === cat.name);
+                        const matchedCat = categoryIndex?.find((c: any) => c.slug === cat.slug || c.name === cat.name);
                         if (matchedCat && matchedCat.image?.src) {
                             resolvedCatImage = matchedCat.image.src;
                             break;
