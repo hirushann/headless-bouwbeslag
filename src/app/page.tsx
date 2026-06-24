@@ -59,7 +59,7 @@ async function RecommendedSection() {
 }
 
 async function CategoriesSection() {
-  const categories = await api.get("products/categories", { per_page: 100 }).then((res: any) => res.data).catch(() => []);
+  const categories = await fetchCategories();
   return <CategoriesDisplay categories={categories} />;
 }
 
