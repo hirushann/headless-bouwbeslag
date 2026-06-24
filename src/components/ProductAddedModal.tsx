@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useCartStore } from "@/lib/cartStore";
 import RecommendedProductItem from "@/components/RecommendedProductItem";
 import { useProductAddedModal } from "@/context/ProductAddedModalContext";
@@ -20,14 +19,11 @@ export default function ProductAddedModal() {
   // Unless we put AnimatePresence inside and conditional `isOpen` inside.
   
   return (
-    <AnimatePresence>
+    <>
       {isOpen && modalData && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-white/20"
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in-up">
+          <div
+            className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-white/20 animate-fade-in-up"
           >
             {/* Header */}
             <div className="p-4 lg:p-6 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
@@ -202,9 +198,9 @@ export default function ProductAddedModal() {
                 Nu bestellen
               </button>
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
-    </AnimatePresence>
+    </>
   );
 }
