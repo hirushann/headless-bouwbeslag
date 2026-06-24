@@ -37,7 +37,6 @@ const CategoryItem = ({ category, allCategories, parentPath = "" }: { category: 
               prefetch={true}
               href={href} 
               className="hover:text-[#0066FF] hover:underline z-10 relative"
-              onClick={(e) => e.stopPropagation()} 
             >
               {displayName}
             </Link>

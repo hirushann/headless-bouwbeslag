@@ -160,7 +160,7 @@ export default function ProductCard({ product, userRole: propUserRole, useCatego
         {isFetchingImg ? (
           <div className="w-full h-full bg-gray-100 animate-pulse" />
         ) : (
-          <Image src={imgSrc} alt={productTitle} fill className="object-contain" />
+          <Image src={imgSrc} alt={productTitle} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-contain" />
         )}
 
         {/* Dynamic stock badge */}

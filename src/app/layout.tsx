@@ -8,9 +8,7 @@ import { getShippingSettings } from "@/lib/woocommerce";
 import { UserProvider } from "@/context/UserContext";
 import { Suspense } from "react";
 import { ProductAddedModalProvider } from "@/context/ProductAddedModalContext";
-import dynamic from "next/dynamic";
-
-const ProductAddedModal = dynamic(() => import("@/components/ProductAddedModal"));
+import ProductAddedModalWrapper from "@/components/ProductAddedModalWrapper";
 
 const dmsans = DM_Sans({
   variable: "--font-dm-sans",
@@ -95,7 +93,7 @@ export default async function RootLayout({
           <ProductAddedModalProvider>
             <Header shippingMethods={shippingSettings} />
             {children}
-            <ProductAddedModal />
+            <ProductAddedModalWrapper />
           </ProductAddedModalProvider>
         </UserProvider>
 
