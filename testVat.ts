@@ -1,3 +1,4 @@
+// @ts-nocheck
 import validateVat, { CountryCodes } from "validate-vat-ts";
 
 async function run() {
