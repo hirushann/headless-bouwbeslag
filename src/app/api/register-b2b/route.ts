@@ -3,13 +3,19 @@ import axios from "axios";
 import WooCommerceRestApi from "@woocommerce/woocommerce-rest-api";
 import nodemailer from "nodemailer";
 
-// Initialize WooCommerce API
-const api = new WooCommerceRestApi({
-    url: process.env.NEXT_PUBLIC_WORDPRESS_API_URL as string,
-    consumerKey: process.env.NEXT_PUBLIC_WC_CONSUMER_KEY as string,
-    consumerSecret: process.env.NEXT_PUBLIC_WC_CONSUMER_SECRET as string,
-    version: "wc/v3",
-});
+let apiInstance: any = null;
+
+function getApi() {
+    if (!apiInstance) {
+        apiInstance = new WooCommerceRestApi({
+            url: process.env.NEXT_PUBLIC_WORDPRESS_API_URL as string,
+            consumerKey: process.env.NEXT_PUBLIC_WC_CONSUMER_KEY as string,
+            consumerSecret: process.env.NEXT_PUBLIC_WC_CONSUMER_SECRET as string,
+            version: "wc/v3",
+        });
+    }
+    return apiInstance;
+}
 
 // Email Transporter (using environment variables)
 const transporter = nodemailer.createTransport({
@@ -83,6 +89,7 @@ export async function POST(req: Request) {
         };
 
         // Create Customer in WooCommerce
+        const api = getApi();
         const response = await api.post("customers", data);
 
         if (response.status === 201) {

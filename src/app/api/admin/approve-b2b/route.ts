@@ -2,13 +2,19 @@ import { NextResponse } from "next/server";
 import WooCommerceRestApi from "@woocommerce/woocommerce-rest-api";
 import nodemailer from "nodemailer";
 
-// Initialize WooCommerce API
-const api = new WooCommerceRestApi({
-    url: process.env.NEXT_PUBLIC_WORDPRESS_API_URL as string,
-    consumerKey: process.env.NEXT_PUBLIC_WC_CONSUMER_KEY as string,
-    consumerSecret: process.env.NEXT_PUBLIC_WC_CONSUMER_SECRET as string,
-    version: "wc/v3",
-});
+let apiInstance: any = null;
+
+function getApi() {
+    if (!apiInstance) {
+        apiInstance = new WooCommerceRestApi({
+            url: process.env.NEXT_PUBLIC_WORDPRESS_API_URL as string,
+            consumerKey: process.env.NEXT_PUBLIC_WC_CONSUMER_KEY as string,
+            consumerSecret: process.env.NEXT_PUBLIC_WC_CONSUMER_SECRET as string,
+            version: "wc/v3",
+        });
+    }
+    return apiInstance;
+}
 
 // Email Transporter
 const transporter = nodemailer.createTransport({
@@ -39,6 +45,7 @@ export async function GET(req: Request) {
 
     try {
         // Fetch current customer data to get email/name
+        const api = getApi();
         const customerRes = await api.get(`customers/${id}`);
         const customer = customerRes.data;
         const customerEmail = customer.email;
@@ -70,7 +77,7 @@ export async function GET(req: Request) {
         }
 
         // 2. Update Customer Meta in WooCommerce
-        await api.put(`customers/${id}`, {
+        await getApi().put(`customers/${id}`, {
             meta_data: [
                 {
                     key: "b2b_status",

@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server";
 import WooCommerceRestApi from "@woocommerce/woocommerce-rest-api";
 
-const api = new WooCommerceRestApi({
-    url: process.env.NEXT_PUBLIC_WORDPRESS_API_URL as string,
-    consumerKey: process.env.NEXT_PUBLIC_WC_CONSUMER_KEY as string,
-    consumerSecret: process.env.NEXT_PUBLIC_WC_CONSUMER_SECRET as string,
-    version: "wc/v3",
-});
+let apiInstance: any = null;
+
+function getApi() {
+    if (!apiInstance) {
+        apiInstance = new WooCommerceRestApi({
+            url: process.env.NEXT_PUBLIC_WORDPRESS_API_URL as string,
+            consumerKey: process.env.NEXT_PUBLIC_WC_CONSUMER_KEY as string,
+            consumerSecret: process.env.NEXT_PUBLIC_WC_CONSUMER_SECRET as string,
+            version: "wc/v3",
+        });
+    }
+    return apiInstance;
+}
 
 export async function POST(req: Request) {
     try {
@@ -18,6 +25,7 @@ export async function POST(req: Request) {
 
         // Fetch customer by email to check meta data
         // WooCommerce API allows filtering by email
+        const api = getApi();
         const response = await api.get("customers", { email: email });
 
         if (response.data.length === 0) {
