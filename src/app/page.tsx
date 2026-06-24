@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import api, { fetchCategories } from "@/lib/woocommerce";
 import { fetchPosts } from "@/lib/wordpress";
+import { fetchBlogsAction } from "@/app/actions";
 import { fetchMeiliProducts, mapMeiliToWooProduct } from "@/lib/meilisearch-products";
 import dynamic from "next/dynamic";
 
@@ -64,7 +65,8 @@ async function CategoriesSection() {
 }
 
 async function BlogSection() {
-  const posts = await fetchPosts(3).catch(() => []);
+  const res = await fetchBlogsAction(1, 3);
+  const posts = res.success ? res.data?.data || [] : [];
   if (!posts || posts.length === 0) return null;
   return (
     <FadeIn className="w-full py-10 px-5 lg:px-0" delay={0.1}>
@@ -82,18 +84,18 @@ async function BlogSection() {
               <Link href={`/kennisbank/${post.slug}`}>
                 <Image
                   className="mb-3 rounded-sm h-[250px] w-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                  src={post._embedded?.["wp:featuredmedia"]?.[0]?.source_url || "/default-fallback-image.webp"}
-                  alt={post.title.rendered}
+                  src={post.featured_image || "/default-fallback-image.webp"}
+                  alt={post.title}
                   width={500}
                   height={200}
                 />
               </Link>
               <div className="flex flex-col gap-2">
-                <p className="text-[#0050D1] font-normal text-sm">{new Date(post.date).toISOString().split("T")[0]}</p>
+                <p className="text-[#0050D1] font-normal text-sm">{new Date(post.published_at || post.created_at).toISOString().split("T")[0]}</p>
                 <Link href={`/kennisbank/${post.slug}`}>
-                  <div className="text-[#1C2530] font-semibold text-xl cursor-pointer hover:text-[#0050D1] transition-colors" dangerouslySetInnerHTML={{ __html: post.title.rendered }} />
+                  <div className="text-[#1C2530] font-semibold text-xl cursor-pointer hover:text-[#0050D1] transition-colors" dangerouslySetInnerHTML={{ __html: post.title }} />
                 </Link>
-                {post.excerpt?.rendered && <div className="text-[#3D4752] font-normal text-sm" dangerouslySetInnerHTML={{ __html: post.excerpt.rendered }} />}
+                {post.excerpt && <div className="text-[#3D4752] font-normal text-sm" dangerouslySetInnerHTML={{ __html: post.excerpt }} />}
               </div>
             </div>
           ))}
