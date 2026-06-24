@@ -126,7 +126,7 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods }: CartDra
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
                 </svg>
                 <p className="text-gray-500 font-medium">Je winkelwagen is leeg</p>
-                <button onClick={() => setCartOpen(false)} className="mt-4 text-[#0066FF] font-semibold hover:underline">Verder winkelen</button>
+                <button onClick={() => setCartOpen(false)} className="mt-4 text-[#0050D1] font-semibold hover:underline">Verder winkelen</button>
               </div>
             ) : (
               items.map((item) => (

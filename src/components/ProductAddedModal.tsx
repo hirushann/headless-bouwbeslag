@@ -64,7 +64,7 @@ export default function ProductAddedModal() {
                 <div className="flex-1 flex flex-col justify-center min-w-0">
                   <h3 className="font-bold text-sm sm:text-base lg:text-lg text-[#1C2530] leading-snug line-clamp-2">{modalData.product?.name}</h3>
                   <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                     <span className="bg-blue-100 text-[#0066FF] px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold uppercase tracking-wider">Aantal: {modalData.quantity}</span>
+                     <span className="bg-blue-100 text-[#0050D1] px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold uppercase tracking-wider">Aantal: {modalData.quantity}</span>
                       <div className="text-[10px] sm:text-xs">
                         {modalData.deliveryText && (
                             <span className={`font-bold ${
@@ -79,7 +79,7 @@ export default function ProductAddedModal() {
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-base sm:text-xl lg:text-2xl font-bold text-[#0066FF] tracking-tight">
+                  <p className="text-base sm:text-xl lg:text-2xl font-bold text-[#0050D1] tracking-tight">
                     {modalData.currency || "€"}{modalData.totalPrice?.toFixed(2).replace('.', ',')}
                   </p>
                   <p className="text-[10px] sm:text-xs text-[#64748B] font-medium mt-0.5">
@@ -101,7 +101,7 @@ export default function ProductAddedModal() {
                        <h3 className="text-lg lg:text-xl font-bold text-[#1C2530]">Vaak samen gekocht</h3>
                        <p className="text-sm text-gray-500 font-medium">Handige accessoires voor een nog beter resultaat</p>
                      </div>
-                     <div className="hidden lg:flex items-center gap-1 text-[#0066FF] font-bold text-sm bg-blue-50 px-3 py-1 rounded-full">
+                     <div className="hidden lg:flex items-center gap-1 text-[#0050D1] font-bold text-sm bg-blue-50 px-3 py-1 rounded-full">
                         <span className="w-2 h-2 rounded-full bg-[#0066FF] animate-pulse"></span>
                         Bespaar verzendkosten
                      </div>

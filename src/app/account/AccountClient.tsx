@@ -359,7 +359,7 @@ function AccountContent() {
       onClick={() => setActiveTab(id)}
       className={`w-full text-left px-6 py-4 flex items-center gap-3 transition-colors duration-200 border-l-4 ${
         activeTab === id
-          ? "border-[#0066FF] bg-white text-[#0066FF] font-semibold shadow-sm"
+          ? "border-[#0066FF] bg-white text-[#0050D1] font-semibold shadow-sm"
           : "border-transparent text-gray-600 hover:bg-white hover:text-gray-900"
       }`}
     >
@@ -371,7 +371,7 @@ function AccountContent() {
   const StatCard = ({ title, value, desc }: { title: string; value: string; desc: string }) => (
     <div className="bg-white p-6 rounded-lg shadow-sm border border-[#DBE3EA] flex flex-col gap-2 flex-1">
       <h3 className="text-gray-500 font-medium text-sm uppercase tracking-wider">{title}</h3>
-      <p className="text-3xl font-bold text-[#0066FF]">{value}</p>
+      <p className="text-3xl font-bold text-[#0050D1]">{value}</p>
       <p className="text-gray-400 text-xs">{desc}</p>
     </div>
   );
@@ -383,7 +383,7 @@ function AccountContent() {
         {/* Breadcrumb */}
         <div className="mb-8">
           <div className="text-sm text-gray-500 mb-6 flex items-center gap-2">
-            <Link href="/" className="hover:text-[#0066FF] flex items-center gap-1 transition-colors">
+            <Link href="/" className="hover:text-[#0050D1] flex items-center gap-1 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-4"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>
               Home
             </Link>
@@ -463,7 +463,7 @@ function AccountContent() {
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-bold text-[#1C2530]">Recent Orders</h3>
                     {orders.length > 3 && (
-                      <button className="text-[#0066FF] hover:underline text-sm font-medium" onClick={() => setActiveTab("orders")}>
+                      <button className="text-[#0050D1] hover:underline text-sm font-medium" onClick={() => setActiveTab("orders")}>
                         View all
                       </button>
                     )}

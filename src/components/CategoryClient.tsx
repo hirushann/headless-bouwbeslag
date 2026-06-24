@@ -247,7 +247,7 @@ function FilterAttributeGroup({
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center justify-between w-full group py-2"
       >
-        <h3 className="font-semibold text-lg text-[#212121] capitalize group-hover:text-[#0066FF] transition-colors">{getDutchFilterTitle(attr.name)}</h3>
+        <h3 className="font-semibold text-lg text-[#212121] capitalize group-hover:text-[#0050D1] transition-colors">{getDutchFilterTitle(attr.name)}</h3>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="20"
@@ -279,7 +279,7 @@ function FilterAttributeGroup({
                 <div className="w-5">
                   <input
                     type="checkbox"
-                    className={`mr-2 w-5 h-5 rounded-sm border border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0 ${isDisabled ? 'cursor-not-allowed' : ''}`}
+                    className={`mr-2 w-5 h-5 rounded-sm border border-gray-300 text-[#0050D1] focus:ring-0 focus:ring-offset-0 ${isDisabled ? 'cursor-not-allowed' : ''}`}
                     checked={isSelected}
                     disabled={isDisabled}
                     onChange={() => toggleFilter(attr.id, term.id)}
@@ -697,7 +697,7 @@ function FilterSidebar({
               onClick={() => setIsBrandOpen(!isBrandOpen)}
               className="flex items-center justify-between w-full group py-2"
             >
-              <h3 className="font-semibold text-lg text-[#212121] group-hover:text-[#0066FF] transition-colors">Merk</h3>
+              <h3 className="font-semibold text-lg text-[#212121] group-hover:text-[#0050D1] transition-colors">Merk</h3>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="20"
@@ -723,12 +723,12 @@ function FilterSidebar({
                   <label key={b.id} className="flex items-center gap-2 cursor-pointer py-1 group">
                     <input
                       type="checkbox"
-                      className="w-5 h-5 rounded-sm border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                      className="w-5 h-5 rounded-sm border-gray-300 text-[#0050D1] focus:ring-0 focus:ring-offset-0 cursor-pointer"
                       checked={selectedBrands.has(b.id)}
                       onChange={() => toggleBrandFilter(b.id)}
                       disabled={b.count === 0 && !selectedBrands.has(b.id)}
                     />
-                    <span className={`text-sm group-hover:text-[#0066FF] transition-colors ${b.count === 0 && !selectedBrands.has(b.id) ? 'text-gray-400' : 'text-gray-700'}`}>
+                    <span className={`text-sm group-hover:text-[#0050D1] transition-colors ${b.count === 0 && !selectedBrands.has(b.id) ? 'text-gray-400' : 'text-gray-700'}`}>
                       {b.name} <span className="text-gray-400 text-xs ml-1">({b.count})</span>
                     </span>
                   </label>
@@ -743,7 +743,7 @@ function FilterSidebar({
               onClick={() => setIsColorOpen(!isColorOpen)}
               className="flex items-center justify-between w-full group py-2"
             >
-              <h3 className="font-semibold text-lg text-[#212121] group-hover:text-[#0066FF] transition-colors">{getDutchFilterTitle(colorAttribute?.name)}</h3>
+              <h3 className="font-semibold text-lg text-[#212121] group-hover:text-[#0050D1] transition-colors">{getDutchFilterTitle(colorAttribute?.name)}</h3>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="20"
@@ -801,7 +801,7 @@ function FilterSidebar({
               onClick={() => setIsPriceOpen(!isPriceOpen)}
               className="flex items-center justify-between w-full group py-2"
             >
-              <h3 className="font-semibold text-lg text-[#212121] group-hover:text-[#0066FF] transition-colors">Prijs (€)</h3>
+              <h3 className="font-semibold text-lg text-[#212121] group-hover:text-[#0050D1] transition-colors">Prijs (€)</h3>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="20"
@@ -840,7 +840,7 @@ function FilterSidebar({
               onClick={() => setIsAfdichtOpen(!isAfdichtOpen)}
               className="flex items-center justify-between w-full group py-2"
             >
-              <h3 className="font-semibold text-lg text-[#212121] group-hover:text-[#0066FF] transition-colors">Afdichtingsspleet (mm)</h3>
+              <h3 className="font-semibold text-lg text-[#212121] group-hover:text-[#0050D1] transition-colors">Afdichtingsspleet (mm)</h3>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="20"
@@ -878,7 +878,7 @@ function FilterSidebar({
               onClick={() => setIsGroefOpen(!isGroefOpen)}
               className="flex items-center justify-between w-full group py-2"
             >
-              <h3 className="font-semibold text-lg text-[#212121] group-hover:text-[#0066FF] transition-colors">Groefbreedte (mm)</h3>
+              <h3 className="font-semibold text-lg text-[#212121] group-hover:text-[#0050D1] transition-colors">Groefbreedte (mm)</h3>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="20"
@@ -921,11 +921,11 @@ function FilterSidebar({
             <label className="flex items-center gap-2 cursor-pointer py-1 group">
               <input
                 type="checkbox"
-                className="w-5 h-5 rounded-sm border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                className="w-5 h-5 rounded-sm border-gray-300 text-[#0050D1] focus:ring-0 focus:ring-offset-0 cursor-pointer"
                 checked={showOnlyInStock}
                 onChange={(e) => setShowOnlyInStock(e.target.checked)}
               />
-              <span className="text-sm text-gray-700 group-hover:text-[#0066FF] transition-colors">Alleen op voorraad</span>
+              <span className="text-sm text-gray-700 group-hover:text-[#0050D1] transition-colors">Alleen op voorraad</span>
             </label>
           </div>
         )}
@@ -1387,7 +1387,7 @@ export default function CategoryClient({
                             className={`w-10 h-10 flex-shrink-0 rounded-md border font-bold transition-all cursor-pointer text-sm ${
                               page === p
                                 ? "bg-[#0066FF] border-[#0066FF] text-white shadow-md shadow-blue-100"
-                                : "bg-white border-gray-300 text-gray-600 hover:border-[#0066FF] hover:text-[#0066FF]"
+                                : "bg-white border-gray-300 text-gray-600 hover:border-[#0066FF] hover:text-[#0050D1]"
                             }`}
                           >
                             {p}

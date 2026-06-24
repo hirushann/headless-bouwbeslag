@@ -91,7 +91,7 @@ export default function WarrantyRequestPage() {
             {/* Klantgegevens */}
             <div>
               <h3 className="text-lg font-semibold text-[#1C2530] mb-4 flex items-center gap-2">
-                <span className="text-[#0066FF]">🔹</span> Klantgegevens
+                <span className="text-[#0050D1]">🔹</span> Klantgegevens
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1">
@@ -132,7 +132,7 @@ export default function WarrantyRequestPage() {
             {/* Bestelinformatie */}
             <div>
               <h3 className="text-lg font-semibold text-[#1C2530] mb-4 flex items-center gap-2">
-                <span className="text-[#0066FF]">🔹</span> Bestelinformatie
+                <span className="text-[#0050D1]">🔹</span> Bestelinformatie
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1">
@@ -174,7 +174,7 @@ export default function WarrantyRequestPage() {
             {/* Probleemomschrijving */}
             <div>
               <h3 className="text-lg font-semibold text-[#1C2530] mb-4 flex items-center gap-2">
-                <span className="text-[#0066FF]">🔹</span> Probleemomschrijving
+                <span className="text-[#0050D1]">🔹</span> Probleemomschrijving
               </h3>
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1">
@@ -244,7 +244,7 @@ export default function WarrantyRequestPage() {
             </p>
             <button
               onClick={() => setSubmitted(false)}
-              className="text-[#0066FF] font-medium hover:underline"
+              className="text-[#0050D1] font-medium hover:underline"
             >
               Nog een aanvraag doen
             </button>
@@ -260,7 +260,7 @@ export default function WarrantyRequestPage() {
                 <details className="group">
                   <summary className="flex justify-between items-center cursor-pointer px-6 py-4 font-semibold text-lg text-[#1C2530]">
                     {faq.question}
-                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-50 text-[#0066FF] group-open:rotate-180 transition-transform">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-50 text-[#0050D1] group-open:rotate-180 transition-transform">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                       </svg>

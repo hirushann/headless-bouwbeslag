@@ -62,7 +62,7 @@ export default function LoginPage() {
              </p>
              <div className="mt-auto">
                <p className="text-sm text-blue-200 uppercase tracking-wider font-semibold mb-2">Nog geen account?</p>
-               <Link href="/zakelijk-aanmelden" className="inline-block bg-white text-[#0066FF] px-6 py-3 rounded-sm font-bold hover:bg-blue-50 transition-colors">
+               <Link href="/zakelijk-aanmelden" className="inline-block bg-white text-[#0050D1] px-6 py-3 rounded-sm font-bold hover:bg-blue-50 transition-colors">
                  Zakelijk account aanvragen
                </Link>
              </div>
@@ -117,7 +117,7 @@ export default function LoginPage() {
                   </span>
                 </div>
                 <div className="flex justify-end mt-2">
-                   <a className="text-sm text-[#0066FF] hover:underline cursor-pointer">Wachtwoord vergeten?</a>
+                   <a className="text-sm text-[#0050D1] hover:underline cursor-pointer">Wachtwoord vergeten?</a>
                 </div>
               </fieldset>
 

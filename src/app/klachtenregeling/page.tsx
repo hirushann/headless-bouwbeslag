@@ -20,7 +20,7 @@ export default function ComplaintsPolicyPage() {
         </p>
 
         <p className="text-lg leading-relaxed">
-          Leidt dit niet tot een oplossing, dan is het mogelijk om uw geschil aan te melden voor bemiddeling via <strong>WebwinkelKeur</strong> via <a href="https://www.webwinkelkeur.nl/kennisbank/consumenten/geschil" target="_blank" rel="noopener noreferrer" className="text-[#0066FF] hover:underline font-medium">deze link</a>.
+          Leidt dit niet tot een oplossing, dan is het mogelijk om uw geschil aan te melden voor bemiddeling via <strong>WebwinkelKeur</strong> via <a href="https://www.webwinkelkeur.nl/kennisbank/consumenten/geschil" target="_blank" rel="noopener noreferrer" className="text-[#0050D1] hover:underline font-medium">deze link</a>.
         </p>
       </div>
     </main>

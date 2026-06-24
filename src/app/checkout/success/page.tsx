@@ -130,7 +130,7 @@ function SuccessContent() {
       {orderId && (
         <div className="bg-white/80 backdrop-blur-sm border border-gray-100 px-6 py-3 rounded-xl shadow-sm mb-6 inline-block">
           <p className="text-gray-600 font-medium">
-            Jouw ordernummer is <span className="text-[#0066FF] font-bold text-lg inline-block ml-1">#{orderId}</span>
+            Jouw ordernummer is <span className="text-[#0050D1] font-bold text-lg inline-block ml-1">#{orderId}</span>
           </p>
         </div>
       )}

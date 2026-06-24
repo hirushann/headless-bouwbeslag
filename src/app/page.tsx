@@ -69,9 +69,9 @@ async function BlogSection() {
   return (
     <FadeIn className="w-full py-10 px-5 lg:px-0" delay={0.1}>
       <div className="flex justify-between items-center mb-2">
-        <h3 className="text-xl lg:text-3xl font-bold text-[#1C2530]">Lees onze blog</h3>
+        <h2 className="text-xl lg:text-3xl font-bold text-[#1C2530]">Lees onze blog</h2>
         <div className="flex gap-2 items-center">
-          <a href="/kennisbank" className="border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">Bekijk alles</a>
+          <a href="/kennisbank" className="border border-[#0066FF] text-[#0050D1] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">Bekijk alles</a>
         </div>
       </div>
       <p className="text-[#3D4752] mb-8">Bekijk ons laatste artikel voor zinvolle inhoud of winkeltips</p>
@@ -89,9 +89,9 @@ async function BlogSection() {
                 />
               </Link>
               <div className="flex flex-col gap-2">
-                <p className="text-[#0066FF] font-normal text-sm">{new Date(post.date).toISOString().split("T")[0]}</p>
+                <p className="text-[#0050D1] font-normal text-sm">{new Date(post.date).toISOString().split("T")[0]}</p>
                 <Link href={`/kennisbank/${post.slug}`}>
-                  <div className="text-[#1C2530] font-semibold text-xl cursor-pointer hover:text-[#0066FF] transition-colors" dangerouslySetInnerHTML={{ __html: post.title.rendered }} />
+                  <div className="text-[#1C2530] font-semibold text-xl cursor-pointer hover:text-[#0050D1] transition-colors" dangerouslySetInnerHTML={{ __html: post.title.rendered }} />
                 </Link>
                 {post.excerpt?.rendered && <div className="text-[#3D4752] font-normal text-sm" dangerouslySetInnerHTML={{ __html: post.excerpt.rendered }} />}
               </div>
@@ -114,9 +114,9 @@ function CategoriesDisplay({ categories }: { categories: any[] }) {
   return (
     <div className="w-full py-10 px-5 lg:px-0">
       <div className="flex justify-between items-center mb-2">
-        <h3 className="text-lg lg:text-3xl font-bold text-[#1C2530]">Winkelen op categorie</h3>
+        <h2 className="text-lg lg:text-3xl font-bold text-[#1C2530]">Winkelen op categorie</h2>
         <div className="flex gap-2 items-center">
-          <a href="/categories" className="border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">Bekijk alles</a>
+          <a href="/categories" className="border border-[#0066FF] text-[#0050D1] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">Bekijk alles</a>
         </div>
       </div>
       <p className="text-[#3D4752] mb-8">Bekijk al onze categorieën om te vinden wat u nodig heeft</p>
@@ -137,7 +137,7 @@ function CategoriesDisplay({ categories }: { categories: any[] }) {
                     {categories.filter((sub: any) => sub.parent === cat.id).slice(0, 3).map((sub: any) => {
                       const subDisplayName = sub.name.includes(" > ") ? sub.name.split(" > ").pop()?.trim() : sub.name;
                       return (
-                      <div key={sub.id} className="flex items-center justify-between mt-2 font-normal text-[#1C2530] text-base hover:underline cursor-pointer hover:text-[#0066FF]">
+                      <div key={sub.id} className="flex items-center justify-between mt-2 font-normal text-[#1C2530] text-base hover:underline cursor-pointer hover:text-[#0050D1]">
                         <span>{subDisplayName}</span>
                         <span>{sub.count || ''}</span>
                       </div>
@@ -160,7 +160,7 @@ function CategoriesDisplay({ categories }: { categories: any[] }) {
                 </div>
                 <div className="w-full mt-auto">
                   <Link href={`/${cat.slug}`}>
-                    <button className="!w-full border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">
+                    <button className="!w-full border border-[#0066FF] text-[#0050D1] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">
                       Bekijk alle {displayName}
                     </button>
                   </Link>
@@ -235,19 +235,19 @@ export default async function Home() {
         {/* Bottom Content */}
         <FadeIn className="w-full py-10 px-5 lg:px-0" delay={0.6}>
           <div className="flex flex-col gap-6 mb-12">
-            <h3 className="text-[#1C2530] font-semibold text-2xl">Bouwbeslag & deurbeslag voor iedere deur – welkom bij Bouwbeslag.nl</h3>
+            <h2 className="text-[#1C2530] font-semibold text-2xl">Bouwbeslag & deurbeslag voor iedere deur – welkom bij Bouwbeslag.nl</h2>
             <p className="text-[#3D4752] font-normal text-base">Op zoek naar hoogwaardig <strong>bouwbeslag</strong> en <strong>deurbeslag</strong> voor jouw woning, kantoor of project? Bij Bouwbeslag.nl vind je uitsluitend A-merken, scherpe prijzen en vooral: échte vakmensen die met je meedenken. Van populaire bronzen deurklinken tot klassiek RVS deurbeslag en slimme oplossingen voor tocht- en geluidsisolatie – wij hebben het in huis en vertellen je precies wat je nodig hebt.</p>
             <p className="text-[#3D4752] font-normal text-base">Onze webshop is zo opgezet dat je niet hoeft te gokken: je ziet direct welke producten passen, wat de technische specificaties zijn en wanneer je ze kunt verwachten. Zo bestel je zonder zorgen het juiste beslag voor elke deur, elk raam en iedere situatie.</p>
           </div>
 
           <div className="flex flex-col gap-6 mb-12">
-            <h3 className="text-[#1C2530] font-semibold text-2xl">Waarom kiezen voor Bouwbeslag.nl?</h3>
+            <h2 className="text-[#1C2530] font-semibold text-2xl">Waarom kiezen voor Bouwbeslag.nl?</h2>
             <p className="text-[#3D4752] font-normal text-base">Altijd de laatste trends in deurbeslag</p>
             <p className="text-[#3D4752] font-normal text-base">De wereld van <strong>deurbeslag</strong> staat niet stil. Waar <strong>zwarte deurklinken</strong> de afgelopen jaren razend populair waren, zien we nu een duidelijke verschuiving richting <strong>bronzen deurklinken</strong> en warme metalen tinten. Wij volgen deze trends op de voet en zorgen dat juist díe producten ruim op voorraad zijn. Zo loop jij voorop met een interieur dat helemaal van nu is.</p>
           </div>
 
           <div className="flex flex-col gap-6 mb-12">
-            <h3 className="text-[#1C2530] font-semibold text-2xl">Alle informatie vóórdat je erom vraagt</h3>
+            <h2 className="text-[#1C2530] font-semibold text-2xl">Alle informatie vóórdat je erom vraagt</h2>
             <p className="text-[#3D4752] font-normal text-base">Bij elk artikel op Bouwbeslag.nl vind je direct:</p>
             <ul className="pl-0 space-y-2 text-[#3D4752] font-medium text-base">
               <li className="flex items-start gap-2">
@@ -274,26 +274,26 @@ export default async function Home() {
           </div>
 
           <div className="flex flex-col gap-6 mb-12">
-            <h3 className="text-[#1C2530] font-semibold text-2xl">Uitsluitend A-merken in RVS en messing</h3>
+            <h2 className="text-[#1C2530] font-semibold text-2xl">Uitsluitend A-merken in RVS en messing</h2>
             <p className="text-[#3D4752] font-normal text-base">Wij geloven in kwaliteit. Daarom verkopen wij alleen<strong>A-merken</strong>  zoals <strong>HABO</strong>, <strong>Mauer</strong>, <strong>JNF</strong> en <strong>Q-Lon</strong>. Geen twijfelachtige import, geen anonieme merkloze producten – maar gewoon betrouwbaar bouwbeslag waar je jarenlang plezier van hebt.</p>
             <p className="text-[#3D4752] font-normal text-base">Het grootste deel van ons assortiment bestaat uit RVS en messing. Deze materialen zijn duurzaam, mooi afgewerkt en geschikt voor intensief dagelijks gebruik. Dat is misschien een paar euro duurder dan de allergoedkoopste alternatieven, maar het bespaart je op lange termijn gedoe, slijtage en vervangen.</p>
           </div>
 
           <div className="flex flex-col gap-6 mb-12">
-            <h3 className="text-[#1C2530] font-semibold text-2xl">De goedkoopste in A-merken – met laagsteprijsgarantie</h3>
+            <h2 className="text-[#1C2530] font-semibold text-2xl">De goedkoopste in A-merken – met laagsteprijsgarantie</h2>
             <p className="text-[#3D4752] font-normal text-base">Kwaliteit mag betaalbaar zijn. Daarom hanteren we een duidelijke belofte: vind je bij een andere webshop in de Benelux hetzelfde A-merk product goedkoper, dan matchen wij die prijs én geven we je 10% extra korting bovenop die lagere prijs.</p>
             <p className="text-[#3D4752] font-normal text-base">Zo weet je zeker dat je bij Bouwbeslag.nl niet alleen topkwaliteit koopt, maar ook nog eens de beste prijs betaalt.</p>
           </div>
 
           <div className="flex flex-col gap-6 mb-12">
-            <h3 className="text-[#1C2530] font-semibold text-2xl">Persoonlijke hulp van echte specialisten</h3>
+            <h2 className="text-[#1C2530] font-semibold text-2xl">Persoonlijke hulp van echte specialisten</h2>
             <p className="text-[#3D4752] font-normal text-base">Kom je er zelf even niet uit? Twijfel je tussen twee soorten deurklinken, heb je vragen over montage of wil je zeker weten dat jouw deurbeslag geschikt is voor jouw situatie? Wij helpen je graag.</p>
             <p className="text-[#3D4752] font-normal text-base">Je kunt ons bellen, appen of mailen. We denken graag met je mee, van productkeuze tot praktische toepassing op de bouwplaats of in huis. Geen anonieme webshop, maar een team dat dagelijks met bouw- en deurbeslag werkt.</p>
           </div>
 
           <div className="flex flex-col mb-12 p-5 lg:p-6 bg-[#FFFFFF] rounded-lg">
             <div className="mb-5">
-              <h3 className="text-[#1C2530] font-semibold text-2xl">Veelgestelde vragen over bouwbeslag en deurbeslag</h3>
+              <h2 className="text-[#1C2530] font-semibold text-2xl">Veelgestelde vragen over bouwbeslag en deurbeslag</h2>
             </div>
             <div className="collapse bg-white border-b !rounded-0 border-[#F5F5F5]">
               <input type="radio" name="faq-1" defaultChecked aria-label="Wat is bouwbeslag?" />
@@ -346,7 +346,7 @@ export default async function Home() {
           </div>
 
           {/* <div className="flex flex-col gap-6 mb-12">
-            <h3 className="text-[#1C2530] font-semibold text-2xl">Een deurklink in alle soorten en maten</h3>
+            <h2 className="text-[#1C2530] font-semibold text-2xl">Een deurklink in alle soorten en maten</h2>
             <p className="text-[#3D4752] font-normal text-base">Bij Bouwbeslag.com vindt u deurklinken met rozetten, schilden, sleutelgaten (PC), toiletsloten, blinden en speciaal veiligheidsbeslag voor buitendeuren. De materialen variëren van roestvrij staal en messing tot aluminium en brons. Voor wie weinig onderhoud wil, zijn krasbestendige materialen zoals roestvrij staal of titanium de beste keuze. Ook kleur speelt een rol: kies voor klassiek zilver, strak zwart of een opvallende afwerking die past bij uw interieurstijl.</p>
           </div> */}
         </FadeIn>

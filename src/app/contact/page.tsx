@@ -32,7 +32,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <p className="text-[#1C2630] font-semibold text-lg">E-mail</p>
-                    <a href="mailto:contact@bouwbeslag.nl" className="text-[#0066FF] hover:underline">contact@bouwbeslag.nl</a>
+                    <a href="mailto:contact@bouwbeslag.nl" className="text-[#0050D1] hover:underline">contact@bouwbeslag.nl</a>
                   </div>
                 </div>
 
@@ -44,7 +44,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <p className="text-[#1C2630] font-semibold text-lg">Telefoon</p>
-                    <a href="tel:0031578760508" className="text-[#0066FF] hover:underline">0578-760508</a>
+                    <a href="tel:0031578760508" className="text-[#0050D1] hover:underline">0578-760508</a>
                   </div>
                 </div>
 

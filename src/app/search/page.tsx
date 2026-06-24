@@ -329,7 +329,7 @@ function SearchContent() {
                           <label key={term.id} className="flex items-start gap-1">
                             <input
                               type="checkbox"
-                              className="mr-2 w-[40px] h-[20px] rounded-sm border border-gray-300 text-[#0066FF] focus:ring-0 focus:ring-offset-0"
+                              className="mr-2 w-[40px] h-[20px] rounded-sm border border-gray-300 text-[#0050D1] focus:ring-0 focus:ring-offset-0"
                               checked={selectedFilters[attr.id]?.has(term.id) || false}
                               onChange={() => {
                                 setSelectedFilters(prev => {

@@ -36,7 +36,7 @@ export default function ReturnPolicyPage() {
         </p>
 
         <div className="border border-blue-100 p-6 rounded-sm">
-          <h2 className="text-xl font-bold mb-3 text-[#0066FF]">Handig: Retouren via DHL (Zonder printen)</h2>
+          <h2 className="text-xl font-bold mb-3 text-[#0050D1]">Handig: Retouren via DHL (Zonder printen)</h2>
           <p>
             Wij kunnen je ook een <strong>QR code van DHL</strong> mailen. Die kun je bij ieder DHL punt laten scannen, zonder iets te printen. 
             <br /><br />

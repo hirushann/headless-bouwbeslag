@@ -36,7 +36,7 @@ const CategoryItem = ({ category, allCategories, parentPath = "" }: { category: 
             <Link 
               prefetch={true}
               href={href} 
-              className="hover:text-[#0066FF] hover:underline z-10 relative"
+              className="hover:text-[#0050D1] hover:underline z-10 relative"
             >
               {displayName}
             </Link>
@@ -56,7 +56,7 @@ const CategoryItem = ({ category, allCategories, parentPath = "" }: { category: 
     <Link
       prefetch={true}
       href={href}
-      className="block font-normal text-sm text-[#3D4752] py-3 px-4 hover:text-[#0066FF]"
+      className="block font-normal text-sm text-[#3D4752] py-3 px-4 hover:text-[#0050D1]"
     >
       {displayName}
     </Link>

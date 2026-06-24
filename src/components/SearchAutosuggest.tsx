@@ -209,13 +209,14 @@ export default function SearchAutosuggest({
             >
                 <div className="w-full rounded-[4px]">
                     <div className="input validator w-full border-0 rounded-[5px] bg-white flex items-center gap-2 p-0 px-3 cursor-text">
-                        <span className="text-gray-400 w-full py-2 text-base truncate select-none">
+                        <span className="text-gray-500 w-full py-2 text-base truncate select-none">
                             {query || placeholder}
                         </span>
                     </div>
                 </div>
                 <button
                     type="button"
+                    aria-label="Search"
                     className="btn bg-[#2332C51A] rounded-[4px] border-0 shadow-none px-4 pointer-events-none"
                 >
                     <svg
@@ -261,6 +262,7 @@ export default function SearchAutosuggest({
                                         </div>
                                         <button
                                             type="submit"
+                                            aria-label="Search"
                                             className="btn bg-[#2332C51A] border-0 shadow-none px-6 h-full rounded-r-[4px]"
                                         >
                                             <svg

@@ -81,7 +81,7 @@ export default async function BlogPage() {
                       className="w-full h-[250px] object-cover rounded-t-md"
                     />
                     <div className="py-4 px-3 flex flex-col gap-2">
-                      <p className="text-[#0066FF] text-sm">
+                      <p className="text-[#0050D1] text-sm">
                         {formatDate(post.published_at)}
                       </p>
                       <p
@@ -125,7 +125,7 @@ export default async function BlogPage() {
               </p>
               <Link
                 href="/"
-                className="mt-6 border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-6 py-2.5 font-semibold text-sm hover:text-white hover:bg-[#0066FF] transition-colors"
+                className="mt-6 border border-[#0066FF] text-[#0050D1] uppercase rounded-sm px-6 py-2.5 font-semibold text-sm hover:text-white hover:bg-[#0066FF] transition-colors"
                >
                 Terug naar Home
               </Link>

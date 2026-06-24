@@ -108,7 +108,7 @@ export default async function SingleBlogPage({
         />
 
         <div className="flex flex-col gap-2">
-          <p className="text-[#0066FF] font-semibold text-xl lg:text-2xl mt-5">
+          <p className="text-[#0050D1] font-semibold text-xl lg:text-2xl mt-5">
             {new Date(post.published_at).toLocaleDateString("nl-NL", {
               year: "numeric",
               month: "long",
