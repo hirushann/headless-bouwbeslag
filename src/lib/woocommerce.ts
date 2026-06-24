@@ -118,7 +118,7 @@ const EMPIRE_BASE_URL = EMPIRE_API_URL.replace(/\/$/, "");
 export const fetchCategories = async () => {
     try {
         const res = await fetch(`${EMPIRE_BASE_URL}/api/categories`, {
-            next: { revalidate: 86400 }
+            cache: 'no-store'
         });
         if (!res.ok) return [];
         return await res.json();
@@ -200,7 +200,7 @@ export interface ShippingMethod {
 export const getShippingMethods = async () => {
     try {
         const res = await fetch(`${EMPIRE_BASE_URL}/api/shipping/settings`, {
-            next: { revalidate: 3600 }
+            cache: 'no-store'
         });
         if (!res.ok) return [];
         
@@ -212,6 +212,7 @@ export const getShippingMethods = async () => {
             title: m.title,
             cost: m.cost || 0,
             enabled: m.enabled,
+            requires: m.min_amount ? "min_amount" : undefined,
             minAmount: m.min_amount?.toString()
         }));
     } catch (error) {

@@ -366,13 +366,13 @@ const fetchAllCategoryProductsForFiltersCached = cache(async (categoryId: number
 
 const getProductReviewsCached = cache(async (productId: number) => {
   try {
-    const res = await api.get("products/reviews", { 
-      product: productId, 
-      status: 'approved',
-      per_page: 50,
-      next: { revalidate: 3600 }
+    const EMPIRE_BASE_URL = (process.env.NEXT_PUBLIC_EMPIRE_API_URL || process.env.EMPIRE_BACKEND_API_URL || "http://localhost:8000").replace(/\/$/, "");
+    const res = await fetch(`${EMPIRE_BASE_URL}/api/products/${productId}/reviews?limit=50`, {
+        next: { revalidate: 3600 }
     });
-    return res.data || [];
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.data || [];
   } catch (error) {
     return [];
   }
@@ -777,7 +777,7 @@ function generateStructuredData(product: any, taxRate: number, reviews: any[] = 
         name: r.reviewer || "Klant",
       },
       reviewBody: clean(r.review),
-      datePublished: r.date_created.split('T')[0],
+      datePublished: (r.created_at || r.date_created || new Date().toISOString()).split('T')[0],
     }));
   }
 

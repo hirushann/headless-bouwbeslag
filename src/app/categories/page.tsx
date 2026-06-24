@@ -39,39 +39,10 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+import { fetchCategories } from "@/lib/woocommerce";
+
 export default async function Categories() {
-  let categories: Category[] = [];
-
-  try {
-    let page = 1;
-    let fetching = true;
-
-    while (fetching) {
-      const res = await api.get("products/categories", {
-        per_page: 100,
-        page: page,
-        parent: 0,
-        hide_empty: true,
-      });
-      
-      const data = res.data || [];
-      if (Array.isArray(data) && data.length > 0) {
-        categories = [...categories, ...data];
-        if (data.length < 100) {
-          fetching = false;
-        } else {
-          page++;
-        }
-      } else {
-        fetching = false;
-      }
-    }
-  } catch (err: any) {
-    // console.error("Error fetching categories:", err.response?.data || err.message);
-  }
-
-  // console.log("--- DEBUG CATEGORIES PAGE ---");
-  // console.log("Categories found:", categories.length);
+  const categories = await fetchCategories();
   // console.log("-----------------------------");
 
   return (

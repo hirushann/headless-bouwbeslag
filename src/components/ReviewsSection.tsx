@@ -6,7 +6,8 @@ import toast from "react-hot-toast";
 
 interface Review {
   id: number;
-  date_created: string;
+  date_created?: string;
+  created_at?: string;
   review: string;
   rating: number;
   reviewer: string;
@@ -96,7 +97,7 @@ export default function ReviewsSection({ productId, productName, initialReviews:
           reviewer_email: formData.email,
           rating: formData.rating,
           review: formData.message,
-          productName: productName
+          product_name: productName
         })
       });
 
@@ -193,7 +194,7 @@ export default function ReviewsSection({ productId, productName, initialReviews:
                   }}
                 />
                 <p className="text-[#9CA3AF] text-sm mt-1">
-                  Geplaatst op {new Date(review.date_created).toLocaleDateString("nl-NL", { day: 'numeric', month: 'short', year: 'numeric' })} door {review.reviewer}
+                  Geplaatst op {new Date(review.created_at || review.date_created || new Date().toISOString()).toLocaleDateString("nl-NL", { day: 'numeric', month: 'short', year: 'numeric' })} door {review.reviewer}
                 </p>
               </div>
             ))

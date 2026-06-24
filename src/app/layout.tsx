@@ -8,7 +8,9 @@ import { getShippingSettings } from "@/lib/woocommerce";
 import { UserProvider } from "@/context/UserContext";
 import { Suspense } from "react";
 import { ProductAddedModalProvider } from "@/context/ProductAddedModalContext";
-import ProductAddedModal from "@/components/ProductAddedModal";
+import dynamic from "next/dynamic";
+
+const ProductAddedModal = dynamic(() => import("@/components/ProductAddedModal"));
 
 const dmsans = DM_Sans({
   variable: "--font-dm-sans",

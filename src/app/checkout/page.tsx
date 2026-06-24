@@ -6,6 +6,7 @@ import { ChevronRight, CreditCard, Package, ShieldCheck, Truck, Check, Loader2, 
 import { getShippingRatesAction, placeOrderAction, validateCouponAction, checkPostcodeAction, getPaymentMethodsAction, validateVatAction } from "./actions";
 import { useCartStore } from "@/lib/cartStore";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useUserContext } from "@/context/UserContext";
 import toast from "react-hot-toast";
 import Link from "next/link";
@@ -55,7 +56,7 @@ export default function NewCheckoutPage() {
   // const [selectedShipping, setSelectedShipping] = useState("standard");
   const [isLoading, setIsLoading] = useState(false);
   const [availableMethods, setAvailableMethods] = useState<any[]>([]); // Should use ShippingMethod interface
-  const [selectedMethodId, setSelectedMethodId] = useState<number | null>(null);
+  const [selectedMethodId, setSelectedMethodId] = useState<string | number | null>(null);
   const [shippingCost, setShippingCost] = useState<number | null>(null);
   
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
@@ -498,11 +499,9 @@ export default function NewCheckoutPage() {
            }
 
            if (method.methodId === 'free_shipping') {
-             // Check requires
-             if (method.requires === 'min_amount' || method.requires === 'either') {
-                 const minAmount = method.minAmount ? parseFloat(method.minAmount) : 0;
-                 if (subtotal < minAmount) return false;
-             }
+             const minAmount = method.minAmount ? parseFloat(method.minAmount) : 74;
+             const cartTotalForShipping = isB2B ? subtotal : subtotal * 1.21;
+             if (cartTotalForShipping < minAmount) return false;
            }
            return true;
         });
@@ -1538,11 +1537,11 @@ export default function NewCheckoutPage() {
                         <div key={item.id} className="flex gap-4 p-4 border border-gray-100 rounded-lg bg-gray-50/50">
                             <div className="w-16 h-16 bg-white rounded-md border border-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                                  {item.slug ? (
-                                    <Link href={`/${item.slug}`} className="block w-full h-full">
-                                        {item.image ? <img src={item.image} alt={item.name} className="w-full h-full object-cover rounded-md" /> : <Package className="w-8 h-8 text-gray-300 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />}
+                                    <Link href={`/${item.slug}`} className="block w-full h-full relative">
+                                        {item.image ? <Image src={item.image} alt={item.name} fill sizes="64px" className="object-cover rounded-md" /> : <Package className="w-8 h-8 text-gray-300 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />}
                                     </Link>
                                  ) : (
-                                    item.image ? <img src={item.image} alt={item.name} className="w-full h-full object-cover rounded-md" /> : <Package className="w-8 h-8 text-gray-300 whitespace-nowrap" />
+                                    item.image ? <Image src={item.image} alt={item.name} fill sizes="64px" className="object-cover rounded-md" /> : <Package className="w-8 h-8 text-gray-300 whitespace-nowrap" />
                                  )}
                             </div>
                             <div className="flex-1">

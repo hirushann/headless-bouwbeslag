@@ -1,6 +1,7 @@
 import { getBrands, getBrand } from "@/lib/woocommerce";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import Image from "next/image";
 import { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -34,16 +35,18 @@ export default async function BrandsPage() {
                             href={`/merken/${brand.slug}`}
                             className="group block bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100 overflow-hidden"
                         >
-                            <div className="aspect-square p-6 flex items-center justify-center bg-gray-50 group-hover:bg-white transition-colors">
+                            <div className="aspect-square p-6 flex items-center justify-center bg-gray-50 group-hover:bg-white transition-colors relative">
                                 {/* Place holder or Actual Image if available */}
                                 {/* Logic to extract image from ACF or embedded if possible. 
                                     Since we saw no obvious image data, we use a placeholder or name for now.
                                 */}
                                 {brand.acf?.brand_logo ? (
-                                     <img 
+                                     <Image 
                                         src={typeof brand.acf.brand_logo === 'string' ? brand.acf.brand_logo : (brand.acf.brand_logo as any).url} 
                                         alt={brand.name} 
-                                        className="max-w-full max-h-full object-contain" // grayscale group-hover:grayscale-0 transition-all
+                                        fill
+                                        sizes="(max-width: 768px) 50vw, 200px"
+                                        className="object-contain p-6" // grayscale group-hover:grayscale-0 transition-all
                                     />
                                 ) : (
                                     <span className="text-xl font-bold text-gray-400 group-hover:text-blue-600 transition-colors">

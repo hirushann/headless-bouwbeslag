@@ -1112,7 +1112,7 @@ export default function ProductPageClientV2({
                     aria-label={`Thumbnail ${idx + 1}`}
                     type="button"
                   >
-                    <img src={thumb.src} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-contain" />
+                    <Image src={thumb.src} alt={`Thumbnail ${idx + 1}`} fill sizes="96px" className="object-contain" />
                     
                     {/* Mobile Only Count (on 4th item) */}
                     {isFourth && galleryImages.length > 4 && (
@@ -1182,11 +1182,13 @@ export default function ProductPageClientV2({
                            }}
                          >
                            {galleryImages.map((img, idx) => (
-                             <div key={idx} className="w-full h-full flex-shrink-0 snap-center flex items-center justify-center p-2 lg:p-4">
-                               <img 
+                             <div key={idx} className="w-full h-full flex-shrink-0 snap-center flex items-center justify-center p-2 lg:p-4 relative">
+                               <Image 
                                  src={img.src} 
                                  alt={`Product view ${idx + 1}`} 
-                                 className="max-w-full max-h-full object-contain rounded-lg shadow-sm bg-white" 
+                                 fill
+                                 sizes="(max-width: 1024px) 100vw, 80vw"
+                                 className="object-contain rounded-lg shadow-sm bg-white" 
                                />
                              </div>
                            ))}
@@ -1243,7 +1245,7 @@ export default function ProductPageClientV2({
                                   : 'border-white hover:border-gray-300'
                               }`}
                             >
-                              <img src={img.src} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-contain p-1" />
+                              <Image src={img.src} alt={`Thumbnail ${idx + 1}`} fill sizes="96px" className="object-contain p-1" />
                             </button>
                           ))}
                         </div>

@@ -138,26 +138,12 @@ const fetchAttributes = cache(async (): Promise<Attribute[]> => {
 });
 
 const fetchAllSubCategoriesCached = cache(async (parentId: number) => {
-  let allSubs: any[] = [];
-  let page = 1;
-  let totalPages = 1;
-
-  do {
-    const res = await api.get("products/categories", { 
-        parent: parentId, 
-        per_page: 100, 
-        page, 
-        hide_empty: false,
-        _fields: "id,name,slug,parent,count",
-        next: { revalidate: 1 }
-    });
-    if (!res.data || res.data.length === 0) break;
-    allSubs = [...allSubs, ...res.data];
-    totalPages = parseInt(res.totalPages || '1');
-    page++;
-  } while (page <= totalPages);
-  
-  return allSubs;
+  try {
+    const allCategories = await getAllCategoriesCached();
+    return allCategories.filter((c: any) => c.parent === parentId);
+  } catch (error) {
+    return [];
+  }
 });
 
 const fetchAllCategoryProductsForFiltersCached = cache(async (categoryId: number) => {

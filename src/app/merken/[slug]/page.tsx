@@ -4,6 +4,7 @@ import { fetchMeiliProducts, mapMeiliToWooProduct } from "@/lib/meilisearch-prod
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ShopProductCard from "@/components/ShopProductCard";
+import Image from "next/image";
 import { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -136,12 +137,14 @@ export default async function BrandPage({ params, searchParams }: { params: Prom
             {/* Brand Header / Hero */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-10">
                 <div className="flex flex-col md:flex-row gap-8 items-start">
-                    <div className="w-full md:w-1/4 max-w-[200px] aspect-square flex items-center justify-center bg-gray-50 rounded-xl border border-gray-100 p-4">
+                    <div className="w-full md:w-1/4 max-w-[200px] aspect-square flex items-center justify-center bg-gray-50 rounded-xl border border-gray-100 p-4 relative">
                          {brand.acf?.brand_logo ? (
-                             <img 
+                             <Image 
                                 src={typeof brand.acf.brand_logo === 'string' ? brand.acf.brand_logo : (brand.acf.brand_logo as any).url} 
                                 alt={brand.name} 
-                                className="max-w-full max-h-full object-contain"
+                                fill
+                                sizes="(max-width: 768px) 100vw, 200px"
+                                className="object-contain p-4"
                             />
                         ) : (
                             <span className="text-3xl font-bold text-gray-300">{brand.name}</span>

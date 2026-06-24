@@ -29,6 +29,8 @@ const CategoryItem = ({ category, allCategories, parentPath = "" }: { category: 
   
   const href = parentPath ? `${parentPath}/${category.slug}` : `/${category.slug}`;
 
+  const displayName = category.name.includes(" > ") ? category.name.split(" > ").pop()?.trim() : category.name;
+
   if (hasChildren) {
     return (
       <div className="collapse collapse-arrow !rounded-0 bg-transparent">
@@ -40,7 +42,7 @@ const CategoryItem = ({ category, allCategories, parentPath = "" }: { category: 
               className="hover:text-[#0066FF] hover:underline z-10 relative"
               onClick={(e) => e.stopPropagation()} 
             >
-              {category.name}
+              {displayName}
             </Link>
         </div>
         <div className="collapse-content text-sm pl-4 !pb-0">
@@ -60,7 +62,7 @@ const CategoryItem = ({ category, allCategories, parentPath = "" }: { category: 
       href={href}
       className="block font-normal text-sm text-[#3D4752] py-3 px-4 hover:text-[#0066FF]"
     >
-      {category.name}
+      {displayName}
     </Link>
   );
 };

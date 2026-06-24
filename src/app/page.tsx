@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import api from "@/lib/woocommerce";
+import api, { fetchCategories } from "@/lib/woocommerce";
 import { fetchPosts } from "@/lib/wordpress";
 import { fetchMeiliProducts, mapMeiliToWooProduct } from "@/lib/meilisearch-products";
 import dynamic from "next/dynamic";
@@ -105,7 +105,7 @@ async function BlogSection() {
 
 // Extraction for Categories Sidebar to handle its own fetching
 async function SidebarSection() {
-    const categories = await api.get("products/categories", { per_page: 100 }).then((res: any) => res.data).catch(() => []);
+    const categories = await fetchCategories();
     return <CategoriesSidebar categories={categories} />;
 }
 
@@ -124,43 +124,49 @@ function CategoriesDisplay({ categories }: { categories: any[] }) {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
           {(Array.isArray(categories) ? categories : [])
             .filter((cat: any) => cat.parent === 0)
-            .map((cat: any) => (
+            .map((cat: any) => {
+              const displayName = cat.name.includes(" > ") ? cat.name.split(" > ").pop()?.trim() : cat.name;
+              const imgSrc = typeof cat.image === 'string' ? cat.image : cat.image?.src;
+              
+              return (
               <div key={cat.id} className="border border-[#DBE3EA] rounded-sm p-4 shadow-[0px_20px_24px_0px_#00000012] relative flex flex-col h-full">
-                <Image className="mb-3 rounded-sm hidden lg:block" src={cat.image?.src || "/default-fallback-image.webp"} alt={cat.name} width={300} height={100} />
+                <Image className="mb-3 rounded-sm hidden lg:block" src={imgSrc || "/default-fallback-image.webp"} alt={displayName} width={300} height={100} />
                 <div className="mb-3 relative hidden lg:block">
-                  <p className="font-semibold text-[#1C2530] text-xl">{cat.name}</p>
+                  <p className="font-semibold text-[#1C2530] text-xl">{displayName}</p>
                   <div>
-                    {categories.filter((sub: any) => sub.parent === cat.id).slice(0, 3).map((sub: any) => (
+                    {categories.filter((sub: any) => sub.parent === cat.id).slice(0, 3).map((sub: any) => {
+                      const subDisplayName = sub.name.includes(" > ") ? sub.name.split(" > ").pop()?.trim() : sub.name;
+                      return (
                       <div key={sub.id} className="flex items-center justify-between mt-2 font-normal text-[#1C2530] text-base hover:underline cursor-pointer hover:text-[#0066FF]">
-                        <span>{sub.name}</span>
-                        <span>{sub.count}</span>
+                        <span>{subDisplayName}</span>
+                        <span>{sub.count || ''}</span>
                       </div>
-                    ))}
+                    )})}
                   </div>
                 </div>
                 <div className="flex gap-5 lg:hidden">
                   <div className="w-[120px] h-[120px] flex-shrink-0 relative">
                     <Image 
                       className="mb-3 rounded-sm object-cover" 
-                      src={cat.image?.src || "/default-fallback-image.webp"} 
-                      alt={cat.name} 
+                      src={imgSrc || "/default-fallback-image.webp"} 
+                      alt={displayName} 
                       fill
                       sizes="120px"
                     />
                   </div>
                   <div className="mb-3 relative">
-                    <p className="font-semibold text-[#1C2530] text-xl">{cat.name}</p>
+                    <p className="font-semibold text-[#1C2530] text-xl">{displayName}</p>
                   </div>
                 </div>
                 <div className="w-full mt-auto">
                   <Link href={`/${cat.slug}`}>
                     <button className="!w-full border border-[#0066FF] text-[#0066FF] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">
-                      Bekijk alle {cat.name}
+                      Bekijk alle {displayName}
                     </button>
                   </Link>
                 </div>
               </div>
-            ))}
+            )})}
         </div>
       </div>
     </div>

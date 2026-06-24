@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCartStore } from "@/lib/cartStore";
+import Image from "next/image";
 
 interface CartItem {
   id: number;
@@ -34,7 +35,7 @@ export default function CartPage() {
           {items.map((item) => (
             <div key={item.id} className="flex justify-between border-b py-4">
               <div className="flex gap-4 items-center">
-                {item.image && <img src={item.image} alt={item.name} width={80} />}
+                {item.image && <Image src={item.image} alt={item.name} width={80} height={80} className="object-contain" />}
                 <div>
                   <h2 className="font-medium text-[#1C2530]">{item.name}</h2>
                   <div className="mt-2 flex items-center gap-2">

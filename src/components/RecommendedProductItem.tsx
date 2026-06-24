@@ -8,6 +8,7 @@ import { checkStockAction } from "@/app/actions";
 import toast from "react-hot-toast";
 import { useUserContext } from "@/context/UserContext";
 import { fixImageSrc } from "@/lib/image-utils";
+import Image from "next/image";
 
 export default function RecommendedProductItem({ item, onAddToCart }: { item: any, onAddToCart?: () => void }) {
     const { userRole, isLoading } = useUserContext();
@@ -180,15 +181,15 @@ export default function RecommendedProductItem({ item, onAddToCart }: { item: an
             {/* Image & Info */}
             <div className="flex gap-3 flex-1 min-w-0">
                 {/* Image */}
-                <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 border border-gray-100 rounded-lg p-1 bg-white flex items-center justify-center overflow-hidden">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 border border-gray-100 rounded-lg p-1 bg-white flex items-center justify-center overflow-hidden relative">
                     {isFetchingImg ? (
                         <div className="w-full h-full bg-gray-100 animate-pulse" />
                     ) : item.slug ? (
                         <Link prefetch={true} href={`/${item.slug}`} className="block w-full h-full">
-                            {mImg ? <img src={mImg} alt={item.name} className="w-full h-full object-contain rounded-md" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">No Img</div>}
+                            {mImg ? <Image src={mImg} alt={item.name} fill sizes="96px" className="object-contain rounded-md" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">No Img</div>}
                         </Link>
                     ) : (
-                        mImg ? <img src={mImg} alt={item.name} className="w-full h-full object-contain rounded-md" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">No Img</div>
+                        mImg ? <Image src={mImg} alt={item.name} fill sizes="96px" className="object-contain rounded-md" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">No Img</div>
                     )}
                 </div>
 

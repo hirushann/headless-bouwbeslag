@@ -6,6 +6,7 @@ import { useCartStore } from "@/lib/cartStore";
 import RecommendedProductItem from "@/components/RecommendedProductItem";
 import { useProductAddedModal } from "@/context/ProductAddedModalContext";
 import { fixImageSrc } from "@/lib/image-utils";
+import Image from "next/image";
 
 export default function ProductAddedModal() {
   const { isOpen, closeModal, modalData } = useProductAddedModal();
@@ -52,9 +53,11 @@ export default function ProductAddedModal() {
               {/* Just Added Product */}
               <div className="flex flex-row gap-3 sm:gap-4 lg:gap-6 items-center p-3 lg:p-4 bg-[#F8FAFC] rounded-xl border border-[#E2E8F0] mb-6">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-white rounded-lg border border-[#E2E8F0] overflow-hidden shrink-0 flex items-center justify-center p-1.5 shadow-sm relative">
-                  <img 
-                    src={fixImageSrc(modalData.image || modalData.product?.images?.[0]?.src)} 
+                  <Image 
+                    src={fixImageSrc(modalData.image || modalData.product?.images?.[0]?.src) || "/placeholder.png"} 
                     alt={modalData.product?.name || "Product"} 
+                    fill
+                    sizes="96px"
                     className="max-w-full max-h-full object-contain"
                   />
                 </div>
