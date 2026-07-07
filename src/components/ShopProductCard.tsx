@@ -46,10 +46,19 @@ export default function ShopProductCard({ product, useCategoryImage = false }: {
   const isCached = isNumericCatImg && !!globalMediaCache[catImgMeta as string];
   
   const resolvedCatImage = useCategoryImage ? product.resolved_cat_image : null;
+
+  // Best non-category product image: prefer typed 'main_picture', else first image, else main_image_url
+  const getProductImageSrc = () => {
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      const mainPic = product.images.find((img: any) => img.type === "main_picture");
+      return (mainPic?.url || mainPic?.src) || (product.images[0]?.url || product.images[0]?.src);
+    }
+    return product.main_image_url || undefined;
+  };
   
   const initialImgSrc = resolvedCatImage || (catImgMeta && catImgMeta.trim() !== ""
       ? (isNumericCatImg ? (isCached ? globalMediaCache[catImgMeta as string] : undefined) : catImgMeta)
-      : product.images?.[0]?.src);
+      : getProductImageSrc());
 
   const [targetImgSrc, setTargetImgSrc] = useState<string | undefined>(initialImgSrc);
   const [isFetchingImg, setIsFetchingImg] = useState<boolean>(!resolvedCatImage && isNumericCatImg && !isCached);
@@ -64,7 +73,7 @@ export default function ShopProductCard({ product, useCategoryImage = false }: {
 
     // Reset to fallback if no cat image meta exists
     if (!catImgMeta || catImgMeta.trim() === "") {
-        setTargetImgSrc(product.images?.[0]?.src);
+        setTargetImgSrc(getProductImageSrc());
         setIsFetchingImg(false);
         return;
     }
@@ -83,11 +92,11 @@ export default function ShopProductCard({ product, useCategoryImage = false }: {
             globalMediaCache[catImgMeta as string] = data.source_url;
             setTargetImgSrc(data.source_url);
           } else {
-            setTargetImgSrc(product.images?.[0]?.src);
+            setTargetImgSrc(getProductImageSrc());
           }
         })
         .catch((e) => {
-          setTargetImgSrc(product.images?.[0]?.src);
+          setTargetImgSrc(getProductImageSrc());
         })
         .finally(() => {
             // Ensure at least a small delay to avoid flicker if it was too fast
@@ -169,9 +178,10 @@ export default function ShopProductCard({ product, useCategoryImage = false }: {
             sizes="(max-width: 768px) 150px, 300px"
             className="object-contain p-2" 
             onError={() => {
-              const fallbackSrc = product.images?.[0]?.src ? product.images[0].src : "/default-fallback-image.webp";
-              if (targetImgSrc !== fallbackSrc && !targetImgSrc.includes("default-fallback-image.webp")) {
-                setTargetImgSrc(fallbackSrc);
+              const fallbackSrc = getProductImageSrc();
+              const fallback = fallbackSrc || "/default-fallback-image.webp";
+              if (targetImgSrc !== fallback && !targetImgSrc.includes("default-fallback-image.webp")) {
+                setTargetImgSrc(fallback);
               }
             }}
           />

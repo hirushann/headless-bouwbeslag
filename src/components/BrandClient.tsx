@@ -7,7 +7,7 @@ import ShopProductCard from "@/components/ShopProductCard";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import CategoryBreadcrumbs from "@/components/CategoryBreadcrumbs";
+
 import DualRangeSlider from "@/components/DualRangeSlider";
 import { COLOR_MAP } from "@/config/colorMap";
 import { useUserContext } from "@/context/UserContext";
@@ -214,15 +214,13 @@ function matchesFilters(
   return true;
 }
 
-type CategoryClientProps = {
-  category: any;
+type BrandClientProps = {
+  brand: any;
   subCategories: any[] | Promise<any[]>;
   currentSlug: string[];
   initialProducts?: any[];
   initialTotalPages?: number;
   initialTotalProducts?: number;
-  isBrandPage?: boolean;
-  customHero?: React.ReactNode;
 };
 
 
@@ -371,7 +369,7 @@ function FilterSidebarSkeleton() {
 interface FilterSidebarProps {
   attributes: Attribute[];
   allCategoryProductsForFilters: any[];
-  category: any;
+  brand: any;
   selectedFilters: { [key: number]: Set<number> };
   selectedBrands: Set<number>;
   toggleFilter: (attrId: number, termId: number) => void;
@@ -389,17 +387,17 @@ interface FilterSidebarProps {
   setPriceRange: (r: [number, number] | null) => void;
   onFilterCheck?: (hasFilters: boolean) => void;
   isB2B: boolean;
-  isBrandPage?: boolean;
 }
 
 function FilterSidebar({
-  attributes,
+  brand,
   allCategoryProductsForFilters,
-  category,
+  allAttributes,
   selectedFilters,
+  setSelectedFilters,
   selectedBrands,
-  toggleFilter,
-  toggleBrandFilter,
+  setSelectedBrands,
+  Filter,
   resetFilters,
   afdichtingsspleetRange,
   groefbreedteRange,
@@ -412,8 +410,7 @@ function FilterSidebar({
   priceRange,
   setPriceRange,
   onFilterCheck,
-  isB2B,
-  isBrandPage
+  isB2B
 }: FilterSidebarProps) {
 
   const [showAllColors, setShowAllColors] = useState(false);
@@ -427,20 +424,20 @@ function FilterSidebar({
    * Returns true when the flag is enabled (or when it is simply absent/undefined).
    */
   const getCategoryFlag = (empireKey: string, acfKey?: string): boolean => {
-    // 1. Empire flag (e.g. category.has_brands)
+    // 1. Empire flag (e.g. brand.has_brands)
     if (category && empireKey in category) {
       return Boolean(category[empireKey]);
     }
     // 2. WooCommerce ACF fallback
     const key = acfKey || empireKey.replace(/^has_/, '');
-    if (category?.acf && typeof category.acf === 'object' && key in category.acf) {
-      const val = category.acf[key];
+    if (brand?.acf && typeof brand.acf === 'object' && key in brand.acf) {
+      const val = brand.acf[key];
       return val !== false && val !== 'false' && val !== 0 && val !== '0';
     }
     return true; // default: show the filter
   };
 
-  const isBrandsEnabled = !isBrandPage && getCategoryFlag('has_brands', 'brands');
+  const isBrandsEnabled = getCategoryFlag('has_brands', 'brands');
   const isInStockEnabled = getCategoryFlag('has_in_stock', 'in_stock');
   const isPriceSliderEnabled = getCategoryFlag('price_slider', 'price_slider');
 
@@ -499,13 +496,13 @@ function FilterSidebar({
     const activeGlobalAttrs = attributes.filter(ga => globalTermPresence.has(ga.id));
 
     // console.log("---- FILTER DEBUG START ----");
-    console.log("Category ACF data:", category?.acf);
+    console.log("Category ACF data:", brand?.acf);
 
     const result = activeGlobalAttrs
       .map((attr) => {
         // The 'attributes' array passed to FilterSidebar is already pre-filtered 
         // by the backend API route based on the Empire 'has_*' flags. 
-        // We no longer need to perform complex slug-matching against category.acf here.
+        // We no longer need to perform complex slug-matching against brand.acf here.
         if (attr.name === "Inhoud van de verpakking") return null;
 
         // Get subset of products passing OTHER filters
@@ -688,7 +685,7 @@ function FilterSidebar({
         {/* <div className="bg-red-100 text-red-800 p-2 text-xs mb-4 rounded">
           <b>Brand Debug:</b><br/>
           isBrandsEnabled: {String(isBrandsEnabled)}<br/>
-          acf.brands: {String(category?.acf?.brands)}<br/>
+          acf.brands: {String(brand?.acf?.brands)}<br/>
           sourceProducts (allCategoryProductsForFilters): {allCategoryProductsForFilters.length}<br/>
           products with 'brands' field: {allCategoryProductsForFilters.filter(p => p.brands && p.brands.length > 0).length}<br/>
           availableBrands.length: {availableBrands.length}<br/>
@@ -945,16 +942,7 @@ function FilterSidebar({
   );
 }
 
-export default function CategoryClient({
-  category,
-  subCategories,
-  currentSlug,
-  initialProducts = [],
-  initialTotalPages = 1,
-  initialTotalProducts = 0,
-  isBrandPage = false,
-  customHero,
-}: CategoryClientProps) {
+export default function BrandClient({ brand, currentSlug, categorySlug, initialProducts, initialTotalPages, initialTotalProducts, allAttributes = [], children }: BrandClientProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -998,11 +986,10 @@ export default function CategoryClient({
   // Fetch filter data client-side on every mount so WooCommerce/ACF changes
   // are reflected immediately — bypasses the Next.js Router Cache entirely.
   useEffect(() => {
-    if (!category?.id) return;
+    if (!brand?.id) return;
     setFilterDataLoading(true);
-    const slugParam = category.slug ? `&categorySlug=${encodeURIComponent(category.slug)}` : '';
-    const brandParam = isBrandPage ? `&isBrandPage=true` : '';
-    fetch(`/api/category-filters?categoryId=${category.id}${slugParam}${brandParam}`, { cache: 'no-store' })
+    const slugParam = brand.slug ? `&categorySlug=${encodeURIComponent(brand.slug)}` : '';
+    fetch(`/api/category-filters?categoryId=${brand.id}${slugParam}`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         setUnwrappedAttributes(data.attributes || []);
@@ -1011,7 +998,7 @@ export default function CategoryClient({
       })
       .catch(err => console.error('Failed to load filter data:', err))
       .finally(() => setFilterDataLoading(false));
-  }, [category?.id]);
+  }, [brand?.id]);
 
   
   // Initialize page from URL
@@ -1156,7 +1143,7 @@ export default function CategoryClient({
           // ── SERVER-SIDE PAGINATED FETCH via Meilisearch (no filters) ─────
           const limit = 20;
           const offset = (page - 1) * limit;
-          const categorySlug = category.slug;
+          const categorySlug = brand.slug;
 
           // Build sort for Meilisearch if supported
           let sort: string[] | undefined;
@@ -1166,7 +1153,7 @@ export default function CategoryClient({
           const res = await fetch('/api/meili-products', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ limit, offset, filter: [isBrandPage ? `brand_id = '${categorySlug}'` : `category_slug = ${categorySlug}`], sort }),
+            body: JSON.stringify({ limit, offset, filter: [`category_slug = ${categorySlug}`], sort }),
             cache: 'no-store'
           });
 
@@ -1189,7 +1176,7 @@ export default function CategoryClient({
   // unwrappedAttributes added so the effect re-runs once attributes resolve,
   // preventing stale-closure mismatches when filtering.
   }, [
-    category?.id,
+    brand?.id,
     selectedFilters,
     selectedBrands,
     afdichtingsspleetRange,
@@ -1210,7 +1197,7 @@ export default function CategoryClient({
       return;
     }
     setPage(1);
-  }, [category?.id, selectedFilters, selectedBrands, afdichtingsspleetRange, groefbreedteRange, priceRange, sortBy, showOnlyInStock, isB2B]);
+  }, [brand?.id, selectedFilters, selectedBrands, afdichtingsspleetRange, groefbreedteRange, priceRange, sortBy, showOnlyInStock, isB2B]);
 
   const toggleFilter = (attrId: number, termId: number) => {
     setSelectedFilters(prev => {
@@ -1302,15 +1289,14 @@ export default function CategoryClient({
               setShowOnlyInStock={handleSetShowOnlyInStock}
               onFilterCheck={setHasFiltersAvailable}
               isB2B={!!isB2B}
-              isBrandPage={isBrandPage}
             />
           )}
 
           {/* Main Content */}
           <main className="flex-1">
-            <CategoryBreadcrumbs categoryNames={currentSlug.map(s => s.charAt(0).toUpperCase() + s.slice(1))} />
+            
             <div className={`flex justify-between items-center mb-4 sticky top-[105px] z-40 py-3 -mx-5 px-5 transition-all duration-200 lg:static lg:p-0 lg:mx-0 ${isStuck ? 'bg-white shadow-[0_2px_4px_rgba(0,0,0,0.05)] border-b border-gray-200' : 'bg-transparent border-transparent shadow-none'} lg:bg-transparent lg:border-none lg:shadow-none`}> 
-              <p className="text-xl lg:text-3xl font-bold text-[#1C2530] truncate pr-2">{category?.name ?? "Category"}</p>
+              <p className="text-xl lg:text-3xl font-bold text-[#1C2530] truncate pr-2">{brand?.name ?? "Category"}</p>
               <div className='flex items-center gap-2 shrink-0'>
                 <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="select focus:outline-0 focus:ring-0 border border-gray-300 rounded-md bg-white h-9 min-h-0 text-sm font-medium text-gray-700 pl-3 py-0 w-auto">
                   <option value="">Aanbevolen</option>
@@ -1428,11 +1414,11 @@ export default function CategoryClient({
             )}
 
             {/* Category description above subcategories */}
-            {category?.description && (
+            {brand?.description && (
               <div
                 className="my-6 prose prose-blue max-w-none leading-relaxed text-gray-800 category-description-style"
                 dangerouslySetInnerHTML={{ 
-                  __html: category.description
+                  __html: brand.description
                     .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '')
                     .replace(/<meta[^>]*>/gi, '')
                     .replace(/<link[^>]*>/gi, '')

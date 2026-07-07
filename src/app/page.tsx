@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import api, { fetchCategories } from "@/lib/woocommerce";
+import { fixImageSrc } from "@/lib/image-utils";
+import FallbackImage from "@/components/FallbackImage";
 import { fetchPosts } from "@/lib/wordpress";
 import { fetchBlogsAction } from "@/app/actions";
 import { fetchMeiliProducts, mapMeiliToWooProduct } from "@/lib/meilisearch-products";
@@ -132,7 +134,7 @@ function CategoriesDisplay({ categories }: { categories: any[] }) {
               
               return (
               <div key={cat.id} className="border border-[#DBE3EA] rounded-sm p-4 shadow-[0px_20px_24px_0px_#00000012] relative flex flex-col h-full">
-                <Image className="mb-3 rounded-sm hidden lg:block" src={imgSrc || "/default-fallback-image.webp"} alt={displayName} width={300} height={100} />
+                <FallbackImage className="mb-3 rounded-sm hidden lg:block" src={fixImageSrc(imgSrc)} alt={displayName} width={300} height={100} />
                 <div className="mb-3 relative hidden lg:block">
                   <p className="font-semibold text-[#1C2530] text-xl">{displayName}</p>
                   <div>

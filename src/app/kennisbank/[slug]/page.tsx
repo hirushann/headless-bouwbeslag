@@ -3,6 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { fetchBlogBySlugAction } from "../../actions";
 
+import BlockRenderer from "@/components/blog/BlockRenderer";
+
 export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> }
 ): Promise<Metadata> {
@@ -95,40 +97,39 @@ export default async function SingleBlogPage({
         <span>{post.title}</span>
       </div>
 
-      <div className="max-w-[1024px] mx-auto py-5">
-        <Image
-          className="mb-3 rounded-lg h-[300px] lg:h-[480px] w-full object-cover bg-gray-100"
-          src={
-            post.featured_image ||
-            "/default-fallback-image.webp"
-          }
-          alt={post.title}
-          width={1200}
-          height={600}
-        />
+      <div className="max-w-[1440px] mx-auto">
+        {post.formatted_content_blocks && Array.isArray(post.formatted_content_blocks) && post.formatted_content_blocks.length > 0 ? (
+          <BlockRenderer blocks={post.formatted_content_blocks} />
+        ) : (
+          <>
+            <Image
+              className="mb-3 rounded-lg h-[300px] lg:h-[480px] w-full object-cover bg-gray-100"
+              src={post.featured_image || "/default-fallback-image.webp"}
+              alt={post.title}
+              width={1200}
+              height={600}
+            />
 
-        <div className="flex flex-col gap-2">
-          <p className="text-[#0050D1] font-semibold text-xl lg:text-2xl mt-5">
-            {new Date(post.published_at).toLocaleDateString("nl-NL", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </p>
+            <div className="flex flex-col gap-2">
+              <p className="text-[#0050D1] font-semibold text-xl lg:text-2xl mt-5">
+                {new Date(post.published_at).toLocaleDateString("nl-NL", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
 
-          <h1
-            className="text-[#1C2530] font-semibold text-4xl lg:text-6xl mt-5"
-          >
-            {post.title}
-          </h1>
+              <h1 className="text-[#1C2530] font-semibold text-4xl lg:text-6xl mt-5">
+                {post.title}
+              </h1>
 
-          <div
-            className="text-[#3D4752] font-normal text-base [&>p]:mb-5 max-w-none mt-5"
-            dangerouslySetInnerHTML={{ 
-              __html: post.content
-            }}
-          />
-        </div>
+              <div
+                className="text-[#3D4752] font-normal text-base [&>p]:mb-5 max-w-none mt-5"
+                dangerouslySetInnerHTML={{ __html: post.content }}
+              />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

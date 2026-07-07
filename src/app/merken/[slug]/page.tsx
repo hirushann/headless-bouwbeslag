@@ -1,11 +1,37 @@
 import api, { getBrand } from "@/lib/woocommerce";
 import { searchProducts } from "@/actions/search";
 import { fetchMeiliProducts, mapMeiliToWooProduct } from "@/lib/meilisearch-products";
+import CategoryClient from "@/components/CategoryClient";
+import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ShopProductCard from "@/components/ShopProductCard";
 import Image from "next/image";
 import { Metadata } from 'next';
+
+
+interface AttributeTerm { id: number; name: string; }
+interface Attribute { id: number; name: string; slug: string; terms: AttributeTerm[]; }
+
+const fetchTermsForAttribute = cache(async (attributeId: number): Promise<AttributeTerm[]> => {
+  try {
+    const res = await api.get(`products/attributes/${attributeId}/terms`, { per_page: 100, _fields: "id,name", cache: 'no-store' });
+    return res.data || [];
+  } catch (error) { return []; }
+});
+
+const fetchAttributes = cache(async (): Promise<Attribute[]> => {
+  try {
+    const res = await api.get("products/attributes", { per_page: 100, _fields: "id,name,slug", cache: 'no-store' });
+    const attributesData = res.data || [];
+    return await Promise.all(
+      attributesData.map(async (attr: any) => {
+        const termsRes = await fetchTermsForAttribute(attr.id);
+        return { id: attr.id, name: attr.name, slug: attr.slug, terms: termsRes };
+      })
+    );
+  } catch (error) { return []; }
+});
 
 export const dynamic = 'force-dynamic';
 
@@ -98,7 +124,46 @@ export default async function BrandPage({ params, searchParams }: { params: Prom
         notFound();
     }
 
-    // 1. Fetch Aggregations (Categories) and Initial Product IDs via Elasticsearch
+    const allAttributes = await fetchAttributes();
+
+    
+  const customHero = (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-10">
+        <div className="flex flex-col md:flex-row gap-8 items-start">
+            <div className="w-full md:w-1/4 max-w-[200px] aspect-square flex items-center justify-center bg-gray-50 rounded-xl border border-gray-100 p-4 relative">
+                 {brand.acf?.brand_logo ? (
+                     <Image 
+                        src={typeof brand.acf.brand_logo === 'string' ? brand.acf.brand_logo : (brand.acf.brand_logo as any).url} 
+                        alt={brand.name} 
+                        fill
+                        sizes="(max-width: 768px) 100vw, 200px"
+                        className="object-contain p-4"
+                    />
+                ) : (
+                    <span className="text-3xl font-bold text-gray-300">{brand.name}</span>
+                )}
+            </div>
+            <div className="flex-1">
+                <h1 className="text-3xl font-bold mb-4 text-gray-900">{brand.name}</h1>
+                <div 
+                    className="prose prose-sm max-w-none text-gray-600"
+                    dangerouslySetInnerHTML={{ 
+                        __html: ((brand.description && brand.description.trim() !== "") 
+                            ? brand.description 
+                            : (brand.acf?.brand_description || `Bekijk ons assortiment van ${brand.name}.`))
+                            .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '')
+                            .replace(/<meta[^>]*>/gi, '')
+                            .replace(/<link[^>]*>/gi, '')
+                            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                    }}
+                />
+            </div>
+        </div>
+    </div>
+  );
+
+
+    // 1. Fetch Aggregations
     // Passing size 0 if categorized so we just get aggregations, else get 60 items.
     const brandEsRes = await searchProducts("", { brand: [slug] }, 1, 0); // Always set size 0 as we don't trust ES results
     
@@ -111,15 +176,14 @@ export default async function BrandPage({ params, searchParams }: { params: Prom
         count: b.doc_count
     })).sort((a: any, b: any) => a.name.localeCompare(b.name)) || [];
     
-    const allProductsCount = brandEsRes.totalItems;
-
     // 2. Fetch Actual Products from Meilisearch
     const filters = [`brand_id = '${slug}'`];
     if (categorySlug) {
         filters.push(`category_slug = '${categorySlug}'`);
     }
 
-    const { products: meiliHits } = await fetchMeiliProducts(60, 0, "", filters);
+    const { products: meiliHits, total: meiliTotal } = await fetchMeiliProducts(60, 0, "", filters);
+    const allProductsCount = meiliTotal;
     
     // Map Meilisearch hits to the expected WooCommerce format for the ShopProductCard
     const filteredProducts = meiliHits.map(mapMeiliToWooProduct).filter(Boolean);
@@ -134,91 +198,19 @@ export default async function BrandPage({ params, searchParams }: { params: Prom
                 </ul>
             </div>
 
-            {/* Brand Header / Hero */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-10">
-                <div className="flex flex-col md:flex-row gap-8 items-start">
-                    <div className="w-full md:w-1/4 max-w-[200px] aspect-square flex items-center justify-center bg-gray-50 rounded-xl border border-gray-100 p-4 relative">
-                         {brand.acf?.brand_logo ? (
-                             <Image 
-                                src={typeof brand.acf.brand_logo === 'string' ? brand.acf.brand_logo : (brand.acf.brand_logo as any).url} 
-                                alt={brand.name} 
-                                fill
-                                sizes="(max-width: 768px) 100vw, 200px"
-                                className="object-contain p-4"
-                            />
-                        ) : (
-                            <span className="text-3xl font-bold text-gray-300">{brand.name}</span>
-                        )}
-                    </div>
-                    <div className="flex-1">
-                        <h1 className="text-3xl font-bold mb-4 text-gray-900">{brand.name}</h1>
-                        <div 
-                            className="prose prose-sm max-w-none text-gray-600"
-                            dangerouslySetInnerHTML={{ 
-                                __html: ((brand.description && brand.description.trim() !== "") 
-                                    ? brand.description 
-                                    : (brand.acf?.brand_description || `Bekijk ons assortiment van ${brand.name}.`))
-                                    .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '')
-                                    .replace(/<meta[^>]*>/gi, '')
-                                    .replace(/<link[^>]*>/gi, '')
-                                    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-                            }}
-                        />
-                    </div>
-                </div>
-            </div>
             
-            <div className="flex flex-col lg:flex-row gap-8">
-                {/* Sidebar */}
-                <aside className="w-full lg:w-1/4 flex-none">
-                     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 sticky top-24">
-                        <h3 className="font-bold text-lg mb-4 text-gray-900">Categorieën</h3>
-                        <ul className="space-y-2">
-                             <li>
-                                <Link 
-                                    href={`/merken/${slug}`}
-                                    className={`flex items-center justify-between p-2 rounded-lg transition-colors ${!categorySlug ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}
-                                >
-                                    <span>Alle producten</span>
-                                    <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-500">{allProductsCount}</span>
-                                </Link>
-                            </li>
-                            {categories.map((cat) => (
-                                <li key={cat.id}>
-                                    <Link 
-                                        href={`/merken/${slug}?category=${cat.slug}`}
-                                        rel="nofollow"
-                                        className={`flex items-center justify-between p-2 rounded-lg transition-colors ${categorySlug === cat.slug ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}
-                                    >
-                                        <span>{cat.name}</span>
-                                        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-500">{cat.count}</span>
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
-                     </div>
-                </aside>
-
-                {/* Products Grid */}
-                <div className="flex-1">
-                    <h2 className="text-2xl font-bold mb-6">Producten van {brand.name} {categorySlug && <span className="text-gray-400 font-normal text-lg">in {categories.find(c => c.slug === categorySlug)?.name}</span>}</h2>
-                    
-                    {filteredProducts.length > 0 ? (
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 lg:gap-6">
-                            {filteredProducts.map((product: any) => (
-                                <div key={product.id} className="h-full">
-                                    <ShopProductCard product={product} />
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="py-12 text-center text-gray-500 bg-gray-50 rounded-xl border border-gray-100">
-                            <p>Geen producten gevonden in deze categorie.</p>
-                            <Link href={`/merken/${slug}`} className="text-blue-600 hover:underscore mt-2 inline-block">Bekijk alle producten van {brand.name}</Link>
-                        </div>
-                    )}
-                </div>
-            </div>
+            
+            
+            <CategoryClient
+                category={brand}
+                subCategories={[]}
+                currentSlug={[slug]}
+                initialProducts={filteredProducts}
+                initialTotalPages={Math.ceil(allProductsCount / 60) || 1}
+                initialTotalProducts={allProductsCount}
+                isBrandPage={true}
+                customHero={customHero}
+            />
 
             {/* FAQ Section */}
             {brand.acf?.faq_section && brand.acf.faq_section.length > 0 && (

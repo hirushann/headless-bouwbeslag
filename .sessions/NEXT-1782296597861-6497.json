@@ -1,0 +1,53 @@
+{
+  "website_url": "http://localhost:3001/",
+  "order_reference": "NEXT-1782296597861-6497",
+  "status": "processing",
+  "billing": {
+    "first_name": "Hic et qui vel conse",
+    "last_name": "Cumque consequuntur ",
+    "company": "Qui earum distinctio",
+    "address_1": "Heerder Groenweg 13",
+    "address_2": "",
+    "city": "Maastricht",
+    "state": "",
+    "postcode": "6224 JL",
+    "country": "NL",
+    "email": "fomolalo@mailinator.com",
+    "phone": "+1 (215) 983-7047",
+    "vat_number": "Inventore quidem dol"
+  },
+  "shipping": {
+    "first_name": "Hic et qui vel conse",
+    "last_name": "Cumque consequuntur ",
+    "company": "Qui earum distinctio",
+    "address_1": "Heerder Groenweg 13",
+    "address_2": "",
+    "city": "Maastricht",
+    "state": "",
+    "postcode": "6224 JL",
+    "country": "NL",
+    "email": "fomolalo@mailinator.com",
+    "phone": "+1 (215) 983-7047",
+    "vat_number": "Inventore quidem dol"
+  },
+  "items": [
+    {
+      "sync_id": "28160451",
+      "sku": "28160451",
+      "name": "Winlock raamkruk afsluitbaar links aluminium (f1)",
+      "quantity": 2,
+      "price": 23.6,
+      "manual_unit_price": 0
+    }
+  ],
+  "shipping_total": 6.95,
+  "total": 65.5215,
+  "total_tax": 11.371500000000001,
+  "payment_method": "ideal",
+  "payment_method_title": "Mollie",
+  "customer_note": "Et officia dolores e\nBTW Nummer: Inventore quidem dol",
+  "eu_vat_number": "Inventore quidem dol",
+  "customer_id": 13,
+  "auth_token": "8|zRYwQWsxRLPqpE4u4O2stMfiTCYMmymJsH6Zr2Kg7be8cc67",
+  "transaction_id": "tr_GMgpFbr7AdLRcdPUfC4TJ"
+}

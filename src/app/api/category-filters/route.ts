@@ -12,13 +12,15 @@ const MEILI_INDEX = process.env.MEILISEARCH_BOUWBESLAG_PRODUCTS_INDEX || 'empire
  * Fetch category filter flags from Empire API.
  * Returns which filter panels should be shown for this category.
  */
-async function fetchEmpireCategoryFlags(slug: string) {
+async function fetchEmpireCategoryFlags(slug: string, isBrandPage: boolean = false) {
   try {
-    const res = await fetch(`${EMPIRE_BASE}/categories/${slug}`, {
+    const endpoint = isBrandPage ? `brands/${slug}` : `categories/${slug}`;
+    const res = await fetch(`${EMPIRE_BASE}/${endpoint}`, {
       next: { revalidate: 300 },
     });
     if (!res.ok) return null;
-    return await res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data[0] : data;
   } catch {
     return null;
   }
@@ -28,12 +30,12 @@ async function fetchEmpireCategoryFlags(slug: string) {
  * Fetch facet distributions from Meilisearch for a given category slug.
  * This replaces loading all 1000 products — far more efficient.
  */
-async function fetchMeiliFilterFacets(categorySlug: string) {
+async function fetchMeiliFilterFacets(categorySlug: string, isBrandPage: boolean = false) {
   try {
     const body = {
       q: '',
       limit: 0,
-      filter: [`category_slug = ${categorySlug}`],
+      filter: [isBrandPage ? `brand_id = '${categorySlug}'` : `category_slug = ${categorySlug}`],
       facets: ['color', 'material', 'finish', 'brand_name', 'stock_status'],
     };
 
@@ -113,7 +115,7 @@ function buildAttributesFromFacets(facets: Record<string, Record<string, number>
  * Build a minimal products list for the client-side filter matching logic.
  * We fetch all products with only the fields needed for filtering (much lighter than full products).
  */
-async function fetchFilterBaseProducts(categorySlug: string) {
+async function fetchFilterBaseProducts(categorySlug: string, isBrandPage: boolean = false) {
   try {
     const res = await fetch(`${MEILISEARCH_HOST}/indexes/${MEILI_INDEX}/search`, {
       method: 'POST',
@@ -125,7 +127,7 @@ async function fetchFilterBaseProducts(categorySlug: string) {
         q: '',
         limit: 2000,
         offset: 0,
-        filter: [`category_slug = ${categorySlug}`],
+        filter: [isBrandPage ? `brand_id = '${categorySlug}'` : `category_slug = ${categorySlug}`],
         attributesToRetrieve: [
           'id', 'slug', 'name', 'color', 'material', 'finish',
           'brand', 'brand_name', 'brand_id', 'stock_status', 'stock',
@@ -176,6 +178,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const categorySlug = searchParams.get('categorySlug');
   const categoryId = searchParams.get('categoryId'); // kept for backward compat
+  const isBrandPage = searchParams.get('isBrandPage') === 'true';
 
   if (!categorySlug && !categoryId) {
     return NextResponse.json({ error: 'categorySlug is required' }, { status: 400 });
@@ -185,9 +188,9 @@ export async function GET(request: Request) {
 
   try {
     const [empireCategory, facets, filterBaseProducts] = await Promise.all([
-      fetchEmpireCategoryFlags(slug),
-      fetchMeiliFilterFacets(slug),
-      fetchFilterBaseProducts(slug),
+      fetchEmpireCategoryFlags(slug, isBrandPage),
+      fetchMeiliFilterFacets(slug, isBrandPage),
+      fetchFilterBaseProducts(slug, isBrandPage),
     ]);
 
     const attributes = buildAttributesFromFacets(facets || {}, empireCategory || {});

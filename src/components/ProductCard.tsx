@@ -93,10 +93,19 @@ export default function ProductCard({ product, userRole: propUserRole, useCatego
   const isCached = isNumericCatImg && !!globalMediaCache[catImgMeta as string];
   
   const resolvedCatImage = useCategoryImage ? product.resolved_cat_image : null;
+
+  // Best non-category product image: prefer typed 'main_picture', else first image, else main_image_url
+  const getProductImageSrc = () => {
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      const mainPic = product.images.find((img: any) => img.type === "main_picture");
+      return (mainPic?.url || mainPic?.src) || (product.images[0]?.url || product.images[0]?.src);
+    }
+    return product.main_image_url || undefined;
+  };
   
   const initialImgSrc = resolvedCatImage || (catImgMeta && catImgMeta.trim() !== ""
       ? (isNumericCatImg ? (isCached ? globalMediaCache[catImgMeta as string] : undefined) : catImgMeta)
-      : product.images?.[0]?.src);
+      : getProductImageSrc());
 
   const [targetImgSrc, setTargetImgSrc] = useState<string | undefined>(initialImgSrc);
   const [isFetchingImg, setIsFetchingImg] = useState<boolean>(!resolvedCatImage && isNumericCatImg && !isCached);
@@ -111,7 +120,7 @@ export default function ProductCard({ product, userRole: propUserRole, useCatego
 
     // Reset if no cat meta
     if (!catImgMeta || catImgMeta.trim() === "") {
-        setTargetImgSrc(product.images?.[0]?.src);
+        setTargetImgSrc(getProductImageSrc());
         setIsFetchingImg(false);
         return;
     }
@@ -130,11 +139,11 @@ export default function ProductCard({ product, userRole: propUserRole, useCatego
             globalMediaCache[catImgMeta] = data.source_url;
             setTargetImgSrc(data.source_url);
           } else {
-            setTargetImgSrc(product.images?.[0]?.src);
+            setTargetImgSrc(getProductImageSrc());
           }
         })
         .catch(() => {
-          setTargetImgSrc(product.images?.[0]?.src);
+          setTargetImgSrc(getProductImageSrc());
         })
         .finally(() => {
             const elapsed = Date.now() - startTime;
@@ -159,8 +168,29 @@ export default function ProductCard({ product, userRole: propUserRole, useCatego
       <Link prefetch={true} href={`/${product.slug}`} className="relative h-32 lg:h-48 bg-white rounded-tl-lg rounded-tr-lg overflow-hidden flex items-center justify-center">
         {isFetchingImg ? (
           <div className="w-full h-full bg-gray-100 animate-pulse" />
+        ) : targetImgSrc ? (
+          <Image
+            src={imgSrc}
+            alt={productTitle}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-contain p-2"
+            onError={() => {
+              const fallbackSrc = getProductImageSrc();
+              const fallback = fallbackSrc || "/default-fallback-image.webp";
+              if (targetImgSrc !== fallback && !targetImgSrc.includes("default-fallback-image.webp")) {
+                setTargetImgSrc(fallback);
+              }
+            }}
+          />
         ) : (
-          <Image src={imgSrc} alt={productTitle} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-contain" />
+          <Image
+            src="/default-fallback-image.webp"
+            alt={productTitle}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-contain p-2 opacity-50"
+          />
         )}
 
         {/* Dynamic stock badge */}
