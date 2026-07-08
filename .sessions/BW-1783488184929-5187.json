@@ -1,0 +1,53 @@
+{
+  "website_url": "http://localhost:3001/",
+  "order_reference": "BW-1783488184929-5187",
+  "status": "processing",
+  "billing": {
+    "first_name": "Exercitationem delec",
+    "last_name": "Illum ut do totam m",
+    "company": "Quaerat consectetur ",
+    "address_1": "Sunt quidem perferen Lorem do libero dist",
+    "address_2": "",
+    "city": "Nihil eos id nihil",
+    "state": "",
+    "postcode": "Et acc",
+    "country": "BG",
+    "email": "dyvuqynu@mailinator.com",
+    "phone": "+1 (344) 137-1455",
+    "vat_number": "Amet quae sunt in "
+  },
+  "shipping": {
+    "first_name": "Exercitationem delec",
+    "last_name": "Illum ut do totam m",
+    "company": "Quaerat consectetur ",
+    "address_1": "Sunt quidem perferen Lorem do libero dist",
+    "address_2": "",
+    "city": "Nihil eos id nihil",
+    "state": "",
+    "postcode": "Et acc",
+    "country": "BG",
+    "email": "dyvuqynu@mailinator.com",
+    "phone": "+1 (344) 137-1455",
+    "vat_number": "Amet quae sunt in "
+  },
+  "items": [
+    {
+      "sync_id": "28160451",
+      "sku": "28160451",
+      "name": "Winlock raamkruk afsluitbaar links aluminium (f1)",
+      "quantity": 4,
+      "price": 23.6,
+      "manual_unit_price": 0
+    }
+  ],
+  "shipping_total": 0,
+  "total": 114.224,
+  "total_tax": 19.824,
+  "payment_method": "ideal",
+  "payment_method_title": "Mollie",
+  "customer_note": "Enim qui dolore simi\nBTW Nummer: Amet quae sunt in ",
+  "eu_vat_number": "Amet quae sunt in ",
+  "customer_id": 13,
+  "auth_token": "8|zRYwQWsxRLPqpE4u4O2stMfiTCYMmymJsH6Zr2Kg7be8cc67",
+  "transaction_id": "tr_R5mTSyyjZpenj6q76ufTJ"
+}

@@ -255,7 +255,7 @@ export async function placeOrderAction(data: any) {
             };
         });
 
-        // Add fee lines and coupons to total calculation (roughly)
+        // Add fee lines to total calculation
         let totalFees = 0;
         if (data.fee_lines) {
             for (const fee of data.fee_lines) {
@@ -263,10 +263,26 @@ export async function placeOrderAction(data: any) {
             }
         }
 
-        const netTotal = subtotal + shippingTotal + totalFees;
+        let discount = 0;
+        if (data.coupon_lines && data.coupon_lines.length > 0) {
+            const couponCode = data.coupon_lines[0].code;
+            const coupon = await getCouponByCode(couponCode);
+            if (coupon) {
+                if (coupon.discount_type === 'percent') {
+                    const amount = parseFloat(coupon.amount || "0");
+                    discount = (subtotal * amount) / 100;
+                } else if (coupon.discount_type === 'fixed_cart') {
+                    const amount = parseFloat(coupon.amount || "0");
+                    // Assuming amount is gross (Inc VAT), we need Ex VAT amount to deduct
+                    discount = amount / 1.21;
+                }
+            }
+        }
+
+        const netTotal = subtotal - discount + shippingTotal + totalFees;
         const taxRate = 0.21;
         const totalTax = netTotal * taxRate;
-        const totalAmount = netTotal + totalTax;
+        const totalAmount = Math.max(netTotal + totalTax, 0); // Ensure total is never negative
 
         // Build Empire API payload
         const empirePayload: Record<string, any> = {
@@ -284,7 +300,10 @@ export async function placeOrderAction(data: any) {
             customer_note: data.customer_note || "",
             eu_vat_number: data.meta_data?.find((m: any) => m.key === "vat_number")?.value || "",
             customer_id: data.customer_id,
-            auth_token: data.auth_token || ""
+            auth_token: data.auth_token || "",
+            coupon_lines: data.coupon_lines || [],
+            fee_lines: data.fee_lines || [],
+            discount_total: discount // Added discount total just in case
         };
 
         // Save session locally FIRST (without transaction_id)
