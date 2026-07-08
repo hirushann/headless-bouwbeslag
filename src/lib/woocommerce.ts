@@ -239,10 +239,21 @@ export const fetchProductStock = async (sku: string) => {
 
 export const getCouponByCode = async (code: string) => {
     try {
-        const { data } = await api.get("coupons", {
-            params: { code: code },
+        const response = await fetch(`${process.env.NEXT_PUBLIC_EMPIRE_API_URL}/coupons/code/${code}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            },
+            next: { revalidate: 60 } // Cache for 60 seconds
         });
-        return data && data.length > 0 ? data[0] : null;
+        
+        if (!response.ok) {
+            return null;
+        }
+        
+        const data = await response.json();
+        return data || null;
     } catch (error) {
         // console.error("Error fetching coupon:", error);
         return null;
