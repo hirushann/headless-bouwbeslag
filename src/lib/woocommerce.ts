@@ -239,7 +239,7 @@ export const fetchProductStock = async (sku: string) => {
 
 export const getCouponByCode = async (code: string) => {
     try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_EMPIRE_API_URL}/coupons/code/${code}`, {
+        const response = await fetch(`${EMPIRE_BASE_URL}/api/coupons/code/${code}`, {
             method: 'GET',
             headers: {
                 'Accept': 'application/json',
