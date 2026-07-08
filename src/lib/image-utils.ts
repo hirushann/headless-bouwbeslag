@@ -8,8 +8,9 @@ export function fixImageSrc(src: string | undefined | null): string {
         finalSrc = `https:${finalSrc}`;
     }
 
-    // Rewrite Meilisearch local domains to actual staging server
-    if (finalSrc.includes("http://empire.test")) {
+    // Rewrite Meilisearch local domains to actual staging server only if we aren't using empire.test as our backend
+    const empireApiUrl = process.env.NEXT_PUBLIC_EMPIRE_API_URL || "";
+    if (finalSrc.includes("http://empire.test") && !empireApiUrl.includes("empire.test")) {
         finalSrc = finalSrc.replace("http://empire.test", "https://empire.dayzsolutions.nl");
     }
 
