@@ -42,3 +42,8 @@ next-env.d.ts
 
 # dynamic data
 
+# local AI tooling
+AGENTS.md
+.agents/
+.codex/
+.antigravitycli/
