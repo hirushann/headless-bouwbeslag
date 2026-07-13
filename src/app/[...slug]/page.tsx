@@ -769,6 +769,9 @@ export default async function Page({ params, searchParams }: PageProps) {
     // We only await the most critical pieces if absolutely necessary, 
     // but here we can actually trust the product we already have.
     
+    console.log("=== Single Product Page Details ===");
+    console.log(JSON.stringify(product, null, 2));
+
     // For SEO structured data, we'll use defaults and not block the page.
     // If we MUST have the exact tax rate for SEO, we can use a hardcoded 21 which is standard for this shop.
     const structuredData = generateStructuredData(product, 21, []); 

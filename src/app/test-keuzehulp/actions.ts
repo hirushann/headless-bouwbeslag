@@ -9,8 +9,15 @@ export async function fetchKeuzehulpProductsAction(categorySlug: string) {
 
     // Map to WooCommerce-like format AND keep the raw Meilisearch fields
     // so the Keuzehulp filter can access flat fields like color, finish, material
-    const mapped = products.map((p: any) => {
+    const mapped = products.map((p: any, index: number) => {
       const woo = mapMeiliToWooProduct(p);
+      
+      if (index === 0) {
+        console.log("=== First Keuzehulp Product Details ===");
+        console.log("Raw Meilisearch data:", JSON.stringify(p, null, 2));
+        console.log("Mapped Woo data:", JSON.stringify(woo, null, 2));
+      }
+
       return {
         ...woo,
         // Preserve raw Meilisearch flat fields for keuzehulp filtering

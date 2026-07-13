@@ -156,7 +156,6 @@ function matchesFilters(
     if (id === excludeAttrId) continue;
     const pAttr = product.attributes?.find((a: any) => a.id === id);
     if (!pAttr) {
-      console.log(`[matchesFilters] Product ${product.name} missing attribute ${id}`);
       return false;
     }
     const hasMatch = pAttr.options.some((o: string) => {
@@ -164,11 +163,9 @@ function matchesFilters(
       const tMatch = globalAttr?.terms.find(
         (t: AttributeTerm) => t.name.trim().toLowerCase() === o.trim().toLowerCase()
       );
-      if (!tMatch) console.log(`[matchesFilters] No term match for option "${o}" in attr ${id}`);
       return tMatch && terms.has(tMatch.id);
     });
     if (!hasMatch) {
-      console.log(`[matchesFilters] Product ${product.name} failed filter ${id}. Options:`, pAttr.options, 'Selected terms:', Array.from(terms));
       return false;
     }
   }
@@ -476,7 +473,6 @@ function FilterSidebar({
       return [];
     }
 
-    console.log(`[FilterSidebar] availableBrands:`, brandsArray);
     return brandsArray;
   }, [allCategoryProductsForFilters, selectedFilters, selectedBrands, attributes, afdichtingsspleetRange, groefbreedteRange, showOnlyInStock]);
 
@@ -497,9 +493,6 @@ function FilterSidebar({
     });
 
     const activeGlobalAttrs = attributes.filter(ga => globalTermPresence.has(ga.id));
-
-    // console.log("---- FILTER DEBUG START ----");
-    console.log("Category ACF data:", category?.acf);
 
     const result = activeGlobalAttrs
       .map((attr) => {
@@ -552,12 +545,10 @@ function FilterSidebar({
         }
 
         if (validTerms.length === 0) return null;
-        console.log(`Filter [${attr.name}] -> Shown with ${validTerms.length} options.`);
         return { ...attr, terms: validTerms };
       })
       .filter(Boolean) as Attribute[];
       
-    console.log("---- FILTER DEBUG END ----");
     return result;
   }, [allCategoryProductsForFilters, attributes, category, selectedFilters, selectedBrands, afdichtingsspleetRange, groefbreedteRange]);
 

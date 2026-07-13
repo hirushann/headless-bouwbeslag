@@ -498,9 +498,6 @@ function FilterSidebar({
 
     const activeGlobalAttrs = attributes.filter(ga => globalTermPresence.has(ga.id));
 
-    // console.log("---- FILTER DEBUG START ----");
-    console.log("Category ACF data:", category?.acf);
-
     const result = activeGlobalAttrs
       .map((attr) => {
         // The 'attributes' array passed to FilterSidebar is already pre-filtered 
@@ -552,7 +549,6 @@ function FilterSidebar({
         }
 
         if (validTerms.length === 0) return null;
-        console.log(`Filter [${attr.name}] -> Shown with ${validTerms.length} options.`);
         return { ...attr, terms: validTerms };
       })
       .filter(Boolean) as Attribute[];

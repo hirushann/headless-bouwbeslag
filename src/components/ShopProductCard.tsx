@@ -47,9 +47,12 @@ export default function ShopProductCard({ product, useCategoryImage = false }: {
   
   const resolvedCatImage = useCategoryImage ? product.resolved_cat_image : null;
 
-  // Best non-category product image: prefer typed 'main_picture', else first image, else main_image_url
+  // Best non-category product image: prefer typed 'cat_image', then 'main_picture', else first image, else main_image_url
   const getProductImageSrc = () => {
     if (Array.isArray(product.images) && product.images.length > 0) {
+      const catImage = product.images.find((img: any) => img.type === "cat_image");
+      if (catImage) return catImage.url || catImage.src;
+
       const mainPic = product.images.find((img: any) => img.type === "main_picture");
       return (mainPic?.url || mainPic?.src) || (product.images[0]?.url || product.images[0]?.src);
     }
