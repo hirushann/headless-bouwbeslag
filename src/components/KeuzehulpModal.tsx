@@ -13,6 +13,40 @@ interface KeuzehulpModalProps {
   allProducts: any[];
 }
 
+/**
+ * Data-driven filter: for each step that has answers, check if the product's
+ * raw Meilisearch field matches any of the selected values.
+ * AND logic across steps, OR logic within a step.
+ */
+function evaluateFilters(answers: Record<string, string[]>, steps: KeuzehulpStep[], products: any[]): any[] {
+  return products.filter(product => {
+    for (const step of steps) {
+      const selectedIds = answers[step.id];
+      if (!selectedIds || selectedIds.length === 0) continue;
+
+      // Get the meilisearchField and meilisearchValues for the selected choices
+      const selectedChoices = step.choices.filter(c => selectedIds.includes(c.id));
+      if (selectedChoices.length === 0) continue;
+
+      // All selected choices in a step share the same meilisearchField
+      const field = selectedChoices[0].meilisearchField;
+      const acceptedValues = selectedChoices.map(c => c.meilisearchValue.toLowerCase());
+
+      // Get the product's value for this field (check raw fields first, then top-level)
+      const rawFieldKey = `_raw_${field}`;
+      const productValue = product[rawFieldKey] ?? product[field];
+
+      if (!productValue) return false;
+
+      // Check if product's value matches any of the accepted values
+      const productValueLower = String(productValue).toLowerCase();
+      const hasMatch = acceptedValues.some(v => productValueLower.includes(v) || v.includes(productValueLower));
+      if (!hasMatch) return false;
+    }
+    return true;
+  });
+}
+
 export default function KeuzehulpModal({ categorySlug, isOpen, onClose, onComplete, allProducts }: KeuzehulpModalProps) {
   const steps: KeuzehulpStep[] = KeuzehulpConfig[categorySlug] || [];
   
@@ -26,50 +60,7 @@ export default function KeuzehulpModal({ categorySlug, isOpen, onClose, onComple
   const isMulti = currentStep.type === "multi";
   const selectedForCurrent = answers[currentStep.id] || [];
 
-  // Replicated Evaluation logic for Modal preview
-  const evaluateFilters = (currentAnswers: Record<string, string[]>) => {
-    return allProducts.filter(product => {
-       let isMatch = true;
-
-       if (currentAnswers.usage && currentAnswers.usage.length > 0) {
-          const productAttr = product.attributes?.find((a: any) => a.name === "pa_indoor_outdoor" || a.name.toLowerCase() === "indoor outdoor");
-          if (!productAttr) isMatch = false; 
-          else {
-             const hasTerm = productAttr.options.some((opt: string) => 
-               currentAnswers.usage.includes(opt.toLowerCase())
-             );
-             if (!hasTerm) isMatch = false;
-          }
-       }
-
-       if (isMatch && currentAnswers.color && currentAnswers.color.length > 0) {
-          const productAttr = product.attributes?.find((a: any) => a.name === "pa_color" || a.name.toLowerCase() === "color" || a.name.toLowerCase() === "kleur");
-          if (!productAttr) isMatch = false; 
-          else {
-             // Let's do a soft inclusions check
-             const hasTerm = productAttr.options.some((opt: string) => 
-               currentAnswers.color.some(color => opt.toLowerCase().includes(color.toLowerCase()))
-             );
-             if (!hasTerm) isMatch = false;
-          }
-       }
-
-       // For demo dummy purposes, if a product lacks the 'type' attribute, we won't strictly fail it unless we have strict taxonomy matching setup.
-       if (isMatch && currentAnswers.type && currentAnswers.type.length > 0) {
-          const productAttr = product.attributes?.find((a: any) => a.name === "pa_rosette_type" || a.name.toLowerCase() === "rozet type" || a.name.toLowerCase() === "type rozet/schild");
-          if (productAttr) {
-             const hasTerm = productAttr.options.some((opt: string) => 
-                currentAnswers.type.some(t => opt.toLowerCase().includes(t.toLowerCase()))
-             );
-             if (!hasTerm) isMatch = false;
-          }
-       }
-
-       return isMatch;
-    });
-  };
-
-  const currentMatchingProductsCount = evaluateFilters(answers).length;
+  const currentMatchingProductsCount = evaluateFilters(answers, steps, allProducts).length;
 
   const handleChoiceClick = (choiceId: string) => {
     if (isMulti) {
@@ -120,7 +111,7 @@ export default function KeuzehulpModal({ categorySlug, isOpen, onClose, onComple
     setShowResults(false);
   };
 
-  const currentMatchingProducts = evaluateFilters(answers);
+  const currentMatchingProducts = evaluateFilters(answers, steps, allProducts);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -210,6 +201,7 @@ export default function KeuzehulpModal({ categorySlug, isOpen, onClose, onComple
                   {currentStep.choices.map((choice) => {
                     const isSelected = selectedForCurrent.includes(choice.id);
                     
+                    // Simulate what would happen if user picks this choice
                     let choiceAnswers = { ...answers };
                     if (isMulti) {
                       if (!isSelected) {
@@ -219,7 +211,7 @@ export default function KeuzehulpModal({ categorySlug, isOpen, onClose, onComple
                       choiceAnswers[currentStep.id] = [choice.id];
                     }
                     
-                    const isAvailable = evaluateFilters(choiceAnswers).length > 0;
+                    const isAvailable = evaluateFilters(choiceAnswers, steps, allProducts).length > 0;
                     const isDisabled = !isAvailable && !isSelected;
 
                     return (
