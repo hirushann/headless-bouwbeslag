@@ -1,4 +1,4 @@
-const { mapMeiliToWooProduct } = require('./src/lib/meilisearch-products');
+const { mapMeiliToWooProduct } = require('../../src/lib/meilisearch-products');
 const p = {
   "id": 10000001,
   "sku": "0142-01-048x50",

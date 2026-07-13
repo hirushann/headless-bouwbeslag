@@ -1,4 +1,4 @@
-const { mapMeiliToWooProduct } = require('./src/lib/meilisearch-products');
+const { mapMeiliToWooProduct } = require('../../src/lib/meilisearch-products');
 
 fetch("https://ezearch.dayzsolutions.com/indexes/empire-bouwbeslag-products/search", {
     method: "POST",
