@@ -73,6 +73,7 @@ export async function checkStockAction(identifier: string | number) {
             sku: data.sku,
             stock_status: data.total_stock > 0 ? "instock" : "outofstock",
             stock_quantity: data.total_stock,
+            manage_stock: true,
             backorders: "notify", // Default for Bouwbeslag if backorders are allowed
             backorders_allowed: true, // We will just permit backorders/notify generally or map it
             meta_data: [

@@ -216,11 +216,15 @@ function matchesFilters(
 
 type BrandClientProps = {
   brand: any;
+  category?: any;
+  categorySlug?: string;
   subCategories: any[] | Promise<any[]>;
   currentSlug: string[];
   initialProducts?: any[];
   initialTotalPages?: number;
   initialTotalProducts?: number;
+  allAttributes?: Attribute[];
+  children?: React.ReactNode;
 };
 
 
@@ -369,7 +373,7 @@ function FilterSidebarSkeleton() {
 interface FilterSidebarProps {
   attributes: Attribute[];
   allCategoryProductsForFilters: any[];
-  brand: any;
+  category: any;
   selectedFilters: { [key: number]: Set<number> };
   selectedBrands: Set<number>;
   toggleFilter: (attrId: number, termId: number) => void;
@@ -387,17 +391,17 @@ interface FilterSidebarProps {
   setPriceRange: (r: [number, number] | null) => void;
   onFilterCheck?: (hasFilters: boolean) => void;
   isB2B: boolean;
+  isBrandPage?: boolean;
 }
 
 function FilterSidebar({
-  brand,
+  attributes,
   allCategoryProductsForFilters,
-  allAttributes,
+  category,
   selectedFilters,
-  setSelectedFilters,
   selectedBrands,
-  setSelectedBrands,
-  Filter,
+  toggleFilter,
+  toggleBrandFilter,
   resetFilters,
   afdichtingsspleetRange,
   groefbreedteRange,
@@ -410,7 +414,8 @@ function FilterSidebar({
   priceRange,
   setPriceRange,
   onFilterCheck,
-  isB2B
+  isB2B,
+  isBrandPage
 }: FilterSidebarProps) {
 
   const [showAllColors, setShowAllColors] = useState(false);
@@ -424,14 +429,14 @@ function FilterSidebar({
    * Returns true when the flag is enabled (or when it is simply absent/undefined).
    */
   const getCategoryFlag = (empireKey: string, acfKey?: string): boolean => {
-    // 1. Empire flag (e.g. brand.has_brands)
+    // 1. Empire flag (e.g. category.has_brands)
     if (category && empireKey in category) {
       return Boolean(category[empireKey]);
     }
     // 2. WooCommerce ACF fallback
     const key = acfKey || empireKey.replace(/^has_/, '');
-    if (brand?.acf && typeof brand.acf === 'object' && key in brand.acf) {
-      const val = brand.acf[key];
+    if (category?.acf && typeof category.acf === 'object' && key in category.acf) {
+      const val = category.acf[key];
       return val !== false && val !== 'false' && val !== 0 && val !== '0';
     }
     return true; // default: show the filter
@@ -496,7 +501,7 @@ function FilterSidebar({
     const activeGlobalAttrs = attributes.filter(ga => globalTermPresence.has(ga.id));
 
     // console.log("---- FILTER DEBUG START ----");
-    console.log("Category ACF data:", brand?.acf);
+    console.log("Category ACF data:", category?.acf);
 
     const result = activeGlobalAttrs
       .map((attr) => {
@@ -942,7 +947,7 @@ function FilterSidebar({
   );
 }
 
-export default function BrandClient({ brand, currentSlug, categorySlug, initialProducts, initialTotalPages, initialTotalProducts, allAttributes = [], children }: BrandClientProps) {
+export default function BrandClient({ brand, category, subCategories, currentSlug, categorySlug, initialProducts = [], initialTotalPages = 1, initialTotalProducts = initialProducts.length, allAttributes = [], children }: BrandClientProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
 

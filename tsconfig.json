@@ -23,5 +23,14 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "test*.ts", "debug*.ts", "scratch.ts", "get-product.ts"]
+  "exclude": [
+    "node_modules",
+    "tests",
+    "scripts",
+    "artifacts",
+    "test*.ts",
+    "debug*.ts",
+    "scratch.ts",
+    "get-product.ts"
+  ]
 }

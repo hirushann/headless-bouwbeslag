@@ -1,7 +1,7 @@
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
-import { fetchCategoriesAction } from "./src/app/actions.ts";
+import { fetchCategoriesAction } from "../../src/app/actions.ts";
 
 async function run() {
     console.log("Running fetchCategoriesAction...");

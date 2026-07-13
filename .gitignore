@@ -41,6 +41,10 @@ yarn-error.log*
 next-env.d.ts
 
 # dynamic data
+artifacts/debug/*
+artifacts/reports/*
+!artifacts/debug/.gitkeep
+!artifacts/reports/.gitkeep
 
 # local AI tooling
 AGENTS.md

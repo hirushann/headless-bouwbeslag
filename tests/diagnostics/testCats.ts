@@ -1,6 +1,6 @@
 require("dotenv").config({ path: ".env.local" });
-const { fetchCategories } = require("./src/lib/woocommerce.ts");
-const { fetchPosts } = require("./src/lib/woocommerce.ts");
+const { fetchCategories } = require("../../src/lib/woocommerce.ts");
+const { fetchPosts } = require("../../src/lib/woocommerce.ts");
 
 async function run() {
     console.log("Fetching with Empire API...");

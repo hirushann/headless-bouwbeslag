@@ -1,4 +1,4 @@
-import { getBrands } from "./src/lib/woocommerce";
+import { getBrands } from "../../src/lib/woocommerce";
 import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 

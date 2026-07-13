@@ -1,4 +1,4 @@
-import { WooCommerceClient } from "./src/lib/woocommerce.js";
+import { WooCommerceClient } from "../../src/lib/woocommerce.js";
 import { config } from "dotenv";
 
 config({ path: ".env.local" });

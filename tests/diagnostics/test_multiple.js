@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-const d = JSON.parse(fs.readFileSync('out.json', 'utf8'));
+const d = JSON.parse(fs.readFileSync('artifacts/fixtures/out.json', 'utf8'));
 const allAttributes = d.attributes;
 const products = d.filterBaseProducts;
 
