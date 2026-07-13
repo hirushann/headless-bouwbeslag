@@ -281,17 +281,17 @@ export default function Header({
                 </div>
               </Link>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <Link prefetch={true} href="/deurbeslag/deurklink">
+                <Link prefetch={true} href="/deurklink">
                   <span className="text-white font-normal text-sm">Deurklink</span>
                 </Link>
               </div>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <Link prefetch={true} href="/deurbeslag/cilinders">
+                <Link prefetch={true} href="/cilinder">
                   <span className="text-white font-normal text-sm">Cilinder</span>
                 </Link>
               </div>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <Link prefetch={true} href="/deurbeslag/tochtstrip">
+                <Link prefetch={true} href="/tochtstrip">
                   <span className="text-white font-normal text-sm">Tochtstrip</span>
                 </Link>
               </div>

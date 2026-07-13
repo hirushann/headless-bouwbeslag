@@ -21,9 +21,9 @@ export default function MobileMenu() {
           </div>
           <ul tabIndex={0} className="menu menu-lg dropdown-content bg-[#1C2530] z-1 mt-4.5 w-75 p-2 shadow text-white">
             <li><Link onClick={closeMenu} prefetch={true} href="/categories">Categorieën</Link></li>
-            <li><Link onClick={closeMenu} prefetch={true} href="/deurbeslag/deurklink">Deurklink</Link></li>
-            <li><Link onClick={closeMenu} prefetch={true} href="/deurbeslag/cilinders">Cilinder</Link></li>
-            <li><Link onClick={closeMenu} prefetch={true} href="/deurbeslag/tochtstrip">Tochtstrip</Link></li>
+            <li><Link onClick={closeMenu} prefetch={true} href="/deurklink">Deurklink</Link></li>
+            <li><Link onClick={closeMenu} prefetch={true} href="/cilinder">Cilinder</Link></li>
+            <li><Link onClick={closeMenu} prefetch={true} href="/tochtstrip">Tochtstrip</Link></li>
             <li><Link onClick={closeMenu} prefetch={true} href="/deurbeslag/deurstoppers">Deurstopper</Link></li>
           </ul>
         </div>

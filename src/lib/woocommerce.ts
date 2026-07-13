@@ -115,13 +115,35 @@ export const fetchProducts = async (params: any = {}) => {
 const EMPIRE_API_URL = process.env.NEXT_PUBLIC_EMPIRE_API_URL || "http://empire.test";
 const EMPIRE_BASE_URL = EMPIRE_API_URL.replace(/\/$/, "");
 
+const flattenCategoryTree = (categories: any[]): any[] => {
+    const flattened: any[] = [];
+
+    const visit = (category: any) => {
+        if (!category || typeof category !== "object") return;
+
+        const { children, ...rest } = category;
+        flattened.push(rest);
+
+        if (Array.isArray(children)) {
+            children.forEach(visit);
+        }
+    };
+
+    categories.forEach(visit);
+    return flattened;
+};
+
 export const fetchCategories = async () => {
     try {
         const res = await fetch(`${EMPIRE_BASE_URL}/api/categories`, {
             cache: 'no-store'
         });
         if (!res.ok) return [];
-        return await res.json();
+        const payload = await res.json();
+        const categories = Array.isArray(payload) ? payload : payload?.data;
+
+        if (!Array.isArray(categories)) return [];
+        return flattenCategoryTree(categories);
     } catch (e) {
         return [];
     }

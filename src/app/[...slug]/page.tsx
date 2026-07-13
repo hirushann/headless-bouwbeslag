@@ -57,9 +57,69 @@ const getProductBySlugCached = cache(async (slug: string) => {
     return await fetchProductBySlug(slug);
 });
 
-const getCategoryBySlugCached = cache(async (slug: string): Promise<Category | null> => {
+const normalizeCategoryPathSegment = (segment: string) => {
+    return decodeURIComponent(segment)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/&/g, " en ")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+};
+
+const normalizeCategoryPath = (path: string) => {
+    return path
+      .split(">")
+      .map((segment) => normalizeCategoryPathSegment(segment.trim()))
+      .filter(Boolean)
+      .join("/");
+};
+
+const getCategoryByPathCached = cache(async (slugArray: string[]): Promise<Category | null> => {
     const categories = await getAllCategoriesCached();
-    return categories.find((c: any) => c.slug.toLowerCase() === slug.toLowerCase()) || null;
+    const categoryById = new Map<number, any>(categories.map((category: any) => [category.id, category]));
+    const requestedPath = slugArray.map(normalizeCategoryPathSegment).join("/");
+    const currentSlug = normalizeCategoryPathSegment(slugArray[slugArray.length - 1]);
+
+    const fetchCategoryDetail = async (slug: string, expectedCategoryId?: number) => {
+      const empireApiUrl = process.env.NEXT_PUBLIC_EMPIRE_API_URL || "http://empire.test";
+      const empireBaseUrl = empireApiUrl.replace(/\/$/, "");
+      const params = new URLSearchParams({ path: requestedPath });
+      const res = await fetch(`${empireBaseUrl}/api/categories/${slug}?${params.toString()}`, {
+        cache: "no-store",
+      });
+
+      if (!res.ok) return null;
+
+      const category = await res.json();
+      if (expectedCategoryId && category?.id !== expectedCategoryId) return null;
+      if (category?.path && normalizeCategoryPath(category.path) !== requestedPath) return null;
+
+      return category?.id ? category : null;
+    };
+
+    const matchedCategory = categories.find((category: any) => {
+      if (!category?.slug) return false;
+
+      const path = [normalizeCategoryPathSegment(String(category.slug))];
+      let currentParentId = category.parent;
+      let depth = 0;
+
+      while (currentParentId && currentParentId !== 0 && depth < 25) {
+        const parent = categoryById.get(currentParentId);
+        if (!parent?.slug) break;
+
+        path.unshift(normalizeCategoryPathSegment(String(parent.slug)));
+        currentParentId = parent.parent;
+        depth++;
+      }
+
+      return path.join("/") === requestedPath;
+    });
+
+    if (!matchedCategory?.slug) return await fetchCategoryDetail(currentSlug);
+
+    return await fetchCategoryDetail(matchedCategory.slug, matchedCategory.id) || matchedCategory;
 });
 
 
@@ -73,7 +133,7 @@ const getPageMetadata = cache(async (slugArray: string[]) => {
   }
 
   // 2. Check if it's a category in Empire
-  const category = await getCategoryBySlugCached(currentSlug);
+  const category = await getCategoryByPathCached(slugArray);
   if (category) {
       return { product: null, category };
   }
@@ -91,7 +151,7 @@ const getPageData = cache(async (slugArray: string[]) => {
   }
 
   // 2. Check if it's a category in Empire
-  const category = await getCategoryBySlugCached(currentSlug);
+  const category = await getCategoryByPathCached(slugArray);
   if (category) {
       return { product: null, category };
   }
@@ -245,6 +305,10 @@ const getStandardTaxRate = cache(async (): Promise<number> => {
 const clean = (s: string | undefined) => s ? s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim() : "";
 
 async function traverseCategoryPath(category: any): Promise<string> {
+  if (category?.path) {
+    return normalizeCategoryPath(category.path);
+  }
+
   const allCategories = await getAllCategoriesCached();
   const catMap = new Map<number, any>(allCategories.map((c: any) => [c.id, c]));
   
