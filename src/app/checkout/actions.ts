@@ -255,8 +255,8 @@ export async function placeOrderAction(data: any) {
             subtotal += (price * qty);
             
             return {
-                sync_id: item.sku || item.slug, // Empire relies on sync_id/sku being the actual product SKU
-                sku: item.sku || item.slug, 
+                sync_id: item.sku || item.sync_id || item.slug,
+                sku: item.sku || item.sync_id || item.slug, 
                 name: item.name,
                 quantity: qty,
                 price: price,
