@@ -295,7 +295,7 @@ export async function placeOrderAction(data: any) {
 
         // Build Empire API payload
         const empirePayload: Record<string, any> = {
-            website_url: siteUrl,
+            website_url: "https://bouwbeslag.nl",
             order_reference: orderReference,
             status: "processing", // Status to set when payment completes
             billing: data.billing,
