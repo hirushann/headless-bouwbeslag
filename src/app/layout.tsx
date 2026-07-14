@@ -4,7 +4,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Toaster } from "react-hot-toast";
-import { getShippingSettings } from "@/lib/woocommerce";
+import { getShippingSettings, getShippingRules } from "@/lib/woocommerce";
 import { UserProvider } from "@/context/UserContext";
 import { Suspense } from "react";
 import { ProductAddedModalProvider } from "@/context/ProductAddedModalContext";
@@ -43,6 +43,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const shippingSettings = await getShippingSettings();
+  const shippingRules = await getShippingRules();
 
   return (
     <html lang="nl" data-theme="light">
@@ -91,7 +92,7 @@ export default async function RootLayout({
         <Toaster position="top-right" />
         <UserProvider>
           <ProductAddedModalProvider>
-            <Header shippingMethods={shippingSettings} />
+            <Header shippingMethods={shippingSettings} shippingRules={shippingRules} />
             {children}
             <ProductAddedModalWrapper />
           </ProductAddedModalProvider>

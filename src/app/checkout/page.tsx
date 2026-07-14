@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Script from "next/script";
 import { ChevronRight, CreditCard, Package, ShieldCheck, Truck, Check, Loader2, Tag, X, Clock, Trash2 } from "lucide-react";
-import { getShippingRatesAction, placeOrderAction, validateCouponAction, checkPostcodeAction, getPaymentMethodsAction, validateVatAction } from "./actions";
+import { getShippingRatesAction, getShippingRulesAction, placeOrderAction, validateCouponAction, checkPostcodeAction, getPaymentMethodsAction, validateVatAction } from "./actions";
 import { useCartStore } from "@/lib/cartStore";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -58,6 +58,7 @@ export default function NewCheckoutPage() {
   const [availableMethods, setAvailableMethods] = useState<any[]>([]); // Should use ShippingMethod interface
   const [selectedMethodId, setSelectedMethodId] = useState<string | number | null>(null);
   const [shippingCost, setShippingCost] = useState<number | null>(null);
+  const [shippingRules, setShippingRules] = useState<any[]>([]);
   
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
@@ -439,6 +440,14 @@ export default function NewCheckoutPage() {
     };
     fetchRates();
 
+    const fetchRules = async () => {
+      const result = await getShippingRulesAction();
+      if (result.success && result.rules) {
+        setShippingRules(result.rules);
+      }
+    };
+    fetchRules();
+
     const fetchPaymentMethods = async () => {
         const result = await getPaymentMethodsAction();
         if (result.success && result.methods) {
@@ -476,6 +485,21 @@ export default function NewCheckoutPage() {
 
   const validMethods = React.useMemo(() => {
     let methodsToReturn = [];
+    
+    // Determine the selected country code
+    const countryName = shipToDifferentAddress ? shippingData.country : formData.country;
+    const countryCode = getIsoFromCountryName(countryName, "NL");
+    
+    let baseShippingCost = 0;
+    let baseFreeShippingThreshold = 74; // Default fallback
+
+    if (shippingRules && shippingRules.length > 0) {
+        const rule = shippingRules.find(r => r.country_code === countryCode) || shippingRules.find(r => r.country_code === 'NL');
+        if (rule) {
+            baseShippingCost = rule.shipping_cost;
+            baseFreeShippingThreshold = rule.free_shipping_threshold;
+        }
+    }
 
     if (hasLengthFreight) {
         // Prioritize backend method if available
@@ -492,24 +516,31 @@ export default function NewCheckoutPage() {
             }];
         }
     } else {
-        methodsToReturn = availableMethods.filter(method => {
+        // Deep copy availableMethods so we don't mutate state directly when changing cost
+        const copiedMethods = availableMethods.map(m => ({ ...m }));
+        
+        methodsToReturn = copiedMethods.filter(method => {
            // Filter out Lengtevracht if not applicable (since hasLengthFreight is false here)
            if (method.title && method.title.toLowerCase().includes('lengtevracht')) {
                return false;
            }
 
            if (method.methodId === 'free_shipping') {
-             const minAmount = method.minAmount ? parseFloat(method.minAmount) : 74;
              const cartTotalForShipping = isB2B ? subtotal : subtotal * 1.21;
-             if (cartTotalForShipping < minAmount) return false;
+             if (cartTotalForShipping < baseFreeShippingThreshold) return false;
+           }
+           
+           if (method.methodId === 'flat_rate') {
+             // Update the cost based on the active rule
+             method.cost = baseShippingCost;
            }
            return true;
         });
     }
 
-    // Custom Free Shipping Logic: Free standard shipping over 74 Euro
+    // Custom Free Shipping Logic: Free standard shipping over dynamic threshold
     const cartTotalForShipping = isB2B ? subtotal : subtotal * 1.21;
-    if (cartTotalForShipping >= 74) {
+    if (cartTotalForShipping >= baseFreeShippingThreshold) {
         const hasNativeFreeShipping = methodsToReturn.some(m => m.methodId === 'free_shipping');
         
         if (hasNativeFreeShipping) {
@@ -528,7 +559,7 @@ export default function NewCheckoutPage() {
     }
 
     return methodsToReturn;
-  }, [availableMethods, subtotal, hasLengthFreight, isB2B, lengthFreightCost]);
+  }, [availableMethods, shippingRules, subtotal, hasLengthFreight, isB2B, lengthFreightCost, formData.country, shippingData.country, shipToDifferentAddress]);
 
   // Update shipping cost whenever rates or selected method changes
   // AND Auto-select if needed

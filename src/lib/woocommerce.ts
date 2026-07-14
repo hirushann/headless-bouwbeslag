@@ -345,4 +345,26 @@ export const fetchAllWoo = async (endpoint: string, extraParams: any = {}) => {
     }
 };
 
+export interface ShippingRule {
+    id: number;
+    country_code: string;
+    country_name: string;
+    shipping_cost: number;
+    free_shipping_threshold: number;
+    is_active: boolean;
+}
+
+export const getShippingRules = async (): Promise<ShippingRule[]> => {
+    try {
+        const res = await fetch(`${EMPIRE_BASE_URL}/api/shipping-rules/active`, {
+            cache: 'no-store'
+        });
+        if (!res.ok) return [];
+        const result = await res.json();
+        return result.data || [];
+    } catch (error) {
+        return [];
+    }
+};
+
 export default api;

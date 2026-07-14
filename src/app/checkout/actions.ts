@@ -1,6 +1,6 @@
 "use server";
 
-import { getShippingSettings, getCouponByCode } from "@/lib/woocommerce";
+import { getShippingSettings, getCouponByCode, getShippingRules } from "@/lib/woocommerce";
 import { getCheckoutSession, saveCheckoutSession, deleteCheckoutSession } from "@/lib/checkout-session";
 import mollieClient from "@/lib/mollie";
 import { redirect } from "next/navigation";
@@ -87,6 +87,15 @@ export async function getShippingRatesAction() {
     } catch (error) {
         // console.error("Failed to fetch shipping rates:", error);
         return { success: false, methods: [] };
+    }
+}
+
+export async function getShippingRulesAction() {
+    try {
+        const rules = await getShippingRules();
+        return { success: true, rules };
+    } catch (error) {
+        return { success: false, rules: [] };
     }
 }
 

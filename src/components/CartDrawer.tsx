@@ -8,13 +8,16 @@ import { refreshCartStockAction } from "@/app/actions";
 import { fixImageSrc } from "@/lib/image-utils";
 import Image from "next/image";
 
+import { ShippingRule } from "@/lib/woocommerce";
+
 interface CartDrawerProps {
   isB2B: boolean;
   taxLabel: string;
   shippingMethods: any[];
+  shippingRules?: ShippingRule[];
 }
 
-export default function CartDrawer({ isB2B, taxLabel, shippingMethods }: CartDrawerProps) {
+export default function CartDrawer({ isB2B, taxLabel, shippingMethods, shippingRules }: CartDrawerProps) {
   const items = useCartStore((state) => state.items);
   const isCartOpen = useCartStore((state) => state.isCartOpen);
   const setCartOpen = useCartStore((state) => state.setCartOpen);
@@ -60,7 +63,11 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods }: CartDra
   let flatRate = 0;
   let freeShippingThreshold: number | null = null;
 
-  if (shippingMethods && Array.isArray(shippingMethods)) {
+  if (shippingRules && shippingRules.length > 0) {
+    const nlRule = shippingRules.find(r => r.country_code === 'NL') || shippingRules[0];
+    flatRate = nlRule.shipping_cost;
+    freeShippingThreshold = nlRule.free_shipping_threshold;
+  } else if (shippingMethods && Array.isArray(shippingMethods)) {
     const flatMethod = shippingMethods.find((m) => m.methodId === "flat_rate" && m.enabled);
     if (flatMethod) flatRate = flatMethod.cost;
 
@@ -77,9 +84,9 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods }: CartDra
 
   const hasLengthFreight = items.some((i) => i.hasLengthFreight);
   
-  // Custom logic: Free shipping over 74 Euro (excluding length freight)
+  // Use dynamic free shipping threshold
   const cartTotalForShipping = isB2B ? subtotal : subtotal * 1.21;
-  const isFreeShipping = (freeShippingThreshold !== null && cartTotalForShipping >= freeShippingThreshold) || cartTotalForShipping >= 74;
+  const isFreeShipping = freeShippingThreshold !== null && cartTotalForShipping >= freeShippingThreshold;
   
   const shipping = hasLengthFreight ? lengthFreightCost / 1.21 : isFreeShipping ? 0 : flatRate;
   const displayShipping = isB2B ? shipping : shipping * 1.21;

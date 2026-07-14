@@ -10,7 +10,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
 
-import { ShippingMethod } from "@/lib/woocommerce";
+import { ShippingMethod, ShippingRule } from "@/lib/woocommerce";
 import SearchAutosuggest from "./SearchAutosuggest";
 import WebwinkelKeurWidget from "./WebwinkelKeurWidget";
 import CartDrawer from "./CartDrawer";
@@ -18,8 +18,10 @@ import MobileMenu from "./MobileMenu";
 
 export default function Header({
   shippingMethods,
+  shippingRules,
 }: {
   shippingMethods: ShippingMethod[];
+  shippingRules: ShippingRule[];
 }) {
   const [isMounted, setIsMounted] = useState(false);
 
@@ -322,6 +324,7 @@ export default function Header({
           isB2B={!!isB2B} 
           taxLabel={taxLabel} 
           shippingMethods={shippingMethods} 
+          shippingRules={shippingRules}
         />
       )}
     </>
