@@ -132,7 +132,7 @@ async function fetchFilterBaseProducts(categorySlug: string, isBrandPage: boolea
           'id', 'slug', 'name', 'color', 'material', 'finish',
           'brand', 'brand_name', 'brand_id', 'stock_status', 'stock',
           'price', 'category_id', 'category_slug', 'category_name',
-          'images', 'main_image_url',
+          'images', 'main_image_url', 'category'
         ],
       }),
     });
@@ -167,6 +167,7 @@ async function fetchFilterBaseProducts(categorySlug: string, isBrandPage: boolea
         images: Array.isArray(p.images) ? p.images.map((img: any) => ({ ...img, src: img.url || img.src }))
           : (p.main_image_url ? [{ src: p.main_image_url }] : []),
         meta_data: [],
+        resolved_cat_image: p.category?.image?.src || p.category?.image || ""
       };
     });
   } catch {
