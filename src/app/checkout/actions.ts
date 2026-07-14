@@ -262,6 +262,7 @@ export async function placeOrderAction(data: any) {
         const items = itemsToProcess.map((item: any) => {
             const price = parseFloat(item.price || 0);
             const qty = parseInt(item.quantity || 1);
+            const invoicePrice = pricesIncludeTax ? roundMoney(price * taxMultiplier) : roundMoney(price);
             const syncId = item.sync_id || item.sku;
             const sku = item.sku || item.sync_id;
 
@@ -276,10 +277,10 @@ export async function placeOrderAction(data: any) {
                 sku: sku, 
                 name: item.name,
                 quantity: qty,
-                price: pricesIncludeTax ? roundMoney(price * taxMultiplier) : roundMoney(price),
+                price: invoicePrice,
                 price_ex_tax: roundMoney(price),
                 price_tax: pricesIncludeTax ? roundMoney((price * taxMultiplier) - price) : 0,
-                manual_unit_price: 0
+                manual_unit_price: invoicePrice
             };
         });
 
