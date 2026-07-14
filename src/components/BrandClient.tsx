@@ -1343,7 +1343,7 @@ export default function BrandClient({ brand, category, subCategories, currentSlu
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 lg:gap-6">
                   {products.map((product) => (
                     <div key={product.id} className="h-full">
-                      <ShopProductCard product={product} />
+                      <ShopProductCard product={product} useCategoryImage={true} />
                     </div>
                   ))}
                 </div>
