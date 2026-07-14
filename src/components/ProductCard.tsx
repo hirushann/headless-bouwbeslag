@@ -285,8 +285,8 @@ export default function ProductCard({ product, userRole: propUserRole, useCatego
             setIsAdding(true);
 
             try {
-               // 1. Fetch real-time stock using the most reliable identifier (SKU > slug > ID)
-               const identifier = product.sku || product.slug || product.id;
+               // 1. Fetch real-time stock using the most reliable identifier (SKU > ID)
+               const identifier = (product.sku && product.sku.trim() !== "") ? product.sku : product.id;
                const stockRes = await checkStockAction(identifier);
                
                if (!stockRes.success || !stockRes.data) {
