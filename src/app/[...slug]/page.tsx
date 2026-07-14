@@ -125,19 +125,24 @@ const getCategoryByPathCached = cache(async (slugArray: string[]): Promise<Categ
 
 const getPageMetadata = cache(async (slugArray: string[]) => {
   const currentSlug = decodeURIComponent(slugArray[slugArray.length - 1]);
+  console.log(`[DEBUG] getPageMetadata: Resolving slugArray:`, slugArray, `currentSlug:`, currentSlug);
   
   // 1. Check if it's a product in Meilisearch
   const product = await getProductBySlugCached(currentSlug);
   if (product) {
+      console.log(`[DEBUG] getPageMetadata: Found Product for slug ${currentSlug}`);
       return { product, category: null };
   }
+  console.log(`[DEBUG] getPageMetadata: Product NOT found for slug ${currentSlug}. Checking categories...`);
 
   // 2. Check if it's a category in Empire
   const category = await getCategoryByPathCached(slugArray);
   if (category) {
+      console.log(`[DEBUG] getPageMetadata: Found Category for path ${slugArray.join('/')}`);
       return { product: null, category };
   }
-
+  
+  console.log(`[DEBUG] getPageMetadata: Category NOT found for path ${slugArray.join('/')}. Returning 404 data.`);
   return { product: null, category: null };
 });
 
