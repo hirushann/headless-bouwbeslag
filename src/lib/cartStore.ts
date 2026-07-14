@@ -19,6 +19,7 @@ interface CartItem {
   leadTimeNoStock?: number;
   isMaatwerk?: boolean;
   hasLengthFreight?: boolean;
+  sync_id?: string;
   sku?: string;
 }
 
