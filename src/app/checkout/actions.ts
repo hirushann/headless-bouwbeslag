@@ -219,7 +219,7 @@ export async function getPaymentMethodsAction() {
 
 export async function placeOrderAction(data: any) {
     try {
-        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+        const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, "");
         const taxRate = 0.21;
         const taxMultiplier = 1 + taxRate;
         const pricesIncludeTax = data.prices_include_tax !== false;
