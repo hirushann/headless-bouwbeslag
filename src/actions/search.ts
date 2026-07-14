@@ -153,7 +153,8 @@ export async function searchProducts(
                 images: wooProd.images,
                 stock_status: wooProd.stock_status,
                 stock_quantity: wooProd.stock_quantity,
-                resolved_cat_image: hit.category?.image?.src || hit.category?.image || ""
+                resolved_cat_image: hit.category?.image?.src || hit.category?.image || "",
+                meta_data: wooProd.meta_data || []
             } as SearchResult;
         });
 

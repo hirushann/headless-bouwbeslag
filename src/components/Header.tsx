@@ -156,7 +156,7 @@ export default function Header({
           <Script
              id="webwinkelkeur-sidebar"
              src="https://www.webwinkelkeur.nl/js/sidebar.js?id=11199"
-             strategy="lazyOnload"
+             strategy="afterInteractive"
           />
         )}
         <div className="max-w-[1440px] mx-auto relative flex justify-between items-center w-full">

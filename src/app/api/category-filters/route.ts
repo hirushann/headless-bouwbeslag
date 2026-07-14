@@ -132,7 +132,7 @@ async function fetchFilterBaseProducts(categorySlug: string, isBrandPage: boolea
           'id', 'slug', 'name', 'color', 'material', 'finish',
           'brand', 'brand_name', 'brand_id', 'stock_status', 'stock',
           'price', 'category_id', 'category_slug', 'category_name',
-          'images', 'main_image_url', 'category'
+          'images', 'main_image_url', 'category', 'meta_data'
         ],
       }),
     });
