@@ -245,6 +245,7 @@ const fetchAllCategoryProductsForFiltersCached = cache(async (categoryId: number
         brands: p.brand_name ? [{ name: p.brand_name }] : [],
         price: p.price_amount?.toString(),
         stock_status: p.stock_status,
+        resolved_cat_image: p.category?.image?.src || p.category?.image || ""
       };
     });
   } catch (error) {

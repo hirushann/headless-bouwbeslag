@@ -113,6 +113,7 @@ export function mapMeiliToWooProduct(p: any) {
       stock_status: p.stock?.status === 'in_stock' ? 'instock' : (p.stock_status || 'outofstock'),
       stock_quantity: p.stock?.quantity ?? p.stock_quantity ?? null,
       images: images,
-      meta_data: p.meta_data || []
+      meta_data: p.meta_data || [],
+      resolved_cat_image: p.category?.image?.src || p.category?.image || ""
     };
 }

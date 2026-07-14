@@ -1,0 +1,13 @@
+{
+  "event": "filtering_applied",
+  "hasFilters": true,
+  "matchesCount": 5,
+  "slicedCount": 5,
+  "page": 1,
+  "selectedFiltersKeys": [
+    "9002"
+  ],
+  "selectedBrandsSize": 0,
+  "priceRange": null,
+  "firstMatchName": "ZOO Brons PVD deurklink Garda op rond rozet"
+}
