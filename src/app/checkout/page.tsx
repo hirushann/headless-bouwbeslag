@@ -816,6 +816,7 @@ export default function NewCheckoutPage() {
         company: formData.companyName,
         address_1: `${formData.street} ${formData.houseNumber}`,
         address_2: formData.apartment,
+        house_number: formData.houseNumber,
         city: formData.city,
         state: "", // Add state if needed
         postcode: formData.postcode,
@@ -837,10 +838,12 @@ export default function NewCheckoutPage() {
         company: shippingData.companyName,
         address_1: `${shippingData.street} ${shippingData.houseNumber}`,
         address_2: shippingData.apartment,
+        house_number: shippingData.houseNumber,
         city: shippingData.city,
         state: "",
         postcode: shippingData.postcode,
         country: getIsoFromCountryName(shippingData.country, "NL"),
+        phone: formData.phone,
     } : billingData;
 
     const orderData = {
@@ -878,6 +881,7 @@ export default function NewCheckoutPage() {
             { key: "_billing_vat_number", value: formData.vatNumber },
             { key: "BTW Nummer", value: formData.vatNumber }
         ] : [],
+        prices_include_tax: !isB2B,
         mollie_method_id: selectedPaymentMethod, // Pass selected method
         customer_id: user?.id || 0,
         auth_token: localStorage.getItem("token") || ""

@@ -155,6 +155,8 @@ export default function RecommendedProductItem({ item, onAddToCart }: { item: an
                 deliveryText: deliveryInfo.short,
                 deliveryType: deliveryInfo.type,
                 slug: item.slug,
+                sync_id: stockData.sku || item.sku,
+                sku: stockData.sku || item.sku,
                 stockStatus: stock_status,
                 stockQuantity: stock_quantity ?? null,
                 leadTimeInStock,

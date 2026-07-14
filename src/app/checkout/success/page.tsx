@@ -14,7 +14,8 @@ function SuccessContent() {
   const clearCart = useCartStore((state) => state.clearCart);
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
-  const [status, setStatus] = useState<'loading' | 'success' | 'failed' | 'cancelled'>('loading');
+  const [status, setStatus] = useState<'loading' | 'success' | 'failed' | 'cancelled' | 'backend_failed' | 'pending'>('loading');
+  const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,16 +39,17 @@ function SuccessContent() {
                 } else if (s === 'failed') {
                     setStatus('failed');
                 } else {
-                    // pending or other
-                     setStatus('success'); // Treat pending as received for now
-                     clearCart();
+                    setStatus('pending');
+                    setErrorMessage("We wachten nog op de bevestiging van je betaling. Ververs deze pagina over een moment.");
                 }
             } else {
-                setStatus('failed');
+                setStatus(result.status === 'backend_failed' ? 'backend_failed' : 'failed');
+                setErrorMessage(result.message || "Er is iets misgegaan met de order verificatie.");
             }
         } catch (error) {
             // console.error(error);
             setStatus('failed');
+            setErrorMessage("Er is iets misgegaan met de order verificatie.");
         } finally {
             setLoading(false);
         }
@@ -105,6 +107,45 @@ function SuccessContent() {
                     Probeer opnieuw
                 </Link>
             </div>
+        </div>
+      );
+  }
+
+  if (status === 'backend_failed') {
+       return (
+        <div className="min-h-[60vh] flex flex-col items-center justify-center p-4 text-center">
+            <div className="bg-red-100 p-6 rounded-full mb-6">
+                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-16 h-16 text-red-600">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+            </div>
+            <h1 className="text-3xl font-bold mb-2">Bestelling niet bevestigd</h1>
+            <p className="text-gray-600 mb-4 max-w-xl">{errorMessage}</p>
+            {orderId && <p className="text-sm text-gray-500 mb-6">Order: #{orderId}</p>}
+
+             <div className="flex flex-col sm:flex-row gap-4">
+                <Link href="/checkout" className="bg-[#0066FF] text-white font-bold px-6 py-3 rounded-md hover:bg-blue-700 transition">
+                    Terug naar checkout
+                </Link>
+                <Link href="/contact" className="border border-gray-300 text-gray-700 font-bold px-6 py-3 rounded-md hover:bg-gray-50 transition">
+                    Neem contact op
+                </Link>
+            </div>
+        </div>
+      );
+  }
+
+  if (status === 'pending') {
+       return (
+        <div className="min-h-[60vh] flex flex-col items-center justify-center p-4 text-center">
+            <div className="bg-blue-100 p-6 rounded-full mb-6">
+                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-16 h-16 text-blue-600">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
+                </svg>
+            </div>
+            <h1 className="text-3xl font-bold mb-2">Betaling wordt gecontroleerd</h1>
+            <p className="text-gray-600 mb-6 max-w-xl">{errorMessage}</p>
+            {orderId && <p className="text-sm text-gray-500 mb-6">Order: #{orderId}</p>}
         </div>
       );
   }

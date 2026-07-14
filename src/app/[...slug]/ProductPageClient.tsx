@@ -912,6 +912,8 @@ export default function ProductPageClient({
         deliveryText: deliveryInfo.short,
         deliveryType: deliveryInfo.type,
         slug: product.slug,
+        sync_id: productSKU,
+        sku: productSKU,
         stockStatus: product.stock_status,
         stockQuantity: availableStock ?? product.stock_quantity ?? null,
         leadTimeInStock,

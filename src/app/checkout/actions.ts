@@ -38,11 +38,15 @@ export async function checkOrderStatusAction(orderId: string | number) {
                         try {
                             await axios.post(`${empireUrl}${endpoint}`, payloadToSend, { headers });
                             await deleteCheckoutSession(orderIdStr);
+                            return { success: true, status: 'processing' };
                         } catch (e: any) {
-                            // ignore, maybe webhook just processed it
                             console.error("Empire API Error in success check:", e?.response?.data || e.message);
+                            return {
+                                success: false,
+                                status: 'backend_failed',
+                                message: "De betaling is gelukt, maar de bestelling kon niet worden aangemaakt. Neem contact op met de klantenservice en vermeld je ordernummer."
+                            };
                         }
-                        return { success: true, status: 'processing' };
                     } else if (['canceled', 'expired', 'failed'].includes(payment.status)) {
                         await deleteCheckoutSession(orderIdStr);
                         return { success: true, status: payment.status === 'canceled' ? 'cancelled' : 'failed' };
@@ -216,19 +220,25 @@ export async function getPaymentMethodsAction() {
 export async function placeOrderAction(data: any) {
     try {
         const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+        const taxRate = 0.21;
+        const taxMultiplier = 1 + taxRate;
+        const pricesIncludeTax = data.prices_include_tax !== false;
+        const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
         
         // Generate a unique order reference
         const orderReference = `BW-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
         // Calculate totals for Empire Payload
         const shippingLine = data.shipping_line?.[0];
-        const shippingTotal = shippingLine ? parseFloat(shippingLine.total) : 0;
+        const shippingTotalExTax = shippingLine ? parseFloat(shippingLine.total) : 0;
+        const shippingTotal = pricesIncludeTax ? roundMoney(shippingTotalExTax * taxMultiplier) : roundMoney(shippingTotalExTax);
+        const shippingTax = roundMoney(shippingTotal - shippingTotalExTax);
         
         let subtotal = 0;
         
         // Ensure all items have a valid SKU (especially old cart items missing the sku field)
         const itemsToProcess = [...data.cart];
-        const missingSkuItems = itemsToProcess.filter((item: any) => !item.sku && !isNaN(Number(item.id)));
+        const missingSkuItems = itemsToProcess.filter((item: any) => !item.sku && !item.sync_id && !isNaN(Number(item.id)));
         
         if (missingSkuItems.length > 0) {
             const idsToFetch = missingSkuItems.map((item: any) => item.id).join(",");
@@ -252,25 +262,42 @@ export async function placeOrderAction(data: any) {
         const items = itemsToProcess.map((item: any) => {
             const price = parseFloat(item.price || 0);
             const qty = parseInt(item.quantity || 1);
+            const syncId = item.sync_id || item.sku;
+            const sku = item.sku || item.sync_id;
+
+            if (!syncId && !sku) {
+                throw new Error(`Product "${item.name || item.id}" mist een SKU en kan niet worden besteld.`);
+            }
+
             subtotal += (price * qty);
             
             return {
-                sync_id: item.sku || item.sync_id || item.slug,
-                sku: item.sku || item.sync_id || item.slug, 
+                sync_id: syncId,
+                sku: sku, 
                 name: item.name,
                 quantity: qty,
-                price: price,
+                price: pricesIncludeTax ? roundMoney(price * taxMultiplier) : roundMoney(price),
+                price_ex_tax: roundMoney(price),
+                price_tax: pricesIncludeTax ? roundMoney((price * taxMultiplier) - price) : 0,
                 manual_unit_price: 0
             };
         });
 
         // Add fee lines to total calculation
         let totalFees = 0;
-        if (data.fee_lines) {
-            for (const fee of data.fee_lines) {
-                totalFees += parseFloat(fee.total || 0);
-            }
-        }
+        const feeLines = (data.fee_lines || []).map((fee: any) => {
+            const feeTotalExTax = parseFloat(fee.total || 0);
+            totalFees += feeTotalExTax;
+
+            return {
+                ...fee,
+                total: pricesIncludeTax
+                    ? roundMoney(feeTotalExTax * taxMultiplier).toFixed(2)
+                    : roundMoney(feeTotalExTax).toFixed(2),
+                total_ex_tax: roundMoney(feeTotalExTax),
+                total_tax: pricesIncludeTax ? roundMoney((feeTotalExTax * taxMultiplier) - feeTotalExTax) : 0
+            };
+        });
 
         let discount = 0;
         if (data.coupon_lines && data.coupon_lines.length > 0) {
@@ -288,8 +315,7 @@ export async function placeOrderAction(data: any) {
             }
         }
 
-        const netTotal = subtotal - discount + shippingTotal + totalFees;
-        const taxRate = 0.21;
+        const netTotal = subtotal - discount + shippingTotalExTax + totalFees;
         const totalTax = netTotal * taxRate;
         const totalAmount = Math.max(netTotal + totalTax, 0); // Ensure total is never negative
 
@@ -302,6 +328,10 @@ export async function placeOrderAction(data: any) {
             shipping: data.shipping,
             items: items,
             shipping_total: shippingTotal,
+            shipping_total_ex_tax: roundMoney(shippingTotalExTax),
+            shipping_tax: shippingTax,
+            subtotal_ex_tax: roundMoney(subtotal),
+            prices_include_tax: pricesIncludeTax,
             total: totalAmount,
             total_tax: totalTax,
             payment_method: data.mollie_method_id || "mollie",
@@ -311,8 +341,10 @@ export async function placeOrderAction(data: any) {
             customer_id: data.customer_id,
             auth_token: data.auth_token || "",
             coupon_lines: data.coupon_lines || [],
-            fee_lines: data.fee_lines || [],
-            discount_total: discount // Added discount total just in case
+            fee_lines: feeLines,
+            discount_total: pricesIncludeTax ? roundMoney(discount * taxMultiplier) : roundMoney(discount),
+            discount_total_ex_tax: roundMoney(discount),
+            discount_tax: pricesIncludeTax ? roundMoney((discount * taxMultiplier) - discount) : 0
         };
 
         // Save session locally FIRST (without transaction_id)
