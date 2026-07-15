@@ -387,9 +387,9 @@ export async function generateMetadata(
 
   if (product) {
     const meta = product.meta_data || [];
-    const acfTitle = meta.find((m: any) => m.key === "description_meta_title")?.value;
+    const acfTitle = meta.find((m: any) => m.key === "description_meta_title" || m.key === "meta_title")?.value;
     const metaTitle = clean(acfTitle) || `${clean(product.name)} | Bouwbeslag`;
-    const acfDesc = meta.find((m: any) => m.key === "description_meta_description")?.value;
+    const acfDesc = meta.find((m: any) => m.key === "description_meta_description" || m.key === "meta_description")?.value;
     
     let metaDescription = clean(acfDesc);
     if (!metaDescription) {

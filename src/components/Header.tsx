@@ -37,8 +37,8 @@ export default function Header({
   const totalQty = isMounted ? items.reduce((sum, i) => sum + i.quantity, 0) : 0;
   const lengthFreightCost = useCartStore((state) => state.lengthFreightCost());
 
-  const { userRole } = useUserContext();
-  const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
+  const { userRole, isB2B } = useUserContext();
+  
   const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
 
   const subtotal = isMounted ? items.reduce(

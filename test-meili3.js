@@ -15,15 +15,13 @@ async function test() {
       const json = JSON.parse(data);
       const product = json.hits.find(p => p.meta_data && p.meta_data.length > 0);
       if (product) {
-        console.log("Found product:", product.slug);
-        const usps = product.meta_data.filter(m => m.key.includes("usp") || m.key.includes("faq"));
-        console.log("USPs & FAQs:", JSON.stringify(usps, null, 2));
+        console.log("Found product with meta_data:", product.slug);
       } else {
-        console.log("No product with meta_data found.");
+        console.log("No product with meta_data found in first 1000.");
       }
     });
   });
-  req.write(JSON.stringify({ limit: 100 }));
+  req.write(JSON.stringify({ limit: 1000 }));
   req.end();
 }
 test();

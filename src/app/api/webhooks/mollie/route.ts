@@ -23,11 +23,11 @@ export async function POST(req: NextRequest) {
         }
 
         // Check if this is the new checkout session flow
-        if (orderReference.startsWith("NEXT-")) {
+        if (orderReference.startsWith("NEXT-") || orderReference.startsWith("BW-")) {
             const isPaid = payment.status === 'paid';
+            const isFailed = ['canceled', 'expired', 'failed'].includes(payment.status);
             
-            // If paid, send to Empire!
-            if (isPaid) {
+            if (isPaid || isFailed) {
                 const sessionPayload = await getCheckoutSession(orderReference);
                 
                 if (sessionPayload) {
@@ -46,21 +46,20 @@ export async function POST(req: NextRequest) {
                             headers["Authorization"] = `Bearer ${sessionPayload.auth_token}`;
                         }
                         
-                        const payloadToSend = { ...sessionPayload };
-                        delete payloadToSend.auth_token;
+                        const payloadToSend = { 
+                            status: isPaid ? "processing" : "failed",
+                            email: sessionPayload.billing?.email
+                        };
                         
-                        await axios.post(`${empireUrl}${endpoint}`, payloadToSend, { headers });
+                        await axios.patch(`${empireUrl}${endpoint}/${orderReference}/status`, payloadToSend, { headers });
                         
                         // Delete session once processed
                         await deleteCheckoutSession(orderReference);
                     } catch (empireError: any) {
-                        console.error("Failed to push order to Empire:", empireError?.response?.data || empireError.message);
+                        console.error("Failed to update order status in Empire:", empireError?.response?.data || empireError.message);
                         return NextResponse.json({ message: "Empire API Error" }, { status: 500 });
                     }
                 }
-            } else if (['canceled', 'expired', 'failed'].includes(payment.status)) {
-                // Delete session if payment failed to free up space
-                await deleteCheckoutSession(orderReference);
             }
             
             return NextResponse.json({ message: "Webhook processed" }, { status: 200 });

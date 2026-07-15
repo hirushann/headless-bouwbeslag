@@ -8,6 +8,7 @@ type UserRole = string[];
 interface UserContextType {
   user: any | null;
   userRole: UserRole | null;
+  isB2B: boolean;
   isLoading: boolean;
   refreshRole: () => Promise<void>;
 }
@@ -15,6 +16,7 @@ interface UserContextType {
 const UserContext = createContext<UserContextType>({
   user: null,
   userRole: null,
+  isB2B: false,
   isLoading: true,
   refreshRole: async () => {},
 });
@@ -25,6 +27,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<any | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isB2B, setIsB2B] = useState(false);
 
   const fetchUserRole = async () => {
     if (typeof window === "undefined") return;
@@ -67,6 +70,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
              localStorage.removeItem("user");
              setUserRole(null);
              setUser(null);
+             setIsB2B(false);
              setIsLoading(false);
              return;
           }
@@ -81,14 +85,20 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         // I will add setUser(userData) below
         setUser(userData);
 
+        // Set isB2B
+        const isB2BUser = (role && (role.includes("b2b_customer") || role.includes("administrator"))) || (userData && (userData.b2b_status === "approved" || (userData.meta_data && userData.meta_data.b2b_status === "approved")));
+        setIsB2B(!!isB2BUser);
+
       } else {
         setUserRole(null);
         setUser(null);
+        setIsB2B(false);
       }
     } catch (e) {
       // console.error("Error checking user role:", e);
       setUserRole(null);
       setUser(null);
+      setIsB2B(false);
     } finally {
       setIsLoading(false);
     }
@@ -99,7 +109,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <UserContext.Provider value={{ user, userRole, isLoading, refreshRole: fetchUserRole }}>
+    <UserContext.Provider value={{ user, userRole, isB2B, isLoading, refreshRole: fetchUserRole }}>
       {children}
     </UserContext.Provider>
   );

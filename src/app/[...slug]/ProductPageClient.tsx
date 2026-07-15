@@ -48,7 +48,7 @@ export default function ProductPageClient({
 }) {
 
   useEffect(() => {
-    // console.log("Product Details Response:", product);
+    console.log("Product Details Response:", JSON.parse(JSON.stringify(product)));
   }, [product]);
 
   const fadeInUp = {
@@ -80,7 +80,7 @@ export default function ProductPageClient({
 
 
 
-  const { userRole, isLoading } = useUserContext();
+  const { userRole, isLoading, isB2B } = useUserContext();
 
   useEffect(() => {
     setCurrentUrl(window.location.href);
@@ -141,12 +141,12 @@ export default function ProductPageClient({
       const qRaw = product.meta_data.find((m: any) => m.key === `crucial_data_discounts_discount_quantity_${i}`)?.value;
       const pRaw = product.meta_data.find((m: any) => m.key === `crucial_data_discounts_discount_percentage_${i}`)?.value;
       const q = qRaw && !isNaN(parseInt(qRaw)) ? parseInt(qRaw) : null;
-      const p = pRaw && !isNaN(parseInt(pRaw)) ? parseInt(pRaw) : null;
+      const p = pRaw && !isNaN(parseFloat(pRaw)) ? parseFloat(pRaw) : null;
       if (q !== null && p !== null) {
         arr.push({ quantity: q, percentage: p });
       }
     }
-    return arr.sort((a, b) => a.quantity - b.quantity);
+    console.log("DISCOUNTS DATA", arr); return arr.sort((a, b) => a.quantity - b.quantity);
   }, [product]);
 
 
@@ -169,32 +169,41 @@ export default function ProductPageClient({
   const getMeta = getMetaValue;
 
   // Dynamic Price Logic
-  const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
+  
 
   let sale = 0;
 
   if (isB2B) {
-    // B2B Logic: Check ACF field first
-    const b2bKey = "crucial_data_b2b_and_b2c_sales_price_b2b";
-    const acfB2BPriceRaw = getMeta(b2bKey);
-
-    if (acfB2BPriceRaw && !isNaN(parseFloat(acfB2BPriceRaw))) {
-      sale = parseFloat(acfB2BPriceRaw);
+    // B2B: use price_b2b field (excl. BTW)
+    const b2bPrice = product.price_b2b;
+    if (b2bPrice && typeof b2bPrice === 'object' && b2bPrice.amount) {
+      sale = parseFloat(b2bPrice.amount);
+    } else if (b2bPrice && !isNaN(parseFloat(b2bPrice))) {
+      sale = parseFloat(b2bPrice);
     } else {
-      // Fallback to standard price
-      if (product.regular_price) {
-        sale = parseFloat(product.regular_price);
+      // Fallback to meta_data
+      const acfB2BPriceRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2b");
+      if (acfB2BPriceRaw && !isNaN(parseFloat(acfB2BPriceRaw))) {
+        sale = parseFloat(acfB2BPriceRaw);
       } else if (product.price) {
         sale = parseFloat(product.price);
       }
     }
   } else {
-    // B2C Logic
-    sale = product.price ? parseFloat(product.price) : 0;
-    const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
-    const acfPriceRaw = getMeta(b2cKey);
-    if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
-      sale = parseFloat(acfPriceRaw);
+    // B2C: use price_b2c field (excl. BTW, will multiply by taxMultiplier for display)
+    const b2cPrice = product.price_b2c;
+    if (b2cPrice && typeof b2cPrice === 'object' && b2cPrice.amount) {
+      sale = parseFloat(b2cPrice.amount);
+    } else if (b2cPrice && !isNaN(parseFloat(b2cPrice))) {
+      sale = parseFloat(b2cPrice);
+    } else {
+      // Fallback to meta_data
+      const acfPriceRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
+      if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
+        sale = parseFloat(acfPriceRaw);
+      } else if (product.price) {
+        sale = parseFloat(product.price);
+      }
     }
   }
 
@@ -1284,9 +1293,6 @@ export default function ProductPageClient({
               const getMeta = getMetaValue;
 
               // Dynamic Price Logic
-              const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
-              const b2bKey = "crucial_data_b2b_and_b2c_sales_price_b2b";
-              const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
 
               // 1. Get Advised Price
               const advisedRaw = getMeta("crucial_data_unit_price");
@@ -1296,22 +1302,26 @@ export default function ProductPageClient({
                 return <div className="h-8 w-32 bg-gray-200 animate-pulse rounded"></div>;
               }
 
-              // 2. Get Sales Price (B2B or B2C)
-              // 2. Get Sales Price (B2B or B2C)
+              // 2. Get Sales Price (B2B or B2C) from price_b2b / price_b2c fields
               let sale = 0;
 
               if (isB2B) {
-                if (product.regular_price) {
-                  sale = parseFloat(product.regular_price);
+                const b2bPrice = product.price_b2b;
+                if (b2bPrice && typeof b2bPrice === 'object' && b2bPrice.amount) {
+                  sale = parseFloat(b2bPrice.amount);
+                } else if (b2bPrice && !isNaN(parseFloat(b2bPrice))) {
+                  sale = parseFloat(b2bPrice);
                 } else if (product.price) {
                   sale = parseFloat(product.price);
                 }
               } else {
-                // B2C: Standard Product Price or ACF override
-                sale = product.price ? parseFloat(product.price) : 0;
-                const acfPriceRaw = getMeta(b2cKey);
-                if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
-                  sale = parseFloat(acfPriceRaw);
+                const b2cPrice = product.price_b2c;
+                if (b2cPrice && typeof b2cPrice === 'object' && b2cPrice.amount) {
+                  sale = parseFloat(b2cPrice.amount);
+                } else if (b2cPrice && !isNaN(parseFloat(b2cPrice))) {
+                  sale = parseFloat(b2cPrice);
+                } else if (product.price) {
+                  sale = parseFloat(product.price);
                 }
               }
 
@@ -1554,7 +1564,7 @@ export default function ProductPageClient({
             )}
 
             {/* Volume Discount Section - B2C Only */}
-            {discounts.length > 0 && !(userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"))) && (
+            {discounts.length > 0 && !isB2B && (
               <div className="bg-white border border-white rounded-lg p-4 flex items-center gap-8">
                 <p className="font-semibold text-base lg:text-lg">Volume korting:</p>
                 <div className="flex gap-8 items-start">
@@ -1611,7 +1621,7 @@ export default function ProductPageClient({
                     {isLoading ? "..." : `${currency}${totalPrice.toFixed(2)}`}
                   </p>
                   <span className="text-xs text-gray-500 font-normal ml-2">
-                    {userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator")) ? "(excl. BTW)" : "(incl. BTW)"}
+                    {isB2B ? "(excl. BTW)" : "(incl. BTW)"}
                   </span>
                 </div>
                 {selectedDiscount !== null && (
@@ -2779,24 +2789,26 @@ export default function ProductPageClient({
                 const getMeta = getMetaValue;
                 const currency = product.currency_symbol || "€";
 
-                // Dynamic Price Logic (duped for now)
-                const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
-                const b2bKey = "crucial_data_b2b_and_b2c_sales_price_b2b";
-                const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
-
+                // Dynamic Price Logic
                 let sale = 0;
 
                 if (isB2B) {
-                  if (product.regular_price) {
-                    sale = parseFloat(product.regular_price);
+                  const b2bPrice = product.price_b2b;
+                  if (b2bPrice && typeof b2bPrice === 'object' && b2bPrice.amount) {
+                    sale = parseFloat(b2bPrice.amount);
+                  } else if (b2bPrice && !isNaN(parseFloat(b2bPrice))) {
+                    sale = parseFloat(b2bPrice);
                   } else if (product.price) {
                     sale = parseFloat(product.price);
                   }
                 } else {
-                  sale = product.price ? parseFloat(product.price) : 0;
-                  const acfPriceRaw = getMeta(b2cKey);
-                  if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
-                    sale = parseFloat(acfPriceRaw);
+                  const b2cPrice = product.price_b2c;
+                  if (b2cPrice && typeof b2cPrice === 'object' && b2cPrice.amount) {
+                    sale = parseFloat(b2cPrice.amount);
+                  } else if (b2cPrice && !isNaN(parseFloat(b2cPrice))) {
+                    sale = parseFloat(b2cPrice);
+                  } else if (product.price) {
+                    sale = parseFloat(product.price);
                   }
                 }
 

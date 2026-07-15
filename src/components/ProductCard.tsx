@@ -22,7 +22,7 @@ import { useProductAddedModal } from "@/context/ProductAddedModalContext";
 const globalMediaCache: Record<string, string> = {};
 
 export default function ProductCard({ product, userRole: propUserRole, useCategoryImage = false }: { product: any; userRole?: string[] | null; useCategoryImage?: boolean }) {
-  const { userRole: contextUserRole, isLoading } = useUserContext();
+  const { userRole: contextUserRole, isLoading, isB2B: contextIsB2B } = useUserContext();
   const userRole = propUserRole || contextUserRole;
   const { openModal } = useProductAddedModal();
 
@@ -35,28 +35,31 @@ export default function ProductCard({ product, userRole: propUserRole, useCatego
     price?.replace(/&#[0-9]+;|&[a-z]+;/gi, "").trim();
 
   // Dynamic Price Logic
-  // Dynamic Price Logic
   const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
-  const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
-  const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
+  const isB2B = propUserRole ? (propUserRole.includes("b2b_customer") || propUserRole.includes("administrator")) : contextIsB2B;
 
   // Default to standard product.price
   let sale = null;
 
   if (isB2B) {
-       // B2B: Use regular_price (Ex-VAT) directly
-       if (product.regular_price) {
-           sale = parseFloat(product.regular_price);
+       // B2B: Use price_b2b field (Ex-VAT)
+       const b2bPrice = product.price_b2b;
+       if (b2bPrice && typeof b2bPrice === 'object' && b2bPrice.amount) {
+           sale = parseFloat(b2bPrice.amount);
+       } else if (b2bPrice && !isNaN(parseFloat(b2bPrice))) {
+           sale = parseFloat(b2bPrice);
        } else if (product.price) {
            sale = parseFloat(product.price);
        }
   } else {
-       // B2C logic
-       sale = product.price ? parseFloat(product.price) : null;
-       const acfPriceRaw = getMeta(b2cKey);
-       
-       if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
-          sale = parseFloat(acfPriceRaw);
+       // B2C: Use price_b2c field
+       const b2cPrice = product.price_b2c;
+       if (b2cPrice && typeof b2cPrice === 'object' && b2cPrice.amount) {
+           sale = parseFloat(b2cPrice.amount);
+       } else if (b2cPrice && !isNaN(parseFloat(b2cPrice))) {
+           sale = parseFloat(b2cPrice);
+       } else if (product.price) {
+           sale = parseFloat(product.price);
        }
   }
 

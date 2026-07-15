@@ -63,8 +63,8 @@ export default function NewCheckoutPage() {
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
 
-  const { userRole, user } = useUserContext();
-  const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
+  const { userRole, user, isB2B } = useUserContext();
+  
   
   // Cart State from Store
   const cartItems = useCartStore((state) => state.items);

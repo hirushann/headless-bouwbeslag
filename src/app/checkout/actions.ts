@@ -348,8 +348,36 @@ export async function placeOrderAction(data: any) {
             discount_tax: pricesIncludeTax ? roundMoney((discount * taxMultiplier) - discount) : 0
         };
 
-        // Save session locally FIRST (without transaction_id)
+
+        // Save session locally FIRST
         await saveCheckoutSession(orderReference, empirePayload);
+
+        // POST order directly to Empire API with pending_payment status
+        empirePayload.status = "pending";
+        const empireUrl = (process.env.EMPIRE_BACKEND_API_URL || "http://empire.test").replace(/\/$/, "");
+        const isGuest = !data.customer_id;
+        const endpoint = isGuest ? "/api/guest/orders" : "/api/account/orders";
+        
+        const headers: any = {
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+        };
+        
+        if (!isGuest && data.auth_token) {
+            headers["Authorization"] = `Bearer ${data.auth_token}`;
+        }
+        
+        const payloadToSend = { ...empirePayload };
+        delete payloadToSend.auth_token;
+
+        const axios = require('axios');
+        try {
+            await axios.post(`${empireUrl}${endpoint}`, payloadToSend, { headers });
+        } catch (empireError: any) {
+            console.error("Failed to push order to Empire:", empireError?.response?.data || empireError.message);
+            return { success: false, message: "Failed to create order in backend" };
+        }
+
 
         // Mollie webhook must be reachable. If local, omit it or use ngrok.
         const isLocal = siteUrl.includes('localhost');
@@ -373,11 +401,14 @@ export async function placeOrderAction(data: any) {
             method: data.mollie_method_id, 
         });
 
+
         // Update session with transaction_id so checkOrderStatus can find it
         if (payment && payment.id) {
             empirePayload.transaction_id = payment.id;
-            await saveCheckoutSession(orderReference, empirePayload);
+            // await saveCheckoutSession(orderReference, empirePayload);
+            // Optionally PATCH empire here with transaction_id, but webhook will handle status
         }
+
 
         if (payment && payment._links.checkout) {
             return { success: true, redirectUrl: payment._links.checkout.href };

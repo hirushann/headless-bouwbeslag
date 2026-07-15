@@ -29,7 +29,10 @@ export async function fetchMeiliProducts(limit: number = 10, offset: number = 0,
                 "Content-Type": "application/json",
             },
             body: JSON.stringify(body),
-            next: { revalidate: 3600 } // Cache for 1 hour
+            next: { 
+                revalidate: 3600, // Cache for 1 hour, invalidated by webhook
+                tags: ['products'] 
+            }
         } as any);
 
         if (!res.ok) {

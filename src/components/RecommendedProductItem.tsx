@@ -11,7 +11,7 @@ import { fixImageSrc } from "@/lib/image-utils";
 import Image from "next/image";
 
 export default function RecommendedProductItem({ item, onAddToCart }: { item: any, onAddToCart?: () => void }) {
-    const { userRole, isLoading } = useUserContext();
+    const { userRole, isLoading, isB2B } = useUserContext();
     const [quantity, setQuantity] = useState(1);
     const [isAdding, setIsAdding] = useState(false);
 
@@ -74,22 +74,25 @@ export default function RecommendedProductItem({ item, onAddToCart }: { item: an
     const mImg = fixImageSrc(targetImgSrc);
 
     // Price Logic
-    const isB2B = userRole && (userRole.includes("b2b_customer") || userRole.includes("administrator"));
-    const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
     let sale = 0;
 
     if (isB2B) {
-        if (item.regular_price) {
-            sale = parseFloat(item.regular_price);
+        const b2bPrice = item.price_b2b;
+        if (b2bPrice && typeof b2bPrice === 'object' && b2bPrice.amount) {
+            sale = parseFloat(b2bPrice.amount);
+        } else if (b2bPrice && !isNaN(parseFloat(b2bPrice))) {
+            sale = parseFloat(b2bPrice);
         } else if (item.price) {
             sale = parseFloat(item.price);
         }
     } else {
-        // B2C Logic
-        sale = item.price ? parseFloat(item.price) : 0;
-        const acfPriceRaw = getMeta(b2cKey);
-        if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
-            sale = parseFloat(acfPriceRaw);
+        const b2cPrice = item.price_b2c;
+        if (b2cPrice && typeof b2cPrice === 'object' && b2cPrice.amount) {
+            sale = parseFloat(b2cPrice.amount);
+        } else if (b2cPrice && !isNaN(parseFloat(b2cPrice))) {
+            sale = parseFloat(b2cPrice);
+        } else if (item.price) {
+            sale = parseFloat(item.price);
         }
     }
 

@@ -13,17 +13,17 @@ async function test() {
     res.on('data', chunk => data += chunk);
     res.on('end', () => {
       const json = JSON.parse(data);
-      const product = json.hits.find(p => p.meta_data && p.meta_data.length > 0);
-      if (product) {
-        console.log("Found product:", product.slug);
-        const usps = product.meta_data.filter(m => m.key.includes("usp") || m.key.includes("faq"));
-        console.log("USPs & FAQs:", JSON.stringify(usps, null, 2));
-      } else {
-        console.log("No product with meta_data found.");
+      if (json.hits && json.hits.length > 0) {
+         let withMeta = 0;
+         json.hits.forEach(p => {
+             if (p.meta_data && p.meta_data.length > 0) withMeta++;
+         });
+         console.log(`Out of ${json.hits.length}, ${withMeta} have meta_data.`);
       }
     });
   });
-  req.write(JSON.stringify({ limit: 100 }));
+  
+  req.write(JSON.stringify({ q: '' }));
   req.end();
 }
 test();

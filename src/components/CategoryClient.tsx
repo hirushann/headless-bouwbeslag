@@ -21,17 +21,22 @@ export const getFinalPrice = (product: any, isB2B: boolean) => {
   let sale = 0;
 
   if (isB2B) {
-    if (product.regular_price) {
-      sale = parseFloat(product.regular_price);
+    const b2bPrice = product.price_b2b;
+    if (b2bPrice && typeof b2bPrice === 'object' && b2bPrice.amount) {
+      sale = parseFloat(b2bPrice.amount);
+    } else if (b2bPrice && !isNaN(parseFloat(b2bPrice))) {
+      sale = parseFloat(b2bPrice);
     } else if (product.price) {
       sale = parseFloat(product.price);
     }
   } else {
-    sale = product.price ? parseFloat(product.price) : 0;
-    const b2cKey = "crucial_data_b2b_and_b2c_sales_price_b2c";
-    const acfPriceRaw = getMeta(b2cKey);
-    if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
-      sale = parseFloat(acfPriceRaw);
+    const b2cPrice = product.price_b2c;
+    if (b2cPrice && typeof b2cPrice === 'object' && b2cPrice.amount) {
+      sale = parseFloat(b2cPrice.amount);
+    } else if (b2cPrice && !isNaN(parseFloat(b2cPrice))) {
+      sale = parseFloat(b2cPrice);
+    } else if (product.price) {
+      sale = parseFloat(product.price);
     }
   }
 
