@@ -77,10 +77,11 @@ export function mapMeiliToWooProduct(p: any) {
 
     const wooAttributes: any[] = [];
     
-    const tryAddAttr = (key: string, name: string) => {
+    const tryAddAttr = (key: string, name: string, slug?: string) => {
       if (p[key]) {
         wooAttributes.push({
           name,
+          slug: slug || `pa_${key}`,
           options: Array.isArray(p[key]) ? p[key] : [p[key]]
         });
       }
@@ -90,6 +91,7 @@ export function mapMeiliToWooProduct(p: any) {
     tryAddAttr('material', 'Materiaal');
     tryAddAttr('finish', 'Finish');
     tryAddAttr('brand_name', 'Merk');
+    tryAddAttr('packing_type', 'Verpakkingstype', 'pa_packing_type');
 
     // Handle price
     let priceStr = "";
@@ -122,6 +124,7 @@ export function mapMeiliToWooProduct(p: any) {
       regular_price: regularPriceStr,
       stock_status: p.stock?.status === 'in_stock' ? 'instock' : (p.stock_status || 'outofstock'),
       stock_quantity: p.stock?.quantity ?? p.stock_quantity ?? null,
+      backorders_allowed: true,
       images: images,
       meta_data: p.meta_data || [],
       resolved_cat_image: p.category?.image?.src || p.category?.image || ""
