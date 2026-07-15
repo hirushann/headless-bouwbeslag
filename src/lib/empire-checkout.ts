@@ -64,7 +64,7 @@ export async function getCouponByCode(code: string): Promise<any | null> {
         headers: {
             Accept: "application/json",
         },
-        next: { revalidate: 60 },
+        cache: "no-store",
     });
 
     if (!response.ok) {

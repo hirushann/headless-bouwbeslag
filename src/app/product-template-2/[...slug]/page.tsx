@@ -368,7 +368,7 @@ const getProductReviewsCached = cache(async (productId: number) => {
   try {
     const EMPIRE_BASE_URL = (process.env.NEXT_PUBLIC_EMPIRE_API_URL || process.env.EMPIRE_BACKEND_API_URL || "http://localhost:8000").replace(/\/$/, "");
     const res = await fetch(`${EMPIRE_BASE_URL}/api/products/${productId}/reviews?limit=50`, {
-        next: { revalidate: 3600 }
+        cache: 'no-store'
     });
     if (!res.ok) return [];
     const data = await res.json();

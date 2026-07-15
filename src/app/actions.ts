@@ -3,6 +3,7 @@
 import api, { fetchAllWoo } from "@/lib/woocommerce";
 import elasticClient from "@/lib/elasticsearch";
 import { fetchMeiliProducts, mapMeiliToWooProduct } from "@/lib/meilisearch-products";
+import { BOUWBESLAG_BLOG_TAGS } from "@/lib/cache-tags";
 
 export async function fetchProductIndexAction() {
     try {
@@ -508,7 +509,7 @@ export async function fetchBlogsAction(page = 1, limit = 10) {
     try {
         const EMPIRE_BASE_URL = (process.env.NEXT_PUBLIC_EMPIRE_API_URL || process.env.EMPIRE_BACKEND_API_URL || "http://localhost:8000").replace(/\/$/, "");
         const res = await fetch(`${EMPIRE_BASE_URL}/api/blogs?page=${page}&limit=${limit}`, {
-            next: { revalidate: 3600 }
+            next: { revalidate: 3600, tags: BOUWBESLAG_BLOG_TAGS }
         });
         if (!res.ok) throw new Error("Failed to fetch blogs");
         return { success: true, data: await res.json() };
@@ -525,7 +526,7 @@ export async function fetchBlogBySlugAction(slug: string) {
     try {
         const EMPIRE_BASE_URL = (process.env.NEXT_PUBLIC_EMPIRE_API_URL || process.env.EMPIRE_BACKEND_API_URL || "http://localhost:8000").replace(/\/$/, "");
         const res = await fetch(`${EMPIRE_BASE_URL}/api/blogs/${encodeURIComponent(slug)}`, {
-            next: { revalidate: 3600 }
+            next: { revalidate: 3600, tags: BOUWBESLAG_BLOG_TAGS }
         });
         if (!res.ok) throw new Error("Blog not found");
         return { success: true, data: await res.json() };

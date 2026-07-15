@@ -264,7 +264,7 @@ const getProductReviewsCached = cache(async (productId: number) => {
       product: productId, 
       status: 'approved',
       per_page: 50,
-      next: { revalidate: 3600 }
+      cache: 'no-store'
     });
     return res.data || [];
   } catch (error) {

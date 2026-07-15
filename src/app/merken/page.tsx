@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { Metadata } from 'next';
+import { BOUWBESLAG_CONTENT_TAGS } from "@/lib/cache-tags";
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +29,7 @@ export default async function BrandsPage() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ q: '', limit: 0, facets: ['brand_name'] }),
-            next: { revalidate: 3600 }
+            next: { revalidate: 3600, tags: BOUWBESLAG_CONTENT_TAGS }
         });
         
         if (res.ok) {

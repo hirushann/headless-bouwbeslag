@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { BOUWBESLAG_CATEGORY_TAGS, BOUWBESLAG_PRODUCT_TAGS } from '@/lib/cache-tags';
 
 // This route is always dynamic — no Router Cache interference.
 export const dynamic = 'force-dynamic';
@@ -16,7 +17,7 @@ async function fetchEmpireCategoryFlags(slug: string, isBrandPage: boolean = fal
   try {
     const endpoint = isBrandPage ? `brands/${slug}` : `categories/${slug}`;
     const res = await fetch(`${EMPIRE_BASE}/${endpoint}`, {
-      next: { revalidate: 300 },
+      next: { revalidate: 300, tags: BOUWBESLAG_CATEGORY_TAGS },
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -46,6 +47,7 @@ async function fetchMeiliFilterFacets(categorySlug: string, isBrandPage: boolean
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
+      next: { revalidate: 300, tags: BOUWBESLAG_PRODUCT_TAGS },
     });
 
     if (!res.ok) return null;
@@ -135,6 +137,7 @@ async function fetchFilterBaseProducts(categorySlug: string, isBrandPage: boolea
           'images', 'main_image_url', 'category', 'meta_data'
         ],
       }),
+      next: { revalidate: 300, tags: BOUWBESLAG_PRODUCT_TAGS },
     });
 
     if (!res.ok) return [];
