@@ -1,176 +1,81 @@
-import api from "@/lib/woocommerce";
-import { wpApi } from "@/lib/wordpress";
 import { MetadataRoute } from "next";
 
 function normalizeBaseUrl(input: string) {
-  // remove trailing slash
   return input.replace(/\/+$/, "");
 }
 
 function normalizeUrl(url: string) {
-  // remove trailing slash except for the homepage
   if (url.endsWith("/") && !url.match(/^https?:\/\/[^/]+\/$/)) {
     return url.replace(/\/+$/, "");
   }
   return url;
 }
 
-// Woo client: params are passed directly (common for Woo REST wrappers)
-async function fetchAllWoo(endpoint: string, extraParams: any = {}, client: any = api) {
-  let page = 1;
-  const allItems: any[] = [];
-
-  while (true) {
-    try {
-      const res = await client.get(endpoint, {
-        per_page: 100,
-        page,
-        ...extraParams,
-      });
-
-      const data = Array.isArray(res?.data) ? res.data : [];
-      if (!data.length) break;
-
-      allItems.push(...data);
-      page++;
-
-      // safety break
-      if (page > 50) break;
-    } catch (e: any) {
-      const msg = (e?.message || "").toLowerCase();
-      if (msg.includes("page number is larger") || msg.includes("paginanummer is groter")) break;
-      // console.error(`Error fetching page ${page} of ${endpoint}:`, e);
-      break;
-    }
-  }
-
-  return allItems;
-}
-
-// WP client (axios-style): params should be under `params`
-async function fetchAllWp(endpoint: string, extraParams: any = {}, client: any = wpApi) {
-  let page = 1;
-  const allItems: any[] = [];
-
-  while (true) {
-    try {
-      const res = await client.get(endpoint, {
-        params: {
-          per_page: 100,
-          page,
-          ...extraParams,
-        },
-      });
-
-      const data = Array.isArray(res?.data) ? res.data : [];
-      if (!data.length) break;
-
-      allItems.push(...data);
-      page++;
-
-      if (page > 50) break;
-    } catch (e: any) {
-      // WP returns 400 when page is out of bounds
-      const status = e?.response?.status;
-      if (status === 400) break;
-
-      // console.error(`Error fetching WP page ${page} of ${endpoint}:`, e);
-      break;
-    }
-  }
-
-  return allItems;
-}
-
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = normalizeBaseUrl(process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl");
+  const apiUrl = normalizeBaseUrl(process.env.NEXT_PUBLIC_EMPIRE_API_URL || "http://empire.test") + "/api";
   const now = new Date();
 
-  // Parallel fetch of all data sources
-  const [categoriesRes, productsRes, postsRes, brandsRes] = await Promise.allSettled([
-    // 1) Categories
-    fetchAllWoo("products/categories", {
-      hide_empty: false, // Adjusted to match original logic or intended logic
-      _fields: "id,slug,parent,date_modified"
-    }),
-    // 2) Products
-    fetchAllWoo("products", {
-      status: "publish",
-      _fields: "id,slug,date_modified,status,catalog_visibility,meta_data"
-    }),
-    // 3) Blog posts
-    fetchAllWp("wp/v2/posts", {
-      status: "publish",
-      _fields: "slug,modified"
-    }),
-    // 4) Brands
-    fetchAllWp("wp/v2/product_brand", {
-      hide_empty: true,
-      _fields: "slug,modified"
-    })
-  ]);
+  let products = [], categories = [], brands = [], blogs = [];
 
-  const allCategories = categoriesRes.status === "fulfilled" ? categoriesRes.value : [];
-  const allProducts = productsRes.status === "fulfilled" ? productsRes.value : [];
-  const allPosts = postsRes.status === "fulfilled" ? postsRes.value : [];
-  const allBrands = brandsRes.status === "fulfilled" ? brandsRes.value : [];
-
-  // Log errors if any
-  if (categoriesRes.status === "rejected") console.error("Sitemap: Failed to fetch categories", categoriesRes.reason);
-  if (productsRes.status === "rejected") console.error("Sitemap: Failed to fetch products", productsRes.reason);
-  if (postsRes.status === "rejected") console.error("Sitemap: Failed to fetch posts", postsRes.reason);
-  if (brandsRes.status === "rejected") console.error("Sitemap: Failed to fetch brands", brandsRes.reason);
-
+  try {
+    const res = await fetch(`${apiUrl}/sitemap/urls`, { next: { revalidate: 3600 } });
+    if (res.ok) {
+      const data = await res.json();
+      products = data.products || [];
+      categories = data.categories || [];
+      brands = data.brands || [];
+      blogs = data.blogs || [];
+    } else {
+      console.error(`Sitemap: Failed to fetch URLs, status ${res.status}`);
+    }
+  } catch (e: any) {
+    console.error("Sitemap: Failed to fetch URLs", e.message);
+  }
 
   const catMap = new Map();
-  allCategories.forEach((cat: any) => catMap.set(cat.id, cat));
-
+  categories.forEach((cat: any) => catMap.set(cat.id, cat));
 
   const getCategoryPath = (catId: number): string => {
     let path = "";
     let currentId = catId;
     const visited = new Set();
 
-    while (currentId !== 0 && catMap.has(currentId) && !visited.has(currentId)) {
+    while (currentId !== 0 && currentId !== null && catMap.has(currentId) && !visited.has(currentId)) {
       visited.add(currentId);
       const cat = catMap.get(currentId);
       path = path ? `${cat.slug}/${path}` : cat.slug;
-      currentId = cat.parent;
+      currentId = cat.parent_id;
     }
     return path;
   };
 
-  const categories: MetadataRoute.Sitemap = allCategories
+  const categoriesSitemap: MetadataRoute.Sitemap = categories
     .filter((c: any) => c?.slug)
     .map((cat: any) => ({
       url: normalizeUrl(`${baseUrl}/${getCategoryPath(cat.id)}`),
-      lastModified: cat?.date_modified ? new Date(cat.date_modified) : now,
+      lastModified: cat?.updated_at ? new Date(cat.updated_at) : now,
     }));
 
-  const products: MetadataRoute.Sitemap = allProducts
-    .filter((p: any) => p?.slug && p?.status === "publish")
-    .filter((p: any) => p?.catalog_visibility !== "hidden")
-    .map((product: any) => {
-      const meta = product.meta_data || [];
-      const acfSlug = meta.find((m: any) => m.key === "description_slug")?.value || product.slug;
-      return {
-        url: normalizeUrl(`${baseUrl}/${acfSlug}`), // Products are at root or specific slug as per previous setup
-        lastModified: product?.date_modified ? new Date(product.date_modified) : now,
-      };
-    });
+  const productsSitemap: MetadataRoute.Sitemap = products
+    .filter((p: any) => p?.slug)
+    .map((product: any) => ({
+      url: normalizeUrl(`${baseUrl}/${product.slug}`),
+      lastModified: product?.updated_at ? new Date(product.updated_at) : now,
+    }));
 
-  const posts: MetadataRoute.Sitemap = allPosts
-    .filter((p: any) => p?.slug && p?.status === "publish") // status checked by API but consistent here
+  const postsSitemap: MetadataRoute.Sitemap = blogs
+    .filter((p: any) => p?.slug)
     .map((post: any) => ({
       url: normalizeUrl(`${baseUrl}/kennisbank/${post.slug}`),
-      lastModified: post?.modified ? new Date(post.modified) : now,
+      lastModified: post?.updated_at ? new Date(post.updated_at) : now,
     }));
 
-  const brands: MetadataRoute.Sitemap = allBrands
+  const brandsSitemap: MetadataRoute.Sitemap = brands
     .filter((b: any) => b?.slug)
     .map((brand: any) => ({
       url: normalizeUrl(`${baseUrl}/merken/${brand.slug}`),
-      lastModified: brand?.modified ? new Date(brand.modified) : now,
+      lastModified: brand?.updated_at ? new Date(brand.updated_at) : now,
     }));
 
   // Static pages
@@ -189,7 +94,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ].map((x) => ({ ...x, url: normalizeUrl(x.url) }));
 
   // Deduplicate
-  const combined = [...staticPages, ...categories, ...products, ...posts, ...brands];
+  const combined = [...staticPages, ...categoriesSitemap, ...productsSitemap, ...postsSitemap, ...brandsSitemap];
   const seen = new Set<string>();
   const unique = combined.filter((item) => {
     const key = item.url;
