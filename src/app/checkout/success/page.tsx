@@ -31,7 +31,7 @@ function SuccessContent() {
             
             if (result.success) {
                 const s = result.status;
-                if (['processing', 'completed', 'on-hold'].includes(s)) {
+                if (s && ['processing', 'completed', 'on-hold'].includes(s)) {
                     setStatus('success');
                     clearCart(); // Only clear on success
                 } else if (s === 'cancelled') {

@@ -65,21 +65,9 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: "Webhook processed" }, { status: 200 });
         }
 
-        // Fallback for old WooCommerce logic (while migrating)
-        let newStatus = "";
-        if (payment.status == 'paid') newStatus = "processing";
-        else if (['canceled', 'expired'].includes(payment.status)) newStatus = "cancelled";
-        else if (payment.status == 'failed') newStatus = "failed";
-
-        if (newStatus) {
-            const api = (await import("@/lib/woocommerce")).default;
-            await api.put(`orders/${orderReference}`, {
-                status: newStatus,
-                transaction_id: payment.id,
-            });
-        }
-
-        return NextResponse.json({ message: "Webhook received" }, { status: 200 });
+        // Legacy WooCommerce order updates are intentionally disabled. Only BW-/NEXT-
+        // references created through the Laravel API are supported by this webhook.
+        return NextResponse.json({ message: "Unsupported legacy order reference" }, { status: 200 });
     } catch (error) {
         return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
     }

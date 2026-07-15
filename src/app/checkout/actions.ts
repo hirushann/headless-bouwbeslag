@@ -1,11 +1,9 @@
 "use server";
 
-import { getShippingSettings, getCouponByCode, getShippingRules } from "@/lib/woocommerce";
+import { getShippingSettings, getCouponByCode, getShippingRules } from "@/lib/empire-checkout";
 import { getCheckoutSession, saveCheckoutSession, deleteCheckoutSession } from "@/lib/checkout-session";
 import mollieClient from "@/lib/mollie";
-import { redirect } from "next/navigation";
 import axios from "axios";
-import { getOrder, updateOrder } from "@/lib/woocommerce-order";
 
 
 export async function checkOrderStatusAction(orderId: string | number) {
@@ -32,11 +30,12 @@ export async function checkOrderStatusAction(orderId: string | number) {
                             headers["Authorization"] = `Bearer ${session.auth_token}`;
                         }
                         
-                        const payloadToSend = { ...session };
-                        delete payloadToSend.auth_token;
-                        
+                        const payloadToSend = isGuest
+                            ? { status: "processing", email: session.billing?.email }
+                            : { status: "processing" };
+
                         try {
-                            await axios.post(`${empireUrl}${endpoint}`, payloadToSend, { headers });
+                            await axios.patch(`${empireUrl}${endpoint}/${orderIdStr}/status`, payloadToSend, { headers });
                             await deleteCheckoutSession(orderIdStr);
                             return { success: true, status: 'processing' };
                         } catch (e: any) {
@@ -61,18 +60,9 @@ export async function checkOrderStatusAction(orderId: string | number) {
             }
         }
 
-        // Old WooCommerce flow fallback
-        const order = await getOrder(Number(orderId));
-        if (!order) return { success: false, message: "Order not found" };
-
-        if ((order.status === 'pending' || order.status === 'pending-payment') && order.transaction_id) {
-            const payment = await mollieClient.payments.get(order.transaction_id);
-            if (payment.status === 'paid') {
-                await updateOrder(Number(orderId), { status: 'processing', set_paid: true });
-                order.status = 'processing';
-            }
-        }
-        return { success: true, status: order.status, orderKey: order.order_key, total: order.total };
+        // Legacy WooCommerce order-status fallback is intentionally disabled because
+        // Bouwbeslag orders are now created and updated through the Laravel API.
+        return { success: false, message: "Unsupported legacy order reference" };
     } catch (error) {
         return { success: false, message: "Error checking status" };
     }
@@ -236,28 +226,8 @@ export async function placeOrderAction(data: any) {
         
         let subtotal = 0;
         
-        // Ensure all items have a valid SKU (especially old cart items missing the sku field)
+        // Laravel resolves current cart items by SKU, sync ID, or UUID.
         const itemsToProcess = [...data.cart];
-        const missingSkuItems = itemsToProcess.filter((item: any) => !item.sku && !item.sync_id && !isNaN(Number(item.id)));
-        
-        if (missingSkuItems.length > 0) {
-            const idsToFetch = missingSkuItems.map((item: any) => item.id).join(",");
-            try {
-                // Quick fetch from WooCommerce to get missing SKUs
-                const { default: api } = await import("@/lib/woocommerce");
-                const res = await api.get("products", { include: idsToFetch, _fields: "id,sku", per_page: 100 });
-                if (Array.isArray(res.data)) {
-                    res.data.forEach((p: any) => {
-                        const target = itemsToProcess.find((item: any) => Number(item.id) === Number(p.id));
-                        if (target && p.sku) {
-                            target.sku = p.sku;
-                        }
-                    });
-                }
-            } catch (e) {
-                // console.error("Failed to fetch missing SKUs", e);
-            }
-        }
 
         const items = itemsToProcess.map((item: any) => {
             const price = parseFloat(item.price || 0);
@@ -372,7 +342,10 @@ export async function placeOrderAction(data: any) {
 
         const axios = require('axios');
         try {
-            await axios.post(`${empireUrl}${endpoint}`, payloadToSend, { headers });
+            const empireResponse = await axios.post(`${empireUrl}${endpoint}`, payloadToSend, { headers });
+            if (empireResponse.status !== 201 || empireResponse.data?.data?.order_reference !== orderReference) {
+                return { success: false, message: "Laravel did not confirm the order" };
+            }
         } catch (empireError: any) {
             console.error("Failed to push order to Empire:", empireError?.response?.data || empireError.message);
             return { success: false, message: "Failed to create order in backend" };
@@ -405,8 +378,7 @@ export async function placeOrderAction(data: any) {
         // Update session with transaction_id so checkOrderStatus can find it
         if (payment && payment.id) {
             empirePayload.transaction_id = payment.id;
-            // await saveCheckoutSession(orderReference, empirePayload);
-            // Optionally PATCH empire here with transaction_id, but webhook will handle status
+            await saveCheckoutSession(orderReference, empirePayload);
         }
 
 
