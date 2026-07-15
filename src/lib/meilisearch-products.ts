@@ -77,10 +77,11 @@ export function mapMeiliToWooProduct(p: any) {
 
     const wooAttributes: any[] = [];
     
-    const tryAddAttr = (key: string, name: string) => {
+    const tryAddAttr = (key: string, name: string, slug?: string) => {
       if (p[key]) {
         wooAttributes.push({
           name,
+          slug: slug || `pa_${key}`,
           options: Array.isArray(p[key]) ? p[key] : [p[key]]
         });
       }
@@ -90,6 +91,7 @@ export function mapMeiliToWooProduct(p: any) {
     tryAddAttr('material', 'Materiaal');
     tryAddAttr('finish', 'Finish');
     tryAddAttr('brand_name', 'Merk');
+    tryAddAttr('packing_type', 'Verpakkingstype', 'pa_packing_type');
 
     // Handle price
     let priceStr = "";
