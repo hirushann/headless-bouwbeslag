@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { BOUWBESLAG_CATEGORY_TAGS, BOUWBESLAG_PRODUCT_TAGS } from '@/lib/cache-tags';
+import { buildCategoryMembershipFilter } from '@/lib/category-filter';
 
 // This route is always dynamic — no Router Cache interference.
 export const dynamic = 'force-dynamic';
@@ -31,12 +32,12 @@ async function fetchEmpireCategoryFlags(slug: string, isBrandPage: boolean = fal
  * Fetch facet distributions from Meilisearch for a given category slug.
  * This replaces loading all 1000 products — far more efficient.
  */
-async function fetchMeiliFilterFacets(categorySlug: string, isBrandPage: boolean = false) {
+async function fetchMeiliFilterFacets(categoryIdentity: string | Array<number | string>, isBrandPage: boolean = false) {
   try {
     const body = {
       q: '',
       limit: 0,
-      filter: [isBrandPage ? `brand_id = '${categorySlug}'` : `category_slug = ${categorySlug}`],
+      filter: [isBrandPage ? `brand_id = '${String(categoryIdentity)}'` : buildCategoryMembershipFilter(categoryIdentity)],
       facets: ['color', 'material', 'finish', 'brand_name', 'stock_status'],
     };
 
@@ -117,7 +118,7 @@ function buildAttributesFromFacets(facets: Record<string, Record<string, number>
  * Build a minimal products list for the client-side filter matching logic.
  * We fetch all products with only the fields needed for filtering (much lighter than full products).
  */
-async function fetchFilterBaseProducts(categorySlug: string, isBrandPage: boolean = false) {
+async function fetchFilterBaseProducts(categoryIdentity: string | Array<number | string>, isBrandPage: boolean = false) {
   try {
     const res = await fetch(`${MEILISEARCH_HOST}/indexes/${MEILI_INDEX}/search`, {
       method: 'POST',
@@ -129,7 +130,7 @@ async function fetchFilterBaseProducts(categorySlug: string, isBrandPage: boolea
         q: '',
         limit: 2000,
         offset: 0,
-        filter: [isBrandPage ? `brand_id = '${categorySlug}'` : `category_slug = ${categorySlug}`],
+        filter: [isBrandPage ? `brand_id = '${String(categoryIdentity)}'` : buildCategoryMembershipFilter(categoryIdentity)],
         attributesToRetrieve: [
           'id', 'slug', 'name', 'color', 'material', 'finish',
           'brand', 'brand_name', 'brand_id', 'stock_status', 'stock',
@@ -189,12 +190,14 @@ export async function GET(request: Request) {
   }
 
   const slug = categorySlug || '';
-
   try {
-    const [empireCategory, facets, filterBaseProducts] = await Promise.all([
-      fetchEmpireCategoryFlags(slug, isBrandPage),
-      fetchMeiliFilterFacets(slug, isBrandPage),
-      fetchFilterBaseProducts(slug, isBrandPage),
+    const empireCategory = await fetchEmpireCategoryFlags(slug, isBrandPage);
+    const categoryIdentity = isBrandPage
+      ? slug
+      : empireCategory?.product_category_ids || [categoryId || ''];
+    const [facets, filterBaseProducts] = await Promise.all([
+      fetchMeiliFilterFacets(categoryIdentity, isBrandPage),
+      fetchFilterBaseProducts(categoryIdentity, isBrandPage),
     ]);
 
     const attributes = buildAttributesFromFacets(facets || {}, empireCategory || {});

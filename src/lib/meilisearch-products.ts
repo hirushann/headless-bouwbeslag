@@ -1,4 +1,5 @@
 import { BOUWBESLAG_PRODUCT_TAGS } from "@/lib/cache-tags";
+import { buildMeilisearchPagination, resolveMeilisearchTotal } from "@/lib/meilisearch-pagination";
 
 const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST || "https://ezearch.dayzsolutions.com";
 const MEILISEARCH_KEY = process.env.MEILISEARCH_KEY || "4aaac5324e39343df8c1981646e2d933aba4d9d0b02bc80c40cd25bb695051ec";
@@ -11,8 +12,7 @@ export async function fetchMeiliProducts(limit: number = 10, offset: number = 0,
     try {
         const body: any = {
             q: query,
-            limit,
-            offset
+            ...buildMeilisearchPagination(limit, offset),
         };
 
         if (filters && filters.length > 0) {
@@ -50,7 +50,7 @@ export async function fetchMeiliProducts(limit: number = 10, offset: number = 0,
         
         return { 
             products, 
-            total: data.estimatedTotalHits || data.totalHits || data.hits?.length || 0 
+            total: resolveMeilisearchTotal(data, products.length),
         };
     } catch (error) {
         console.error("Error fetching from Meilisearch:", error);

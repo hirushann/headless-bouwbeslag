@@ -21,6 +21,7 @@ interface Category {
   slug: string;
   description: string;
   parent: number;
+  product_category_ids?: number[];
   acf?: {
     category_meta_title?: string;
     category_meta_description?: string;
@@ -48,6 +49,7 @@ interface Attribute {
  */
 import { fetchCategories } from "@/lib/woocommerce";
 import { fetchProductBySlug, fetchMeiliProducts, mapMeiliToWooProduct } from "@/lib/meilisearch-products";
+import { buildCategoryMembershipFilter } from "@/lib/category-filter";
 
 const getAllCategoriesCached = cache(async () => {
     return await fetchCategories();
@@ -211,9 +213,9 @@ const fetchAllSubCategoriesCached = cache(async (parentId: number) => {
   }
 });
 
-const fetchAllCategoryProductsForFiltersCached = cache(async (categoryId: number) => {
+const fetchAllCategoryProductsForFiltersCached = cache(async (categoryIds: number[]) => {
   try {
-    const filters = [`category_id = ${categoryId}`];
+    const filters = [buildCategoryMembershipFilter(categoryIds)];
     const { products } = await fetchMeiliProducts(1000, 0, "", filters);
     
     // The products from Meilisearch need to be somewhat compatible with what CategoryClient expects.
@@ -708,8 +710,7 @@ async function CategoryLoader({ category, slug, sp }: { category: any, slug: str
       
       // Filter by category slug — matches the Empire category slug stored in Meilisearch
       // (WooCommerce category IDs ≠ Empire category IDs stored in Meilisearch)
-      const categorySlug = category.slug;
-      const filters = [`category_slug = ${categorySlug}`];
+      const filters = [buildCategoryMembershipFilter(category.product_category_ids || [category.id])];
 
       // Handle sortParams for Meilisearch if necessary
       // Note: Meilisearch sorting must be configured in settings.
@@ -728,7 +729,7 @@ async function CategoryLoader({ category, slug, sp }: { category: any, slug: str
     // Start all requests in parallel
     const attributesPromise = fetchAttributes();
     const subCategoriesPromise = fetchAllSubCategoriesCached(category.id);
-    const filterBasePromise = fetchAllCategoryProductsForFiltersCached(category.id);
+    const filterBasePromise = fetchAllCategoryProductsForFiltersCached(category.product_category_ids || [category.id]);
     const pathPromise = traverseCategoryPath(category);
     const currentPagePromise = fetchCurrentPage();
 
