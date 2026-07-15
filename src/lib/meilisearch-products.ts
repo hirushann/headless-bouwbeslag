@@ -124,6 +124,7 @@ export function mapMeiliToWooProduct(p: any) {
       regular_price: regularPriceStr,
       stock_status: p.stock?.status === 'in_stock' ? 'instock' : (p.stock_status || 'outofstock'),
       stock_quantity: p.stock?.quantity ?? p.stock_quantity ?? null,
+      backorders_allowed: true,
       images: images,
       meta_data: p.meta_data || [],
       resolved_cat_image: p.category?.image?.src || p.category?.image || ""
