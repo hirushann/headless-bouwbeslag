@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useUserContext } from "@/context/UserContext";
 
 function AccountContent() {
-  const { user: contextUser, isLoading: contextLoading } = useUserContext();
+  const { user: contextUser, isLoading: contextLoading, refreshRole } = useUserContext();
   // const [user, setUser] = useState<any>(null); // Removed redundant local state. We use 'user' derived from context or just contextUser. 
   
   // Actually, we can just use contextUser directly, but the component uses 'user' state everywhere.
@@ -63,6 +63,7 @@ function AccountContent() {
             first_name: contextUser.first_name || contextUser.billing?.first_name || "",
             last_name: contextUser.last_name || contextUser.billing?.last_name || "",
             company_name: contextUser.company_name || contextUser.billing?.company || "",
+            vat_number: contextUser.vat_number || contextUser.billing?.vat_number || "",
         });
     }
   }, [contextUser]);
@@ -129,9 +130,14 @@ function AccountContent() {
 
       try {
           // We can use the NextJS API route if it exists, or call EMPIRE_API_URL directly like password reset does
-          await axios.put(`${EMPIRE_API_URL}/api/profile`, detailsForm, {
+          const response = await axios.put(`${EMPIRE_API_URL}/api/profile`, detailsForm, {
               headers: { Authorization: `Bearer ${token}` }
           });
+          const updatedUser = response.data?.data;
+          if (updatedUser) {
+            setUser((previous: any) => ({ ...previous, ...updatedUser }));
+          }
+          await refreshRole();
           setDetailsSuccess("Account details updated successfully.");
       } catch (err: any) {
           setDetailsError(err?.response?.data?.message || "Failed to update account details.");
@@ -156,13 +162,19 @@ function AccountContent() {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("No auth token");
-      await axios.put(
+      const response = await axios.put(
         `${EMPIRE_API_URL}/api/customer/address`,
         { billing: billingForm, shipping: shippingForm },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      const address = response.data?.data;
+      const savedBilling = address?.billing || billingForm;
+      const savedShipping = address?.shipping || shippingForm;
+      setBillingForm(savedBilling);
+      setShippingForm(savedShipping);
       setBillingSuccess("Billing address updated!");
-      setUser((prev: any) => ({ ...prev, billing: { ...billingForm } }));
+      setUser((prev: any) => ({ ...prev, billing: savedBilling, shipping: savedShipping }));
+      await refreshRole();
     } catch (err: any) {
       setBillingError(err.response?.data?.message || err.message || "Error updating billing address.");
     } finally {
@@ -178,13 +190,19 @@ function AccountContent() {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("No auth token");
-      await axios.put(
+      const response = await axios.put(
         `${EMPIRE_API_URL}/api/customer/address`,
         { billing: billingForm, shipping: shippingForm },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      const address = response.data?.data;
+      const savedBilling = address?.billing || billingForm;
+      const savedShipping = address?.shipping || shippingForm;
+      setBillingForm(savedBilling);
+      setShippingForm(savedShipping);
       setShippingSuccess("Shipping address updated!");
-      setUser((prev: any) => ({ ...prev, shipping: { ...shippingForm } }));
+      setUser((prev: any) => ({ ...prev, billing: savedBilling, shipping: savedShipping }));
+      await refreshRole();
     } catch (err: any) {
       setShippingError(err.response?.data?.message || err.message || "Error updating shipping address.");
     } finally {
@@ -567,6 +585,19 @@ function AccountContent() {
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-[#1C2530]">Company Name</label>
                       <input className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF]" type="text" name="company_name" value={detailsForm?.company_name || ""} onChange={handleDetailsInput} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="account-vat-number" className="text-sm font-medium text-[#1C2530]">VAT Number</label>
+                      <input
+                        id="account-vat-number"
+                        className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF]"
+                        type="text"
+                        name="vat_number"
+                        value={detailsForm?.vat_number || ""}
+                        onChange={handleDetailsInput}
+                        autoComplete="off"
+                      />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

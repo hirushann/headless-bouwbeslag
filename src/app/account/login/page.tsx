@@ -9,6 +9,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function LoginPage() {
-  return <LoginClient />;
+type LoginPageProps = {
+  searchParams: Promise<{ reset?: string | string[] }>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = await searchParams;
+  const reset = Array.isArray(params.reset) ? params.reset[0] : params.reset;
+
+  return <LoginClient resetComplete={reset === "success"} />;
 }
