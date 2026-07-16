@@ -17,20 +17,21 @@ export async function login(email: string, password: string) {
 
 // Register with name, email, password
 export async function register(data: { name: string; email: string; password: string; password_confirmation: string }) {
-    const url = `${BASE_URL}/api/register`;
-    const res = await axios.post(url, data);
-    return res.data; // { message, user, access_token, token_type }
+  const url = `${BASE_URL}/api/register`;
+  const res = await axios.post(url, data);
+
+  return res.data; // { message, user, access_token, token_type }
 }
 
 // Logout
 export async function logout(token: string) {
-    const url = `${BASE_URL}/api/logout`;
-    const res = await axios.post(
-      url,
-      {},
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    return res.data;
+  const url = `${BASE_URL}/api/logout`;
+  const res = await axios.post(
+    url,
+    {},
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return res.data;
 }
 
 // Validate token (by fetching profile)
