@@ -163,7 +163,7 @@ async function fetchFilterBaseProducts(categoryIdentity: string | Array<number |
       return {
         ...p,
         attributes: wooAttributes,
-        brands: bName ? [{ id: brandId, name: bName }] : [],
+        brands: bName ? [{ id: brandId, name: bName, slug: p.brand_slug || p.brand?.slug || bName.toLowerCase().replace(/[^a-z0-9]+/g, '-') }] : [],
         price: priceAmount.toString(),
         regular_price: priceAmount.toString(),
         stock_status: p.stock?.status === 'in_stock' ? 'instock' : (p.stock_status === 'instock' ? 'instock' : (p.stock_status || 'outofstock')),
