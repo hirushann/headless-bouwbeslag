@@ -8,6 +8,7 @@ import { BOUWBESLAG_CONTENT_TAGS } from "@/lib/cache-tags";
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/merken" },
   title: 'Onze Merken | Bouwbeslag',
   description: 'Ontdek alle topmerken bouwbeslag en deurbeslag in ons uitgebreide assortiment.',
 };

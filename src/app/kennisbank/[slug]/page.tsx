@@ -31,7 +31,7 @@ export async function generateMetadata(
       title: seoTitle,
       description: seoDescription,
       alternates: {
-        canonical: `${siteUrl}/kennisbank/${slug}`,
+        canonical: `/kennisbank/${slug}`,
       },
       openGraph: {
         title: seoTitle,

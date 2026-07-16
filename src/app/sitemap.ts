@@ -12,7 +12,16 @@ function normalizeUrl(url: string) {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = normalizeBaseUrl(process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl");
+  const getBaseUrl = () => {
+    if (process.env.NEXT_PUBLIC_SITE_URL && process.env.NEXT_PUBLIC_APP_ENV !== 'staging') {
+      return process.env.NEXT_PUBLIC_SITE_URL;
+    }
+    if (process.env.VERCEL_URL) {
+      return `https://${process.env.VERCEL_URL}`;
+    }
+    return process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl";
+  };
+  const baseUrl = normalizeBaseUrl(getBaseUrl());
   const apiUrl = normalizeBaseUrl(process.env.NEXT_PUBLIC_EMPIRE_API_URL || "http://empire.test") + "/api";
   const now = new Date();
 

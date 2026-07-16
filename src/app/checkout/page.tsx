@@ -448,14 +448,21 @@ export default function NewCheckoutPage() {
     };
     fetchRules();
 
+  }, []);
+
+  useEffect(() => {
     const fetchPaymentMethods = async () => {
         const result = await getPaymentMethodsAction();
         if (result.success && result.methods) {
-            setPaymentMethods(result.methods);
+            let methods = [...result.methods];
+            if (isB2B) {
+                methods.push({ id: 'invoice', description: 'Op factuur', image: null });
+            }
+            setPaymentMethods(methods);
         }
     };
     fetchPaymentMethods();
-  }, []);
+  }, [isB2B]);
 
   useEffect(() => {
     if (!isHydrated) return;

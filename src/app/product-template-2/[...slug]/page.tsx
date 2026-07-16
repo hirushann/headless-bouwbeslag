@@ -21,6 +21,8 @@ interface Category {
   slug: string;
   description: string;
   parent: number;
+  meta_title?: string;
+  meta_description?: string;
   acf?: {
     category_meta_title?: string;
     category_meta_description?: string;
@@ -506,7 +508,7 @@ export async function generateMetadata(
       title: metaTitle,
       description: metaDescription,
       alternates: {
-        canonical: `${siteUrl}/${product.slug}`,
+        canonical: `/${product.slug}`,
       },
       openGraph: {
         title: metaTitle,
@@ -540,11 +542,11 @@ export async function generateMetadata(
     const canonicalPath = slug.map(s => encodeURIComponent(s)).join('/');
     
     // Dynamic Category Title
-    const acfTitle = category.acf?.category_meta_title;
+    const acfTitle = category.meta_title || category.acf?.category_meta_title;
     let title = clean(acfTitle) || `${clean(category.name)} | Bouwbeslag`;
 
     // Dynamic Category Description
-    const acfDesc = category.acf?.category_meta_description;
+    const acfDesc = category.meta_description || category.acf?.category_meta_description;
     let description = clean(acfDesc);
 
     if (!description) {
@@ -561,7 +563,7 @@ export async function generateMetadata(
       title,
       description,
       alternates: {
-        canonical: `${siteUrl}/${correctPath}`,
+        canonical: `/${correctPath}`,
       },
       openGraph: {
         title,

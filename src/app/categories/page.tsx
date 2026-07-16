@@ -24,7 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title,
     description,
     alternates: {
-      canonical: `${siteUrl}/categories`,
+      canonical: `/categories`,
     },
     openGraph: {
       title,
