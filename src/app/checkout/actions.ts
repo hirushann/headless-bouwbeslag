@@ -360,6 +360,19 @@ export async function placeOrderAction(data: any) {
 
         const paymentValue = totalAmount.toFixed(2);
 
+        // If Invoice Payment, skip Mollie and set status to processing immediately
+        if (data.mollie_method_id === 'invoice') {
+            try {
+                const patchPayload = !data.customer_id
+                    ? { status: "processing", email: data.billing?.email }
+                    : { status: "processing" };
+                await axios.patch(`${empireUrl}${endpoint}/${finalOrderReference}/status`, patchPayload, { headers });
+            } catch (e: any) {
+                console.error("Failed to update status for invoice payment:", e?.response?.data || e.message);
+            }
+            return { success: true, redirectUrl: `${siteUrl}/checkout/success?orderId=${finalOrderReference}` };
+        }
+
         // Create Mollie Payment
         const payment = await mollieClient.payments.create({
             amount: {
