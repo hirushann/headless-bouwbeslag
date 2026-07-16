@@ -753,37 +753,27 @@ export default function ProductPageClient({
 
     const pdfMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_manual_pdf");
     if (pdfMeta?.value) {
-      fetchMedia(pdfMeta.value).then(media =>
-        setManualPdf(media?.source_url ? fixImageSrc(media.source_url) : null)
-      );
+      setManualPdf(fixImageSrc(pdfMeta.value));
     }
 
     const installMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_installation_guide");
     if (installMeta?.value) {
-      fetchMedia(installMeta.value).then(media =>
-        setInstallationGuide(media?.source_url ? fixImageSrc(media.source_url) : null)
-      );
+      setInstallationGuide(fixImageSrc(installMeta.value));
     }
 
     const certMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_product_certificate");
     if (certMeta?.value) {
-      fetchMedia(certMeta.value).then(media =>
-        setCertificate(media?.source_url ? fixImageSrc(media.source_url) : null)
-      );
+      setCertificate(fixImageSrc(certMeta.value));
     }
 
     const careMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_care_instructions");
     if (careMeta?.value) {
-      fetchMedia(careMeta.value).then(media =>
-        setCareInstructions(media?.source_url ? fixImageSrc(media.source_url) : null)
-      );
+      setCareInstructions(fixImageSrc(careMeta.value));
     }
 
     const techDrawMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_technical_drawing");
     if (techDrawMeta?.value) {
-      fetchMedia(techDrawMeta.value).then(media => {
-        setTechnicalDrawingUrl(media?.source_url ? fixImageSrc(media.source_url) : null);
-      });
+      setTechnicalDrawingUrl(fixImageSrc(techDrawMeta.value));
     }
   }, [product]);
 
@@ -2039,7 +2029,7 @@ export default function ProductPageClient({
                               {/* ------------------------- */}
                               {product.attributes && product.attributes.length > 0 &&
                                 product.attributes
-                                  .filter((attr: any) => !attr.name.toLowerCase().endsWith(" unit"))
+                                  .filter((attr: any) => !attr.name.toLowerCase().endsWith(" unit") && !["merk", "brand"].includes(attr.name.toLowerCase()))
                                   .map((attr: any, idx: number) => {
                                     const isEven = (idx % 2 === 0);
                                     // Find corresponding unit attribute (e.g. "Values" -> "Values Unit")

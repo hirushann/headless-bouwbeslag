@@ -38,7 +38,7 @@ async function fetchMeiliFilterFacets(categoryIdentity: string | Array<number | 
       q: '',
       limit: 0,
       filter: [isBrandPage ? `brand_id = '${String(categoryIdentity)}'` : buildCategoryMembershipFilter(categoryIdentity)],
-      facets: ['color', 'material', 'finish', 'brand_name', 'stock_status'],
+      facets: ['*'],
     };
 
     const res = await fetch(`${MEILISEARCH_HOST}/indexes/${MEILI_INDEX}/search`, {
@@ -48,7 +48,7 @@ async function fetchMeiliFilterFacets(categoryIdentity: string | Array<number | 
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
-      next: { revalidate: 300, tags: BOUWBESLAG_PRODUCT_TAGS },
+      cache: 'no-store',
     });
 
     if (!res.ok) return null;
@@ -59,12 +59,45 @@ async function fetchMeiliFilterFacets(categoryIdentity: string | Array<number | 
   }
 }
 
-// Deterministic numeric IDs for Empire facets (avoids conflict with WooCommerce attr IDs which are small ints)
-const EMPIRE_ATTR_ID: Record<string, number> = {
-  brand_name: 9001,
-  color:      9002,
-  material:   9003,
-  finish:     9004,
+const DYNAMIC_FACETS_CONFIG: Record<string, { facetKey: string, label: string, attrId: number }> = {
+  has_colors: { facetKey: 'color', label: 'Kleur', attrId: 9002 },
+  has_materials: { facetKey: 'material', label: 'Materiaal', attrId: 9003 },
+  has_finishes: { facetKey: 'finish', label: 'Finish', attrId: 9004 },
+  has_styles: { facetKey: 'style', label: 'Stijl', attrId: 9005 },
+  has_type_of_quality: { facetKey: 'type_of_quality', label: 'Kwaliteitstype', attrId: 9006 },
+  has_executions: { facetKey: 'shield_or_rosette_version', label: 'Uitvoering', attrId: 9007 },
+  has_shapes: { facetKey: 'form', label: 'Vorm', attrId: 9008 },
+  has_front_plate_width: { facetKey: 'front_plate_width', label: 'Voorplaatbreedte', attrId: 9009 },
+  has_window_type: { facetKey: 'window_type', label: 'Raamtype', attrId: 9010 },
+  has_length: { facetKey: 'length_attr', label: 'Lengte', attrId: 9011 },
+  has_window_stay: { facetKey: 'window_stay', label: 'Raamuitzetter', attrId: 9012 },
+  has_handle_height: { facetKey: 'handle_height', label: 'Krukhoogte', attrId: 9013 },
+  has_hook_a: { facetKey: 'hook_a', label: 'Haak A', attrId: 9014 },
+  has_hook_b: { facetKey: 'hook_b', label: 'Haak B', attrId: 9015 },
+  has_hook_c: { facetKey: 'hook_c', label: 'Haak C', attrId: 9016 },
+  has_spindle: { facetKey: 'spindle', label: 'Stift', attrId: 9017 },
+  has_marking: { facetKey: 'marking', label: 'Keurmerk', attrId: 9018 },
+  has_offset: { facetKey: 'offset', label: 'Krukas', attrId: 9019 },
+  has_cam_size: { facetKey: 'cam_size', label: 'Nokmaat', attrId: 9020 },
+  has_rosette_type: { facetKey: 'rosette_type', label: 'Rozettype', attrId: 9021 },
+  has_hook_type: { facetKey: 'hook_type', label: 'Haaktype', attrId: 9022 },
+  has_type_of_door_fitting_set: { facetKey: 'type_of_door_fitting_set', label: 'Type deurbeslag set', attrId: 9023 },
+  has_indoor_outdoor: { facetKey: 'indoor_outdoor', label: 'Binnen/Buiten', attrId: 9024 },
+  has_max_door_thickness: { facetKey: 'max_door_thickness', label: 'Max. deurdikte', attrId: 9025 },
+  has_with_core_pulling_protection: { facetKey: 'with_core_pulling_protection', label: 'Met kerntrekbeveiliging', attrId: 9026 },
+  has_min_door_thickness: { facetKey: 'min_door_thickness', label: 'Min. deurdikte', attrId: 9027 },
+  has_package_content: { facetKey: 'package_content', label: 'Verpakkingsinhoud', attrId: 9028 },
+  has_series: { facetKey: 'series', label: 'Serie', attrId: 9029 },
+  has_type_tochtstrip: { facetKey: 'type_tochtstrip', label: 'Type Tochtstrip', attrId: 9030 },
+  has_tochtstrip_toepassing: { facetKey: 'tochtstrip_toepassing', label: 'Tochtstrip Toepassing', attrId: 9031 },
+  has_brandvertragend: { facetKey: 'brandvertragend', label: 'Brandvertragend', attrId: 9032 },
+  has_breedte_tochtstrip: { facetKey: 'breedte_tochtstrip', label: 'Breedte Tochtstrip', attrId: 9033 },
+  has_sponning_tochtstrip: { facetKey: 'sponning_tochtstrip', label: 'Sponning Tochtstrip', attrId: 9034 },
+  has_afdichtingsspleet: { facetKey: 'afdichtingsspleet', label: 'Afdichtingsspleet', attrId: 9035 },
+  has_groefbreedte: { facetKey: 'groefbreedte', label: 'Groefbreedte', attrId: 9036 },
+  has_groefdiepte: { facetKey: 'groefdiepte', label: 'Groefdiepte', attrId: 9037 },
+  has_verkropping: { facetKey: 'verkropping', label: 'Verkropping', attrId: 9038 },
+  has_afsluitbaarheid: { facetKey: 'afsluitbaarheid', label: 'Afsluitbaarheid', attrId: 9039 },
 };
 
 function termSlugToId(attrId: number, slug: string): number {
@@ -83,10 +116,8 @@ function termSlugToId(attrId: number, slug: string): number {
 function buildAttributesFromFacets(facets: Record<string, Record<string, number>>, flags: any) {
   const attributes: any[] = [];
 
-  const addFacet = (facetKey: string, label: string, flagKey: string) => {
+  const addFacet = (facetKey: string, label: string, flagKey: string, attrId: number) => {
     if (!flags?.[flagKey]) return;
-    const attrId = EMPIRE_ATTR_ID[facetKey];
-    if (!attrId) return;
     const facetData = facets[facetKey] || {};
     const terms = Object.entries(facetData)
       .filter(([, count]) => count > 0)
@@ -107,9 +138,9 @@ function buildAttributesFromFacets(facets: Record<string, Record<string, number>
     });
   };
 
-  addFacet('color', 'Kleur', 'has_colors');
-  addFacet('material', 'Materiaal', 'has_materials');
-  addFacet('finish', 'Finish', 'has_finishes');
+  for (const [flagKey, config] of Object.entries(DYNAMIC_FACETS_CONFIG)) {
+    addFacet(config.facetKey, config.label, flagKey, config.attrId);
+  }
 
   return attributes;
 }
@@ -135,10 +166,12 @@ async function fetchFilterBaseProducts(categoryIdentity: string | Array<number |
           'id', 'slug', 'name', 'color', 'material', 'finish',
           'brand', 'brand_name', 'brand_id', 'stock_status', 'stock',
           'price', 'category_id', 'category_slug', 'category_name',
-          'images', 'main_image_url', 'category', 'meta_data'
+          'images', 'main_image_url', 'category', 'meta_data',
+          'afdichtingsspleet_van', 'afdichtingsspleet_tot', 'groefbreedte_van', 'groefbreedte_tot',
+          ...Object.values(DYNAMIC_FACETS_CONFIG).map(c => c.facetKey)
         ],
       }),
-      next: { revalidate: 300, tags: BOUWBESLAG_PRODUCT_TAGS },
+      cache: 'no-store',
     });
 
     if (!res.ok) return [];
@@ -148,10 +181,12 @@ async function fetchFilterBaseProducts(categoryIdentity: string | Array<number |
     return (data.hits || []).map((p: any) => {
       const ensureArray = (val: any) => Array.isArray(val) ? val : (val ? [val] : []);
       const wooAttributes: any[] = [];
-      if (p.color) wooAttributes.push({ id: 9002, name: 'Kleur', slug: 'color', options: ensureArray(p.color) });
-      if (p.material) wooAttributes.push({ id: 9003, name: 'Materiaal', slug: 'material', options: ensureArray(p.material) });
-      if (p.finish) wooAttributes.push({ id: 9004, name: 'Finish', slug: 'finish', options: ensureArray(p.finish) });
       
+      for (const config of Object.values(DYNAMIC_FACETS_CONFIG)) {
+        if (p[config.facetKey] !== undefined && p[config.facetKey] !== null && p[config.facetKey] !== '') {
+          wooAttributes.push({ id: config.attrId, name: config.label, slug: config.facetKey, options: ensureArray(p[config.facetKey]) });
+        }
+      }
       const bName = p.brand?.name || p.brand_name;
       const bId = p.brand?.id || p.brand_id;
 

@@ -32,13 +32,13 @@ export default function Header({
   const items = useCartStore((state) => state.items);
   const isCartOpen = useCartStore((state) => state.isCartOpen);
   const setCartOpen = useCartStore((state) => state.setCartOpen);
-  
+
   // Prevent hydration mismatch by defaulting to 0 items during SSR
   const totalQty = isMounted ? items.reduce((sum, i) => sum + i.quantity, 0) : 0;
   const lengthFreightCost = useCartStore((state) => state.lengthFreightCost());
 
   const { userRole, isB2B } = useUserContext();
-  
+
   const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
 
   const subtotal = isMounted ? items.reduce(
@@ -76,7 +76,7 @@ export default function Header({
 
   const isFreeShipping =
     freeShippingThreshold !== null && subtotal >= freeShippingThreshold;
-  
+
   // If Length Freight applies, shipping is the freight cost (Ex VAT).
   const shipping = hasLengthFreight ? (lengthFreightCost / 1.21) : (isFreeShipping ? 0 : flatRate);
   const displayShipping = isB2B ? shipping : shipping * 1.21;
@@ -154,9 +154,9 @@ export default function Header({
       <div className="bg-white w-full p-2 border-b border-gray-100">
         {loadExternalScripts && process.env.NODE_ENV === "production" && (
           <Script
-             id="webwinkelkeur-sidebar"
-             src="https://www.webwinkelkeur.nl/js/sidebar.js?id=11199"
-             strategy="afterInteractive"
+            id="webwinkelkeur-sidebar"
+            src="https://www.webwinkelkeur.nl/js/sidebar.js?id=11199"
+            strategy="afterInteractive"
           />
         )}
         <div className="max-w-[1440px] mx-auto relative flex justify-between items-center w-full">
@@ -180,7 +180,7 @@ export default function Header({
           </div>
           <div className="w-2/5 lg:w-1/4 flex justify-end items-center gap-2">
             <div className="flex items-center">
-                <WebwinkelKeurWidget />
+              <WebwinkelKeurWidget />
             </div>
           </div>
         </div>
@@ -188,15 +188,15 @@ export default function Header({
 
       <div className="sticky top-0 z-50 w-full shadow-md">
 
-        
+
         <div className="transition-all duration-300 bg-[#F7F7F7] w-full border-b border-gray-200">
           <div className="max-w-[1440px] mx-auto flex justify-between items-center pt-4.5 pb-1 lg:py-4 font-sans px-2 lg:px-0">
             <Link prefetch={true} href="/">
-              <Image 
-                src="/logo.webp" 
-                alt="Bouwbeslag Logo" 
-                width={256} 
-                height={41} 
+              <Image
+                src="/logo.webp"
+                alt="Bouwbeslag Logo"
+                width={256}
+                height={41}
                 className="w-56 lg:w-64"
                 priority
               />
@@ -254,13 +254,13 @@ export default function Header({
                     <li><button className="hover:bg-gray-100" onClick={() => { (document.activeElement as HTMLElement)?.blur(); router.push("/account?tab=addresses"); }}>Addresses</button></li>
                     <li><button className="hover:bg-gray-100" onClick={() => { (document.activeElement as HTMLElement)?.blur(); router.push("/account?tab=details"); }}>Account Details</button></li>
                     <li>
-                      <button className="hover:bg-gray-100" onClick={() => { 
+                      <button className="hover:bg-gray-100" onClick={() => {
                         (document.activeElement as HTMLElement)?.blur();
-                        if (typeof window !== "undefined") { 
-                          localStorage.clear(); 
-                          setIsLoggedIn(false); 
-                          router.push("/"); 
-                        } 
+                        if (typeof window !== "undefined") {
+                          localStorage.clear();
+                          setIsLoggedIn(false);
+                          router.push("/");
+                        }
                       }}>Logout</button>
                     </li>
                   </ul>
@@ -298,7 +298,7 @@ export default function Header({
                 </Link>
               </div>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <Link prefetch={true} href="/deurbeslag/deurstoppers">
+                <Link prefetch={true} href="/deurbeslag/deurstopper">
                   <span className="text-white font-normal text-sm">Deurstopper</span>
                 </Link>
               </div>
@@ -320,10 +320,10 @@ export default function Header({
       </div>
 
       {isMounted && (
-        <CartDrawer 
-          isB2B={!!isB2B} 
-          taxLabel={taxLabel} 
-          shippingMethods={shippingMethods} 
+        <CartDrawer
+          isB2B={!!isB2B}
+          taxLabel={taxLabel}
+          shippingMethods={shippingMethods}
           shippingRules={shippingRules}
         />
       )}

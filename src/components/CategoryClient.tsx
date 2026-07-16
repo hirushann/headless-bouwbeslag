@@ -176,29 +176,21 @@ function matchesFilters(
 
   // 3. Range: Afdichtingsspleet
   if (afdichtingsspleetRange) {
-    const pVan = (product.attributes?.find((a: any) => a.name === "Afdichtingsspleet Van")?.options ?? [])
-      .map((o: any) => parseFloat(o)).filter((n: number) => !isNaN(n));
-    const pTot = (product.attributes?.find((a: any) => a.name === "Afdichtingsspleet Tot")?.options ?? [])
-      .map((o: any) => parseFloat(o)).filter((n: number) => !isNaN(n));
-    const pMin = pVan.length > 0 ? Math.min(...pVan) : null;
-    const pMax = pTot.length > 0 ? Math.max(...pTot) : null;
-    if (pMin === null && pMax === null) return false;
-    const vMin = pMin !== null ? pMin : 0;
-    const vMax = pMax !== null ? pMax : 9999;
+    const pVan = product.afdichtingsspleet_van !== undefined && product.afdichtingsspleet_van !== null ? parseFloat(product.afdichtingsspleet_van) : null;
+    const pTot = product.afdichtingsspleet_tot !== undefined && product.afdichtingsspleet_tot !== null ? parseFloat(product.afdichtingsspleet_tot) : null;
+    if (pVan === null && pTot === null) return false;
+    const vMin = pVan !== null && !isNaN(pVan) ? pVan : 0;
+    const vMax = pTot !== null && !isNaN(pTot) ? pTot : 9999;
     if (!(vMin <= afdichtingsspleetRange[1] && vMax >= afdichtingsspleetRange[0])) return false;
   }
 
   // 4. Range: Groefbreedte
   if (groefbreedteRange) {
-    const pVan = (product.attributes?.find((a: any) => a.name === "Groefbreedte Van")?.options ?? [])
-      .map((o: any) => parseFloat(o)).filter((n: number) => !isNaN(n));
-    const pTot = (product.attributes?.find((a: any) => a.name === "Groefbreedte Tot")?.options ?? [])
-      .map((o: any) => parseFloat(o)).filter((n: number) => !isNaN(n));
-    const pMin = pVan.length > 0 ? Math.min(...pVan) : null;
-    const pMax = pTot.length > 0 ? Math.max(...pTot) : null;
-    if (pMin === null && pMax === null) return false;
-    const vMin = pMin !== null ? pMin : 0;
-    const vMax = pMax !== null ? pMax : 9999;
+    const pVan = product.groefbreedte_van !== undefined && product.groefbreedte_van !== null ? parseFloat(product.groefbreedte_van) : null;
+    const pTot = product.groefbreedte_tot !== undefined && product.groefbreedte_tot !== null ? parseFloat(product.groefbreedte_tot) : null;
+    if (pVan === null && pTot === null) return false;
+    const vMin = pVan !== null && !isNaN(pVan) ? pVan : 0;
+    const vMax = pTot !== null && !isNaN(pTot) ? pTot : 9999;
     if (!(vMin <= groefbreedteRange[1] && vMax >= groefbreedteRange[0])) return false;
   }
 
@@ -289,7 +281,7 @@ function FilterAttributeGroup({
                   />
                 </div>
                 <span className="flex-1">
-                  {term.name === "1" ? "Ja" : term.name === "0" ? "Nee" : term.name}
+                  {term.name === "1" || term.name === "true" ? "Ja" : term.name === "0" || term.name === "false" ? "Nee" : term.name}
                   {term.count !== undefined && <span className="ml-1 text-gray-400 text-[10px] sm:text-xs">({term.count})</span>}
                 </span>
               </label>
@@ -491,7 +483,7 @@ function FilterSidebar({
         if (a.id) {
           if (!globalTermPresence.has(a.id)) globalTermPresence.set(a.id, new Set());
           const termSet = globalTermPresence.get(a.id)!;
-          a.options?.forEach((o: string) => termSet.add(o.trim().toLowerCase()));
+          a.options?.forEach((o: any) => termSet.add(String(o).trim().toLowerCase()));
         }
       });
     });
@@ -514,8 +506,8 @@ function FilterSidebar({
              const pAttr = p.attributes?.find((a: any) => a.id === attr.id);
              if (pAttr) {
                  const seenInProduct = new Set<string>();
-                 pAttr.options?.forEach((o: string) => {
-                     const key = o.trim().toLowerCase();
+                 pAttr.options?.forEach((o: any) => {
+                     const key = String(o).trim().toLowerCase();
                      if (!seenInProduct.has(key)) {
                          seenInProduct.add(key);
                          termCounts.set(key, (termCounts.get(key) || 0) + 1);
@@ -1312,7 +1304,7 @@ export default function CategoryClient({
           <main className="flex-1">
             <CategoryBreadcrumbs categoryNames={currentSlug.map(s => s.charAt(0).toUpperCase() + s.slice(1))} />
             <div className={`flex justify-between items-center mb-4 sticky top-[105px] z-40 py-3 -mx-5 px-5 transition-all duration-200 lg:static lg:p-0 lg:mx-0 ${isStuck ? 'bg-white shadow-[0_2px_4px_rgba(0,0,0,0.05)] border-b border-gray-200' : 'bg-transparent border-transparent shadow-none'} lg:bg-transparent lg:border-none lg:shadow-none`}> 
-              <p className="text-xl lg:text-3xl font-bold text-[#1C2530] truncate pr-2">{category?.h1_title || category?.name || "Category"}</p>
+              <h1 className="text-xl lg:text-3xl font-bold text-[#1C2530] truncate pr-2">{category?.h1_title || category?.name || "Category"}</h1>
               <div className='flex items-center gap-2 shrink-0'>
                 <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="select focus:outline-0 focus:ring-0 border border-gray-300 rounded-md bg-white h-9 min-h-0 text-sm font-medium text-gray-700 pl-3 py-0 w-auto">
                   <option value="">Aanbevolen</option>

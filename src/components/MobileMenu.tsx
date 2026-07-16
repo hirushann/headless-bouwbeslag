@@ -24,7 +24,7 @@ export default function MobileMenu() {
             <li><Link onClick={closeMenu} prefetch={true} href="/deurklink">Deurklink</Link></li>
             <li><Link onClick={closeMenu} prefetch={true} href="/cilinder">Cilinder</Link></li>
             <li><Link onClick={closeMenu} prefetch={true} href="/tochtstrip">Tochtstrip</Link></li>
-            <li><Link onClick={closeMenu} prefetch={true} href="/deurbeslag/deurstoppers">Deurstopper</Link></li>
+            <li><Link onClick={closeMenu} prefetch={true} href="/deurbeslag/deurstopper">Deurstopper</Link></li>
           </ul>
         </div>
       </div>

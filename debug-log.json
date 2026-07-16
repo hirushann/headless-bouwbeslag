@@ -1,13 +1,13 @@
 {
   "event": "filtering_applied",
   "hasFilters": true,
-  "matchesCount": 42,
+  "matchesCount": 75,
   "slicedCount": 20,
   "page": 1,
   "selectedFiltersKeys": [
-    "9002"
+    "9030"
   ],
   "selectedBrandsSize": 0,
   "priceRange": null,
-  "firstMatchName": "BILBAO deurkruk zwart met rozet"
+  "firstMatchName": "Q-Lon messen voor de Q-Lon snijtang, per 10 stuks"
 }
