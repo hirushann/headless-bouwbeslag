@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 import { searchProducts, SearchResult, Facet, FilterState } from "@/actions/search";
@@ -117,7 +117,7 @@ export default function SearchAutosuggest({
     const [showFiltersMobile, setShowFiltersMobile] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    const router = useRouter();
+    const pathname = usePathname();
     const containerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -197,6 +197,11 @@ export default function SearchAutosuggest({
         setIsExpanded(false);
         // Optional: clear query or keep it? Keeping it is better for UX if they re-open.
     };
+
+    useEffect(() => {
+        setIsExpanded(false);
+        setShowFiltersMobile(false);
+    }, [pathname]);
 
     return (
         <div ref={containerRef} className={`relative w-full ${className}`}>

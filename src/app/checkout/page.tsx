@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import Script from "next/script";
 import { ChevronRight, CreditCard, Package, ShieldCheck, Truck, Check, Loader2, Tag, X, Clock, Trash2 } from "lucide-react";
 import { getShippingRatesAction, getShippingRulesAction, placeOrderAction, validateCouponAction, checkPostcodeAction, getPaymentMethodsAction, validateVatAction } from "./actions";
 import { useCartStore } from "@/lib/cartStore";
@@ -67,6 +66,179 @@ const normalizeStoredStreet = (address: string, storedHouseNumber: string) => {
 
     return { street, houseNumber };
 };
+
+type GooglePlaceSuggestion = {
+  placeId: string;
+  text: string;
+};
+
+type GoogleAddressSearchProps = {
+  country: string;
+  icon: React.ReactNode;
+  inputClassName: string;
+  onSelect: (suggestion: GooglePlaceSuggestion, sessionToken: string) => Promise<void>;
+};
+
+function GoogleAddressSearch({ country, icon, inputClassName, onSelect }: GoogleAddressSearchProps) {
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<GooglePlaceSuggestion[]>([]);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const [hasError, setHasError] = useState(false);
+  const sessionTokenRef = useRef<string | null>(null);
+  const requestIdRef = useRef(0);
+  const skipNextSearchRef = useRef(false);
+  const listId = React.useId();
+
+  useEffect(() => {
+    sessionTokenRef.current = null;
+    setSuggestions([]);
+    setActiveIndex(-1);
+  }, [country]);
+
+  useEffect(() => {
+    const trimmedQuery = query.trim();
+
+    if (skipNextSearchRef.current) {
+      skipNextSearchRef.current = false;
+      setSuggestions([]);
+      setActiveIndex(-1);
+      return;
+    }
+
+    if (trimmedQuery.length < 3) {
+      setSuggestions([]);
+      setActiveIndex(-1);
+      return;
+    }
+
+    const requestId = ++requestIdRef.current;
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        if (!sessionTokenRef.current) sessionTokenRef.current = crypto.randomUUID();
+
+        const response = await fetch("/api/google-places", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "autocomplete",
+            input: trimmedQuery,
+            country: getIsoFromCountryName(country, "NL"),
+            sessionToken: sessionTokenRef.current
+          })
+        });
+
+        if (!response.ok) throw new Error("Google Places autocomplete request failed.");
+
+        const data = await response.json();
+
+        if (requestId !== requestIdRef.current) return;
+
+        setSuggestions(data.suggestions || []);
+        setActiveIndex(-1);
+        setHasError(false);
+      } catch (error) {
+        if (requestId !== requestIdRef.current) return;
+        console.error("Error fetching Google address suggestions:", error);
+        setSuggestions([]);
+        setHasError(true);
+      }
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      requestIdRef.current += 1;
+    };
+  }, [country, query]);
+
+  const selectSuggestion = async (suggestion: GooglePlaceSuggestion) => {
+    const sessionToken = sessionTokenRef.current || crypto.randomUUID();
+    skipNextSearchRef.current = true;
+    setQuery(suggestion.text);
+    setSuggestions([]);
+    setActiveIndex(-1);
+    setHasError(false);
+
+    try {
+      await onSelect(suggestion, sessionToken);
+    } finally {
+      sessionTokenRef.current = null;
+    }
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!suggestions.length) return;
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveIndex(index => Math.min(index + 1, suggestions.length - 1));
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveIndex(index => Math.max(index - 1, 0));
+    } else if (event.key === "Enter" && activeIndex >= 0) {
+      event.preventDefault();
+      void selectSuggestion(suggestions[activeIndex]);
+    } else if (event.key === "Escape") {
+      setSuggestions([]);
+      setActiveIndex(-1);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        className={`${inputClassName} pl-10`}
+        value={query}
+        onChange={(event) => {
+          setQuery(event.target.value);
+          setHasError(false);
+        }}
+        onKeyDown={handleKeyDown}
+        onBlur={() => window.setTimeout(() => setSuggestions([]), 150)}
+        placeholder="Begin met typen voor suggesties..."
+        autoComplete="off"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={suggestions.length > 0}
+        aria-controls={listId}
+        aria-activedescendant={activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined}
+      />
+      <div className="pointer-events-none absolute left-3 top-6 -translate-y-1/2 text-gray-400">
+        {icon}
+      </div>
+
+      {suggestions.length > 0 && (
+        <div className="absolute left-0 right-0 top-full z-[100] mt-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl">
+          <ul id={listId} role="listbox" className="max-h-72 overflow-y-auto py-1">
+            {suggestions.map((suggestion, index) => (
+              <li key={suggestion.placeId} id={`${listId}-${index}`} role="option" aria-selected={activeIndex === index}>
+                <button
+                  type="button"
+                  className={`w-full px-4 py-3 text-left text-sm transition-colors ${activeIndex === index ? "bg-blue-50 text-blue-900" : "text-gray-800 hover:bg-gray-50"}`}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => void selectSuggestion(suggestion)}
+                >
+                  {suggestion.text}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="flex justify-end border-t border-gray-100 bg-white px-3 py-1.5">
+            <img
+              src="https://maps.gstatic.com/mapfiles/api-3/images/powered-by-google-on-white3.png"
+              alt="Powered by Google"
+              className="h-4 w-auto"
+            />
+          </div>
+        </div>
+      )}
+
+      {hasError && (
+        <p className="mt-1 text-sm text-red-500">Adres zoeken is tijdelijk niet beschikbaar. Vul het adres handmatig in.</p>
+      )}
+    </div>
+  );
+}
 
 export default function NewCheckoutPage() {
   const router = useRouter();
@@ -211,17 +383,27 @@ export default function NewCheckoutPage() {
   });
   const [orderNotes, setOrderNotes] = useState("");
   
-  // Google Autocomplete Refs
-  const billingSearchRef = useRef<HTMLInputElement>(null);
-  const shippingSearchRef = useRef<HTMLInputElement>(null);
-  const billingAutocomplete = useRef<any>(null);
-  const shippingAutocomplete = useRef<any>(null);
-  const billingInitRef = useRef<HTMLInputElement | null>(null);
-  const shippingInitRef = useRef<HTMLInputElement | null>(null);
+  const handlePlaceSelect = async (
+    suggestion: GooglePlaceSuggestion,
+    sessionToken: string,
+    type: 'billing' | 'shipping'
+  ) => {
+    const response = await fetch("/api/google-places", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "details",
+        placeId: suggestion.placeId,
+        sessionToken
+      })
+    });
 
-  const handlePlaceSelect = (autocomplete: any, type: 'billing' | 'shipping') => {
-    const place = autocomplete.getPlace();
-    if (!place.address_components) return;
+    if (!response.ok) throw new Error("Google Places details request failed.");
+
+    const data = await response.json();
+    const addressComponents = data.addressComponents as any[];
+
+    if (!addressComponents?.length) return;
 
     let street = "";
     let houseNumber = "";
@@ -229,13 +411,17 @@ export default function NewCheckoutPage() {
     let city = "";
     let country = "";
 
-    place.address_components.forEach((component: any) => {
+    addressComponents.forEach((component: any) => {
       const types = component.types;
-      if (types.includes("street_number")) houseNumber = component.long_name;
-      if (types.includes("route")) street = component.long_name;
-      if (types.includes("postal_code")) postcode = component.long_name;
-      if (types.includes("locality")) city = component.long_name;
-      if (types.includes("country")) country = component.short_name; // Use standard ISO code from Google
+      const longText = component.longText ?? "";
+      const shortText = component.shortText ?? "";
+      if (types.includes("street_number")) houseNumber = longText;
+      if (types.includes("route")) street = longText;
+      if (types.includes("postal_code")) postcode = longText;
+      if (types.includes("postal_code_suffix")) postcode = `${postcode}-${longText}`;
+      if (types.includes("locality")) city = longText;
+      if (!city && (types.includes("postal_town") || types.includes("sublocality_level_1"))) city = longText;
+      if (types.includes("country")) country = shortText;
     });
 
     if (type === 'billing') {
@@ -258,75 +444,6 @@ export default function NewCheckoutPage() {
       }));
     }
   };
-
-  const initGoogleAutocomplete = async (retries = 0) => {
-    if (typeof window === 'undefined') return;
-    if (!window.google || !window.google.maps) {
-        if (retries < 10) {
-            // Script might be loaded but maps object not fully initialized
-            setTimeout(() => initGoogleAutocomplete(retries + 1), 500);
-        }
-        return;
-    }
-
-    try {
-        let Autocomplete;
-        
-        // Modern approach: import the places library dynamically
-        if (window.google.maps.importLibrary) {
-            try {
-                const places = await window.google.maps.importLibrary("places") as any;
-                Autocomplete = places.Autocomplete;
-            } catch (err) {
-                console.error("Error importing places library via importLibrary:", err);
-                if (window.google.maps.places) {
-                    Autocomplete = window.google.maps.places.Autocomplete;
-                }
-            }
-        } else if (window.google.maps.places) {
-            Autocomplete = window.google.maps.places.Autocomplete;
-        }
-
-        if (!Autocomplete) {
-            if (retries < 10) {
-                console.warn(`⚠️ Google Maps Places library not available yet (retry ${retries + 1}/10). Retrying...`);
-                setTimeout(() => initGoogleAutocomplete(retries + 1), 500);
-            } else {
-                console.error("❌ Google Maps Places library failed to load after 10 retries.");
-            }
-            return;
-        }
-
-        if (billingSearchRef.current && billingSearchRef.current !== billingInitRef.current) {
-            billingAutocomplete.current = new Autocomplete(billingSearchRef.current, {
-                types: ['address'],
-                fields: ['address_components', 'geometry']
-            });
-            billingAutocomplete.current.addListener('place_changed', () => handlePlaceSelect(billingAutocomplete.current, 'billing'));
-            billingInitRef.current = billingSearchRef.current;
-            // console.log("✅ Billing Autocomplete initialized");
-        }
-
-        if (shippingSearchRef.current && shippingSearchRef.current !== shippingInitRef.current) {
-            shippingAutocomplete.current = new Autocomplete(shippingSearchRef.current, {
-                types: ['address'],
-                fields: ['address_components', 'geometry']
-            });
-            shippingAutocomplete.current.addListener('place_changed', () => handlePlaceSelect(shippingAutocomplete.current, 'shipping'));
-            shippingInitRef.current = shippingSearchRef.current;
-            // console.log("✅ Shipping Autocomplete initialized");
-        }
-    } catch (error) {
-        console.error("Error initializing Google Autocomplete:", error);
-    }
-  };
-
-  useEffect(() => {
-     // Re-init if elements appear (like shipping form) or script loaded
-     if (window.google) {
-         initGoogleAutocomplete();
-     }
-  }, [shipToDifferentAddress, currentStep]);
 
   // Address lookup effect for Billing
   useEffect(() => {
@@ -964,16 +1081,6 @@ export default function NewCheckoutPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
-      {/* Google Maps Script */}
-      {!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && (
-        <script dangerouslySetInnerHTML={{ __html: 'console.warn("⚠️ Google Maps API Key is missing. Address lookup will not work.")'}} />
-      )}
-      <Script 
-        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async&v=weekly`} 
-        onReady={() => {
-            initGoogleAutocomplete();
-        }}
-      />
       <main className="max-w-[1440px] mx-auto px-2 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
           {/* LEFT COLUMN: Steps & Forms */}
@@ -1058,17 +1165,12 @@ export default function NewCheckoutPage() {
                     {/* Google Address Lookup */}
                     <div className="form-control mb-2">
                         <label className={labelParams}>Snel adres zoeken (Google)</label>
-                        <div className="relative">
-                            <input 
-                                ref={billingSearchRef}
-                                type="text" 
-                                className={`${inputParams} pl-10`} 
-                                placeholder="Begin met typen voor suggesties..." 
-                            />
-                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                                <ShieldCheck className="w-5 h-5" />
-                            </div>
-                        </div>
+                        <GoogleAddressSearch
+                          country={formData.country}
+                          icon={<ShieldCheck className="h-5 w-5" />}
+                          inputClassName={inputParams}
+                          onSelect={(suggestion, sessionToken) => handlePlaceSelect(suggestion, sessionToken, "billing")}
+                        />
                     </div>
 
                     {/* Street Address */}
@@ -1200,17 +1302,12 @@ export default function NewCheckoutPage() {
                             {/* Google Address Lookup Shipping */}
                             <div className="form-control mb-2">
                                 <label className={labelParams}>Snel adres zoeken (Google)</label>
-                                <div className="relative">
-                                    <input 
-                                        ref={shippingSearchRef}
-                                        type="text" 
-                                        className={`${inputParams} pl-10`} 
-                                        placeholder="Begin met typen voor suggesties..." 
-                                    />
-                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                                        <Truck className="w-5 h-5" />
-                                    </div>
-                                </div>
+                                <GoogleAddressSearch
+                                  country={shippingData.country}
+                                  icon={<Truck className="h-5 w-5" />}
+                                  inputClassName={inputParams}
+                                  onSelect={(suggestion, sessionToken) => handlePlaceSelect(suggestion, sessionToken, "shipping")}
+                                />
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
