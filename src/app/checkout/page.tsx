@@ -50,6 +50,24 @@ const getCountryMappedName = (inputName: string) => {
     return inputName;
 };
 
+const normalizeStoredStreet = (address: string, storedHouseNumber: string) => {
+    let street = address.trim();
+    let houseNumber = storedHouseNumber.trim();
+
+    if (street && houseNumber) {
+        const escapedHouseNumber = houseNumber.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        street = street.replace(new RegExp(`\\s+${escapedHouseNumber}$`, "i"), "").trim();
+    } else if (street) {
+        const match = street.match(/^(.+)\s+(\d+[a-zA-Z]*)$/);
+        if (match) {
+            street = match[1];
+            houseNumber = match[2];
+        }
+    }
+
+    return { street, houseNumber };
+};
+
 export default function NewCheckoutPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
@@ -131,17 +149,7 @@ export default function NewCheckoutPage() {
         // console.log("👤 Auto-filling checkout with user data:", user);
         
         const b = user.billing || {};
-        let street = b.address_1 || "";
-        let houseNumber = b.house_number || "";
-        
-        // If there's no explicit house number but address_1 has one, try to split
-        if (!houseNumber && street) {
-            const match = street.match(/^(.+)\s+(\d+[a-zA-Z]*)$/);
-            if (match) {
-                street = match[1];
-                houseNumber = match[2];
-            }
-        }
+        const { street, houseNumber } = normalizeStoredStreet(b.address_1 || "", b.house_number || "");
 
         setFormData(prev => ({
             ...prev,
@@ -156,19 +164,11 @@ export default function NewCheckoutPage() {
             city: b.city || prev.city,
             phone: b.phone || prev.phone,
             email: b.email || user.email || prev.email,
+            vatNumber: b.vat_number || user.vat_number || prev.vatNumber,
         }));
         
         const s = user.shipping || {};
-        let sStreet = s.address_1 || "";
-        let sHouseNumber = s.house_number || "";
-
-        if (!sHouseNumber && sStreet) {
-            const sMatch = sStreet.match(/^(.+)\s+(\d+[a-zA-Z]*)$/);
-            if (sMatch) {
-                sStreet = sMatch[1];
-                sHouseNumber = sMatch[2];
-            }
-        }
+        const { street: sStreet, houseNumber: sHouseNumber } = normalizeStoredStreet(s.address_1 || "", s.house_number || "");
 
         setShippingData(prev => ({
             ...prev,
@@ -821,7 +821,7 @@ export default function NewCheckoutPage() {
         first_name: formData.firstName,
         last_name: formData.lastName,
         company: formData.companyName,
-        address_1: `${formData.street} ${formData.houseNumber}`,
+        address_1: formData.street,
         address_2: formData.apartment,
         house_number: formData.houseNumber,
         city: formData.city,
@@ -843,7 +843,7 @@ export default function NewCheckoutPage() {
         first_name: shippingData.firstName,
         last_name: shippingData.lastName,
         company: shippingData.companyName,
-        address_1: `${shippingData.street} ${shippingData.houseNumber}`,
+        address_1: shippingData.street,
         address_2: shippingData.apartment,
         house_number: shippingData.houseNumber,
         city: shippingData.city,

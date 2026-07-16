@@ -5,12 +5,21 @@ import { useRouter } from "next/navigation";
 import { login } from "@/lib/auth";
 import Link from "next/link";
 
-export default function LoginPage() {
+type LoginPageProps = {
+  resetComplete?: boolean;
+};
+
+export default function LoginPage({ resetComplete = false }: LoginPageProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resetMode, setResetMode] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetMessage, setResetMessage] = useState("");
+  const [resetSuccessful, setResetSuccessful] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -50,6 +59,45 @@ export default function LoginPage() {
     }
   };
 
+  const openResetMode = () => {
+    setResetEmail(username);
+    setResetMessage("");
+    setResetSuccessful(false);
+    setError("");
+    setResetMode(true);
+  };
+
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetLoading(true);
+    setResetMessage("");
+    setResetSuccessful(false);
+
+    try {
+      const response = await fetch("/api/reset-password", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: resetEmail.trim() }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setResetMessage(data.errors?.email?.[0] || data.message || "Het verzoek kon niet worden verstuurd.");
+        return;
+      }
+
+      setResetSuccessful(true);
+      setResetMessage("Als dit e-mailadres bij ons bekend is, ontvang je binnen enkele minuten een resetlink.");
+    } catch {
+      setResetMessage("Het verzoek kon niet worden verstuurd. Probeer het later opnieuw.");
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   return (
     <main className="bg-[#F5F5F5] min-h-[80vh] flex items-center justify-center py-10 px-4 font-sans">
       <div className="max-w-[1000px] w-full bg-white rounded-lg shadow-xl overflow-hidden flex flex-col lg:flex-row">
@@ -70,10 +118,74 @@ export default function LoginPage() {
 
         {/* Right Side - Login Form */}
         <div className="lg:w-1/2 p-10 lg:p-14">
-            <h1 className="text-3xl font-bold text-[#1C2530] mb-2">Inloggen</h1>
-            <p className="text-[#3D4752] mb-8">Vul je gegevens in om toegang te krijgen.</p>
+            <h1 className="text-3xl font-bold text-[#1C2530] mb-2">
+              {resetMode ? "Wachtwoord vergeten" : "Inloggen"}
+            </h1>
+            <p className="text-[#3D4752] mb-8">
+              {resetMode
+                ? "Vul je e-mailadres in. Je ontvangt een link om een nieuw wachtwoord te kiezen."
+                : "Vul je gegevens in om toegang te krijgen."}
+            </p>
 
-            <form onSubmit={handleLogin} className="space-y-5">
+            {resetComplete && !resetMode && (
+              <div className="mb-5 rounded-sm border border-green-200 bg-green-50 p-3 text-sm text-green-700" role="status">
+                Je wachtwoord is opnieuw ingesteld. Je kunt nu inloggen met je nieuwe wachtwoord.
+              </div>
+            )}
+
+            {resetMode && (
+              <form onSubmit={handlePasswordReset} className="space-y-5" noValidate>
+                <fieldset className="fieldset w-full">
+                  <label htmlFor="reset-email" className="text-[#1C2530] font-medium mb-1 block">
+                    E-mailadres
+                  </label>
+                  <input
+                    id="reset-email"
+                    type="email"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-sm focus:outline-none focus:border-[#0066FF] focus:ring-1 focus:ring-[#0066FF] transition-all"
+                    placeholder="naam@voorbeeld.nl"
+                    value={resetEmail}
+                    onChange={(event) => setResetEmail(event.target.value)}
+                    autoComplete="email"
+                    required
+                    disabled={resetLoading}
+                  />
+                </fieldset>
+
+                {resetMessage && (
+                  <div
+                    className={`p-3 rounded-sm text-sm border ${
+                      resetSuccessful
+                        ? "bg-green-50 text-green-700 border-green-200"
+                        : "bg-red-50 text-red-700 border-red-200"
+                    }`}
+                    role="status"
+                    aria-live="polite"
+                  >
+                    {resetMessage}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={resetLoading}
+                  className="w-full bg-[#0066FF] hover:bg-blue-700 disabled:opacity-60 text-white font-bold py-3.5 rounded-sm transition-colors flex justify-center items-center gap-2"
+                >
+                  {resetLoading ? <span className="loading loading-spinner loading-sm" /> : "Resetlink versturen"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setResetMode(false)}
+                  className="w-full text-sm font-semibold text-[#0050D1] hover:underline"
+                  disabled={resetLoading}
+                >
+                  Terug naar inloggen
+                </button>
+              </form>
+            )}
+
+            <form onSubmit={handleLogin} className={resetMode ? "hidden" : "space-y-5"}>
               <fieldset className="fieldset w-full">
                 <label className="text-[#1C2530] font-medium mb-1 block">Email adres of gebruikersnaam</label>
                 <div className="relative">
@@ -117,7 +229,9 @@ export default function LoginPage() {
                   </span>
                 </div>
                 <div className="flex justify-end mt-2">
-                   <a className="text-sm text-[#0050D1] hover:underline cursor-pointer">Wachtwoord vergeten?</a>
+                   <button type="button" onClick={openResetMode} className="text-sm text-[#0050D1] hover:underline">
+                     Wachtwoord vergeten?
+                   </button>
                 </div>
               </fieldset>
 

@@ -39,11 +39,12 @@ export async function GET(request: NextRequest) {
 
             if (addressRes.ok) {
                 const addressData = await addressRes.json();
+                const address = addressData.data || addressData;
                 // Merge user data, adding billing/shipping explicitly
                 return NextResponse.json({
                     ...userData,
-                    billing: addressData.billing || {},
-                    shipping: addressData.shipping || {}
+                    billing: address.billing || {},
+                    shipping: address.shipping || {}
                 });
             }
         } catch (addrErr) {
