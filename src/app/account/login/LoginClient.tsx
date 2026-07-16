@@ -14,6 +14,7 @@ export default function LoginPage({ resetComplete = false }: LoginPageProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [errorAction, setErrorAction] = useState<"signup" | "reset" | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resetMode, setResetMode] = useState(false);
@@ -28,6 +29,7 @@ export default function LoginPage({ resetComplete = false }: LoginPageProps) {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setErrorAction(null);
     
     try {
       const res = await login(username, password);
@@ -50,11 +52,31 @@ export default function LoginPage({ resetComplete = false }: LoginPageProps) {
       router.push("/account");
     } catch (err: any) {
       // console.error("Login error details:", err.response?.data || err);
-      // Try to get specific message from JWT response, fallback to generic
-      const apiMessage = err.response?.data?.message;
-      // Strip HTML tags if WP sends them (WP often sends <strong>ERROR</strong>...)
-      const cleanMessage = apiMessage ? apiMessage.replace(/<[^>]*>/g, '') : "Ongeldige gebruikersnaam of wachtwoord";
-      setError(cleanMessage);
+      const status = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const apiMessage = typeof err.response?.data?.message === "string"
+        ? err.response.data.message
+        : "";
+      const isLegacyCredentialFailure = status === 401
+        || /invalid credentials|provided credentials|credentials?.*(incorrect|invalid)|ongeldige (inloggegevens|gebruikersnaam|referenties)/i.test(apiMessage);
+
+      if (errorCode === "account_not_found") {
+        setError("Er is geen account gevonden met dit e-mailadres.");
+        setErrorAction("signup");
+      } else if (errorCode === "incorrect_password") {
+        setError("Het ingevoerde wachtwoord is onjuist.");
+        setErrorAction("reset");
+      } else if (isLegacyCredentialFailure) {
+        setError("Inloggen mislukt. Controleer uw e-mailadres of gebruikersnaam en wachtwoord.");
+      } else if (status === 429) {
+        setError("Te veel inlogpogingen. Wacht even en probeer het daarna opnieuw.");
+      } else if (status === 422) {
+        setError("Controleer de ingevulde gegevens en probeer het opnieuw.");
+      } else if (!status || status >= 500) {
+        setError("Inloggen is momenteel niet mogelijk. Probeer het later opnieuw.");
+      } else {
+        setError("Inloggen is mislukt. Probeer het opnieuw.");
+      }
     } finally {
       setLoading(false);
     }
@@ -65,6 +87,7 @@ export default function LoginPage({ resetComplete = false }: LoginPageProps) {
     setResetMessage("");
     setResetSuccessful(false);
     setError("");
+    setErrorAction(null);
     setResetMode(true);
   };
 
@@ -237,9 +260,27 @@ export default function LoginPage({ resetComplete = false }: LoginPageProps) {
               </fieldset>
 
               {error && (
-                <div className="bg-red-50 text-red-700 p-3 rounded-sm text-sm border border-red-200 flex items-center gap-2">
+                <div className="bg-red-50 text-red-700 p-3 rounded-sm text-sm border border-red-200 flex items-start gap-2" role="alert">
                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-5 shrink-0"><path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clipRule="evenodd" /></svg>
-                   {error}
+                   <div>
+                     <p>{error}</p>
+                     {errorAction === "signup" && (
+                       <p className="mt-1">
+                         <Link href="/zakelijk-aanmelden" className="font-semibold underline hover:text-red-800">
+                           Vraag eerst een zakelijk account aan
+                         </Link>
+                         {' '}om te kunnen inloggen.
+                       </p>
+                     )}
+                     {errorAction === "reset" && (
+                       <p className="mt-1">
+                         <button type="button" onClick={openResetMode} className="font-semibold underline hover:text-red-800">
+                           Wachtwoord opnieuw instellen
+                         </button>
+                         {' '}als u het niet meer weet.
+                       </p>
+                     )}
+                   </div>
                 </div>
               )}
 
