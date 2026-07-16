@@ -16,7 +16,7 @@ async function fetchEmpireCategoryFlags(slug: string, isBrandPage: boolean = fal
   try {
     const endpoint = isBrandPage ? `brands/${slug}` : `categories/${slug}`;
     const res = await fetch(`${EMPIRE_BASE}/${endpoint}`, {
-      next: { revalidate: 300 },
+      cache: 'no-store',
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -162,8 +162,8 @@ async function fetchFilterBaseProducts(categorySlug: string, isBrandPage: boolea
         brands: bName ? [{ id: brandId, name: bName }] : [],
         price: priceAmount.toString(),
         regular_price: priceAmount.toString(),
-        stock_status: p.stock?.status === 'in_stock' ? 'instock' : 'outofstock',
-        stock_quantity: p.stock?.quantity ?? null,
+        stock_status: p.stock?.status === 'in_stock' ? 'instock' : (p.stock_status === 'instock' ? 'instock' : (p.stock_status || 'outofstock')),
+        stock_quantity: p.stock?.quantity ?? p.stock_quantity ?? null,
         images: Array.isArray(p.images) ? p.images.map((img: any) => ({ ...img, src: img.url || img.src }))
           : (p.main_image_url ? [{ src: p.main_image_url }] : []),
         meta_data: [],

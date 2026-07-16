@@ -1,6 +1,11 @@
 import React from 'react';
 import Link from 'next/link';
 
+export const metadata = {
+  title: 'Laagste Prijs Garantie/Bedankt | Bouwbeslag',
+  alternates: { canonical: "/laagste-prijs-garantie/bedankt" },
+};
+
 export default function ThankYouPage() {
   return (
     <main className="font-sans bg-[#F5F5F5] min-h-[65vh] flex items-center justify-center p-5">

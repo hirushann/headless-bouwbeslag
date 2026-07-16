@@ -143,9 +143,7 @@ function matchesFilters(
 ): boolean {
   // 0. Stock filter
   if (showOnlyInStock) {
-    const qty = product.stock_quantity;
-    if (qty !== null && qty <= 0) return false;
-    if (qty === null && product.stock_status !== 'instock') return false;
+    if (product.stock_status !== 'instock') return false;
   }
 
   // 1. Brand filter

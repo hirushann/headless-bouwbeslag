@@ -143,9 +143,7 @@ function matchesFilters(
 ): boolean {
   // 0. Stock filter
   if (showOnlyInStock) {
-    const qty = product.stock_quantity;
-    if (qty !== null && qty <= 0) return false;
-    if (qty === null && product.stock_status !== 'instock') return false;
+    if (product.stock_status !== 'instock') return false;
   }
 
   // 1. Brand filter
@@ -1306,7 +1304,7 @@ export default function CategoryClient({
           <main className="flex-1">
             <CategoryBreadcrumbs categoryNames={currentSlug.map(s => s.charAt(0).toUpperCase() + s.slice(1))} />
             <div className={`flex justify-between items-center mb-4 sticky top-[105px] z-40 py-3 -mx-5 px-5 transition-all duration-200 lg:static lg:p-0 lg:mx-0 ${isStuck ? 'bg-white shadow-[0_2px_4px_rgba(0,0,0,0.05)] border-b border-gray-200' : 'bg-transparent border-transparent shadow-none'} lg:bg-transparent lg:border-none lg:shadow-none`}> 
-              <p className="text-xl lg:text-3xl font-bold text-[#1C2530] truncate pr-2">{category?.name ?? "Category"}</p>
+              <p className="text-xl lg:text-3xl font-bold text-[#1C2530] truncate pr-2">{category?.h1_title || category?.name || "Category"}</p>
               <div className='flex items-center gap-2 shrink-0'>
                 <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="select focus:outline-0 focus:ring-0 border border-gray-300 rounded-md bg-white h-9 min-h-0 text-sm font-medium text-gray-700 pl-3 py-0 w-auto">
                   <option value="">Aanbevolen</option>

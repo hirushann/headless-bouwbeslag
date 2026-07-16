@@ -32,7 +32,7 @@ export async function checkOrderStatusAction(orderId: string | number) {
                             headers["Authorization"] = `Bearer ${session.auth_token}`;
                         }
                         
-                        const payloadToSend = { ...session };
+                        const payloadToSend = { ...session, status: 'processing' };
                         delete payloadToSend.auth_token;
                         
                         try {
@@ -349,10 +349,6 @@ export async function placeOrderAction(data: any) {
         };
 
 
-        // Save session locally FIRST
-        await saveCheckoutSession(orderReference, empirePayload);
-
-        // POST order directly to Empire API with pending_payment status
         empirePayload.status = "pending";
         const empireUrl = (process.env.EMPIRE_BACKEND_API_URL || "http://empire.test").replace(/\/$/, "");
         const isGuest = !data.customer_id;
@@ -366,18 +362,28 @@ export async function placeOrderAction(data: any) {
         if (!isGuest && data.auth_token) {
             headers["Authorization"] = `Bearer ${data.auth_token}`;
         }
-        
+
+        // Delete order_reference so the backend generates a sequential one
         const payloadToSend = { ...empirePayload };
         delete payloadToSend.auth_token;
+        delete payloadToSend.order_reference;
 
         const axios = require('axios');
+        let finalOrderReference = empirePayload.order_reference; // Fallback to the temp one initially
+        
         try {
-            await axios.post(`${empireUrl}${endpoint}`, payloadToSend, { headers });
+            const response = await axios.post(`${empireUrl}${endpoint}`, payloadToSend, { headers });
+            if (response.data && response.data.data && response.data.data.order_reference) {
+                finalOrderReference = response.data.data.order_reference;
+                empirePayload.order_reference = finalOrderReference;
+            }
         } catch (empireError: any) {
             console.error("Failed to push order to Empire:", empireError?.response?.data || empireError.message);
             return { success: false, message: "Failed to create order in backend" };
         }
 
+        // Save session locally AFTER we have the final order reference from backend
+        await saveCheckoutSession(finalOrderReference, empirePayload);
 
         // Mollie webhook must be reachable. If local, omit it or use ngrok.
         const isLocal = siteUrl.includes('localhost');
@@ -391,11 +397,11 @@ export async function placeOrderAction(data: any) {
                 currency: "EUR",
                 value: paymentValue,
             },
-            description: `Order ${orderReference}`,
-            redirectUrl: `${siteUrl}/checkout/success?orderId=${orderReference}`,
+            description: `Order ${finalOrderReference}`,
+            redirectUrl: `${siteUrl}/checkout/success?orderId=${finalOrderReference}`,
             webhookUrl: webhookUrl,
             metadata: {
-                order_reference: orderReference,
+                order_reference: finalOrderReference,
                 is_guest: !data.customer_id
             },
             method: data.mollie_method_id, 
@@ -405,7 +411,7 @@ export async function placeOrderAction(data: any) {
         // Update session with transaction_id so checkOrderStatus can find it
         if (payment && payment.id) {
             empirePayload.transaction_id = payment.id;
-            // await saveCheckoutSession(orderReference, empirePayload);
+            await saveCheckoutSession(finalOrderReference, empirePayload);
             // Optionally PATCH empire here with transaction_id, but webhook will handle status
         }
 

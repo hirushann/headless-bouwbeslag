@@ -3,6 +3,7 @@ import Link from 'next/link';
 import FadeIn from '@/components/animations/FadeIn';
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/bouwbeslag-groothandel" },
   title: 'Bouwbeslag groothandel online | Topmerken, laagste prijs B2B',
   description: 'Online bouwbeslag groothandel voor de vakman. Topmerken, live voorraad, betalen op rekening en een laagste prijs garantie B2B. Bestel via webshop, mail of telefoon.',
 };
