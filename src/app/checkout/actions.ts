@@ -348,7 +348,11 @@ export async function placeOrderAction(data: any) {
             }
         } catch (empireError: any) {
             console.error("Failed to push order to Empire:", empireError?.response?.data || empireError.message);
-            return { success: false, message: "Failed to create order in backend" };
+            let errMsg = empireError?.response?.data?.message || empireError.message;
+            if (empireError?.response?.data?.errors) {
+                errMsg += " " + JSON.stringify(empireError.response.data.errors);
+            }
+            return { success: false, message: "Backend error: " + errMsg };
         }
 
         // Save session locally AFTER we have the final order reference from backend
