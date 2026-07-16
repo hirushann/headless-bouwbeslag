@@ -1,4 +1,17 @@
 import { NextResponse } from "next/server";
+
+// Disabled because Bouwbeslag is no longer connected to WordPress/WooCommerce.
+// Authentication and B2B status now come from the Laravel API.
+export async function POST() {
+    return NextResponse.json(
+        { message: "Legacy WooCommerce customer status is no longer available." },
+        { status: 410 }
+    );
+}
+
+/*
+Legacy implementation retained for reference:
+
 import WooCommerceRestApi from "@woocommerce/woocommerce-rest-api";
 
 let apiInstance: any = null;
@@ -15,44 +28,28 @@ function getApi() {
     return apiInstance;
 }
 
-export async function POST(req: Request) {
-    try {
-        const { email } = await req.json();
+export async function legacyPost(req: Request) {
+    const { email } = await req.json();
 
-        if (!email) {
-            return NextResponse.json({ message: "Email required" }, { status: 400 });
-        }
-
-        // Fetch customer by email to check meta data
-        // WooCommerce API allows filtering by email
-        const api = getApi();
-        const response = await api.get("customers", { email: email });
-
-        if (response.data.length === 0) {
-            // If not found in WC, maybe they are a normal WP user or purely admin?
-            // Assuming if they logged in successfully, they exist.
-            // If they are not a WC customer, we assume they are allowed (e.g. Admin) or regular user without restrictions.
-            return NextResponse.json({ status: "allowed" });
-        }
-
-        const customer = response.data[0];
-
-        // Check b2b_status meta
-        const statusMeta = customer.meta_data.find((m: any) => m.key === "b2b_status");
-        const status = statusMeta ? statusMeta.value : "approved"; // If no meta, default to approved (old users/regular users)
-
-        // Also check if they are actually a B2B user role if not strictly relying on meta?
-        // But the requirement is about the registration flow we just built.
-
-        // If it is 'pending' or 'rejected', deny access
-        if (status === "pending" || status === "rejected") {
-            return NextResponse.json({ status: "denied", reason: status });
-        }
-
-        return NextResponse.json({ status: "allowed" });
-
-    } catch (error: any) {
-        // console.error("Check Status Error:", error);
-        return NextResponse.json({ message: "Error checking status" }, { status: 500 });
+    if (!email) {
+        return NextResponse.json({ message: "Email required" }, { status: 400 });
     }
+
+    const api = getApi();
+    const response = await api.get("customers", { email });
+
+    if (response.data.length === 0) {
+        return NextResponse.json({ status: "allowed" });
+    }
+
+    const customer = response.data[0];
+    const statusMeta = customer.meta_data.find((meta: any) => meta.key === "b2b_status");
+    const status = statusMeta ? statusMeta.value : "approved";
+
+    if (status === "pending" || status === "rejected") {
+        return NextResponse.json({ status: "denied", reason: status });
+    }
+
+    return NextResponse.json({ status: "allowed" });
 }
+*/

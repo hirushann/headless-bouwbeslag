@@ -1,6 +1,20 @@
+import { BOUWBESLAG_CATEGORY_TAGS, BOUWBESLAG_CONTENT_TAGS } from "@/lib/cache-tags";
+
 const WP_API_URL = process.env.NEXT_PUBLIC_WORDPRESS_API_URL as string;
 const CK = process.env.NEXT_PUBLIC_WC_CONSUMER_KEY as string;
 const CS = process.env.NEXT_PUBLIC_WC_CONSUMER_SECRET as string;
+
+const cacheTagsForEndpoint = (endpoint: string): readonly string[] | undefined => {
+    if (endpoint.startsWith("products/categories")) {
+        return BOUWBESLAG_CATEGORY_TAGS;
+    }
+
+    if (endpoint.startsWith("products") || endpoint.includes("product_brand")) {
+        return BOUWBESLAG_CONTENT_TAGS;
+    }
+
+    return undefined;
+};
 
 export class WooCommerceClient {
     private url: string;
@@ -36,12 +50,18 @@ export class WooCommerceClient {
             headers,
         };
 
+        const endpointTags = cacheTagsForEndpoint(endpoint);
+
         if (params?.next) {
-            config.next = params.next;
+            config.next = endpointTags && !params.next.tags
+                ? { ...params.next, tags: endpointTags }
+                : params.next;
         } else if (cache) {
             config.cache = cache;
+        } else if (endpointTags) {
+            config.next = { revalidate, tags: endpointTags };
         } else {
-            config.next = { revalidate: 3600 };
+            config.next = { revalidate };
         }
 
         if (isGet) {
@@ -137,7 +157,7 @@ export const fetchCategories = async () => {
     try {
         console.log(`[DEBUG] fetchCategories: Fetching from ${EMPIRE_BASE_URL}/api/categories`);
         const res = await fetch(`${EMPIRE_BASE_URL}/api/categories`, {
-            next: { revalidate: 3600 }
+            next: { revalidate: 3600, tags: BOUWBESLAG_CATEGORY_TAGS }
         });
         if (!res.ok) {
             console.error(`[DEBUG] fetchCategories: Request failed with status ${res.status}`);
@@ -198,7 +218,7 @@ const resolveBrandLogo = async (brand: Brand): Promise<Brand> => {
 export const getBrands = async (): Promise<Brand[]> => {
     try {
         const res = await fetch(`${EMPIRE_BASE_URL}/api/brands`, {
-            next: { revalidate: 3600 }
+            next: { revalidate: 3600, tags: BOUWBESLAG_CONTENT_TAGS }
         });
         if (!res.ok) return [];
         return await res.json();
@@ -210,7 +230,7 @@ export const getBrands = async (): Promise<Brand[]> => {
 export const getBrand = async (slug: string): Promise<Brand | null> => {
     try {
         const res = await fetch(`${EMPIRE_BASE_URL}/api/brands/${slug}`, {
-            next: { revalidate: 3600 }
+            next: { revalidate: 3600, tags: BOUWBESLAG_CONTENT_TAGS }
         });
         if (!res.ok) return null;
         const brands = await res.json();
@@ -276,7 +296,7 @@ export const getCouponByCode = async (code: string) => {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
             },
-            next: { revalidate: 60 } // Cache for 60 seconds
+            cache: 'no-store',
         });
         
         if (!response.ok) {

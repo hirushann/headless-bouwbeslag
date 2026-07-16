@@ -12,6 +12,7 @@ import DualRangeSlider from "@/components/DualRangeSlider";
 import { COLOR_MAP } from "@/config/colorMap";
 import { useUserContext } from "@/context/UserContext";
 import { getDutchFilterTitle } from "@/lib/dutchTranslations";
+import { buildCategoryMembershipFilter } from "@/lib/category-filter";
 
 export const getFinalPrice = (product: any, isB2B: boolean) => {
   const getMeta = (k: string) => product?.meta_data?.find((m: any) => m.key === k)?.value;
@@ -1150,8 +1151,6 @@ export default function CategoryClient({
           // ── SERVER-SIDE PAGINATED FETCH via Meilisearch (no filters) ─────
           const limit = 20;
           const offset = (page - 1) * limit;
-          const categorySlug = category.slug;
-
           // Build sort for Meilisearch if supported
           let sort: string[] | undefined;
           if (sortBy === 'price-low-high') sort = ['price_amount:asc'];
@@ -1160,7 +1159,16 @@ export default function CategoryClient({
           const res = await fetch('/api/meili-products', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ limit, offset, filter: [isBrandPage ? `brand_id = '${categorySlug}'` : `category_slug = ${categorySlug}`], sort }),
+            body: JSON.stringify({
+              limit,
+              offset,
+              filter: [
+                isBrandPage
+                  ? `brand_id = '${category.slug}'`
+                  : buildCategoryMembershipFilter(category.product_category_ids || [category.id]),
+              ],
+              sort,
+            }),
             cache: 'no-store'
           });
 
