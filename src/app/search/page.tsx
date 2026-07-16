@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ProductCard from '@/components/ProductCard';
 import api from "@/lib/woocommerce";
 import ShopProductCard from '@/components/ShopProductCard';
@@ -30,18 +30,14 @@ interface Attribute {
 async function fetchAttributes(): Promise<Attribute[]> {
   const res = await api.get("products/attributes");
   const attributesData = res.data || [];
-  const attributesWithTerms: Attribute[] = [];
-
-  for (const attr of attributesData) {
-    const termsRes = await fetchTermsForAttribute(attr.id);
-    attributesWithTerms.push({
+  return Promise.all(attributesData.map(async (attr: Attribute) => {
+    const terms = await fetchTermsForAttribute(attr.id);
+    return {
       id: attr.id,
       name: attr.name,
-      terms: termsRes,
-    });
-  }
-
-  return attributesWithTerms;
+      terms,
+    };
+  }));
 }
 
 async function fetchTermsForAttribute(attributeId: number): Promise<AttributeTerm[]> {
@@ -60,6 +56,9 @@ function SearchContent() {
   const [selectedFilters, setSelectedFilters] = useState<{ [key: number]: Set<number> }>({});
   const [filtersLoading, setFiltersLoading] = useState<boolean>(false);
   const [productsLoading, setProductsLoading] = useState<boolean>(false);
+  const [filtersError, setFiltersError] = useState<string | null>(null);
+  const [productsError, setProductsError] = useState<string | null>(null);
+  const productRequestId = useRef(0);
   const [showAllColors, setShowAllColors] = useState(false);
   const [sortBy, setSortBy] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
@@ -67,58 +66,54 @@ function SearchContent() {
   useEffect(() => {
     async function loadAttributes() {
       setFiltersLoading(true);
-      const attrs = await fetchAttributes();
-      setAttributes(attrs);
-      setFiltersLoading(false);
+      setFiltersError(null);
+      try {
+        const attrs = await fetchAttributes();
+        setAttributes(attrs);
+      } catch {
+        setAttributes([]);
+        setFiltersError("Zoekfilters konden niet worden geladen.");
+      } finally {
+        setFiltersLoading(false);
+      }
     }
     loadAttributes();
   }, []);
 
   useEffect(() => {
     async function loadProducts() {
+      const requestId = ++productRequestId.current;
       if (!query) {
         setProducts([]);
+        setProductsError(null);
+        setProductsLoading(false);
         return;
       }
       setProductsLoading(true);
+      setProductsError(null);
       try {
-        let params: any = { per_page: 100, search: query };
-
-        if (sortBy) {
-          switch (sortBy) {
-            case "popularity":
-              params.orderby = "popularity";
-              break;
-            case "rating":
-              params.orderby = "rating";
-              break;
-            case "latest":
-              params.orderby = "date";
-              params.order = "desc";
-              break;
-            case "price-low-high":
-              params.orderby = "price";
-              params.order = "asc";
-              break;
-            case "price-high-low":
-              params.orderby = "price";
-              params.order = "desc";
-              break;
-            case "title-asc":
-              params.orderby = "title";
-              params.order = "asc";
-              break;
-            case "title-desc":
-              params.orderby = "title";
-              params.order = "desc";
-              break;
-            default:
-              break;
-          }
-        }
-
-        const res = await api.get("products", params);
-        let prods: Product[] = res.data;
+        const sortMap: Record<string, string[]> = {
+          popularity: ["updated_at:desc"],
+          latest: ["updated_at:desc"],
+          "price-low-high": ["price_amount:asc"],
+          "price-high-low": ["price_amount:desc"],
+          "title-asc": ["name:asc"],
+          "title-desc": ["name:desc"],
+        };
+        const response = await fetch("/api/meili-products", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            q: query,
+            limit: 100,
+            filter: ["is_active = true"],
+            sort: sortMap[sortBy],
+          }),
+          cache: "no-store",
+        });
+        if (!response.ok) throw new Error("Search request failed");
+        const result = await response.json();
+        let prods: Product[] = result.products || [];
 
         if (Object.keys(selectedFilters).length > 0) {
           prods = prods.filter(product => {
@@ -138,9 +133,20 @@ function SearchContent() {
           });
         }
 
-        setProducts(prods);
+        const priceOf = (product: Product) => Number(product.price) || 0;
+        if (sortBy === "price-low-high") prods.sort((a, b) => priceOf(a) - priceOf(b));
+        if (sortBy === "price-high-low") prods.sort((a, b) => priceOf(b) - priceOf(a));
+        if (sortBy === "title-asc") prods.sort((a, b) => a.name.localeCompare(b.name));
+        if (sortBy === "title-desc") prods.sort((a, b) => b.name.localeCompare(a.name));
+
+        if (requestId === productRequestId.current) setProducts(prods);
+      } catch {
+        if (requestId === productRequestId.current) {
+          setProducts([]);
+          setProductsError("Producten konden niet worden geladen. Probeer het opnieuw.");
+        }
       } finally {
-        setProductsLoading(false);
+        if (requestId === productRequestId.current) setProductsLoading(false);
       }
     }
     loadProducts();
@@ -225,11 +231,14 @@ function SearchContent() {
     );
   }
 
-
-
   return (
     <div className="bg-[#F7F7F7]">
       <div className="max-w-[1440px] mx-auto py-8 px-4">
+        {filtersError && (
+          <p role="status" className="mb-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            {filtersError} Je kunt de zoekresultaten wel blijven bekijken.
+          </p>
+        )}
         <div className="flex flex-col lg:flex-row lg:gap-8">
 
           <aside className="w-full lg:w-1/4 relative">
@@ -416,6 +425,8 @@ function SearchContent() {
                   <div key={i} className="h-64 bg-gray-200 rounded animate-pulse"></div>
                 ))}
               </div>
+            ) : productsError ? (
+              <p role="alert" className="text-red-700">{productsError}</p>
             ) : products.length === 0 ? (
               <p>No products found for your search.</p>
             ) : (

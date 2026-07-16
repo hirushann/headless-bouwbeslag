@@ -20,7 +20,7 @@ export default async function BrandsPage() {
     let brandCounts: Record<string, number> = {};
     try {
         const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST || 'https://ezearch.dayzsolutions.com';
-        const MEILISEARCH_KEY = process.env.MEILISEARCH_KEY || '4aaac5324e39343df8c1981646e2d933aba4d9d0b02bc80c40cd25bb695051ec';
+        const MEILISEARCH_KEY = process.env.MEILISEARCH_KEY || '';
         const MEILI_INDEX = process.env.MEILISEARCH_BOUWBESLAG_PRODUCTS_INDEX || 'empire-bouwbeslag-products';
         
         const res = await fetch(`${MEILISEARCH_HOST}/indexes/${MEILI_INDEX}/search`, {

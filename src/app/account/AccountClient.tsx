@@ -7,16 +7,20 @@ import Link from "next/link";
 import { useUserContext } from "@/context/UserContext";
 
 function AccountContent() {
-  const { user: contextUser, isLoading: contextLoading, refreshRole } = useUserContext();
-  // const [user, setUser] = useState<any>(null); // Removed redundant local state. We use 'user' derived from context or just contextUser. 
-  
-  // Actually, we can just use contextUser directly, but the component uses 'user' state everywhere.
-  // To minimize refactor risk, let's keep 'user' state synced with contextUser.
-  const [user, setUser] = useState<any>(null);
+  const {
+    user,
+    token,
+    isLoading: contextLoading,
+    error: accountError,
+    refreshUser,
+    updateUser,
+    signOut,
+  } = useUserContext();
 
   const [activeTab, setActiveTab] = useState("dashboard");
   const [orders, setOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
   const [billingForm, setBillingForm] = useState<any>(null);
   const [shippingForm, setShippingForm] = useState<any>(null);
   const [billingSaving, setBillingSaving] = useState(false);
@@ -41,67 +45,56 @@ function AccountContent() {
   const searchParams = useSearchParams();
   const EMPIRE_API_URL = (process.env.NEXT_PUBLIC_EMPIRE_API_URL || "http://empire.test").replace(/\/$/, "");
   
-  // Sync local user state with Context User
+  // Forms are editable projections of the provider-owned customer record.
   useEffect(() => {
-    if (contextUser) {
-        // console.log("👤 AccountClient: Context User Loaded:", contextUser);
-        setUser(contextUser);
-        setBillingForm((prev: any) => prev || {
-            ...contextUser.billing,
-            first_name: contextUser.billing?.first_name || contextUser.first_name || "",
-            last_name: contextUser.billing?.last_name || contextUser.last_name || "",
-            company: contextUser.billing?.company || contextUser.company_name || "",
-            email: contextUser.billing?.email || contextUser.email || "",
+    if (user) {
+        setBillingForm({
+            ...user.billing,
+            first_name: user.billing?.first_name || user.first_name || "",
+            last_name: user.billing?.last_name || user.last_name || "",
+            company: user.billing?.company || user.company_name || "",
+            email: user.billing?.email || user.email || "",
         });
-        setShippingForm((prev: any) => prev || {
-            ...contextUser.shipping,
-            first_name: contextUser.shipping?.first_name || contextUser.first_name || "",
-            last_name: contextUser.shipping?.last_name || contextUser.last_name || "",
-            company: contextUser.shipping?.company || contextUser.company_name || "",
+        setShippingForm({
+            ...user.shipping,
+            first_name: user.shipping?.first_name || user.first_name || "",
+            last_name: user.shipping?.last_name || user.last_name || "",
+            company: user.shipping?.company || user.company_name || "",
         });
-        setDetailsForm((prev: any) => prev || {
-            first_name: contextUser.first_name || contextUser.billing?.first_name || "",
-            last_name: contextUser.last_name || contextUser.billing?.last_name || "",
-            company_name: contextUser.company_name || contextUser.billing?.company || "",
-            vat_number: contextUser.vat_number || contextUser.billing?.vat_number || "",
+        setDetailsForm({
+            first_name: user.first_name || user.billing?.first_name || "",
+            last_name: user.last_name || user.billing?.last_name || "",
+            company_name: user.company_name || user.billing?.company || "",
+            vat_number: user.vat_number || user.billing?.vat_number || "",
         });
     }
-  }, [contextUser]);
+  }, [user]);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token && !contextLoading && !contextUser) {
+    if (!token && !contextLoading && !user) {
       router.push("/account/login");
       return;
     }
 
-    if (contextUser && contextUser.id) {
-        // We have user! Just fetch orders.
-        fetchOrders(contextUser.id, token);
-    } else if (!contextLoading && !contextUser) {
-        if (!token) router.push("/account/login");
+    if (user?.id && token) {
+        fetchOrders(token);
     }
-  }, [contextUser, contextLoading]);
+  }, [user?.id, token, contextLoading, router]);
 
-  const fetchOrders = (userId: number, token: string | null) => {
-      if (!token) {
-          console.warn("⚠️ AccountClient: No token available to fetch orders.");
-          return;
-      }
+  const fetchOrders = (authToken: string) => {
       setLoadingOrders(true);
-      
-      // console.log(`📦 AccountClient: Fetching orders for Customer ID ${userId}...`);
+      setOrdersError(null);
 
       axios
         .get(`/api/user/orders`, {
-            headers: { Authorization: `Bearer ${token}` },
+            headers: { Authorization: `Bearer ${authToken}` },
         })
         .then((ordersRes) => {
-            // console.log("✅ AccountClient: Orders fetched:", ordersRes.data);
             setOrders(ordersRes.data || []);
         })
-        .catch(err => {
-            // console.error("❌ AccountClient: Error fetching orders:", err);
+        .catch(() => {
+            setOrders([]);
+            setOrdersError("Bestellingen konden niet worden geladen. Probeer het opnieuw.");
         })
         .finally(() => setLoadingOrders(false));
   };
@@ -121,7 +114,6 @@ function AccountContent() {
 
   const saveDetails = async (e: React.FormEvent) => {
       e.preventDefault();
-      const token = localStorage.getItem("token");
       if (!token) return;
       
       setDetailsSaving(true);
@@ -134,10 +126,8 @@ function AccountContent() {
               headers: { Authorization: `Bearer ${token}` }
           });
           const updatedUser = response.data?.data;
-          if (updatedUser) {
-            setUser((previous: any) => ({ ...previous, ...updatedUser }));
-          }
-          await refreshRole();
+          updateUser(updatedUser || detailsForm);
+          await refreshUser();
           setDetailsSuccess("Account details updated successfully.");
       } catch (err: any) {
           setDetailsError(err?.response?.data?.message || "Failed to update account details.");
@@ -160,7 +150,6 @@ function AccountContent() {
     setBillingError(null);
     setBillingSuccess(null);
     try {
-      const token = localStorage.getItem("token");
       if (!token) throw new Error("No auth token");
       const response = await axios.put(
         `${EMPIRE_API_URL}/api/customer/address`,
@@ -173,8 +162,8 @@ function AccountContent() {
       setBillingForm(savedBilling);
       setShippingForm(savedShipping);
       setBillingSuccess("Billing address updated!");
-      setUser((prev: any) => ({ ...prev, billing: savedBilling, shipping: savedShipping }));
-      await refreshRole();
+      updateUser({ billing: savedBilling, shipping: savedShipping });
+      await refreshUser();
     } catch (err: any) {
       setBillingError(err.response?.data?.message || err.message || "Error updating billing address.");
     } finally {
@@ -188,7 +177,6 @@ function AccountContent() {
     setShippingError(null);
     setShippingSuccess(null);
     try {
-      const token = localStorage.getItem("token");
       if (!token) throw new Error("No auth token");
       const response = await axios.put(
         `${EMPIRE_API_URL}/api/customer/address`,
@@ -201,8 +189,8 @@ function AccountContent() {
       setBillingForm(savedBilling);
       setShippingForm(savedShipping);
       setShippingSuccess("Shipping address updated!");
-      setUser((prev: any) => ({ ...prev, billing: savedBilling, shipping: savedShipping }));
-      await refreshRole();
+      updateUser({ billing: savedBilling, shipping: savedShipping });
+      await refreshUser();
     } catch (err: any) {
       setShippingError(err.response?.data?.message || err.message || "Error updating shipping address.");
     } finally {
@@ -243,7 +231,6 @@ function AccountContent() {
     setOldPasswordError(null);
     setPasswordResetLoading(true);
     try {
-      const token = localStorage.getItem("token");
       if (!token) throw new Error("No auth token");
 
       // 1. Validate old password
@@ -307,6 +294,22 @@ function AccountContent() {
     }
   };
 
+
+  if (!contextLoading && !user) {
+    return (
+      <main className="min-h-[60vh] bg-[#F5F5F5] flex items-center justify-center px-6">
+        <div className="max-w-lg rounded-lg border border-[#DBE3EA] bg-white p-8 text-center">
+          <h1 className="text-2xl font-bold text-[#1C2530] mb-2">Sessie niet beschikbaar</h1>
+          <p className="text-gray-600 mb-5">
+            {accountError || "Je wordt doorgestuurd naar de inlogpagina."}
+          </p>
+          <Link href="/account/login" className="text-[#0050D1] font-semibold hover:underline">
+            Ga naar inloggen
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   if (!user) {
     return (
@@ -409,6 +412,11 @@ function AccountContent() {
             <span>Mijn Account</span>
           </div>
           <h1 className="font-bold text-4xl text-[#1C2530]">Mijn Account</h1>
+          {accountError && (
+            <p role="alert" className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
+              {accountError}
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
@@ -437,9 +445,8 @@ function AccountContent() {
             />
             
             <button
-              onClick={() => {
-                localStorage.removeItem("token");
-                localStorage.removeItem("user");
+              onClick={async () => {
+                await signOut();
                 router.push("/");
               }}
               className="mt-6 text-red-600 text-left px-6 py-4 flex items-center gap-3 rounded hover:bg-red-50 transition-colors border-l-4 border-transparent"
@@ -493,6 +500,10 @@ function AccountContent() {
                         <div key={i} className="h-20 bg-white rounded-lg border border-[#DBE3EA] animate-pulse" />
                       ))}
                     </div>
+                  ) : ordersError ? (
+                    <div role="alert" className="bg-white p-8 rounded-lg border border-red-200 text-center text-red-700">
+                      {ordersError}
+                    </div>
                   ) : (
                     <div className="space-y-4">
                       {orders.length === 0 ? (
@@ -533,6 +544,10 @@ function AccountContent() {
                     {[1, 2, 3].map((i) => (
                       <div key={i} className="h-24 bg-white rounded-lg border border-[#DBE3EA] animate-pulse" />
                     ))}
+                  </div>
+                ) : ordersError ? (
+                  <div role="alert" className="bg-white p-8 rounded-lg border border-red-200 text-center text-red-700">
+                    {ordersError}
                   </div>
                 ) : (
                   <div className="space-y-4">

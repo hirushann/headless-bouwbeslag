@@ -24,7 +24,7 @@ interface ReviewsSectionProps {
 export default function ReviewsSection({ productId, productName, initialReviews: initialReviewsProp }: ReviewsSectionProps) {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasInitialized, setHasInitialized] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // If a promise is passed, we unwrap it during the FIRST RENDER only if we don't have reviews yet
   const resolvedInitial = initialReviewsProp && typeof (initialReviewsProp as any).then === 'function'
@@ -32,19 +32,12 @@ export default function ReviewsSection({ productId, productName, initialReviews:
     : initialReviewsProp as Review[];
 
   useEffect(() => {
-    if (resolvedInitial && !hasInitialized) {
+    if (resolvedInitial !== undefined) {
         setReviews(resolvedInitial);
         setLoading(false);
-        setHasInitialized(true);
+        setLoadError(null);
     }
-  }, [resolvedInitial, hasInitialized]);
-
-  // If no initial reviews provided, fetch them
-  useEffect(() => {
-    if (productId && !initialReviewsProp) {
-      fetchReviews();
-    }
-  }, [productId, initialReviewsProp]);
+  }, [resolvedInitial, productId]);
 
   const [showForm, setShowForm] = useState(false);
 
@@ -58,22 +51,24 @@ export default function ReviewsSection({ productId, productName, initialReviews:
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (productId) {
+    if (productId && initialReviewsProp === undefined) {
       fetchReviews();
     }
-  }, [productId]);
+  }, [productId, initialReviewsProp]);
 
   const fetchReviews = async () => {
+    setLoading(true);
+    setLoadError(null);
     try {
       const res = await fetch(`/api/products/${productId}/reviews`, {
         cache: 'no-store'
       });
       const data = await res.json();
-      if (Array.isArray(data)) {
-        setReviews(data);
-      }
+      if (!res.ok) throw new Error("Failed to load reviews");
+      setReviews(Array.isArray(data) ? data : []);
     } catch (err) {
-      // console.error("Failed to load reviews", err);
+      setReviews([]);
+      setLoadError("Beoordelingen konden niet worden geladen.");
     } finally {
       setLoading(false);
     }
@@ -164,6 +159,13 @@ export default function ReviewsSection({ productId, productName, initialReviews:
         <div className="space-y-4">
           {loading ? (
             <p>Beoordelingen laden...</p>
+          ) : loadError ? (
+            <div role="alert" className="flex items-center gap-3 text-red-700">
+              <span>{loadError}</span>
+              <button type="button" onClick={fetchReviews} className="font-semibold underline">
+                Opnieuw proberen
+              </button>
+            </div>
           ) : reviews.length === 0 ? (
             <p className="text-gray-500 italic">Nog geen beoordelingen. Wees de eerste!</p>
           ) : (

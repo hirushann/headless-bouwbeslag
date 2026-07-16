@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "@/lib/auth";
+import { useUserContext } from "@/context/UserContext";
 import Link from "next/link";
 
 type LoginPageProps = {
@@ -21,6 +22,7 @@ export default function LoginPage({ resetComplete = false }: LoginPageProps) {
   const [resetMessage, setResetMessage] = useState("");
   const [resetSuccessful, setResetSuccessful] = useState(false);
   const router = useRouter();
+  const { establishSession } = useUserContext();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,8 +46,7 @@ export default function LoginPage({ resetComplete = false }: LoginPageProps) {
           return;
       }
 
-      localStorage.setItem("token", res.access_token);
-      localStorage.setItem("user", JSON.stringify(user));
+      await establishSession({ access_token: res.access_token, user });
       router.push("/account");
     } catch (err: any) {
       // console.error("Login error details:", err.response?.data || err);
@@ -55,7 +56,7 @@ export default function LoginPage({ resetComplete = false }: LoginPageProps) {
       const cleanMessage = apiMessage ? apiMessage.replace(/<[^>]*>/g, '') : "Ongeldige gebruikersnaam of wachtwoord";
       setError(cleanMessage);
     } finally {
-      if (!error) setLoading(false); // Only unset loading if we didn't set it manually above
+      setLoading(false);
     }
   };
 

@@ -1,116 +1,198 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
 import axios from "axios";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { logout as requestLogout } from "@/lib/auth";
+import {
+  AuthUser,
+  clearPersistedSession,
+  isBusinessUser,
+  normalizeRoles,
+  persistSession,
+  persistUser,
+  readPersistedSession,
+  SessionPayload,
+} from "@/lib/auth-session";
 
 type UserRole = string[];
 
 interface UserContextType {
-  user: any | null;
+  user: AuthUser | null;
+  token: string | null;
   userRole: UserRole | null;
   isB2B: boolean;
+  isAuthenticated: boolean;
   isLoading: boolean;
+  error: string | null;
+  establishSession: (session: SessionPayload) => Promise<void>;
+  refreshUser: () => Promise<AuthUser | null>;
   refreshRole: () => Promise<void>;
+  updateUser: (update: Partial<AuthUser>) => void;
+  signOut: () => Promise<void>;
 }
 
-const UserContext = createContext<UserContextType>({
-  user: null,
-  userRole: null,
-  isB2B: false,
-  isLoading: true,
-  refreshRole: async () => {},
-});
+const UserContext = createContext<UserContextType | null>(null);
 
-export const useUserContext = () => useContext(UserContext);
+export const useUserContext = () => {
+  const context = useContext(UserContext);
+  if (!context) throw new Error("useUserContext must be used within UserProvider");
+  return context;
+};
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<any | null>(null);
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isB2B, setIsB2B] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
 
-  const fetchUserRole = async () => {
-    if (typeof window === "undefined") return;
-    
-    setIsLoading(true);
-    try {
-      const userStr = localStorage.getItem("user");
-      const token = localStorage.getItem("token");
-
-      if (token) {
-        let role = null;
-        let userData = null;
-
-        if (userStr) {
-          const user = JSON.parse(userStr);
-          role = user.role || user.roles || user.user_role;
-          userData = user;
-        }
-
-        // Always fetch ME to get latest addresses and roles
-        try {
-          const res = await axios.get(
-            `/api/user/me`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
-          if (res.data) {
-              userData = res.data;
-              if (res.data.roles) {
-                role = res.data.roles;
-              }
-              // Update local storage to keep it fresh
-              localStorage.setItem("user", JSON.stringify(res.data));
-          }
-        } catch (apiErr) {
-          // If the token is invalid, clear it
-          if ((apiErr as any).response?.status === 401) {
-             localStorage.removeItem("token");
-             localStorage.removeItem("user");
-             setUserRole(null);
-             setUser(null);
-             setIsB2B(false);
-             setIsLoading(false);
-             return;
-          }
-        }
-
-        // Normalize role to array
-        if (role && !Array.isArray(role)) {
-          role = [role];
-        }
-        setUserRole(role);
-        // Expose user data (we need to add 'user' state)
-        // I will add setUser(userData) below
-        setUser(userData);
-
-        // Set isB2B
-        const isB2BUser = (role && (role.includes("b2b_customer") || role.includes("administrator"))) || (userData && (userData.b2b_status === "approved" || (userData.meta_data && userData.meta_data.b2b_status === "approved")));
-        setIsB2B(!!isB2BUser);
-
-      } else {
-        setUserRole(null);
-        setUser(null);
-        setIsB2B(false);
-      }
-    } catch (e) {
-      // console.error("Error checking user role:", e);
-      setUserRole(null);
-      setUser(null);
-      setIsB2B(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUserRole();
+  const clearSession = useCallback(() => {
+    requestIdRef.current += 1;
+    clearPersistedSession(localStorage);
+    setToken(null);
+    setUser(null);
+    setError(null);
+    setIsLoading(false);
   }, []);
 
-  return (
-    <UserContext.Provider value={{ user, userRole, isB2B, isLoading, refreshRole: fetchUserRole }}>
-      {children}
-    </UserContext.Provider>
+  const fetchUser = useCallback(
+    async (authToken: string, cachedUser: AuthUser | null = null) => {
+      const requestId = ++requestIdRef.current;
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await axios.get<AuthUser>("/api/user/me", {
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
+        if (requestId !== requestIdRef.current) return null;
+
+        persistUser(localStorage, response.data);
+        setUser(response.data);
+        setToken(authToken);
+        return response.data;
+      } catch (cause) {
+        if (requestId !== requestIdRef.current) return null;
+        if (axios.isAxiosError(cause) && cause.response?.status === 401) {
+          clearSession();
+          return null;
+        }
+
+        // A temporary profile failure must not silently sign out a valid cached session.
+        setUser(cachedUser);
+        setToken(authToken);
+        setError("Accountgegevens konden niet worden vernieuwd. Probeer het opnieuw.");
+        return cachedUser;
+      } finally {
+        if (requestId === requestIdRef.current) setIsLoading(false);
+      }
+    },
+    [clearSession],
   );
+
+  const refreshUser = useCallback(async () => {
+    const authToken = token || localStorage.getItem("token");
+    if (!authToken) {
+      clearSession();
+      return null;
+    }
+    return fetchUser(authToken, user || readPersistedSession(localStorage).user);
+  }, [clearSession, fetchUser, token, user]);
+
+  const establishSession = useCallback(
+    async ({ access_token, user: sessionUser }: SessionPayload) => {
+      persistSession(localStorage, { access_token, user: sessionUser });
+      setToken(access_token);
+      setUser(sessionUser);
+      setError(null);
+      setIsLoading(false);
+      await fetchUser(access_token, sessionUser);
+    },
+    [fetchUser],
+  );
+
+  const updateUser = useCallback((update: Partial<AuthUser>) => {
+    setUser((current) => {
+      const next = { ...(current || {}), ...update };
+      persistUser(localStorage, next);
+      return next;
+    });
+  }, []);
+
+  const signOut = useCallback(async () => {
+    const authToken = token || localStorage.getItem("token");
+    clearSession();
+    if (authToken) {
+      try {
+        await requestLogout(authToken);
+      } catch {
+        // The local session is intentionally cleared even if token revocation is unavailable.
+      }
+    }
+  }, [clearSession, token]);
+
+  useEffect(() => {
+    const hydrateSession = () => {
+      const { token: storedToken, user: storedUser } = readPersistedSession(localStorage);
+      if (!storedToken) {
+        clearSession();
+        return;
+      }
+      setToken(storedToken);
+      setUser(storedUser);
+      void fetchUser(storedToken, storedUser);
+    };
+
+    hydrateSession();
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === "token" || event.key === "user" || event.key === null) {
+        hydrateSession();
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, [clearSession, fetchUser]);
+
+  const userRole = useMemo(() => normalizeRoles(user), [user]);
+  const isB2B = useMemo(() => isBusinessUser(user, userRole), [user, userRole]);
+  const value = useMemo<UserContextType>(
+    () => ({
+      user,
+      token,
+      userRole,
+      isB2B,
+      isAuthenticated: Boolean(token),
+      isLoading,
+      error,
+      establishSession,
+      refreshUser,
+      refreshRole: async () => {
+        await refreshUser();
+      },
+      updateUser,
+      signOut,
+    }),
+    [
+      user,
+      token,
+      userRole,
+      isB2B,
+      isLoading,
+      error,
+      establishSession,
+      refreshUser,
+      updateUser,
+      signOut,
+    ],
+  );
+
+  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 };

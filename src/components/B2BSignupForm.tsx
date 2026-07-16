@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -21,6 +21,12 @@ export default function B2BSignupForm() {
   const [success, setSuccess] = useState(false);
   const router = useRouter();
 
+  useEffect(() => {
+    if (!success) return;
+    const timeout = window.setTimeout(() => router.push("/account/login"), 3000);
+    return () => window.clearTimeout(timeout);
+  }, [success, router]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -40,9 +46,6 @@ export default function B2BSignupForm() {
     try {
       await axios.post("/api/register-b2b", formData);
       setSuccess(true);
-      setTimeout(() => {
-        router.push("/account/login");
-      }, 3000);
     } catch (err: any) {
       setError(err.response?.data?.message || "Er is iets misgegaan. Probeer het later opnieuw.");
     } finally {

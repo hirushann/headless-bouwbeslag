@@ -319,10 +319,11 @@ export default function ProductCard({ product, userRole: propUserRole, useCatego
 
                // 4. Success - Add to Cart
                const deliveryInfo = getDeliveryInfo(product.stock_status, 1, product.stock_quantity ?? null);
-               const cartItemId = Number(stockData.id || product.id);
+               const cartItemId = String(stockData.id || product.id);
 
                addItem({
                   id: cartItemId,
+                  productId: Number.isFinite(Number(product.model_id)) ? Number(product.model_id) : undefined,
                   name: product.name,
                   price: sale !== null ? sale : Number(product.regular_price || product.price || 0),
                   quantity: 1,

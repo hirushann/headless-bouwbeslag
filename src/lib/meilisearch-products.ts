@@ -2,7 +2,7 @@ import { BOUWBESLAG_PRODUCT_TAGS } from "@/lib/cache-tags";
 import { buildMeilisearchPagination, resolveMeilisearchTotal } from "@/lib/meilisearch-pagination";
 
 const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST || "https://ezearch.dayzsolutions.com";
-const MEILISEARCH_KEY = process.env.MEILISEARCH_KEY || "4aaac5324e39343df8c1981646e2d933aba4d9d0b02bc80c40cd25bb695051ec";
+const MEILISEARCH_KEY = process.env.MEILISEARCH_KEY || "";
 const MEILISEARCH_PRODUCTS_INDEX = process.env.MEILISEARCH_BOUWBESLAG_PRODUCTS_INDEX || "empire-bouwbeslag-products";
 
 /**
@@ -23,20 +23,29 @@ export async function fetchMeiliProducts(limit: number = 10, offset: number = 0,
             body.sort = sort;
         }
 
-        console.log(`[DEBUG] fetchMeiliProducts: Querying ${MEILISEARCH_HOST}/indexes/${MEILISEARCH_PRODUCTS_INDEX}`);
-        const res = await fetch(`${MEILISEARCH_HOST}/indexes/${MEILISEARCH_PRODUCTS_INDEX}/search`, {
+        const endpoint = `${MEILISEARCH_HOST}/indexes/${MEILISEARCH_PRODUCTS_INDEX}/search`;
+        const request = () => fetch(endpoint, {
             method: "POST",
             headers: {
                 "Authorization": `Bearer ${MEILISEARCH_KEY}`,
                 "Content-Type": "application/json",
             },
             body: JSON.stringify(body),
-            cache: 'no-store'
+            next: {
+                revalidate: 300,
+                tags: BOUWBESLAG_PRODUCT_TAGS,
+            },
         } as any);
 
+        let res = await request();
+        if ([502, 503, 504].includes(res.status)) {
+            // One bounded retry handles a transient reverse-proxy failure. Cached
+            // successful responses remain available between revalidations.
+            res = await request();
+        }
+
         if (!res.ok) {
-            const errorText = await res.text();
-            console.error("Failed to fetch from Meilisearch:", res.status, res.statusText, errorText, "Query:", JSON.stringify(body));
+            console.warn(`[Meilisearch] Catalog temporarily unavailable (${res.status} ${res.statusText}).`);
             return { products: [], total: 0 };
         }
 
@@ -49,8 +58,8 @@ export async function fetchMeiliProducts(limit: number = 10, offset: number = 0,
             products, 
             total: resolveMeilisearchTotal(data, products.length),
         };
-    } catch (error) {
-        console.error("Error fetching from Meilisearch:", error);
+    } catch {
+        console.warn("[Meilisearch] Catalog request failed; rendering the existing empty fallback.");
         return { products: [], total: 0 };
     }
 }

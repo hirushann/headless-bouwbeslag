@@ -903,7 +903,8 @@ export default function ProductPageClient({
       );
 
       await addItem({
-        id: product.id,
+        id: String(product.id),
+        productId: Number.isFinite(Number(product.model_id)) ? Number(product.model_id) : undefined,
         name: productTitle,
         price: cartBasePrice, // Use the shared Ex-VAT price
         quantity: Number(quantity) || 1,

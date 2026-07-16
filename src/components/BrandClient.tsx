@@ -988,7 +988,10 @@ export default function BrandClient({ brand, category, subCategories, currentSlu
   // Fetch filter data client-side on every mount so WooCommerce/ACF changes
   // are reflected immediately — bypasses the Next.js Router Cache entirely.
   useEffect(() => {
-    if (!brand?.id) return;
+    if (!brand?.id) {
+      setFilterDataLoading(false);
+      return;
+    }
     setFilterDataLoading(true);
     const slugParam = brand.slug ? `&categorySlug=${encodeURIComponent(brand.slug)}` : '';
     fetch(`/api/category-filters?categoryId=${brand.id}${slugParam}`, { cache: 'no-store' })
@@ -1091,7 +1094,7 @@ export default function BrandClient({ brand, category, subCategories, currentSlu
       // If either is still empty, just show a loading indicator and wait —
       // this effect re-runs automatically once they are populated because
       // both are included in the dependency array below.
-      if (hasFilters && (allCategoryProductsForFilters.length === 0 || unwrappedAttributes.length === 0)) {
+      if (hasFilters && filterDataLoading) {
         setProductsLoading(true);
         return; // Effect will re-run when the missing data arrives
       }
@@ -1188,6 +1191,7 @@ export default function BrandClient({ brand, category, subCategories, currentSlu
     page,
     showOnlyInStock,
     isB2B,
+    filterDataLoading,
     allCategoryProductsForFilters,
     unwrappedAttributes
   ]);

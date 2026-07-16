@@ -1,41 +1,30 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-
-interface CartItem {
-  id: number;
-  name: string;
-  price: number;
-  quantity: number;
-  image?: string;
-  color?: string;
-  brand?: string;
-  model?: string;
-  deliveryText?: string;
-  deliveryType?: string;
-  slug?: string;
-  stockStatus?: string;
-  stockQuantity?: number | null;
-  leadTimeInStock?: number;
-  leadTimeNoStock?: number;
-  isMaatwerk?: boolean;
-  hasLengthFreight?: boolean;
-  sync_id?: string;
-  sku?: string;
-}
+import {
+  addCartItem,
+  calculateCartTotal,
+  CartItemId,
+  CartItem,
+  normalizeCartItems,
+  removeCartItem,
+  updateCartQuantity,
+} from "@/lib/cart-state";
 
 interface CartState {
   items: CartItem[];
   addItem: (item: CartItem) => void;
   addToCart: (item: CartItem) => void;
-  removeItem: (id: number) => void;
-  updateQty: (id: number, qty: number) => void;
+  removeItem: (id: CartItemId) => void;
+  updateQty: (id: CartItemId, qty: number) => void;
   clearCart: () => void;
   syncWithServer: () => Promise<void>;
   total: () => number;
   lengthFreightCost: () => number;
   isCartOpen: boolean;
   setCartOpen: (isOpen: boolean) => void;
-  updateStockForItems: (updates: { id: number; stockStatus: string; stockQuantity: number | null; leadTimeInStock?: string; leadTimeNoStock?: string }[]) => void;
+  hasHydrated: boolean;
+  setHasHydrated: (hasHydrated: boolean) => void;
+  updateStockForItems: (updates: { id: CartItemId; stockStatus: string; stockQuantity: number | null; leadTimeInStock?: string; leadTimeNoStock?: string }[]) => void;
   
   // Consolidation Feature
   isConsolidated: boolean;
@@ -46,50 +35,14 @@ export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
-      addItem: (item) => {
-        set((state) => {
-          const exists = state.items.find((i) => i.id === item.id);
-          if (exists) {
-            return {
-              items: state.items.map((i) =>
-                i.id === item.id
-                  ? { ...i, ...item, quantity: i.quantity + item.quantity }
-                  : i
-              ),
-            };
-          }
-          return { items: [...state.items, item] };
-        });
-      },
-      addToCart: (item) => {
-        set((state) => {
-          const exists = state.items.find((i) => i.id === item.id);
-          if (exists) {
-            return {
-              items: state.items.map((i) =>
-                i.id === item.id
-                  ? { ...i, ...item, quantity: i.quantity + item.quantity }
-                  : i
-              ),
-            };
-          }
-          return { items: [...state.items, item] };
-        });
-      },
-      removeItem: (id) => {
-        set((state) => ({ items: state.items.filter((i) => i.id !== id) }));
-      },
-      updateQty: (id, qty) => {
-        set((state) => ({
-          items: state.items.map((i) =>
-            i.id === id ? { ...i, quantity: qty, deliveryText: undefined, deliveryType: undefined } : i
-          ),
-        }));
-      },
+      addItem: (item) => set((state) => ({ items: addCartItem(state.items, item) })),
+      addToCart: (item) => set((state) => ({ items: addCartItem(state.items, item) })),
+      removeItem: (id) => set((state) => ({ items: removeCartItem(state.items, id) })),
+      updateQty: (id, qty) => set((state) => ({ items: updateCartQuantity(state.items, id, qty) })),
       updateStockForItems: (updates) => {
         set((state) => ({
           items: state.items.map((i) => {
-            const update = updates.find(u => u.id === i.id);
+            const update = updates.find(u => String(u.id) === String(i.id));
             if (update) {
               return {
                 ...i,
@@ -112,8 +65,7 @@ export const useCartStore = create<CartState>()(
         // Feature deprecated: The cart is now purely client-side.
         return Promise.resolve();
       },
-      total: () =>
-        get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
+      total: () => calculateCartTotal(get().items),
       lengthFreightCost: () => {
         // Fee is 29.95 if ANY item has length freight
         const hasFreight = get().items.some(i => i.hasLengthFreight);
@@ -121,11 +73,25 @@ export const useCartStore = create<CartState>()(
       },
       isCartOpen: false,
       setCartOpen: (isOpen) => set({ isCartOpen: isOpen }),
+      hasHydrated: false,
+      setHasHydrated: (hasHydrated) => set({ hasHydrated }),
       
       // Consolidation Feature
       isConsolidated: false,
       setConsolidated: (value) => set({ isConsolidated: value }),
     }),
-    { name: "cart-storage" }
+    {
+      name: "cart-storage",
+      version: 3,
+      partialize: (state) => ({
+        items: state.items,
+        isConsolidated: state.isConsolidated,
+      }),
+      migrate: (persistedState: any) => ({
+        ...persistedState,
+        items: normalizeCartItems(persistedState?.items || []),
+      }),
+      onRehydrateStorage: () => (state) => state?.setHasHydrated(true),
+    }
   )
 );

@@ -4,6 +4,7 @@ import { getShippingSettings, getCouponByCode, getShippingRules } from "@/lib/em
 import { getCheckoutSession, saveCheckoutSession, deleteCheckoutSession } from "@/lib/checkout-session";
 import mollieClient from "@/lib/mollie";
 import axios from "axios";
+import { calculateCheckoutTotals } from "@/lib/checkout-state";
 
 
 export async function checkOrderStatusAction(orderId: string | number) {
@@ -15,7 +16,11 @@ export async function checkOrderStatusAction(orderId: string | number) {
             try {
                 const session = await getCheckoutSession(orderIdStr);
                 if (!session) {
-                    return { success: true, status: 'processing' };
+                    return {
+                        success: false,
+                        status: 'backend_failed',
+                        message: "De betaalstatus kon niet veilig worden geverifieerd. Neem contact op met de klantenservice en vermeld je ordernummer."
+                    };
                 }
                 
                 if (session.transaction_id) {
@@ -52,6 +57,11 @@ export async function checkOrderStatusAction(orderId: string | number) {
                     return { success: true, status: 'pending' };
                 }
                 
+                if (session.status === 'processing') {
+                    await deleteCheckoutSession(orderIdStr);
+                    return { success: true, status: 'processing' };
+                }
+
                 return { success: true, status: 'pending' };
             } catch (innerError: any) {
                 console.error("Inner Error in checkOrderStatusAction:", innerError);
@@ -285,9 +295,15 @@ export async function placeOrderAction(data: any) {
             }
         }
 
-        const netTotal = subtotal - discount + shippingTotalExTax + totalFees;
-        const totalTax = netTotal * taxRate;
-        const totalAmount = Math.max(netTotal + totalTax, 0); // Ensure total is never negative
+        const checkoutTotals = calculateCheckoutTotals({
+            subtotalExVat: subtotal,
+            discountExVat: discount,
+            shippingExVat: shippingTotalExTax,
+            feesExVat: totalFees,
+            vatRate: taxRate,
+        });
+        const totalTax = checkoutTotals.tax;
+        const totalAmount = checkoutTotals.grossTotal;
 
         // Build Empire API payload
         const empirePayload: Record<string, any> = {
@@ -371,8 +387,11 @@ export async function placeOrderAction(data: any) {
                     ? { status: "processing", email: data.billing?.email }
                     : { status: "processing" };
                 await axios.patch(`${empireUrl}${endpoint}/${finalOrderReference}/status`, patchPayload, { headers });
+                empirePayload.status = "processing";
+                await saveCheckoutSession(finalOrderReference, empirePayload);
             } catch (e: any) {
                 console.error("Failed to update status for invoice payment:", e?.response?.data || e.message);
+                return { success: false, message: "De bestelling is opgeslagen, maar kon niet worden bevestigd. Neem contact op met de klantenservice en vermeld je ordernummer." };
             }
             return { success: true, redirectUrl: `${siteUrl}/checkout/success?orderId=${finalOrderReference}` };
         }
@@ -415,6 +434,11 @@ export async function placeOrderAction(data: any) {
 
 export async function checkPostcodeAction(postcode: string, number: string) {
     try {
+        const postcodeApiToken = process.env.POSTCODE_TECH_API_TOKEN;
+        if (!postcodeApiToken) {
+            return { success: false, message: "Adrescontrole is momenteel niet beschikbaar" };
+        }
+
         // console.log(`Checking postcode with Axios: ${postcode}, number: ${number}`);
 
         const config = {
@@ -422,7 +446,7 @@ export async function checkPostcodeAction(postcode: string, number: string) {
             maxBodyLength: Infinity,
             url: `https://postcode.tech/api/v1/postcode/full?postcode=${postcode}&number=${number}`,
             headers: {
-                'Authorization': 'Bearer 835ceb49-49af-4ed2-82a9-409ff9f7248d'
+                'Authorization': `Bearer ${postcodeApiToken}`
             }
         };
 

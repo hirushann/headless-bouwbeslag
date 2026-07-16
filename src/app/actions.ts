@@ -462,26 +462,40 @@ export async function resolveSlugAction(slug: string) {
 }
 
 
-export async function refreshCartStockAction(items: { id: number; sku?: string }[]) {
+export async function refreshCartStockAction(items: { id: string | number; sku?: string }[]) {
     try {
         if (!items || items.length === 0) return { success: true, data: [] };
 
         const EMPIRE_BASE_URL = (process.env.NEXT_PUBLIC_EMPIRE_API_URL || process.env.EMPIRE_BACKEND_API_URL || "http://localhost:8000").replace(/\/$/, "");
         
+        const skus = items.map((item) => item.sku).filter((sku): sku is string => Boolean(sku));
+        if (skus.length === 0) return { success: true, data: [] };
+
         const res = await fetch(`${EMPIRE_BASE_URL}/api/products/batch-stock`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "Accept": "application/json",
             },
-            body: JSON.stringify({ items }),
+            body: JSON.stringify({ skus }),
             cache: "no-store"
         });
 
         if (!res.ok) throw new Error("Failed to fetch stock from Empire");
 
         const data = await res.json();
-        return { success: true, data: data.data || [] };
+        const updates = items.flatMap((item) => {
+            if (!item.sku || !data[item.sku]?.found) return [];
+            const stock = data[item.sku];
+            return [{
+                id: item.id,
+                stockStatus: Number(stock.total_stock) > 0 ? "instock" : "outofstock",
+                stockQuantity: Number(stock.total_stock) || 0,
+                leadTimeInStock: stock.delivery_if_stock ? String(stock.delivery_if_stock) : undefined,
+                leadTimeNoStock: stock.delivery_if_no_stock ? String(stock.delivery_if_no_stock) : undefined,
+            }];
+        });
+        return { success: true, data: updates };
     } catch (error: any) {
         console.error("Refresh cart stock error:", error?.message);
         return { success: false, error: error?.message || "Failed to refresh stock" };

@@ -9,12 +9,13 @@ import { checkOrderStatusAction } from "@/app/checkout/actions";
 import { useRouter } from "next/navigation";
 import Lottie from "lottie-react";
 import successAnimation from "../../../../public/Done.json";
+import { resolveOrderVerification, type OrderUiStatus } from "@/lib/checkout-state";
 
 function SuccessContent() {
   const clearCart = useCartStore((state) => state.clearCart);
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
-  const [status, setStatus] = useState<'loading' | 'success' | 'failed' | 'cancelled' | 'backend_failed' | 'pending'>('loading');
+  const [status, setStatus] = useState<'loading' | OrderUiStatus>('loading');
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -29,23 +30,10 @@ function SuccessContent() {
         try {
             const result = await checkOrderStatusAction(orderId);
             
-            if (result.success) {
-                const s = result.status;
-                if (s && ['processing', 'completed', 'on-hold'].includes(s)) {
-                    setStatus('success');
-                    clearCart(); // Only clear on success
-                } else if (s === 'cancelled') {
-                    setStatus('cancelled');
-                } else if (s === 'failed') {
-                    setStatus('failed');
-                } else {
-                    setStatus('pending');
-                    setErrorMessage("We wachten nog op de bevestiging van je betaling. Ververs deze pagina over een moment.");
-                }
-            } else {
-                setStatus(result.status === 'backend_failed' ? 'backend_failed' : 'failed');
-                setErrorMessage(result.message || "Er is iets misgegaan met de order verificatie.");
-            }
+            const next = resolveOrderVerification(result);
+            setStatus(next.status);
+            setErrorMessage(next.message);
+            if (next.clearCart) clearCart();
         } catch (error) {
             // console.error(error);
             setStatus('failed');

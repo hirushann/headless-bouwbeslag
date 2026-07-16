@@ -9,6 +9,7 @@ import { fixImageSrc } from "@/lib/image-utils";
 import Image from "next/image";
 
 import { ShippingRule } from "@/lib/woocommerce";
+import type { CartItemId } from "@/lib/cart-state";
 
 interface CartDrawerProps {
   isB2B: boolean;
@@ -25,6 +26,7 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods, shippingR
   const lengthFreightCost = useCartStore((state) => state.lengthFreightCost());
 
   const [isFetchingStock, setIsFetchingStock] = useState(false);
+  const stockRequestKey = items.map((item) => `${item.id}:${item.sku || ""}:${item.quantity}`).join("|");
 
   // Dynamic Stock Update on Open
   useEffect(() => {
@@ -53,7 +55,7 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods, shippingR
     }
 
     return () => { active = false; };
-  }, [isCartOpen, items.length]); // Re-run if cart opens or items change count (basic check)
+  }, [isCartOpen, stockRequestKey, updateStockForItems]);
 
   const subtotal = items.reduce((sum, item) => {
     const displayedItemPrice = isB2B ? item.price : item.price * 1.21;
@@ -91,17 +93,17 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods, shippingR
   const shipping = hasLengthFreight ? lengthFreightCost / 1.21 : isFreeShipping ? 0 : flatRate;
   const displayShipping = isB2B ? shipping : shipping * 1.21;
 
-  const increaseQuantity = (id: number) => {
-    const item = items.find((i) => i.id === id);
+  const increaseQuantity = (id: CartItemId) => {
+    const item = items.find((i) => String(i.id) === String(id));
     if (item) useCartStore.getState().updateQty(id, item.quantity + 1);
   };
 
-  const decreaseQuantity = (id: number) => {
-    const item = items.find((i) => i.id === id);
+  const decreaseQuantity = (id: CartItemId) => {
+    const item = items.find((i) => String(i.id) === String(id));
     if (item && item.quantity > 1) useCartStore.getState().updateQty(id, item.quantity - 1);
   };
 
-  const removeItem = (id: number) => {
+  const removeItem = (id: CartItemId) => {
     useCartStore.getState().removeItem(id);
   };
 

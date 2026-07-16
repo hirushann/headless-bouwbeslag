@@ -150,7 +150,8 @@ export default function RecommendedProductItem({ item, onAddToCart }: { item: an
 
             // 4. Success - Add to Cart
             useCartStore.getState().addItem({
-                id: item.id,
+                id: String(item.id),
+                productId: Number.isFinite(Number((item as any).model_id)) ? Number((item as any).model_id) : undefined,
                 name: item.name,
                 price: sale, // Use the Ex-VAT 'sale' price base
                 quantity: quantity,

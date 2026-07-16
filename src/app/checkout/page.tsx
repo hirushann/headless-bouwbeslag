@@ -10,6 +10,7 @@ import { useUserContext } from "@/context/UserContext";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
+import { calculateCheckoutTotals, calculateCouponDiscount, createSubmissionGuard, resolveCouponValidation } from "@/lib/checkout-state";
 
 const SUPPORTED_COUNTRIES = [
     { iso: 'NL', name: 'Netherlands', localNames: ['Netherlands', 'Nederland'] },
@@ -242,6 +243,7 @@ function GoogleAddressSearch({ country, icon, inputClassName, onSelect }: Google
 
 export default function NewCheckoutPage() {
   const router = useRouter();
+  const orderSubmissionGuard = useRef(createSubmissionGuard());
   const [currentStep, setCurrentStep] = useState(1);
   // const [selectedShipping, setSelectedShipping] = useState("standard");
   const [isLoading, setIsLoading] = useState(false);
@@ -253,7 +255,7 @@ export default function NewCheckoutPage() {
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
 
-  const { userRole, user, isB2B } = useUserContext();
+  const { userRole, user, token, isB2B } = useUserContext();
   
   
   // Cart State from Store
@@ -262,6 +264,7 @@ export default function NewCheckoutPage() {
   const lengthFreightCost = useCartStore((state) => state.lengthFreightCost());
   const isConsolidated = useCartStore((state) => state.isConsolidated);
   const setConsolidated = useCartStore((state) => state.setConsolidated);
+  const isHydrated = useCartStore((state) => state.hasHydrated);
   const CONSOLIDATION_DISCOUNT = 3.00 / 1.21; // Exactly €3.00 including VAT (21%)
 
   // Combine delivery info calculation globally for the checkout view
@@ -292,10 +295,7 @@ export default function NewCheckoutPage() {
     }
   }, [deliveryState.canConsolidate, isConsolidated, setConsolidated]);
   
-  // Hydration check for persisted store
-  const [isHydrated, setIsHydrated] = useState(false);
   useEffect(() => {
-    setIsHydrated(true);
     window.scrollTo(0, 0);
   }, []);
 
@@ -744,24 +744,31 @@ export default function NewCheckoutPage() {
       
       // Prepare data for validation
       // cartItems has { id, ... }. We need to ensure we pass IDs as numbers.
-      const simplifiedItems = cartItems.map(item => ({ product_id: item.id }));
+      const simplifiedItems = cartItems
+        .map(item => item.productId ?? Number(item.id))
+        .filter(productId => Number.isFinite(productId))
+        .map(product_id => ({ product_id }));
       
-      const result = await validateCouponAction(
-          couponCode, 
-          subtotal, // Ex VAT subtotal
-          simplifiedItems,
-          formData.email // current email input
-      );
-      
-      if (result.success && result.coupon) {
-          setAppliedCoupon(result.coupon);
-          setCouponMessage({ type: 'success', text: `Coupon "${result.coupon.code}" applied!` });
-          setCouponCode(""); 
-      } else {
-          setCouponMessage({ type: 'error', text: result.message || "Invalid coupon" });
+      try {
+        const result = await validateCouponAction(
+            couponCode,
+            subtotal,
+            simplifiedItems,
+            formData.email
+        );
+
+        const nextCouponState = resolveCouponValidation(result);
+        setAppliedCoupon(nextCouponState.coupon);
+        setCouponMessage(nextCouponState.message);
+        if (nextCouponState.coupon) {
+            setCouponCode("");
+        }
+      } catch {
+          setCouponMessage({ type: 'error', text: "Coupon kon niet worden gecontroleerd. Probeer het opnieuw." });
           setAppliedCoupon(null);
+      } finally {
+          setIsCouponLoading(false);
       }
-      setIsCouponLoading(false);
   };
 
   const removeCoupon = () => {
@@ -769,29 +776,9 @@ export default function NewCheckoutPage() {
       setCouponMessage(null);
   };
 
-  const calculateDiscount = () => {
-      if (!appliedCoupon) return 0;
-      
-      const subtotalVal = subtotal; // Ex VAT basic subtotal
-      let discount = 0;
-
-      if (appliedCoupon.discount_type === 'percent') {
-          const amount = parseFloat(appliedCoupon.amount);
-          discount = (subtotalVal * amount) / 100;
-      } else if (appliedCoupon.discount_type === 'fixed_cart') {
-          const amount = parseFloat(appliedCoupon.amount);
-          // Amount is Gross (Inc VAT). We need the Ex VAT amount to deduct from Ex VAT subtotal.
-          discount = amount / 1.21;
-      }
-      
-      return discount;
-  };
-
-  const discountAmount = calculateDiscount();
+  const discountAmount = calculateCouponDiscount(subtotal, appliedCoupon);
 
   const consolidationDiscountAmount = isConsolidated ? CONSOLIDATION_DISCOUNT : 0;
-  
-  const tax = (subtotal - discountAmount - consolidationDiscountAmount) * 0.21; // Tax on discounted items
   
   // Calculate card payment fee (2.5% of order total excluding VAT)
   // Fee applies only when card payment method (creditcard) is selected
@@ -813,9 +800,13 @@ export default function NewCheckoutPage() {
   
   // Header shows: Totaal + (incl. BTW) label.
   
-  const total = isB2B 
-    ? (subtotal - discountAmount - consolidationDiscountAmount) + (shippingCost || 0) + cardPaymentFee
-    : ((subtotal - discountAmount - consolidationDiscountAmount) + (shippingCost || 0) + cardPaymentFee) * 1.21;
+  const checkoutTotals = calculateCheckoutTotals({
+    subtotalExVat: subtotal,
+    discountExVat: discountAmount,
+    shippingExVat: shippingCost || 0,
+    feesExVat: cardPaymentFee - consolidationDiscountAmount,
+  });
+  const total = checkoutTotals.grossTotal;
     
   // Display Helpers -- Adjusted for discount
   // Note: Discount is usually applied to item prices (subtotal).
@@ -825,10 +816,10 @@ export default function NewCheckoutPage() {
   const displayConsolidationDiscount = isB2B ? consolidationDiscountAmount : consolidationDiscountAmount * 1.21;
   const displayShipping = isB2B ? (shippingCost || 0) : (shippingCost || 0) * 1.21;
   const displayCardFee = isB2B ? cardPaymentFee : cardPaymentFee * 1.21;
-  const displayTax = isB2B ? 0 : tax; // Tax line is redundant in Inc-VAT view usually, or we show full tax breakdown?
+  const displayTax = checkoutTotals.tax;
   // Header shows: Totaal + (incl. BTW) label.
   
-  const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
+  const taxLabel = "(incl. BTW)";
 
   // VAT Validation Handler
   const handleVatBlur = async () => {
@@ -931,6 +922,7 @@ export default function NewCheckoutPage() {
         return;
     }
 
+    if (!orderSubmissionGuard.current.tryStart()) return;
     setIsLoading(true);
     
     // Construct billing object for WooCommerce
@@ -1008,28 +1000,30 @@ export default function NewCheckoutPage() {
         prices_include_tax: !isB2B,
         mollie_method_id: selectedPaymentMethod, // Pass selected method
         customer_id: user?.id || 0,
-        auth_token: localStorage.getItem("token") || ""
+        auth_token: token || ""
     };
 
     // console.log("🛒 Frontend: Submitting orderData:", orderData);
 
-    const result = await placeOrderAction(orderData);
-    
-    // console.log("🏁 Frontend: placeOrderAction result:", result);
-    
-    setIsLoading(false);
+    try {
+      const result = await placeOrderAction(orderData);
 
-    if (result.success) {
-        if ((result as any).redirectUrl) {
-            window.location.href = (result as any).redirectUrl;
-            return;
-        }
+      if (result.success) {
+          if ((result as any).redirectUrl) {
+              window.location.href = (result as any).redirectUrl;
+              return;
+          }
 
-        // Fallback for non-payment orders (if any)
-      const orderId = (result as any).data?.id || (result as any).orderId;
-      router.push(`/checkout/success?orderId=${orderId}`); // Clear cart on success
-    } else {
-        alert(`Order Failed: ${result.message}`);
+        const orderId = (result as any).data?.id || (result as any).orderId;
+        router.push(`/checkout/success?orderId=${orderId}`);
+      } else {
+          toast.error(result.message || "Bestelling plaatsen is mislukt.");
+      }
+    } catch {
+      toast.error("Bestelling plaatsen is mislukt. Probeer het opnieuw.");
+    } finally {
+      orderSubmissionGuard.current.release();
+      setIsLoading(false);
     }
   };
 
@@ -1064,7 +1058,12 @@ export default function NewCheckoutPage() {
   };
 
   if (!isHydrated) {
-      return null; // Or a loading spinner
+      return (
+        <div className="min-h-[60vh] flex items-center justify-center" aria-busy="true">
+          <div className="loading loading-spinner loading-lg text-blue-600" />
+          <span className="sr-only">Winkelwagen laden</span>
+        </div>
+      );
   }
 
   // Empty Cart State

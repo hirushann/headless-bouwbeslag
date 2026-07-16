@@ -312,9 +312,10 @@ export default function ShopProductCard({ product, useCategoryImage = false }: {
 
               const { cartPrice, displayPrice } = priceData;
               const deliveryInfo = getDeliveryInfo(stockData.stock_status, 1, stockData.stock_quantity ?? null);
-              const cartItemId = Number(stockData.id || product.id);
+              const cartItemId = String(stockData.id || product.id);
               addItem({
                 id: cartItemId,
+                productId: Number.isFinite(Number(product.model_id)) ? Number(product.model_id) : undefined,
                 name: customTitle,
                 price: cartPrice,
                 quantity: 1,

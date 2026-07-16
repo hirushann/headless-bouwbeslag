@@ -9,6 +9,7 @@ import { useUserContext } from "@/context/UserContext";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
+import type { CartItemId } from "@/lib/cart-state";
 
 import { ShippingMethod, ShippingRule } from "@/lib/woocommerce";
 import SearchAutosuggest from "./SearchAutosuggest";
@@ -32,16 +33,17 @@ export default function Header({
   const items = useCartStore((state) => state.items);
   const isCartOpen = useCartStore((state) => state.isCartOpen);
   const setCartOpen = useCartStore((state) => state.setCartOpen);
+  const hasHydrated = useCartStore((state) => state.hasHydrated);
 
   // Prevent hydration mismatch by defaulting to 0 items during SSR
-  const totalQty = isMounted ? items.reduce((sum, i) => sum + i.quantity, 0) : 0;
+  const totalQty = hasHydrated ? items.reduce((sum, i) => sum + i.quantity, 0) : 0;
   const lengthFreightCost = useCartStore((state) => state.lengthFreightCost());
 
-  const { userRole, isB2B } = useUserContext();
+  const { userRole, isB2B, isAuthenticated, signOut } = useUserContext();
 
   const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
 
-  const subtotal = isMounted ? items.reduce(
+  const subtotal = hasHydrated ? items.reduce(
     (sum, item) => {
       const displayedItemPrice = isB2B ? item.price : item.price * 1.21;
       return sum + displayedItemPrice * item.quantity;
@@ -81,22 +83,22 @@ export default function Header({
   const shipping = hasLengthFreight ? (lengthFreightCost / 1.21) : (isFreeShipping ? 0 : flatRate);
   const displayShipping = isB2B ? shipping : shipping * 1.21;
 
-  const increaseQuantity = (id: number) => {
-    const item = useCartStore.getState().items.find((i) => i.id === Number(id));
+  const increaseQuantity = (id: CartItemId) => {
+    const item = useCartStore.getState().items.find((i) => String(i.id) === String(id));
     if (item) {
-      useCartStore.getState().updateQty(Number(id), item.quantity + 1);
+      useCartStore.getState().updateQty(id, item.quantity + 1);
     }
   };
 
-  const decreaseQuantity = (id: number) => {
-    const item = useCartStore.getState().items.find((i) => i.id === Number(id));
+  const decreaseQuantity = (id: CartItemId) => {
+    const item = useCartStore.getState().items.find((i) => String(i.id) === String(id));
     if (item && item.quantity > 1) {
-      useCartStore.getState().updateQty(Number(id), item.quantity - 1);
+      useCartStore.getState().updateQty(id, item.quantity - 1);
     }
   };
 
-  const removeItem = (id: number) => {
-    useCartStore.getState().removeItem(Number(id));
+  const removeItem = (id: CartItemId) => {
+    useCartStore.getState().removeItem(id);
   };
 
   useEffect(() => {
@@ -108,20 +110,6 @@ export default function Header({
   }, [isCartOpen]);
 
   const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  useEffect(() => {
-    const checkLogin = () => {
-      if (typeof window !== "undefined") {
-        const token = localStorage.getItem("token");
-        setIsLoggedIn(!!token);
-      }
-    };
-    checkLogin();
-    window.addEventListener("storage", checkLogin);
-    return () => window.removeEventListener("storage", checkLogin);
-  }, []);
-
   const handleCheckoutRedirect = () => {
     if (items.length === 0) return;
     setCartOpen(false);
@@ -233,7 +221,7 @@ export default function Header({
                 </Link>
               </div>
               {/* My Account Dropdown */}
-              {!isLoggedIn ? (
+              {!isAuthenticated ? (
                 <Link
                   href="/account/login"
                   className="font-medium text-base hidden lg:block cursor-pointer"
@@ -254,13 +242,10 @@ export default function Header({
                     <li><button className="hover:bg-gray-100" onClick={() => { (document.activeElement as HTMLElement)?.blur(); router.push("/account?tab=addresses"); }}>Addresses</button></li>
                     <li><button className="hover:bg-gray-100" onClick={() => { (document.activeElement as HTMLElement)?.blur(); router.push("/account?tab=details"); }}>Account Details</button></li>
                     <li>
-                      <button className="hover:bg-gray-100" onClick={() => {
+                      <button className="hover:bg-gray-100" onClick={async () => {
                         (document.activeElement as HTMLElement)?.blur();
-                        if (typeof window !== "undefined") {
-                          localStorage.clear();
-                          setIsLoggedIn(false);
-                          router.push("/");
-                        }
+                        await signOut();
+                        router.push("/");
                       }}>Logout</button>
                     </li>
                   </ul>
