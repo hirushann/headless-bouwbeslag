@@ -84,6 +84,22 @@ export function mapMeiliToWooProduct(p: any) {
     if (!p) return null;
 
     const wooAttributes: any[] = [];
+
+    const flatBrandName = typeof p.brand_name === 'string' ? p.brand_name.trim() : '';
+    const nestedBrandName = typeof p.brand?.name === 'string' ? p.brand.name.trim() : '';
+    const brandName = flatBrandName || nestedBrandName;
+    const brandId = flatBrandName ? p.brand_id : p.brand?.id;
+    const indexedBrandSlug = flatBrandName ? p.brand_slug : p.brand?.slug;
+    const brandSlug = typeof indexedBrandSlug === 'string' && indexedBrandSlug.trim()
+      ? indexedBrandSlug
+      : brandName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const brands = brandName
+      ? [{
+          id: brandId || brandName,
+          name: brandName,
+          slug: brandSlug,
+        }]
+      : [];
     
     const tryAddAttr = (key: string, name: string, slug?: string) => {
       if (p[key]) {
@@ -127,9 +143,7 @@ export function mapMeiliToWooProduct(p: any) {
     return {
       ...p,
       attributes: wooAttributes,
-      brands: p.brand_name 
-        ? [{ id: p.brand_id || p.brand_name, name: p.brand_name, slug: p.brand_slug || p.brand_name.toLowerCase().replace(/[^a-z0-9]+/g, '-') }] 
-        : (p.brand ? [{ id: p.brand.id, name: p.brand.name, slug: p.brand.slug || p.brand.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') }] : []),
+      brands,
       price: priceStr,
       regular_price: regularPriceStr,
       stock_status: p.stock?.status === 'in_stock' ? 'instock' : (p.stock_status || 'outofstock'),
