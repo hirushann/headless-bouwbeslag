@@ -157,206 +157,34 @@ export async function fetchProductBySkuOrIdAction(identifier: string | number, e
 
     const numericExcludeId = excludeId ? Number(excludeId) : null;
 
-    // Only log if we are actually excluding something, to reduce noise for normal lookups
-    // console.log(`[LOOKUP] START: "${idStr}" (Exclude: ${numericExcludeId})`);
-
     try {
-        // 1. Precise SKU Lookup
-        const skuRes = await api.get("products", { sku: idStr, per_page: 1, next: { revalidate: 3600 }, status: "publish" });
-        if (Array.isArray(skuRes.data) && skuRes.data.length > 0) {
-            const match = skuRes.data[0];
-            if (match && Number(match.id) !== numericExcludeId) {
-                // console.log(`[LOOKUP] ✅ Match SKU (Woo): ${match.id}`);
-                return { success: true, data: match };
-            }
-        }
+        // Query Meilisearch directly instead of hitting the deprecated WooCommerce API
+        const { products } = await fetchMeiliProducts(50, 0, idStr, []);
 
-        // 3. Parallel WP Meta/Elasticsearch Query
-        const targetMetaKeys = [
-            "crucial_data_product_ean_code",
-            "_sku",
-            "crucial_data_product_factory_sku",
-            "ean_code",
-            "ean",
-            "_global_unique_id",
-            "global_unique_id",
-            "gtin",
-            "upc",
-            "isbn",
-            "_wpm_gtin_code",
-            "_wpm_gtin",
-            "_gtin",
-            "_ean"
-        ];
+        if (products && products.length > 0) {
+            for (const p of products) {
+                if (numericExcludeId && Number(p.id) === numericExcludeId) continue;
 
-        try {
-            // A. Try Elasticsearch FIRST (Fastest)
-            const esIndex = process.env.SEARCH_INDEX || process.env.ELASTICSEARCH_INDEX;
-            if (esIndex) {
-                const esRes = await elasticClient.search({
-                    index: esIndex,
-                    size: 1,
-                    query: (() => {
-                        const shouldClauses: any[] = [
-                            {
-                                multi_match: {
-                                    query: idStr,
-                                    fields: [
-                                        "meta._sku.value.keyword",
-                                        "meta.crucial_data_product_ean_code.value.keyword",
-                                        "meta.crucial_data_product_factory_sku.value.keyword",
-                                        "meta.*.value.keyword"
-                                    ],
-                                    type: "best_fields"
-                                }
-                            }
-                        ];
-                        
-                        if (!isNaN(Number(idStr))) {
-                            shouldClauses.push({ term: { "ID": Number(idStr) } });
-                        }
-
-                        return {
-                            bool: {
-                                must: [{ match: { post_type: "product" } }],
-                                should: shouldClauses,
-                                minimum_should_match: 1,
-                                filter: numericExcludeId ? [{ bool: { must_not: { term: { ID: numericExcludeId } } } }] : []
-                            }
-                        };
-                    })()
-                });
-
-                if (esRes.hits.hits.length > 0) {
-                    const hit: any = esRes.hits.hits[0]._source;
-                    // We need full WC product data, so we still fetch by ID once, but now we have the ID directly!
-                    const finalRes = await api.get(`products/${hit.ID}`, { next: { revalidate: 3600 } });
-                    if (finalRes.data && finalRes.data.id) {
-                        return { success: true, data: finalRes.data };
-                    }
-                }
-            }
-
-            // B. Fallback to slow WP Meta Query
-            let verifiedMatch: any = null;
-
-            // Run all meta queries in parallel
-            const metaQueryResults = await Promise.all(targetMetaKeys.map(async (key) => {
-                try {
-                    const wpRes = await api.get("wp/v2/products", {
-                        meta_key: key,
-                        meta_value: idStr,
-                        _fields: "id",
-                        per_page: 5, // Fetch a few to increase chance of finding the right one if duplicates or near-matches exist
-                        next: { revalidate: 3600 }
-                    });
-                    if (Array.isArray(wpRes.data) && wpRes.data.length > 0) {
-                        return wpRes.data.map((hit: any) => ({ id: Number(hit.id), key }));
-                    }
-                } catch (e) { }
-                return [];
-            }));
-
-            // Flatten results: [{id: 123, key: 'ean'}, {id: 456, key: 'ean'}]
-            const candidates = metaQueryResults.flat();
-
-            // Remove duplicates and exclude self
-            const uniqueCandidates = Array.from(new Set(candidates.map(c => c.id)))
-                .filter(id => id !== numericExcludeId)
-                .map(id => candidates.find(c => c.id === id)!);
-
-            // Verify each candidate until we find a match
-            for (const candidate of uniqueCandidates) {
-                try {
-                    const finalRes = await api.get(`products/${candidate.id}`, { next: { revalidate: 3600 } });
-                    if (finalRes.data && finalRes.data.id) {
-                        const p = finalRes.data;
-
-                        // Strict Verification
-                        const metaValid = p.meta_data && Array.isArray(p.meta_data) && p.meta_data.some((m: any) =>
-                            String(m.value).trim().toLowerCase() === idStr.toLowerCase()
-                        );
-                        const skuValid = String(p.sku).trim().toLowerCase() === idStr.toLowerCase();
-
-                        if (metaValid || skuValid) {
-                            // console.log(`[LOOKUP] ✅ Verified Match WP Meta/SKU (${candidate.key}): ${finalRes.data.id}`);
-                            verifiedMatch = finalRes.data;
-                            break; // Stop after first verified match
-                        } else {
-                            // console.warn(`[LOOKUP] ⚠️ False positive from WP API for "${idStr}" -> Product ${p.id} does not match.`);
-                        }
-                    }
-                } catch (e) { }
-            }
-
-            if (verifiedMatch) {
-                return { success: true, data: verifiedMatch };
-            }
-
-        } catch (err) { }
-
-        // 4. Precise ID Lookup
-        const numericId = Number(idStr);
-        if (!isNaN(numericId) && /^\d+$/.test(idStr) && idStr.length < 9 && numericId !== numericExcludeId) {
-            try {
-                const idRes = await api.get(`products/${numericId}`, { next: { revalidate: 3600 } });
-                if (idRes.data && idRes.data.id) {
-                    // console.log(`[LOOKUP] ✅ Match ID: ${idRes.data.id}`);
-                    return { success: true, data: idRes.data };
-                }
-            } catch (e) { }
-        }
-
-        // 5. Broad Search (Filtered)
-        /* 
-           If WP Meta queries failed, use standard Woo search.
-           Woo search checks Title, SKU, and Description.
-           It does NOT reliably check meta data unless plugins like 'Advanced Woo Search' are active.
-        */
-        const wcSearchRes = await api.get("products", {
-            search: idStr,
-            per_page: 10,
-            next: { revalidate: 3600 },
-            status: "publish"
-        });
-
-        if (Array.isArray(wcSearchRes.data) && wcSearchRes.data.length > 0) {
-            // Explicit filter
-            const validMatches = wcSearchRes.data.filter((p: any) => Number(p.id) !== numericExcludeId);
-
-            // Check for EXACT match in SKU or Any Meta Field (EAN)
-            const exactMatch = validMatches.find((p: any) => {
-                // 1. Check SKU
-                if (p.sku && String(p.sku).trim().toLowerCase() === idStr.toLowerCase()) return true;
-
-                // 2. Check Meta Data (EANs)
+                const skuValid = p.sku && String(p.sku).trim().toLowerCase() === idStr.toLowerCase();
+                
+                let metaValid = false;
                 if (p.meta_data && Array.isArray(p.meta_data)) {
-                    // Check if ANY meta value is exactly the search string
-                    const foundMeta = p.meta_data.find((m: any) =>
+                    metaValid = p.meta_data.some((m: any) =>
                         m.value && String(m.value).trim().toLowerCase() === idStr.toLowerCase()
                     );
-                    if (foundMeta) return true;
                 }
 
-                return false;
-            });
-
-            if (exactMatch) {
-                // console.log(`[LOOKUP] ✅ Match Search (Exact SKU/Meta): ${exactMatch.id}`);
-                return { success: true, data: exactMatch };
+                if (skuValid || metaValid || String(p.id) === idStr) {
+                    const wooProduct = mapMeiliToWooProduct(p);
+                    if (wooProduct) {
+                        return { success: true, data: wooProduct };
+                    }
+                }
             }
-
-            // If no exact match found, warn but don't return fuzzy
-            // console.warn(`[LOOKUP] ❌ Search found ${validMatches.length} results but no exact SKU/Meta match for "${idStr}"`);
         }
-
-        // 6. LAST RESORT: Database has no exact match.
-        // Do not use fetchProductIndexAction here as it hangs the server fetching 5000 products.
-        // If it's not in Woo search or exact meta match, we return null.
 
         return { success: true, data: null };
     } catch (error: any) {
-        // console.error(`[LOOKUP] 🚨 ERROR: ${idStr}`, error.message);
         return { success: false, error: error?.message || "Internal server error" };
     }
 }
