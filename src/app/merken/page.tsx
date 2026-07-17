@@ -55,7 +55,7 @@ export default async function BrandsPage() {
     const brandsWithCounts = brands.map(brand => ({
         ...brand,
         count: getCount(brand.name)
-    }));
+    })).filter(brand => brand.count > 0);
 
     return (
         <div className="max-w-[1440px] container mx-auto px-1 py-8">
