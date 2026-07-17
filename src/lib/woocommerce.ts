@@ -318,6 +318,7 @@ export interface Brand {
     slug: string;
     description: string;
     count: number;
+    h1_title?: string;
     acf?: {
         brand_logo?: string | number | { url: string };
         brand_description?: string;
