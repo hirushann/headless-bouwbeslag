@@ -434,14 +434,15 @@ export default function ProductPageClientV2({
     // Definitions of what we are looking for
     // Type: 'color' | 'model' | 'simple'
     const groups = [
-        { key: 'colors', prefix: 'related_order_color_', type: 'color', setter: setOrderColors },
-        { key: 'models', prefix: 'related_order_model_', type: 'model', textPrefix: 'related_other_model_text_', setter: setOrderModels },
+        { key: 'colors', prefix: 'related_other_color_', type: 'color', setter: setOrderColors },
+        { key: 'models', prefix: 'related_other_model_', type: 'model', textPrefix: 'related_other_model_text_', setter: setOrderModels },
         { key: 'matching', prefix: 'related_matching_product_', type: 'simple', setter: setMatchingProducts },
         { key: 'knobrose', prefix: 'related_matching_knobrose_', type: 'simple', setter: setMatchingKnobRoseProducts },
         { key: 'keyrose', prefix: 'related_matching_keyrose_', type: 'simple', setter: setMatchingRoseKeys },
         { key: 'pcrose', prefix: 'related_matching_pcrose_', type: 'simple', setter: setPcRoseKeys },
         { key: 'toiletrose', prefix: 'related_matching_toiletrose_', type: 'simple', setter: setblindtoiletroseKeys },
-        { key: 'musthave', prefix: 'related_must_have_product_', type: 'simple', setter: setMusthaveprodKeys },
+        { key: 'toiletrose', prefix: 'related_matching_blindrose_', type: 'simple', setter: setblindtoiletroseKeys },
+        { key: 'musthave', prefix: 'related_must_need_product_', type: 'simple', setter: setMusthaveprodKeys },
     ];
 
     // 1. Collect all identifiers needed
