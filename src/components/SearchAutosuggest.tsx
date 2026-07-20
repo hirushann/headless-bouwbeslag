@@ -145,6 +145,10 @@ export default function SearchAutosuggest({
 
     // Search Logic
     useEffect(() => {
+        // The header renders desktop and mobile search triggers at the same time.
+        // Do not run two full catalogue searches until a visitor opens one of them.
+        if (!isExpanded) return;
+
         const delayDebounceFn = setTimeout(async () => {
             // Search if empty (show all) or at least 2 chars
             if (query.trim().length === 0 || query.trim().length >= 2) {
@@ -170,7 +174,7 @@ export default function SearchAutosuggest({
         }, 300);
 
         return () => clearTimeout(delayDebounceFn);
-    }, [query, filters, page, sortBy]);
+    }, [isExpanded, query, filters, page, sortBy]);
 
     const handleFilterChange = (facetName: string, value: string) => {
         setFilters(prev => {

@@ -1,6 +1,5 @@
 "use client";
 
-import axios from "axios";
 import React, {
   createContext,
   useCallback,
@@ -10,7 +9,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { logout as requestLogout } from "@/lib/auth";
 import {
   AuthUser,
   clearPersistedSession,
@@ -21,6 +19,21 @@ import {
   readPersistedSession,
   SessionPayload,
 } from "@/lib/auth-session";
+
+const EMPIRE_API_URL = process.env.NEXT_PUBLIC_EMPIRE_API_URL || "http://empire.test";
+
+async function requestLogout(token: string) {
+  const response = await fetch(`${EMPIRE_API_URL.replace(/\/$/, "")}/api/logout`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: "{}",
+  });
+
+  if (!response.ok) throw new Error(`Logout request failed with ${response.status}`);
+}
 
 type UserRole = string[];
 
@@ -70,21 +83,24 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       setError(null);
 
       try {
-        const response = await axios.get<AuthUser>("/api/user/me", {
+        const response = await fetch("/api/user/me", {
           headers: { Authorization: `Bearer ${authToken}` },
         });
-        if (requestId !== requestIdRef.current) return null;
-
-        persistUser(localStorage, response.data);
-        setUser(response.data);
-        setToken(authToken);
-        return response.data;
-      } catch (cause) {
-        if (requestId !== requestIdRef.current) return null;
-        if (axios.isAxiosError(cause) && cause.response?.status === 401) {
+        if (response.status === 401) {
           clearSession();
           return null;
         }
+        if (!response.ok) throw new Error(`Profile request failed with ${response.status}`);
+
+        const profile = await response.json() as AuthUser;
+        if (requestId !== requestIdRef.current) return null;
+
+        persistUser(localStorage, profile);
+        setUser(profile);
+        setToken(authToken);
+        return profile;
+      } catch (cause) {
+        if (requestId !== requestIdRef.current) return null;
 
         // A temporary profile failure must not silently sign out a valid cached session.
         setUser(cachedUser);

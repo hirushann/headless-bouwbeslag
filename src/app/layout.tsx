@@ -4,7 +4,6 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Toaster } from "react-hot-toast";
-import { getShippingSettings, getShippingRules } from "@/lib/woocommerce";
 import { UserProvider } from "@/context/UserContext";
 import { ProductAddedModalProvider } from "@/context/ProductAddedModalContext";
 import ProductAddedModalWrapper from "@/components/ProductAddedModalWrapper";
@@ -33,6 +32,13 @@ export default function RootLayout({
   return (
     <html lang="nl" data-theme="light">
       <head>
+        <link
+          rel="preload"
+          href="/fonts/dm-sans-latin.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
       </head>
       <body className="font-sans antialiased overflow-visible">
         <Toaster position="top-right" />
@@ -46,15 +52,26 @@ export default function RootLayout({
 
         <Footer />
 
-        <Script id="gtm-init" strategy="lazyOnload">
-          {`window.dataLayer = window.dataLayer || [];
-window.dataLayer.push({'gtm.start': new Date().getTime(), event: 'gtm.js'});`}
+        <Script id="deferred-gtm" strategy="afterInteractive">
+          {`(function(w,d,l,i){
+  w[l]=w[l]||[];
+  w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});
+  var loaded=false;
+  var events=['pointerdown','keydown','touchstart','scroll'];
+  function load(){
+    if(loaded)return;
+    loaded=true;
+    clearTimeout(timer);
+    events.forEach(function(event){w.removeEventListener(event,load);});
+    var script=d.createElement('script');
+    script.async=true;
+    script.src='https://www.googletagmanager.com/gtm.js?id='+i;
+    d.head.appendChild(script);
+  }
+  events.forEach(function(event){w.addEventListener(event,load,{once:true,passive:true});});
+  var timer=setTimeout(load,6000);
+})(window,document,'dataLayer','GTM-NBGNBVR3');`}
         </Script>
-        <Script
-          id="gtm-script"
-          src="https://www.googletagmanager.com/gtm.js?id=GTM-NBGNBVR3"
-          strategy="lazyOnload"
-        />
       </body>
     </html>
   );

@@ -2,107 +2,56 @@
 
 import Script from "next/script";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 
 import Link from "next/link";
 import { useCartStore } from "@/lib/cartStore";
 import { useUserContext } from "@/context/UserContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { getDeliveryInfo } from "@/lib/deliveryUtils";
-import type { CartItemId } from "@/lib/cart-state";
 
-import { ShippingMethod, ShippingRule } from "@/lib/woocommerce";
+import type { ShippingMethod, ShippingRule } from "@/lib/woocommerce";
 import SearchAutosuggest from "./SearchAutosuggest";
 import WebwinkelKeurWidget from "./WebwinkelKeurWidget";
-import CartDrawer from "./CartDrawer";
 import MobileMenu from "./MobileMenu";
+
+const CartDrawer = dynamic(() => import("./CartDrawer"), { ssr: false });
 
 export default function Header() {
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
   const [shippingRules, setShippingRules] = useState<ShippingRule[]>([]);
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-    fetch('/api/shipping')
-      .then(res => res.json())
-      .then(data => {
-        setShippingMethods(data.settings || []);
-        setShippingRules(data.rules || []);
-      })
-      .catch(err => console.error("Failed to fetch shipping settings", err));
-  }, []);
+  const [hasOpenedCart, setHasOpenedCart] = useState(false);
+  const shippingRequestedRef = useRef(false);
 
   const items = useCartStore((state) => state.items);
   const isCartOpen = useCartStore((state) => state.isCartOpen);
   const setCartOpen = useCartStore((state) => state.setCartOpen);
   const hasHydrated = useCartStore((state) => state.hasHydrated);
 
+  useEffect(() => {
+    if (!isCartOpen || shippingRequestedRef.current) return;
+
+    shippingRequestedRef.current = true;
+    fetch('/api/shipping')
+      .then(res => {
+        if (!res.ok) throw new Error(`Shipping request failed with ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        setShippingMethods(data.settings || []);
+        setShippingRules(data.rules || []);
+      })
+      .catch(err => {
+        shippingRequestedRef.current = false;
+        console.error("Failed to fetch shipping settings", err);
+      });
+  }, [isCartOpen]);
+
   // Prevent hydration mismatch by defaulting to 0 items during SSR
   const totalQty = hasHydrated ? items.reduce((sum, i) => sum + i.quantity, 0) : 0;
-  const lengthFreightCost = useCartStore((state) => state.lengthFreightCost());
-
-  const { userRole, isB2B, isAuthenticated, signOut } = useUserContext();
+  const { isB2B, isAuthenticated, signOut } = useUserContext();
 
   const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
-
-  const subtotal = hasHydrated ? items.reduce(
-    (sum, item) => {
-      const displayedItemPrice = isB2B ? item.price : item.price * 1.21;
-      return sum + displayedItemPrice * item.quantity;
-    },
-    0
-  ) : 0;
-
-  // Derive simple settings for sidecart display (defaulting to Flat Rate)
-  let flatRate = 0;
-  let freeShippingThreshold: number | null = null;
-
-  if (shippingMethods && Array.isArray(shippingMethods)) {
-    const flatMethod = shippingMethods.find(m => m.methodId === 'flat_rate' && m.enabled);
-    if (flatMethod) flatRate = flatMethod.cost;
-
-    const freeMethod = shippingMethods.find(m => m.methodId === 'free_shipping' && m.enabled);
-    // Logic for free shipping threshold if we saved it in the method object (we did in getShippingMethods as 'minAmount')
-    // TypeScript might complain if ShippingMethod interface doesn't have minAmount optional.
-    // Let's check woocommerce.ts interface. I pushed it with `...(method.method_id === "free_shipping" && { ... })` casting as any.
-    // So accessing it as any or explicitly.
-    if (freeMethod) {
-      const m = freeMethod as any;
-      if (m.requires === 'min_amount' || m.requires === 'either') {
-        freeShippingThreshold = parseFloat(m.minAmount || '0');
-      } else if (m.requires === '') {
-        freeShippingThreshold = 0;
-      }
-    }
-  }
-
-  const hasLengthFreight = items.some(i => i.hasLengthFreight);
-
-  const isFreeShipping =
-    freeShippingThreshold !== null && subtotal >= freeShippingThreshold;
-
-  // If Length Freight applies, shipping is the freight cost (Ex VAT).
-  const shipping = hasLengthFreight ? (lengthFreightCost / 1.21) : (isFreeShipping ? 0 : flatRate);
-  const displayShipping = isB2B ? shipping : shipping * 1.21;
-
-  const increaseQuantity = (id: CartItemId) => {
-    const item = useCartStore.getState().items.find((i) => String(i.id) === String(id));
-    if (item) {
-      useCartStore.getState().updateQty(id, item.quantity + 1);
-    }
-  };
-
-  const decreaseQuantity = (id: CartItemId) => {
-    const item = useCartStore.getState().items.find((i) => String(i.id) === String(id));
-    if (item && item.quantity > 1) {
-      useCartStore.getState().updateQty(id, item.quantity - 1);
-    }
-  };
-
-  const removeItem = (id: CartItemId) => {
-    useCartStore.getState().removeItem(id);
-  };
 
   useEffect(() => {
     if (isCartOpen) {
@@ -113,11 +62,11 @@ export default function Header() {
   }, [isCartOpen]);
 
   const router = useRouter();
-  const handleCheckoutRedirect = () => {
-    if (items.length === 0) return;
-    setCartOpen(false);
-    router.push("/checkout");
+  const handleOpenCart = () => {
+    setHasOpenedCart(true);
+    setCartOpen(true);
   };
+
   // Load external scripts (WebwinkelKeur) only on user interaction to avoid forced reflows and performance penalties
   const [loadExternalScripts, setLoadExternalScripts] = useState(false);
   useEffect(() => {
@@ -182,7 +131,7 @@ export default function Header() {
 
         <div className="transition-all duration-300 bg-[#F7F7F7] w-full border-b border-gray-200">
           <div className="max-w-[1440px] mx-auto flex justify-between items-center pt-4.5 pb-1 lg:py-4 font-sans px-2 lg:px-0">
-            <Link prefetch={true} href="/">
+            <Link prefetch={false} href="/">
               <Image
                 src="/logo.webp"
                 alt="Bouwbeslag Logo"
@@ -199,7 +148,7 @@ export default function Header() {
               <div className="flex">
                 <div className="indicator">
                   <span className="indicator-item badge badge-secondary text-xs font-bold bg-blue-800 rounded-full border-0 text-white">{totalQty}</span>
-                  <button onClick={() => setCartOpen(true)} className="cursor-pointer btn btn-ghost p-0 bg-transparent m-0 relative hover:bg-transparent focus:bg-transparent active:bg-transparent hover:border-0" aria-label="Open cart">
+                  <button onClick={handleOpenCart} className="cursor-pointer btn btn-ghost p-0 bg-transparent m-0 relative hover:bg-transparent focus:bg-transparent active:bg-transparent hover:border-0" aria-label="Open cart">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-7 lg:size-8">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
                     </svg>
@@ -262,7 +211,7 @@ export default function Header() {
           <MobileMenu />
           <div className="max-w-[1440px] relative mx-auto hidden lg:flex justify-between items-center">
             <div className="flex justify-start items-center">
-              <Link prefetch={true} href="/categories">
+              <Link prefetch={false} href="/categories">
                 <div className="bg-[#0066FF] flex gap-1 py-4 px-5 w-max items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="25" height="25" fill="#ffffff"><path d="M96 96C113.7 96 128 110.3 128 128L128 464C128 472.8 135.2 480 144 480L544 480C561.7 480 576 494.3 576 512C576 529.7 561.7 544 544 544L144 544C99.8 544 64 508.2 64 464L64 128C64 110.3 78.3 96 96 96zM192 160C192 142.3 206.3 128 224 128L416 128C433.7 128 448 142.3 448 160C448 177.7 433.7 192 416 192L224 192C206.3 192 192 177.7 192 160zM224 240L352 240C369.7 240 384 254.3 384 272C384 289.7 369.7 304 352 304L224 304C206.3 304 192 289.7 192 272C192 254.3 206.3 240 224 240zM224 352L480 352C497.7 352 512 366.3 512 384C512 401.7 497.7 416 480 416L224 416C206.3 416 192 401.7 192 384C192 366.3 206.3 352 224 352z" /></svg>
                   <span className="text-white font-normal text-sm">
@@ -271,34 +220,34 @@ export default function Header() {
                 </div>
               </Link>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <Link prefetch={true} href="/deurklink">
+                <Link prefetch={false} href="/deurklink">
                   <span className="text-white font-normal text-sm">Deurklink</span>
                 </Link>
               </div>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <Link prefetch={true} href="/cilinder">
+                <Link prefetch={false} href="/cilinder">
                   <span className="text-white font-normal text-sm">Cilinder</span>
                 </Link>
               </div>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <Link prefetch={true} href="/tochtstrip">
+                <Link prefetch={false} href="/tochtstrip">
                   <span className="text-white font-normal text-sm">Tochtstrip</span>
                 </Link>
               </div>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <Link prefetch={true} href="/deurbeslag/deurstopper">
+                <Link prefetch={false} href="/deurbeslag/deurstopper">
                   <span className="text-white font-normal text-sm">Deurstopper</span>
                 </Link>
               </div>
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <Link prefetch={true} href="/deurbeslag">
+                <Link prefetch={false} href="/deurbeslag">
                   <span className="text-white font-normal text-sm">Deurbeslag</span>
                 </Link>
               </div>
             </div>
             <div className="flex justify-start items-center">
               <div className="flex gap-1 py-4 px-5 w-max items-center">
-                <Link prefetch={true} href="/kennisbank">
+                <Link prefetch={false} href="/kennisbank">
                   <span className="text-white font-normal text-sm cursor-pointer">Kennisbank</span>
                 </Link>
               </div>
@@ -307,7 +256,7 @@ export default function Header() {
         </div>
       </div>
 
-      {isMounted && (
+      {hasOpenedCart && (
         <CartDrawer
           isB2B={!!isB2B}
           taxLabel={taxLabel}

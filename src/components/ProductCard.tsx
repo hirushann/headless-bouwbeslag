@@ -171,7 +171,7 @@ export default function ProductCard({ product, userRole: propUserRole, useCatego
 
   return (
     <div className="snap-start shrink-0 w-[100%] border border-[#E2E2E2] rounded-sm shadow-sm bg-[#F7F7F7] flex flex-col h-full">
-      <Link prefetch={true} href={`/${product.slug}`} className="relative h-32 lg:h-48 bg-white rounded-tl-lg rounded-tr-lg overflow-hidden flex items-center justify-center">
+      <Link prefetch={false} href={`/${product.slug}`} className="relative h-32 lg:h-48 bg-white rounded-tl-lg rounded-tr-lg overflow-hidden flex items-center justify-center">
         {isFetchingImg ? (
           <div className="w-full h-full bg-gray-100 animate-pulse" />
         ) : targetImgSrc ? (
@@ -208,7 +208,7 @@ export default function ProductCard({ product, userRole: propUserRole, useCatego
       </Link>
 
       <div className="p-2 lg:p-4 flex flex-col flex-1">
-        <Link prefetch={true} href={`/${product.slug}`} className="text-base lg:text-lg font-medium mb-1 line-clamp-3 text-[#1C2530] min-h-[60px]">
+        <Link prefetch={false} href={`/${product.slug}`} className="text-base lg:text-lg font-medium mb-1 line-clamp-3 text-[#1C2530] min-h-[60px]">
           {productTitle}
         </Link>
 
