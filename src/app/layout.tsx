@@ -9,6 +9,7 @@ import { UserProvider } from "@/context/UserContext";
 import { Suspense } from "react";
 import { ProductAddedModalProvider } from "@/context/ProductAddedModalContext";
 import ProductAddedModalWrapper from "@/components/ProductAddedModalWrapper";
+import HeaderWrapper from "@/components/HeaderWrapper";
 
 const dmsans = DM_Sans({
   variable: "--font-dm-sans",
@@ -35,64 +36,28 @@ export const viewport = {
   maximumScale: 1,
 };
 
-import Script from "next/script";
+import { GoogleTagManager, GoogleAnalytics } from "@next/third-parties/google";
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const shippingSettings = await getShippingSettings();
-  const shippingRules = await getShippingRules();
 
   return (
     <html lang="nl" data-theme="light">
       <head>
-        {/* Google Tag Manager */}
-        <Script
-          id="google-tag-manager"
-          strategy="lazyOnload"
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-              new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-              j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-              'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-              })(window,document,'script','dataLayer','GTM-NBGNBVR3');
-            `,
-          }}
-        />
-        <Script
-          strategy="lazyOnload"
-          src="https://www.googletagmanager.com/gtag/js?id=G-F21GZC6NGG"
-        />
-        <Script
-          id="google-analytics"
-          strategy="lazyOnload"
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'G-F21GZC6NGG');
-            `,
-          }}
-        />
       </head>
       <body className={`${dmsans.variable} ${geistMono.variable} font-sans antialiased overflow-visible`} >
-        {/* Google Tag Manager (noscript) */}
-        <noscript>
-          <iframe 
-            src="https://www.googletagmanager.com/ns.html?id=GTM-NBGNBVR3"
-            height="0" 
-            width="0" 
-            style={{ display: "none", visibility: "hidden" }}
-          />
-        </noscript>
+        <GoogleTagManager gtmId="GTM-NBGNBVR3" />
+        <GoogleAnalytics gaId="G-F21GZC6NGG" />
+
         <Toaster position="top-right" />
         <UserProvider>
           <ProductAddedModalProvider>
-            <Header shippingMethods={shippingSettings} shippingRules={shippingRules} />
+            <Suspense fallback={<div className="w-full h-[88px] bg-white border-b border-gray-100" />}>
+              <HeaderWrapper />
+            </Suspense>
             {children}
             <ProductAddedModalWrapper />
           </ProductAddedModalProvider>

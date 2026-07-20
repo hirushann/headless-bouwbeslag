@@ -38,7 +38,7 @@ export async function generateMetadata(
         description: seoDescription,
         type: "article",
         url: `${siteUrl}/kennisbank/${slug}`,
-        images: image ? [{ url: image }] : [],
+        images: image ? [{ url: image, width: 1200, height: 630 }] : [],
       },
     };
   } catch {
