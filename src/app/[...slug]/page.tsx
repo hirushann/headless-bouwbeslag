@@ -168,7 +168,7 @@ const getPageData = cache(async (slugArray: string[]) => {
   return { product: null, category: null };
 });
 
-export const fetchTermsForAttribute = cache(async (attributeId: number): Promise<AttributeTerm[]> => {
+const fetchTermsForAttribute = cache(async (attributeId: number): Promise<AttributeTerm[]> => {
   try {
     const res = await api.get(`products/attributes/${attributeId}/terms`, {
         per_page: 100,
@@ -181,7 +181,7 @@ export const fetchTermsForAttribute = cache(async (attributeId: number): Promise
   }
 });
 
-export const fetchAttributes = cache(async (): Promise<Attribute[]> => {
+const fetchAttributes = cache(async (): Promise<Attribute[]> => {
   try {
     const res = await api.get("products/attributes", { 
         per_page: 100,
