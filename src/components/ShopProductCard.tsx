@@ -13,7 +13,21 @@ import { fixImageSrc } from "@/lib/image-utils";
 
 const globalMediaCache: Record<string, string> = {};
 
-export default function ShopProductCard({ product, useCategoryImage = false }: { product: any; useCategoryImage?: boolean }) {
+export default function ShopProductCard({
+  product,
+  useCategoryImage = false,
+  imagePriority = false,
+  imageEager = false,
+  imageFetchPriority = "auto",
+  imageQuality = 75,
+}: {
+  product: any;
+  useCategoryImage?: boolean;
+  imagePriority?: boolean;
+  imageEager?: boolean;
+  imageFetchPriority?: "high" | "low" | "auto";
+  imageQuality?: number;
+}) {
   // Format price safely (remove weird HTML entities)
   const cleanPrice = (price: string) =>
     price?.replace(/&#[0-9]+;|&[a-z]+;/gi, "").trim();
@@ -120,6 +134,14 @@ export default function ShopProductCard({ product, useCategoryImage = false }: {
   const { userRole, isB2B } = useUserContext();
   const { openModal } = useProductAddedModal();
 
+  const imageLoadingProps = imagePriority
+    ? { priority: true, fetchPriority: "high" as const, decoding: "sync" as const }
+    : {
+        loading: imageEager ? ("eager" as const) : ("lazy" as const),
+        fetchPriority: imageFetchPriority,
+        decoding: "async" as const,
+      };
+
   
 
   // Unified pricing logic
@@ -183,8 +205,10 @@ export default function ShopProductCard({ product, useCategoryImage = false }: {
             src={fixImageSrc(targetImgSrc)} 
             alt={productTitle} 
             fill
+            quality={imageQuality}
             sizes="(max-width: 768px) 150px, 300px"
             className="object-contain p-2" 
+            {...imageLoadingProps}
             onError={() => {
               const fallbackSrc = getProductImageSrc();
               const fallback = fallbackSrc || "/default-fallback-image.webp";
@@ -198,8 +222,10 @@ export default function ShopProductCard({ product, useCategoryImage = false }: {
             src="/default-fallback-image.webp" 
             alt={productTitle} 
             fill
+            quality={imageQuality}
             sizes="(max-width: 768px) 150px, 300px"
             className="object-contain p-2 opacity-50" 
+            {...imageLoadingProps}
           />
         )}
 

@@ -1354,9 +1354,15 @@ export default function CategoryClient({
             ) : (
               <div className="flex flex-col w-full">
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 lg:gap-6">
-                  {products.map((product) => (
+                  {products.map((product, index) => (
                     <div key={product.id} className="h-full">
-                      <ShopProductCard product={product} useCategoryImage={true} />
+                      <ShopProductCard
+                        product={product}
+                        useCategoryImage={true}
+                        imagePriority={index === 0}
+                        imageEager={index < 4}
+                        imageQuality={65}
+                      />
                     </div>
                   ))}
                 </div>
