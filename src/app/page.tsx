@@ -50,15 +50,59 @@ export const metadata: Metadata = {
 import { Suspense } from "react";
 
 // Async data components
+const stripProductForCarousel = (p: any) => {
+  if (!p) return p;
+  
+  const allowedMetaKeys = [
+    "crucial_data_delivery_if_stock",
+    "crucial_data_delivery_if_no_stock",
+    "crucial_data_total_stock"
+  ];
+  
+  const strippedMetaData = Array.isArray(p.meta_data) 
+    ? p.meta_data.filter((m: any) => allowedMetaKeys.includes(m.key))
+    : [];
+    
+  return {
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+    price: p.price,
+    regular_price: p.regular_price,
+    price_b2b: p.price_b2b,
+    price_b2c: p.price_b2c,
+    meta_data: strippedMetaData,
+    images: Array.isArray(p.images) && p.images.length > 0 ? [p.images[0]] : [],
+    brands: p.brands,
+    stock_status: p.stock_status,
+    stock_quantity: p.stock_quantity,
+    attributes: p.attributes,
+  };
+};
+
+const stripCategoryForSidebar = (c: any) => {
+  if (!c) return c;
+  return {
+    id: c.id,
+    name: c.name,
+    slug: c.slug,
+    parent: c.parent,
+    count: c.count,
+    image: c.image,
+  };
+};
+
 async function BestSellersSection() {
   const { products } = await fetchMeiliProducts(10);
-  return <BestSellersCarousel products={products.map(mapMeiliToWooProduct)} />;
+  const mapped = products.map(mapMeiliToWooProduct).map(stripProductForCarousel);
+  return <BestSellersCarousel products={mapped} />;
 }
 
 async function RecommendedSection() {
   const { products } = await fetchMeiliProducts(10, 10);
   if (products.length === 0) return null;
-  return <RecommendedCarousel products={products.map(mapMeiliToWooProduct)} />;
+  const mapped = products.map(mapMeiliToWooProduct).map(stripProductForCarousel);
+  return <RecommendedCarousel products={mapped} />;
 }
 
 async function CategoriesSection() {
@@ -109,8 +153,9 @@ async function BlogSection() {
 
 // Extraction for Categories Sidebar to handle its own fetching
 async function SidebarSection() {
-    const categories = await fetchCategories();
-    return <CategoriesSidebar categories={categories} />;
+  const categories = await fetchCategories();
+  const mapped = (categories || []).map(stripCategoryForSidebar);
+  return <CategoriesSidebar categories={mapped} />;
 }
 
 // Component to handle Category Grid logic
@@ -128,6 +173,7 @@ function CategoriesDisplay({ categories }: { categories: any[] }) {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
           {(Array.isArray(categories) ? categories : [])
             .filter((cat: any) => cat.parent === 0)
+            .slice(0, 10)
             .map((cat: any) => {
               const displayName = cat.name.includes(" > ") ? cat.name.split(" > ").pop()?.trim() : cat.name;
               const imgSrc = typeof cat.image === 'string' ? cat.image : cat.image?.src;
