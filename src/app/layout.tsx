@@ -12,11 +12,13 @@ import ProductAddedModalWrapper from "@/components/ProductAddedModalWrapper";
 const dmsans = DM_Sans({
   variable: "--font-dm-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
