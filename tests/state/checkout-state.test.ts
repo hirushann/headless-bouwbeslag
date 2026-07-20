@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { calculateCheckoutTotals, calculateCouponDiscount, createSubmissionGuard, resolveCouponValidation, resolveOrderVerification } from "../../src/lib/checkout-state.ts";
+import { resolveMollieOrderOutcome } from "../../src/lib/mollie-payment-state.ts";
 
 test("applying and removing percentage coupons updates totals immediately", () => {
   const applied = resolveCouponValidation({
@@ -60,4 +61,14 @@ test("backend and payment failures never resolve to a success screen", () => {
   });
   assert.equal(resolveOrderVerification({ success: true, status: "failed" }).clearCart, false);
   assert.equal(resolveOrderVerification({ success: true, status: "processing" }).clearCart, true);
+});
+
+test("only a paid Mollie status makes an order processable", () => {
+  assert.equal(resolveMollieOrderOutcome("paid"), "processing");
+  assert.equal(resolveMollieOrderOutcome("canceled"), "cancelled");
+  assert.equal(resolveMollieOrderOutcome("failed"), "failed");
+  assert.equal(resolveMollieOrderOutcome("expired"), "failed");
+  assert.equal(resolveMollieOrderOutcome("open"), "pending");
+  assert.equal(resolveMollieOrderOutcome("pending"), "pending");
+  assert.equal(resolveMollieOrderOutcome("authorized"), "pending");
 });
