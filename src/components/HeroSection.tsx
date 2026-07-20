@@ -1,4 +1,5 @@
 import Image from "next/image";
+import heroImage from "../../public/hero-lcp.webp";
 
 export default function HeroSection() {
   return (
@@ -31,15 +32,14 @@ export default function HeroSection() {
       <div className="w-full lg:w-1/2 lg:h-full flex items-center justify-center">
         <Image
           className="w-full h-auto max-h-[300px] lg:h-full lg:max-h-none lg:object-contain lg:object-right rotate-340"
-          src="/herobg.webp"
+          src={heroImage}
           alt="Hero"
           width={600}
           height={400}
           priority
           fetchPriority="high"
-          decoding="async"
-          quality={65}
-          sizes="(max-width: 768px) 100vw, 37vw"
+          decoding="sync"
+          unoptimized
         />
       </div>
     </div>
