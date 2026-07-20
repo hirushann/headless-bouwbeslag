@@ -6,7 +6,6 @@ import api from "@/lib/woocommerce";
 import ShopProductCard from "@/components/ShopProductCard";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import CategoryBreadcrumbs from "@/components/CategoryBreadcrumbs";
 import DualRangeSlider from "@/components/DualRangeSlider";
 import { COLOR_MAP } from "@/config/colorMap";
@@ -260,12 +259,7 @@ function FilterAttributeGroup({
       </button>
 
       {isOpen && (
-        <motion.div 
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: "auto", opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          className="flex flex-col gap-2 text-sm text-gray-700 mt-2"
-        >
+        <div className="flex flex-col gap-2 text-sm text-gray-700 mt-2">
           {visibleTerms.map((term: AttributeTerm) => {
             const isSelected = selectedFilters[attr.id]?.has(term.id) || false;
             const isDisabled = term.count === 0 && !isSelected;
@@ -296,7 +290,7 @@ function FilterAttributeGroup({
               {showAll ? "Toon minder" : `Toon meer (${attr.terms.length - 5})`}
             </button>
           )}
-        </motion.div>
+        </div>
       )}
     </div>
   );
@@ -336,27 +330,12 @@ function SubCategoryGrid({
 }
 
 function FilterSidebarSkeleton() {
-  const shimmer = "bg-gradient-to-r from-gray-200 via-gray-50 to-gray-200 bg-[length:400%_100%] animate-[shimmer_1.6s_ease-in-out_infinite]";
   return (
     <aside className="w-full lg:w-1/4">
-      <div className="hidden lg:block bg-white rounded-lg shadow-sm border border-gray-100 p-4">
-        {[
-          { title: 0.4, items: [0.7, 0.55, 0.8] },
-          { title: 0.35, items: [0.6, 0.75, 0.5, 0.65, 0.8] },
-          { title: 0.45, items: [0.7, 0.6, 0.5] },
-          { title: 0.38, items: [0.55, 0.7, 0.65, 0.6] },
-        ].map((group, gi) => (
-          <div key={gi} className={`mb-5 pb-5 ${gi < 3 ? "border-b border-gray-100" : ""}`}>
-            <div className={`h-5 rounded mb-4 ${shimmer}`} style={{ width: `${group.title * 100}%`, animationDelay: `${gi * 0.1}s` }} />
-            {group.items.map((w, ii) => (
-              <div key={ii} className="flex items-center gap-3 mb-3">
-                <div className={`w-5 h-5 rounded-sm flex-shrink-0 ${shimmer}`} style={{ animationDelay: `${(gi * 3 + ii) * 0.06}s` }} />
-                <div className={`h-3.5 rounded ${shimmer}`} style={{ width: `${w * 100}%`, animationDelay: `${(gi * 3 + ii) * 0.06}s` }} />
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
+      <div
+        className="hidden lg:block min-h-[640px] bg-white rounded-lg shadow-sm border border-gray-100"
+        aria-hidden="true"
+      />
     </aside>
   );
 }
@@ -705,11 +684,7 @@ function FilterSidebar({
               </svg>
             </button>
             {isBrandOpen && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                className="mt-3 flex flex-col gap-2 overflow-hidden"
-              >
+              <div className="mt-3 flex flex-col gap-2 overflow-hidden">
                 {availableBrands.map(b => (
                   <label key={b.id} className="flex items-center gap-2 cursor-pointer py-1 group">
                     <input
@@ -724,7 +699,7 @@ function FilterSidebar({
                     </span>
                   </label>
                 ))}
-              </motion.div>
+              </div>
             )}
           </div>
         )}
@@ -751,11 +726,7 @@ function FilterSidebar({
               </svg>
             </button>
             {isColorOpen && colorAttribute && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                className="mt-3"
-              >
+              <div className="mt-3">
                 <div className="flex flex-wrap gap-2.5">
                   {(showAllColors ? sortedColorTerms : sortedColorTerms.slice(0, 10)).map(term => {
                     const isSelected = selectedFilters[colorAttribute.id]?.has(term.id);
@@ -781,7 +752,7 @@ function FilterSidebar({
                     {showAllColors ? "Toon minder" : `Toon meer (${sortedColorTerms.length - 10})`}
                   </button>
                 )}
-              </motion.div>
+              </div>
             )}
           </div>
         )}
@@ -809,18 +780,14 @@ function FilterSidebar({
               </svg>
             </button>
             {isPriceOpen && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                className="mt-3 px-1"
-              >
+              <div className="mt-3 px-1">
                 <DualRangeSlider 
                   min={priceBounds.min} 
                   max={priceBounds.max} 
                   value={priceRange ?? [priceBounds.min, priceBounds.max]} 
                   onChange={setPriceRange} 
                 />
-              </motion.div>
+              </div>
             )}
           </div>
         )}
@@ -848,18 +815,14 @@ function FilterSidebar({
               </svg>
             </button>
             {isAfdichtOpen && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                className="mt-3 px-1"
-              >
+              <div className="mt-3 px-1">
                 <DualRangeSlider 
                   min={afdichtspleetBounds.min} 
                   max={afdichtspleetBounds.max} 
                   value={afdichtingsspleetRange ?? [afdichtspleetBounds.min, afdichtspleetBounds.max]} 
                   onChange={setAfdichtingsspleetRange} 
                 />
-              </motion.div>
+              </div>
             )}
           </div>
         )}
@@ -886,18 +849,14 @@ function FilterSidebar({
               </svg>
             </button>
             {isGroefOpen && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                className="mt-3 px-1"
-              >
+              <div className="mt-3 px-1">
                 <DualRangeSlider 
                   min={groefbreedteBounds.min} 
                   max={groefbreedteBounds.max} 
                   value={groefbreedteRange ?? [groefbreedteBounds.min, groefbreedteBounds.max]} 
                   onChange={setGroefbreedteRange} 
                 />
-              </motion.div>
+              </div>
             )}
           </div>
         )}
@@ -1360,7 +1319,6 @@ export default function CategoryClient({
                         product={product}
                         useCategoryImage={true}
                         imagePriority={index === 0}
-                        imageEager={index < 4}
                         imageQuality={65}
                       />
                     </div>
