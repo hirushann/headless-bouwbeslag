@@ -3,7 +3,7 @@ import Image from "next/image";
 export default function HeroSection() {
   return (
     <div className="w-full lg:w-[74%] lg:h-[80vh] bg-[linear-gradient(270deg,#1422AC_0%,#00074B_100.82%)] lg:rounded-sm overflow-hidden relative flex flex-col-reverse lg:flex-row items-center gap-12 py-12 lg:gap-0 lg:py-0">
-      <div className="lg:w-1/2 px-5 lg:px-0 lg:pl-12 flex flex-col gap-3">
+      <div className="w-full lg:w-1/2 px-5 lg:px-0 lg:pl-12 flex flex-col gap-3">
         <h1 className="text-white font-bold text-[32px] lg:text-6xl leading-[120%]">
           Uitstekend gedetailleerd ontwerp!
         </h1>
@@ -28,9 +28,9 @@ export default function HeroSection() {
         </button>
       </div>
 
-      <div className="lg:w-1/2 flex items-center justify-center">
+      <div className="w-full lg:w-1/2 lg:h-full flex items-center justify-center">
         <Image
-          className="w-full h-auto max-h-[300px] lg:w-full lg:h-full lg:object-contain lg:object-right rotate-340"
+          className="w-full h-auto max-h-[300px] lg:h-full lg:max-h-none lg:object-contain lg:object-right rotate-340"
           src="/herobg.webp"
           alt="Hero"
           width={600}

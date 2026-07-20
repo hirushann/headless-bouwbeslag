@@ -9,7 +9,9 @@
   font-family: "DM Sans";
   font-style: normal;
   font-weight: 100 1000;
-  font-display: swap;
+  /* Keep slow first visits on the metric-compatible fallback instead of
+     swapping after paint and moving the hero text. */
+  font-display: optional;
   src: url("/fonts/dm-sans-latin.woff2") format("woff2");
 }
 @font-face {
