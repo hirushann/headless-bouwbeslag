@@ -16,21 +16,55 @@ interface WebwinkelKeurWidgetProps {
   variant?: "header" | "footer";
 }
 
+const DEFAULT_RATING: RatingData = {
+  status: "success",
+  data: {
+    amount: 185,
+    rating_average: 10,
+  },
+};
+
+let ratingRequest: Promise<RatingData | null> | null = null;
+
+function refreshRating() {
+  if (!ratingRequest) {
+    ratingRequest = fetch("/api/webwinkelkeur")
+      .then((response) => {
+        if (!response.ok) throw new Error(`Rating request failed with ${response.status}`);
+        return response.json() as Promise<RatingData>;
+      })
+      .then((response) => response.status === "success" ? response : null)
+      .catch(() => null);
+  }
+
+  return ratingRequest;
+}
+
 export default function WebwinkelKeurWidget({ variant = "header" }: WebwinkelKeurWidgetProps) {
-  const [data, setData] = useState<RatingData | null>(null);
+  const [data, setData] = useState<RatingData>(DEFAULT_RATING);
 
   useEffect(() => {
-    fetch("/api/webwinkelkeur")
-      .then((res) => res.json())
-      .then((res) => {
-        if (res.status === "success") {
-          setData(res);
-        }
-      })
-      .catch((err) => console.error("Widget load error", err));
-  }, []);
+    let active = true;
+    const events = ["pointerdown", "keydown", "touchstart", "scroll"] as const;
 
-  if (!data) return null;
+    const removeListeners = () => {
+      events.forEach((event) => window.removeEventListener(event, handleInteraction));
+    };
+
+    const handleInteraction = () => {
+      removeListeners();
+      void refreshRating().then((rating) => {
+        if (active && rating) setData(rating);
+      });
+    };
+
+    events.forEach((event) => window.addEventListener(event, handleInteraction, { passive: true }));
+
+    return () => {
+      active = false;
+      removeListeners();
+    };
+  }, []);
 
   let score = data.data.rating_average;
   if (score <= 5) score = score * 2; // Normalize to 10 scale if needed
@@ -59,6 +93,7 @@ export default function WebwinkelKeurWidget({ variant = "header" }: WebwinkelKeu
             alt="WebwinkelKeur Logo" 
             width={48}
             height={48}
+            sizes="48px"
           />
         </div>
 
@@ -100,6 +135,7 @@ export default function WebwinkelKeurWidget({ variant = "header" }: WebwinkelKeu
           alt="WebwinkelKeur" 
           width={24}
           height={24}
+          sizes="24px"
         />
       </div>
 

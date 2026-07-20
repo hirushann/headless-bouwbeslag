@@ -31,7 +31,11 @@ const CategoryItem = ({ category, allCategories, parentPath = "" }: { category: 
   if (hasChildren) {
     return (
       <div className="collapse collapse-arrow !rounded-0 bg-transparent">
-        <input type="checkbox" className="min-h-0 py-0" />
+        <input
+          type="checkbox"
+          className="min-h-0 py-0"
+          aria-label={`Toon subcategorieën van ${displayName}`}
+        />
         <div className="collapse-title font-normal text-sm text-[#3D4752] py-3 min-h-0 flex items-center pr-4">
             <Link 
               prefetch={false}

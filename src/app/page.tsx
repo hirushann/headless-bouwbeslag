@@ -119,7 +119,7 @@ async function BlogSection() {
       <div className="flex justify-between items-center mb-2">
         <h2 className="text-xl lg:text-3xl font-bold text-[#1C2530]">Lees onze blog</h2>
         <div className="flex gap-2 items-center">
-          <a href="/kennisbank" className="border border-[#0066FF] text-[#0050D1] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">Bekijk alles</a>
+          <a href="/kennisbank" className="border border-[#0066FF] text-[#0050D1] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">Bekijk alle artikelen</a>
         </div>
       </div>
       <p className="text-[#3D4752] mb-8">Bekijk ons laatste artikel voor zinvolle inhoud of winkeltips</p>
@@ -165,7 +165,7 @@ function CategoriesDisplay({ categories }: { categories: any[] }) {
       <div className="flex justify-between items-center mb-2">
         <h2 className="text-lg lg:text-3xl font-bold text-[#1C2530]">Winkelen op categorie</h2>
         <div className="flex gap-2 items-center">
-          <a href="/categories" className="border border-[#0066FF] text-[#0050D1] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">Bekijk alles</a>
+          <a href="/categories" className="border border-[#0066FF] text-[#0050D1] uppercase rounded-sm px-4 py-2 font-semibold text-sm hover:text-white hover:bg-[#0066FF] cursor-pointer">Bekijk alle categorieën</a>
         </div>
       </div>
       <p className="text-[#3D4752] mb-8">Bekijk al onze categorieën om te vinden wat u nodig heeft</p>
@@ -241,34 +241,34 @@ export default async function Home() {
 
         <div className="hidden lg:flex gap-6 items-center font-sans mb-4">
           <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
-            <Image className="" src="/card1icon.webp" alt="" width={48} height={48} />
+            <Image className="h-12 w-12" src="/card1icon.webp" alt="" width={48} height={48} />
             <p className="text-[#1C2530] font-semibold text-lg">Gegarandeerd de beste prijs</p>
             <p className="text-[#3D4752] font-normal text-sm">Wij betalen zelf ook niet graag te veel. Op 95% van ons assortiment zit een beste prijs garantie. </p>
           </div>
           <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
-            <Image className="" src="/card2icon.webp" alt="" width={48} height={48} />
+            <Image className="h-12 w-12" src="/card2icon.webp" alt="" width={48} height={48} />
             <p className="text-[#1C2530] font-semibold text-lg">30 dagen retour</p>
             <p className="text-[#3D4752] font-normal text-sm">Tja, is dit nog een USP? Ook bij ons kun je spullen terugsturen als het niet is zoals je verwachtte.</p>
           </div>
           <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
-            <Image className="" src="/card3icon.webp" alt="" width={48} height={48} />
+            <Image className="h-12 w-12" src="/card3icon.webp" alt="" width={48} height={48} />
             <p className="text-[#1C2530] font-semibold text-lg">De beste service</p>
             <p className="text-[#3D4752] font-normal text-sm">Het begint bij de productinformatie: bij ons is die zo compleet mogelijk. Daarna nog vragen? Wij staan voor je klaar!</p>
           </div>
           <div className="shadow-[0px_20px_24px_0px_#0000000A] rounded-sm bg-white p-5 flex flex-col gap-2">
-            <Image className="" src="/card4icon.webp" alt="" width={48} height={48} />
+            <Image className="h-12 w-12" src="/card4icon.webp" alt="" width={48} height={48} />
             <p className="text-[#1C2530] font-semibold text-lg">Uitsluitend  A-merken</p>
             <p className="text-[#3D4752] font-normal text-sm">Er zijn genoeg sites waar je voor een tientje deurklinken koopt. Wij houden het liever bij merken die zich bewezen hebben.</p>
           </div>
         </div>
 
         {/* Best Sellers */}
-        <Suspense fallback={<div className="w-full h-[450px] bg-white rounded-sm animate-pulse flex flex-col p-5 gap-4"><div className="w-1/4 h-8 bg-gray-200 rounded" /><div className="w-full flex-1 bg-gray-100 rounded" /></div>}>
+        <Suspense fallback={<div className="hidden lg:flex w-full h-[450px] bg-white rounded-sm animate-pulse flex-col p-5 gap-4"><div className="w-1/4 h-8 bg-gray-200 rounded" /><div className="w-full flex-1 bg-gray-100 rounded" /></div>}>
           <BestSellersSection />
         </Suspense>
 
         {/* Recommended Products */}
-        <Suspense fallback={<div className="w-full h-[450px] bg-white rounded-sm animate-pulse flex flex-col p-5 gap-4"><div className="w-1/4 h-8 bg-gray-200 rounded" /><div className="w-full flex-1 bg-gray-100 rounded" /></div>}>
+        <Suspense fallback={<div className="hidden lg:flex w-full h-[450px] bg-white rounded-sm animate-pulse flex-col p-5 gap-4"><div className="w-1/4 h-8 bg-gray-200 rounded" /><div className="w-full flex-1 bg-gray-100 rounded" /></div>}>
           <RecommendedSection />
         </Suspense>
 

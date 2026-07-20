@@ -259,9 +259,9 @@ export default function ShopProductCard({ product, useCategoryImage = false }: {
             );
 
             // Determine color based on type (matching ProductPage/Cart logic)
-            let colorClass = "text-[#03B955]"; // Green (In stock)
-            if (deliveryInfo.type === "PARTIAL_STOCK") colorClass = "text-[#B28900]"; // Amber
-            else if (deliveryInfo.type === "BACKORDER" || deliveryInfo.type === "OUT_OF_STOCK") colorClass = "text-[#FF5E00]"; // Orange/Red
+            let colorClass = "text-[#027A48]"; // Accessible green (In stock)
+            if (deliveryInfo.type === "PARTIAL_STOCK") colorClass = "text-[#8A6500]"; // Accessible amber
+            else if (deliveryInfo.type === "BACKORDER" || deliveryInfo.type === "OUT_OF_STOCK") colorClass = "text-[#B93815]"; // Accessible orange/red
 
             return (
               <p className={`${colorClass} text-xs font-semibold`}>
