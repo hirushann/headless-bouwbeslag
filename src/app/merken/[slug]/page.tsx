@@ -144,7 +144,7 @@ export default async function BrandPage({ params, searchParams }: { params: Prom
                 )}
             </div>
             <div className="flex-1">
-                <h1 className="text-3xl font-bold mb-4 text-gray-900">{brand.name}</h1>
+                <h1 className="text-3xl font-bold mb-4 text-gray-900">{brand.h1_title || brand.name}</h1>
                 <div 
                     className="prose prose-sm max-w-none text-gray-600"
                     dangerouslySetInnerHTML={{ 

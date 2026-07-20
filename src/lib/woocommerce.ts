@@ -217,7 +217,7 @@ const resolveBrandLogo = async (brand: Brand): Promise<Brand> => {
 
 export const getBrands = async (): Promise<Brand[]> => {
     try {
-        const res = await fetch(`${EMPIRE_BASE_URL}/api/brands`, {
+        const res = await fetch(`${EMPIRE_BASE_URL}/api/brands?bust=1`, {
             next: { revalidate: 3600, tags: BOUWBESLAG_CONTENT_TAGS }
         });
         if (!res.ok) return [];
@@ -318,6 +318,7 @@ export interface Brand {
     slug: string;
     description: string;
     count: number;
+    h1_title?: string;
     acf?: {
         brand_logo?: string | number | { url: string };
         brand_description?: string;

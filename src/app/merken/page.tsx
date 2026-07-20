@@ -16,46 +16,7 @@ export const metadata: Metadata = {
 export default async function BrandsPage() {
     const brands = await getBrands();
     
-    // Fetch product counts per brand from Meilisearch
-    let brandCounts: Record<string, number> = {};
-    try {
-        const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST || 'https://ezearch.dayzsolutions.com';
-        const MEILISEARCH_KEY = process.env.MEILISEARCH_KEY || '';
-        const MEILI_INDEX = process.env.MEILISEARCH_BOUWBESLAG_PRODUCTS_INDEX || 'empire-bouwbeslag-products';
-        
-        const res = await fetch(`${MEILISEARCH_HOST}/indexes/${MEILI_INDEX}/search`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${MEILISEARCH_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ q: '', limit: 0, facets: ['brand_name'] }),
-            next: { revalidate: 3600, tags: BOUWBESLAG_CONTENT_TAGS }
-        });
-        
-        if (res.ok) {
-            const data = await res.json();
-            brandCounts = data.facetDistribution?.brand_name || {};
-            console.log("brandCounts:", brandCounts);
-        } else {
-            console.log("Meilisearch res not ok:", await res.text());
-        }
-    } catch (e) {
-        console.error('Failed to fetch brand counts from Meilisearch', e);
-    }
-
-    // Map the counts (case-insensitive fallback)
-    const getCount = (name: string) => {
-        if (brandCounts[name]) return brandCounts[name];
-        const lowerName = name.toLowerCase();
-        const key = Object.keys(brandCounts).find(k => k.toLowerCase() === lowerName);
-        return key ? brandCounts[key] : 0;
-    };
-
-    const brandsWithCounts = brands.map(brand => ({
-        ...brand,
-        count: getCount(brand.name)
-    }));
+    const brandsWithCounts = brands.filter(brand => brand.count > 0);
 
     return (
         <div className="max-w-[1440px] container mx-auto px-1 py-8">
