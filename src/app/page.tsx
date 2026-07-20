@@ -9,8 +9,7 @@ import { fetchMeiliProducts, mapMeiliToWooProduct } from "@/lib/meilisearch-prod
 import dynamic from "next/dynamic";
 
 // Client Components
-import BestSellersCarousel from "@/components/carousels/BestSellers";
-import RecommendedCarousel from "@/components/carousels/Recommended";
+import DeferredDesktopCarousel from "@/components/carousels/DeferredDesktopCarousel";
 import CategoriesSidebar from "@/components/carousels/CategoriesSidebar";
 import HeroSection from "@/components/HeroSection";
 
@@ -95,14 +94,14 @@ const stripCategoryForSidebar = (c: any) => {
 async function BestSellersSection() {
   const { products } = await fetchMeiliProducts(10);
   const mapped = products.map(mapMeiliToWooProduct).map(stripProductForCarousel);
-  return <BestSellersCarousel products={mapped} />;
+  return <DeferredDesktopCarousel products={mapped} variant="best-sellers" />;
 }
 
 async function RecommendedSection() {
   const { products } = await fetchMeiliProducts(10, 10);
   if (products.length === 0) return null;
   const mapped = products.map(mapMeiliToWooProduct).map(stripProductForCarousel);
-  return <RecommendedCarousel products={mapped} />;
+  return <DeferredDesktopCarousel products={mapped} variant="recommended" />;
 }
 
 async function CategoriesSection() {

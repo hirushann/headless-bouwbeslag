@@ -1,6 +1,6 @@
 "use client";
 
-import SearchAutosuggest from "./SearchAutosuggest";
+import DeferredSearchAutosuggest from "./DeferredSearchAutosuggest";
 import Link from "next/link";
 
 export default function MobileMenu() {
@@ -29,7 +29,7 @@ export default function MobileMenu() {
         </div>
       </div>
       <div className="w-full">
-        <SearchAutosuggest placeholder="Start met zoeken..." />
+        <DeferredSearchAutosuggest placeholder="Start met zoeken..." />
       </div>
     </div>
   );

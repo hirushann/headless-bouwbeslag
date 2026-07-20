@@ -96,9 +96,11 @@ function FilterGroup({
 export default function SearchAutosuggest({
     placeholder = "Zoek iets...",
     className = "",
+    initiallyExpanded = false,
 }: {
     placeholder?: string;
     className?: string;
+    initiallyExpanded?: boolean;
 }) {
     const [query, setQuery] = useState("");
     const { userRole } = useUserContext();
@@ -113,7 +115,7 @@ export default function SearchAutosuggest({
     const [totalItems, setTotalItems] = useState(0);
 
     // UI States
-    const [isExpanded, setIsExpanded] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(initiallyExpanded);
     const [showFiltersMobile, setShowFiltersMobile] = useState(false);
     const [loading, setLoading] = useState(false);
 
@@ -202,9 +204,13 @@ export default function SearchAutosuggest({
         // Optional: clear query or keep it? Keeping it is better for UX if they re-open.
     };
 
+    const previousPathnameRef = useRef(pathname);
     useEffect(() => {
-        setIsExpanded(false);
-        setShowFiltersMobile(false);
+        if (previousPathnameRef.current !== pathname) {
+            setIsExpanded(false);
+            setShowFiltersMobile(false);
+            previousPathnameRef.current = pathname;
+        }
     }, [pathname]);
 
     return (

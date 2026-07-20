@@ -11,7 +11,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 import type { ShippingMethod, ShippingRule } from "@/lib/woocommerce";
-import SearchAutosuggest from "./SearchAutosuggest";
+import DeferredSearchAutosuggest from "./DeferredSearchAutosuggest";
 import WebwinkelKeurWidget from "./WebwinkelKeurWidget";
 import MobileMenu from "./MobileMenu";
 
@@ -142,7 +142,7 @@ export default function Header() {
               />
             </Link>
             <div className="hidden lg:flex justify-center items-center w-[30%]">
-              <SearchAutosuggest />
+              <DeferredSearchAutosuggest />
             </div>
             <div className="flex items-center gap-5">
               <div className="flex">

@@ -68,7 +68,7 @@ export default function RootLayout({
     d.head.appendChild(script);
   }
   events.forEach(function(event){w.addEventListener(event,load,{once:true,passive:true});});
-  var timer=setTimeout(load,6000);
+  var timer=setTimeout(load,30000);
 })(window,document,'dataLayer','GTM-NBGNBVR3');`}
         </Script>
       </body>
