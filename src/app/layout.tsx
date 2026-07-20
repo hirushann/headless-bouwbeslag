@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DM_Sans, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -8,18 +8,6 @@ import { getShippingSettings, getShippingRules } from "@/lib/woocommerce";
 import { UserProvider } from "@/context/UserContext";
 import { ProductAddedModalProvider } from "@/context/ProductAddedModalContext";
 import ProductAddedModalWrapper from "@/components/ProductAddedModalWrapper";
-
-const dmsans = DM_Sans({
-  variable: "--font-dm-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl"),
@@ -36,8 +24,6 @@ export const viewport = {
   maximumScale: 1,
 };
 
-import { GoogleTagManager, GoogleAnalytics } from "@next/third-parties/google";
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -48,10 +34,7 @@ export default function RootLayout({
     <html lang="nl" data-theme="light">
       <head>
       </head>
-      <body className={`${dmsans.variable} ${geistMono.variable} font-sans antialiased overflow-visible`} >
-        <GoogleTagManager gtmId="GTM-NBGNBVR3" />
-        <GoogleAnalytics gaId="G-F21GZC6NGG" />
-
+      <body className="font-sans antialiased overflow-visible">
         <Toaster position="top-right" />
         <UserProvider>
           <ProductAddedModalProvider>
@@ -62,6 +45,16 @@ export default function RootLayout({
         </UserProvider>
 
         <Footer />
+
+        <Script id="gtm-init" strategy="lazyOnload">
+          {`window.dataLayer = window.dataLayer || [];
+window.dataLayer.push({'gtm.start': new Date().getTime(), event: 'gtm.js'});`}
+        </Script>
+        <Script
+          id="gtm-script"
+          src="https://www.googletagmanager.com/gtm.js?id=GTM-NBGNBVR3"
+          strategy="lazyOnload"
+        />
       </body>
     </html>
   );

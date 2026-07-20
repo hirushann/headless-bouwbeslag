@@ -1,8 +1,25 @@
 @import "tailwindcss";
 @plugin "daisyui" {
   themes: light;
+  include: properties, rootcolor, svg, alert, badge, breadcrumbs, button, card, checkbox, collapse, dropdown, fieldset, fileinput, hero, indicator, input, label, link, loading, menu, select, textarea, tooltip, validator, join, radius;
+  logs: false;
 }
 @plugin "@tailwindcss/typography";
+@font-face {
+  font-family: "DM Sans";
+  font-style: normal;
+  font-weight: 100 1000;
+  font-display: swap;
+  src: url("/fonts/dm-sans-latin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "DM Sans Fallback";
+  src: local("Arial");
+  ascent-override: 94.9%;
+  descent-override: 29.66%;
+  line-gap-override: 0%;
+  size-adjust: 104.53%;
+}
 :root {
   color-scheme: light;
   --background: #ffffff;
@@ -11,8 +28,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-sans: "DM Sans", "DM Sans Fallback", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 /* @media (prefers-color-scheme: dark) {
   :root {

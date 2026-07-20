@@ -189,7 +189,7 @@ export default function Header() {
                 width={256}
                 height={41}
                 className="w-56 lg:w-64"
-                priority
+                loading="eager"
               />
             </Link>
             <div className="hidden lg:flex justify-center items-center w-[30%]">
@@ -259,7 +259,7 @@ export default function Header() {
         </div>
 
         <div className="bg-[#1C2530] shadow-[0px_4px_40px_0px_#00000012] w-full">
-          {isMounted && <MobileMenu />}
+          <MobileMenu />
           <div className="max-w-[1440px] relative mx-auto hidden lg:flex justify-between items-center">
             <div className="flex justify-start items-center">
               <Link prefetch={true} href="/categories">
