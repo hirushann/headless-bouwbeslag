@@ -17,17 +17,20 @@ import WebwinkelKeurWidget from "./WebwinkelKeurWidget";
 import CartDrawer from "./CartDrawer";
 import MobileMenu from "./MobileMenu";
 
-export default function Header({
-  shippingMethods,
-  shippingRules,
-}: {
-  shippingMethods: ShippingMethod[];
-  shippingRules: ShippingRule[];
-}) {
+export default function Header() {
+  const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
+  const [shippingRules, setShippingRules] = useState<ShippingRule[]>([]);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
+    fetch('/api/shipping')
+      .then(res => res.json())
+      .then(data => {
+        setShippingMethods(data.settings || []);
+        setShippingRules(data.rules || []);
+      })
+      .catch(err => console.error("Failed to fetch shipping settings", err));
   }, []);
 
   const items = useCartStore((state) => state.items);

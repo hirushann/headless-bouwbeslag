@@ -6,10 +6,8 @@ import Footer from "@/components/Footer";
 import { Toaster } from "react-hot-toast";
 import { getShippingSettings, getShippingRules } from "@/lib/woocommerce";
 import { UserProvider } from "@/context/UserContext";
-import { Suspense } from "react";
 import { ProductAddedModalProvider } from "@/context/ProductAddedModalContext";
 import ProductAddedModalWrapper from "@/components/ProductAddedModalWrapper";
-import HeaderWrapper from "@/components/HeaderWrapper";
 
 const dmsans = DM_Sans({
   variable: "--font-dm-sans",
@@ -55,9 +53,7 @@ export default function RootLayout({
         <Toaster position="top-right" />
         <UserProvider>
           <ProductAddedModalProvider>
-            <Suspense fallback={<div className="w-full h-[88px] bg-white border-b border-gray-100" />}>
-              <HeaderWrapper />
-            </Suspense>
+            <Header />
             {children}
             <ProductAddedModalWrapper />
           </ProductAddedModalProvider>
