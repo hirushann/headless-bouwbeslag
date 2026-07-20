@@ -128,9 +128,9 @@ function AccountContent() {
           const updatedUser = response.data?.data;
           updateUser(updatedUser || detailsForm);
           await refreshUser();
-          setDetailsSuccess("Account details updated successfully.");
+          setDetailsSuccess("Accountgegevens succesvol bijgewerkt.");
       } catch (err: any) {
-          setDetailsError(err?.response?.data?.message || "Failed to update account details.");
+          setDetailsError(err?.response?.data?.message || "Het bijwerken van accountgegevens is mislukt.");
       } finally {
           setDetailsSaving(false);
       }
@@ -161,11 +161,11 @@ function AccountContent() {
       const savedShipping = address?.shipping || shippingForm;
       setBillingForm(savedBilling);
       setShippingForm(savedShipping);
-      setBillingSuccess("Billing address updated!");
+      setBillingSuccess("Factuuradres bijgewerkt!");
       updateUser({ billing: savedBilling, shipping: savedShipping });
       await refreshUser();
     } catch (err: any) {
-      setBillingError(err.response?.data?.message || err.message || "Error updating billing address.");
+      setBillingError(err.response?.data?.message || err.message || "Fout bij het bijwerken van factuuradres.");
     } finally {
       setBillingSaving(false);
     }
@@ -188,11 +188,11 @@ function AccountContent() {
       const savedShipping = address?.shipping || shippingForm;
       setBillingForm(savedBilling);
       setShippingForm(savedShipping);
-      setShippingSuccess("Shipping address updated!");
+      setShippingSuccess("Afleveradres bijgewerkt!");
       updateUser({ billing: savedBilling, shipping: savedShipping });
       await refreshUser();
     } catch (err: any) {
-      setShippingError(err.response?.data?.message || err.message || "Error updating shipping address.");
+      setShippingError(err.response?.data?.message || err.message || "Fout bij het bijwerken van afleveradres.");
     } finally {
       setShippingSaving(false);
     }
@@ -203,12 +203,12 @@ function AccountContent() {
     // We will validate password by attempting a login
     setOldPasswordError(null);
     if (!oldPassword) {
-      setOldPasswordError("Old password is required.");
+      setOldPasswordError("Huidig wachtwoord is vereist.");
       return;
     }
     let loginIdentifier = user?.email || user?.billing?.email;
     if (!loginIdentifier) {
-      setOldPasswordError("Could not determine your login email.");
+      setOldPasswordError("Kan uw login e-mailadres niet bepalen.");
       return;
     }
     try {
@@ -219,7 +219,7 @@ function AccountContent() {
       });
       setOldPasswordError(null);
     } catch (loginErr: any) {
-      setOldPasswordError("Old password is incorrect.");
+      setOldPasswordError("Huidig wachtwoord is onjuist.");
     }
   };
 
@@ -235,7 +235,7 @@ function AccountContent() {
 
       // 1. Validate old password
       let loginIdentifier = user?.email || user?.billing?.email;
-      if (!loginIdentifier) throw new Error("Could not determine your login email.");
+      if (!loginIdentifier) throw new Error("Kan uw login e-mailadres niet bepalen.");
       try {
         await axios.post(`${EMPIRE_API_URL}/api/login`, {
           email: loginIdentifier,
@@ -244,25 +244,25 @@ function AccountContent() {
         });
         setOldPasswordError(null);
       } catch (loginErr: any) {
-        setOldPasswordError("Old password is incorrect.");
-        setPasswordResetError("Old password is incorrect.");
+        setOldPasswordError("Huidig wachtwoord is onjuist.");
+        setPasswordResetError("Huidig wachtwoord is onjuist.");
         setPasswordResetLoading(false);
         return;
       }
 
       // 2. Check new password and confirm
       if (!newPassword || !confirmPassword) {
-        setPasswordResetError("Please enter the new password and confirmation.");
+        setPasswordResetError("Voer het nieuwe wachtwoord en de bevestiging in.");
         setPasswordResetLoading(false);
         return;
       }
       if (newPassword !== confirmPassword) {
-        setPasswordResetError("New password and confirmation do not match.");
+        setPasswordResetError("Nieuw wachtwoord en bevestiging komen niet overeen.");
         setPasswordResetLoading(false);
         return;
       }
       if (newPassword.length < 6) {
-        setPasswordResetError("New password must be at least 6 characters.");
+        setPasswordResetError("Nieuw wachtwoord moet minimaal 6 tekens lang zijn.");
         setPasswordResetLoading(false);
         return;
       }
@@ -277,7 +277,7 @@ function AccountContent() {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setPasswordResetSuccess("Password has been updated successfully!");
+      setPasswordResetSuccess("Wachtwoord is succesvol bijgewerkt!");
       setOldPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -287,7 +287,7 @@ function AccountContent() {
       setPasswordResetError(
         err?.response?.data?.message ||
         err?.message ||
-        "Failed to reset password. Please try again."
+        "Het opnieuw instellen van het wachtwoord is mislukt. Probeer het opnieuw."
       );
     } finally {
       setPasswordResetLoading(false);
@@ -430,17 +430,17 @@ function AccountContent() {
             />
             <NavItem 
               id="orders" 
-              label="My Orders" 
+              label="Mijn Bestellingen" 
               icon={<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>}
             />
             <NavItem 
               id="details" 
-              label="Account Details" 
+              label="Accountgegevens" 
               icon={<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>}
             />
             <NavItem 
               id="addresses" 
-              label="Addresses" 
+              label="Adressen" 
               icon={<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg>}
             />
             
@@ -461,32 +461,32 @@ function AccountContent() {
             {activeTab === "dashboard" && (
               <div className="space-y-8 animate-fade-in">
                 <div>
-                  <h2 className="text-2xl font-bold mb-2">Welcome back, {user.first_name || user.user_display_name} 👋</h2>
+                  <h2 className="text-2xl font-bold mb-2">Welkom terug, {user.first_name || user.user_display_name} 👋</h2>
                   <p className="text-gray-500">Here is what's happening with your account today.</p>
                 </div>
 
                 <div className="flex flex-col md:flex-row gap-6 w-full">
                   <StatCard 
-                    title="Total Orders" 
+                    title="Totaal Bestellingen" 
                     value={orders.length.toString()} 
-                    desc="Lifetime orders" 
+                    desc="Totaal aantal bestellingen" 
                   />
                   <StatCard 
-                    title="Total Spent" 
+                    title="Totaal Uitgegeven" 
                     value={`€${orders.reduce((sum, o) => sum + parseFloat(o.totals?.net_total_with_tax || o.total || 0), 0).toFixed(2)}`} 
-                    desc="Lifetime spend" 
+                    desc="Totale uitgaven" 
                   />
                   <StatCard 
-                    title="Avg. Order" 
+                    title="Gem. Bestelling" 
                     value={`€${orders.length > 0 ? (orders.reduce((sum, o) => sum + parseFloat(o.totals?.net_total_with_tax || o.total || 0), 0) / orders.length).toFixed(2) : "0.00"}`} 
-                    desc="Per order average" 
+                    desc="Gemiddelde per bestelling" 
                   />
                 </div>
 
                 {/* Recent Orders */}
                 <div>
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold text-[#1C2530]">Recent Orders</h3>
+                    <h3 className="text-lg font-bold text-[#1C2530]">Recente Bestellingen</h3>
                     {orders.length > 3 && (
                       <button className="text-[#0050D1] hover:underline text-sm font-medium" onClick={() => setActiveTab("orders")}>
                         View all
@@ -514,7 +514,7 @@ function AccountContent() {
                         orders.slice(0, 3).map((order) => (
                           <div key={order.id} className="bg-white border border-[#DBE3EA] p-5 rounded-lg flex flex-wrap justify-between items-center shadow-sm hover:shadow-md transition-shadow">
                             <div>
-                              <p className="font-bold text-[#1C2530]">Order #{order.order_reference || order.id}</p>
+                              <p className="font-bold text-[#1C2530]">Bestelling #{order.order_reference || order.id}</p>
                               <p className="text-sm text-gray-500">{new Date(order.created_at || order.date_created).toLocaleDateString()}</p>
                             </div>
                             <div className="text-right">
@@ -538,7 +538,7 @@ function AccountContent() {
 
             {activeTab === "orders" && (
               <div className="animate-fade-in">
-                <h2 className="text-2xl font-bold mb-6">My Orders</h2>
+                <h2 className="text-2xl font-bold mb-6">Mijn Bestellingen</h2>
                 {loadingOrders ? (
                   <div className="space-y-4">
                     {[1, 2, 3].map((i) => (
@@ -552,13 +552,13 @@ function AccountContent() {
                 ) : (
                   <div className="space-y-4">
                     {orders.length === 0 ? (
-                      <p className="text-gray-500 bg-white p-8 rounded-lg border border-[#DBE3EA] text-center">No orders found.</p>
+                      <p className="text-gray-500 bg-white p-8 rounded-lg border border-[#DBE3EA] text-center">Geen bestellingen gevonden.</p>
                     ) : (
                       orders.map((order) => (
                         <div key={order.id} className="bg-white border border-[#DBE3EA] p-6 rounded-lg shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                           <div>
                             <div className="flex items-center gap-3 mb-1">
-                              <span className="font-bold text-lg text-[#1C2530]">Order #{order.order_reference || order.id}</span>
+                              <span className="font-bold text-lg text-[#1C2530]">Bestelling #{order.order_reference || order.id}</span>
                               <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                                 order.status === "completed" ? "bg-green-100 text-green-700" :
                                 order.status === "processing" ? "bg-blue-100 text-blue-700" :
@@ -567,11 +567,11 @@ function AccountContent() {
                                 {order.status}
                               </span>
                             </div>
-                            <p className="text-gray-500 text-sm">Placed on {new Date(order.created_at || order.date_created).toLocaleDateString()}</p>
+                            <p className="text-gray-500 text-sm">Geplaatst op {new Date(order.created_at || order.date_created).toLocaleDateString()}</p>
                           </div>
                           <div className="text-right">
                             <p className="text-xl font-bold text-[#1C2530] mb-1">€{parseFloat(order.totals?.net_total_with_tax || order.total || 0).toFixed(2)}</p>
-                            <p className="text-sm text-gray-500">{(order.items || order.line_items || []).length} items</p>
+                            <p className="text-sm text-gray-500">{(order.items || order.line_items || []).length} artikelen</p>
                           </div>
                         </div>
                       ))
@@ -583,27 +583,27 @@ function AccountContent() {
 
             {activeTab === "details" && (
               <div className="animate-fade-in">
-                <h2 className="text-2xl font-bold mb-6">Account Details</h2>
+                <h2 className="text-2xl font-bold mb-6">Accountgegevens</h2>
                 <div className="bg-white p-8 rounded-lg border border-[#DBE3EA] shadow-sm">
                   <form className="space-y-6" onSubmit={saveDetails}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-[#1C2530]">First Name</label>
+                        <label className="text-sm font-medium text-[#1C2530]">Voornaam</label>
                         <input className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF]" type="text" name="first_name" value={detailsForm?.first_name || ""} onChange={handleDetailsInput} />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-[#1C2530]">Last Name</label>
+                        <label className="text-sm font-medium text-[#1C2530]">Achternaam</label>
                         <input className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF]" type="text" name="last_name" value={detailsForm?.last_name || ""} onChange={handleDetailsInput} />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-[#1C2530]">Company Name</label>
+                      <label className="text-sm font-medium text-[#1C2530]">Bedrijfsnaam</label>
                       <input className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF]" type="text" name="company_name" value={detailsForm?.company_name || ""} onChange={handleDetailsInput} />
                     </div>
 
                     <div className="space-y-2">
-                      <label htmlFor="account-vat-number" className="text-sm font-medium text-[#1C2530]">VAT Number</label>
+                      <label htmlFor="account-vat-number" className="text-sm font-medium text-[#1C2530]">BTW-nummer</label>
                       <input
                         id="account-vat-number"
                         className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF]"
@@ -617,11 +617,11 @@ function AccountContent() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-[#1C2530]">Username</label>
+                        <label className="text-sm font-medium text-[#1C2530]">Gebruikersnaam</label>
                         <input className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF] bg-gray-50 text-gray-500 cursor-not-allowed" type="text" defaultValue={user?.username || user?.name || ""} readOnly />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-[#1C2530]">Email Address</label>
+                        <label className="text-sm font-medium text-[#1C2530]">E-mailadres</label>
                         <input className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF] bg-gray-50 text-gray-500 cursor-not-allowed" type="text" defaultValue={user?.email || user?.billing?.email || ""} readOnly />
                       </div>
                     </div>
@@ -635,16 +635,16 @@ function AccountContent() {
                         disabled={detailsSaving}
                         className="bg-[#0066FF] text-white font-bold py-3 px-6 rounded-sm hover:bg-[#0052CC] transition-colors disabled:opacity-50"
                       >
-                        {detailsSaving ? "Saving..." : "Save Changes"}
+                        {detailsSaving ? "Bezig met opslaan..." : "Wijzigingen opslaan"}
                       </button>
                     </div>
                   </form>
 
                   <div className="mt-10 pt-10 border-t border-[#DBE3EA]">
-                    <h3 className="text-lg font-bold text-[#1C2530] mb-6">Change Password</h3>
+                    <h3 className="text-lg font-bold text-[#1C2530] mb-6">Wachtwoord wijzigen</h3>
                     <form className="max-w-md space-y-4" onSubmit={handlePasswordReset}>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-[#1C2530]">Current Password</label>
+                        <label className="text-sm font-medium text-[#1C2530]">Huidig wachtwoord</label>
                         <input
                           className={`w-full border rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF] ${oldPasswordError ? "border-red-500" : "border-[#DBE3EA]"}`}
                           type="password"
@@ -661,7 +661,7 @@ function AccountContent() {
                       </div>
                       
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-[#1C2530]">New Password</label>
+                        <label className="text-sm font-medium text-[#1C2530]">Nieuw wachtwoord</label>
                         <input
                           className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF]"
                           type="password"
@@ -674,7 +674,7 @@ function AccountContent() {
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-[#1C2530]">Confirm New Password</label>
+                        <label className="text-sm font-medium text-[#1C2530]">Bevestig nieuw wachtwoord</label>
                         <input
                           className="w-full border border-[#DBE3EA] rounded-sm px-4 py-3 focus:outline-none focus:border-[#0066FF]"
                           type="password"
@@ -693,7 +693,7 @@ function AccountContent() {
                         disabled={passwordResetLoading}
                         className="bg-[#0066FF] text-white font-bold py-3 px-6 rounded-sm hover:bg-[#0052CC] transition-colors disabled:opacity-50 mt-2"
                       >
-                        {passwordResetLoading ? "Updating..." : "Update Password"}
+                        {passwordResetLoading ? "Bezig met bijwerken..." : "Wachtwoord bijwerken"}
                       </button>
                     </form>
                   </div>
@@ -703,41 +703,41 @@ function AccountContent() {
 
             {activeTab === "addresses" && (
               <div className="animate-fade-in">
-                <h2 className="text-2xl font-bold mb-6">Addresses</h2>
+                <h2 className="text-2xl font-bold mb-6">Adressen</h2>
                 
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                   {/* Billing Address Card */}
                   <div className="bg-white p-8 rounded-lg border border-[#DBE3EA] shadow-sm flex flex-col h-full">
-                    <h3 className="text-lg font-bold text-[#1C2530] mb-6 border-b border-[#DBE3EA] pb-4">Billing Address</h3>
+                    <h3 className="text-lg font-bold text-[#1C2530] mb-6 border-b border-[#DBE3EA] pb-4">Factuuradres</h3>
                     <div className="space-y-4 flex-1">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
-                          <label className="text-xs font-semibold text-gray-500 uppercase">First Name</label>
+                          <label className="text-xs font-semibold text-gray-500 uppercase">Voornaam</label>
                           <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="first_name" value={billingForm?.first_name || ""} onChange={handleBillingInput} />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-xs font-semibold text-gray-500 uppercase">Last Name</label>
+                          <label className="text-xs font-semibold text-gray-500 uppercase">Achternaam</label>
                           <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="last_name" value={billingForm?.last_name || ""} onChange={handleBillingInput} />
                         </div>
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-xs font-semibold text-gray-500 uppercase">Company Name</label>
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Bedrijfsnaam</label>
                         <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="company" value={billingForm?.company || ""} onChange={handleBillingInput} />
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-xs font-semibold text-gray-500 uppercase">Address Line 1</label>
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Adresregel 1</label>
                         <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="address_1" value={billingForm?.address_1 || ""} onChange={handleBillingInput} />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-xs font-semibold text-gray-500 uppercase">Address Line 2 (Optional)</label>
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Adresregel 2 (Optioneel)</label>
                         <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="address_2" value={billingForm?.address_2 || ""} onChange={handleBillingInput} />
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
-                          <label className="text-xs font-semibold text-gray-500 uppercase">City</label>
+                          <label className="text-xs font-semibold text-gray-500 uppercase">Plaats</label>
                           <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="city" value={billingForm?.city || ""} onChange={handleBillingInput} />
                         </div>
                         <div className="space-y-1">
@@ -747,23 +747,23 @@ function AccountContent() {
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-xs font-semibold text-gray-500 uppercase">Country</label>
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Land</label>
                         <select className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF] bg-white" name="country" value={billingForm?.country || "NL"} onChange={handleBillingInput}>
-                          <option value="NL">Netherlands</option>
-                          <option value="BE">Belgium</option>
-                          <option value="DE">Germany</option>
-                          <option value="FR">France</option>
-                          <option value="LU">Luxembourg</option>
+                          <option value="NL">Nederland</option>
+                          <option value="BE">België</option>
+                          <option value="DE">Duitsland</option>
+                          <option value="FR">Frankrijk</option>
+                          <option value="LU">Luxemburg</option>
                         </select>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
-                          <label className="text-xs font-semibold text-gray-500 uppercase">Email</label>
+                          <label className="text-xs font-semibold text-gray-500 uppercase">E-mail</label>
                           <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="email" value={billingForm?.email || ""} onChange={handleBillingInput} />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-xs font-semibold text-gray-500 uppercase">Phone</label>
+                          <label className="text-xs font-semibold text-gray-500 uppercase">Telefoonnummer</label>
                           <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="phone" value={billingForm?.phone || ""} onChange={handleBillingInput} />
                         </div>
                       </div>
@@ -777,42 +777,42 @@ function AccountContent() {
                       disabled={billingSaving} 
                       className="mt-6 w-full bg-[#1C2530] text-white font-bold py-3 rounded-sm hover:bg-black transition-colors disabled:opacity-50"
                     >
-                      {billingSaving ? "Saving..." : "Save Billing Address"}
+                      {billingSaving ? "Bezig met opslaan..." : "Factuuradres opslaan"}
                     </button>
                   </div>
 
                   {/* Shipping Address Card */}
                   <div className="bg-white p-8 rounded-lg border border-[#DBE3EA] shadow-sm flex flex-col h-full">
-                    <h3 className="text-lg font-bold text-[#1C2530] mb-6 border-b border-[#DBE3EA] pb-4">Shipping Address</h3>
+                    <h3 className="text-lg font-bold text-[#1C2530] mb-6 border-b border-[#DBE3EA] pb-4">Afleveradres</h3>
                     <div className="space-y-4 flex-1">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
-                          <label className="text-xs font-semibold text-gray-500 uppercase">First Name</label>
+                          <label className="text-xs font-semibold text-gray-500 uppercase">Voornaam</label>
                           <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="first_name" value={shippingForm?.first_name || ""} onChange={handleShippingInput} />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-xs font-semibold text-gray-500 uppercase">Last Name</label>
+                          <label className="text-xs font-semibold text-gray-500 uppercase">Achternaam</label>
                           <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="last_name" value={shippingForm?.last_name || ""} onChange={handleShippingInput} />
                         </div>
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-xs font-semibold text-gray-500 uppercase">Company Name</label>
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Bedrijfsnaam</label>
                         <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="company" value={shippingForm?.company || ""} onChange={handleShippingInput} />
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-xs font-semibold text-gray-500 uppercase">Address Line 1</label>
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Adresregel 1</label>
                         <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="address_1" value={shippingForm?.address_1 || ""} onChange={handleShippingInput} />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-xs font-semibold text-gray-500 uppercase">Address Line 2 (Optional)</label>
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Adresregel 2 (Optioneel)</label>
                         <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="address_2" value={shippingForm?.address_2 || ""} onChange={handleShippingInput} />
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
-                          <label className="text-xs font-semibold text-gray-500 uppercase">City</label>
+                          <label className="text-xs font-semibold text-gray-500 uppercase">Plaats</label>
                           <input className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]" type="text" name="city" value={shippingForm?.city || ""} onChange={handleShippingInput} />
                         </div>
                         <div className="space-y-1">
@@ -822,13 +822,13 @@ function AccountContent() {
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-xs font-semibold text-gray-500 uppercase">Country</label>
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Land</label>
                         <select className="w-full border border-[#DBE3EA] rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF] bg-white" name="country" value={shippingForm?.country || "NL"} onChange={handleShippingInput}>
-                          <option value="NL">Netherlands</option>
-                          <option value="BE">Belgium</option>
-                          <option value="DE">Germany</option>
-                          <option value="FR">France</option>
-                          <option value="LU">Luxembourg</option>
+                          <option value="NL">Nederland</option>
+                          <option value="BE">België</option>
+                          <option value="DE">Duitsland</option>
+                          <option value="FR">Frankrijk</option>
+                          <option value="LU">Luxemburg</option>
                         </select>
                       </div>
                     </div>
@@ -841,7 +841,7 @@ function AccountContent() {
                       disabled={shippingSaving} 
                       className="mt-6 w-full bg-[#1C2530] text-white font-bold py-3 rounded-sm hover:bg-black transition-colors disabled:opacity-50"
                     >
-                      {shippingSaving ? "Saving..." : "Save Shipping Address"}
+                      {shippingSaving ? "Bezig met opslaan..." : "Afleveradres opslaan"}
                     </button>
                   </div>
                 </div>
@@ -867,7 +867,7 @@ export default function AccountPage() {
             </div>
             <h1 className="font-bold text-4xl text-[#1C2530]">Mijn Account</h1>
           </div>
-          <div className="p-10 text-gray-500 font-sans flex justify-center">Loading account...</div>
+          <div className="p-10 text-gray-500 font-sans flex justify-center">Account laden...</div>
         </div>
       </main>
     }>

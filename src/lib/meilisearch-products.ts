@@ -128,8 +128,8 @@ export function mapMeiliToWooProduct(p: any) {
       ...p,
       attributes: wooAttributes,
       brands: p.brand_name 
-        ? [{ id: p.brand_id || p.brand_name, name: p.brand_name, slug: p.brand_slug || p.brand_name.toLowerCase().replace(/[^a-z0-9]+/g, '-') }] 
-        : (p.brand ? [{ id: p.brand.id, name: p.brand.name, slug: p.brand.slug || p.brand.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') }] : []),
+        ? [{ id: p.brand_id || p.brand_name, name: p.brand_name, slug: p.brand_slug || String(p.brand_name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-') }] 
+        : (p.brand ? [{ id: p.brand.id, name: p.brand.name, slug: p.brand.slug || String(p.brand.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-') }] : []),
       price: priceStr,
       regular_price: regularPriceStr,
       stock_status: p.stock?.status === 'in_stock' ? 'instock' : (p.stock_status || 'outofstock'),

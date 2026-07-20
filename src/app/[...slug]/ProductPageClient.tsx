@@ -432,15 +432,14 @@ export default function ProductPageClient({
     // Definitions of what we are looking for
     // Type: 'color' | 'model' | 'simple'
     const groups = [
-        { key: 'colors', prefix: 'related_other_color_', type: 'color', setter: setOrderColors },
-        { key: 'models', prefix: 'related_other_model_', type: 'model', textPrefix: 'related_other_model_text_', setter: setOrderModels },
-        { key: 'matching', prefix: 'related_matching_product_', type: 'simple', setter: setMatchingProducts },
-        { key: 'knobrose', prefix: 'related_matching_knobrose_', type: 'simple', setter: setMatchingKnobRoseProducts },
-        { key: 'keyrose', prefix: 'related_matching_keyrose_', type: 'simple', setter: setMatchingRoseKeys },
-        { key: 'pcrose', prefix: 'related_matching_pcrose_', type: 'simple', setter: setPcRoseKeys },
-        { key: 'toiletrose', prefix: 'related_matching_toiletrose_', type: 'simple', setter: setblindtoiletroseKeys },
-        { key: 'toiletrose', prefix: 'related_matching_blindrose_', type: 'simple', setter: setblindtoiletroseKeys },
-        { key: 'musthave', prefix: 'related_must_need_product_', type: 'simple', setter: setMusthaveprodKeys },
+        { key: 'colors', prefixes: ['related_other_color_', 'other_color_'], type: 'color', setter: setOrderColors },
+        { key: 'models', prefixes: ['related_other_model_', 'other_model_'], type: 'model', textPrefixes: ['related_other_model_text_', 'other_model_text_'], setter: setOrderModels },
+        { key: 'matching', prefixes: ['related_matching_product_', 'matching_product_'], type: 'simple', setter: setMatchingProducts },
+        { key: 'knobrose', prefixes: ['related_matching_knobrose_', 'matching_knobrose_'], type: 'simple', setter: setMatchingKnobRoseProducts },
+        { key: 'keyrose', prefixes: ['related_matching_keyrose_', 'matching_keyrose_'], type: 'simple', setter: setMatchingRoseKeys },
+        { key: 'pcrose', prefixes: ['related_matching_pcrose_', 'matching_pcrose_'], type: 'simple', setter: setPcRoseKeys },
+        { key: 'toiletrose', prefixes: ['related_matching_toiletrose_', 'matching_toiletrose_', 'related_matching_blindrose_', 'matching_blindrose_'], type: 'simple', setter: setblindtoiletroseKeys },
+        { key: 'musthave', prefixes: ['related_must_need_product_', 'must_need_product_'], type: 'simple', setter: setMusthaveprodKeys },
     ];
 
     // 1. Collect all identifiers needed
@@ -452,8 +451,18 @@ export default function ProductPageClient({
 
     groups.forEach(group => {
         for (let i = 1; i <= 37; i++) {
-            const metaKey = `${group.prefix}${i}`;
-            const val = product.meta_data.find((m: any) => m.key === metaKey)?.value;
+            let val;
+            let usedPrefixIndex = -1;
+            
+            for (let j = 0; j < group.prefixes.length; j++) {
+                const metaKey = `${group.prefixes[j]}${i}`;
+                const found = product.meta_data.find((m: any) => m.key === metaKey);
+                if (found?.value && String(found.value).trim() !== "") {
+                    val = found.value;
+                    usedPrefixIndex = j;
+                    break;
+                }
+            }
             
             if (val && String(val).trim() !== "") {
                 const idStr = String(val).trim();
@@ -467,10 +476,9 @@ export default function ProductPageClient({
                 // For models, we also need the display text
                 let extraData: any = {};
                 if (group.type === 'model') {
-                    if ((group as any).getRepeaterTextKey) {
-                        extraData.displayText = product.meta_data.find((m: any) => m.key === (group as any).getRepeaterTextKey!(i))?.value;
-                    } else if ((group as any).textPrefix) {
-                        extraData.displayText = product.meta_data.find((m: any) => m.key === `${(group as any).textPrefix}${i}`)?.value;
+                    if ((group as any).textPrefixes && usedPrefixIndex !== -1) {
+                        const textPrefix = (group as any).textPrefixes[usedPrefixIndex] || (group as any).textPrefixes[0];
+                        extraData.displayText = product.meta_data.find((m: any) => m.key === `${textPrefix}${i}`)?.value;
                     }
                 }
                 
@@ -670,7 +678,8 @@ export default function ProductPageClient({
   const cheapestPriceOption = metaData.find(
     (m) => m.key === "crucial_data_cheapest_price_option"
   )?.value;
-  const isCheapestPriceEnabled = cheapestPriceOption === "1" || cheapestPriceOption === 1;
+  const isCheapestPriceEnabled = cheapestPriceOption === "1" || cheapestPriceOption === 1 || cheapestPriceOption === true || String(cheapestPriceOption).toLowerCase() === "true" || String(cheapestPriceOption).toLowerCase() === "yes";
+  console.log("DEBUG LOWEST PRICE:", { cheapestPriceOption, isCheapestPriceEnabled, isB2B });
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const thumbsRef = useRef<HTMLDivElement>(null);
@@ -774,7 +783,12 @@ export default function ProductPageClient({
 
     const techDrawMeta = product?.meta_data?.find((m: { key: string; value: any }) => m.key === "assets_technical_drawing");
     if (techDrawMeta?.value) {
-      setTechnicalDrawingUrl(fixImageSrc(techDrawMeta.value));
+      const src = fixImageSrc(techDrawMeta.value);
+      if (src === "/default-fallback-image.webp") {
+        setTechnicalDrawingUrl(null);
+      } else {
+        setTechnicalDrawingUrl(src);
+      }
     }
   }, [product]);
 
@@ -1360,7 +1374,7 @@ export default function ProductPageClient({
                             data-tip={`T.o.v. verkoopadviesprijs leverancier`}
                           >
                             <button className="bg-[#FF5E00] px-[6px] lg:px-[12px] py-[2px] lg:py-[5px] rounded-sm text-white text-[12px] lg:text-[13px] font-bold cursor-pointer">
-                              {discountPercent}% korting
+                        {discountPercent}% korting
                             </button>
                           </div>
                         ) : null}
@@ -2100,7 +2114,7 @@ export default function ProductPageClient({
                 )}
 
               {/* third row left accordion */}
-              {isCheapestPriceEnabled && !isB2B && (
+              {isCheapestPriceEnabled && (
                 <div className="bg-white rounded-lg border border-white">
                   <details className="group" ref={vergelijkRef}>
                     <summary className="flex justify-between items-center cursor-pointer px-4 py-3 lg:px-6 lg:py-5 font-semibold text-base lg:text-xl text-[#1C2530]">
@@ -2258,6 +2272,7 @@ export default function ProductPageClient({
                           sizes="(max-width: 1024px) 100vw, 50vw"
                           className="object-contain"
                           alt="Technische documentatie"
+                          onError={() => setTechnicalDrawingUrl(null)}
                         />
                       </div>
                     </div>
