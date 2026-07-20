@@ -1,10 +1,11 @@
 "use server";
 
 import { getShippingSettings, getCouponByCode, getShippingRules } from "@/lib/empire-checkout";
-import { getCheckoutSession, saveCheckoutSession, deleteCheckoutSession } from "@/lib/checkout-session";
+import { getCheckoutSession, saveCheckoutSession } from "@/lib/checkout-session";
 import mollieClient from "@/lib/mollie";
 import axios from "axios";
 import { calculateCheckoutTotals } from "@/lib/checkout-state";
+import { reconcileMollieOrder } from "@/lib/mollie-order-processing";
 
 
 export async function checkOrderStatusAction(orderId: string | number) {
@@ -24,41 +25,20 @@ export async function checkOrderStatusAction(orderId: string | number) {
                 }
                 
                 if (session.transaction_id) {
-                    const payment = await mollieClient.payments.get(session.transaction_id);
-                    if (payment.status === 'paid') {
-                        const empireUrl = (process.env.EMPIRE_BACKEND_API_URL || "http://empire.test").replace(/\/$/, "");
-                        const isGuest = session.customer_id === 0;
-                        const endpoint = isGuest ? "/api/guest/orders" : "/api/account/orders";
-                        
-                        const headers: any = { "Accept": "application/json", "Content-Type": "application/json" };
-                        if (!isGuest && session.auth_token) {
-                            headers["Authorization"] = `Bearer ${session.auth_token}`;
-                        }
-                        
-                        const payloadToSend = isGuest
-                            ? { status: "processing", email: session.billing?.email }
-                            : { status: "processing" };
-                        try {
-                            await axios.patch(`${empireUrl}${endpoint}/${orderIdStr}/status`, payloadToSend, { headers });
-                            await deleteCheckoutSession(orderIdStr);
-                            return { success: true, status: 'processing' };
-                        } catch (e: any) {
-                            console.error("Empire API Error in success check:", e?.response?.data || e.message);
-                            return {
-                                success: false,
-                                status: 'backend_failed',
-                                message: "De betaling is gelukt, maar de bestelling kon niet worden aangemaakt. Neem contact op met de klantenservice en vermeld je ordernummer."
-                            };
-                        }
-                    } else if (['canceled', 'expired', 'failed'].includes(payment.status)) {
-                        await deleteCheckoutSession(orderIdStr);
-                        return { success: true, status: payment.status === 'canceled' ? 'cancelled' : 'failed' };
+                    try {
+                        const result = await reconcileMollieOrder({ orderReference: orderIdStr });
+                        return { success: true, status: result.status };
+                    } catch (e: any) {
+                        console.error("Payment reconciliation failed:", e?.response?.data || e.message);
+                        return {
+                            success: false,
+                            status: 'backend_failed',
+                            message: "De betaalstatus kon niet veilig worden verwerkt. Neem contact op met de klantenservice en vermeld je ordernummer."
+                        };
                     }
-                    return { success: true, status: 'pending' };
                 }
                 
                 if (session.status === 'processing') {
-                    await deleteCheckoutSession(orderIdStr);
                     return { success: true, status: 'processing' };
                 }
 
@@ -309,7 +289,7 @@ export async function placeOrderAction(data: any) {
         const empirePayload: Record<string, any> = {
             website_url: "https://bouwbeslag.nl",
             order_reference: orderReference,
-            status: "processing", // Status to set when payment completes
+            status: data.mollie_method_id === "invoice" ? "processing" : "pending",
             billing: data.billing,
             shipping: data.shipping,
             items: items,
@@ -321,7 +301,7 @@ export async function placeOrderAction(data: any) {
             total: totalAmount,
             total_tax: totalTax,
             payment_method: data.mollie_method_id || "mollie",
-            payment_method_title: "Mollie",
+            payment_method_title: data.mollie_method_id === "invoice" ? "Op factuur" : "Mollie",
             customer_note: data.customer_note || "",
             eu_vat_number: data.meta_data?.find((m: any) => m.key === "vat_number")?.value || "",
             customer_id: data.customer_id,
@@ -332,9 +312,6 @@ export async function placeOrderAction(data: any) {
             discount_total_ex_tax: roundMoney(discount),
             discount_tax: pricesIncludeTax ? roundMoney((discount * taxMultiplier) - discount) : 0
         };
-
-
-        empirePayload.status = "pending";
         const empireUrl = (process.env.EMPIRE_BACKEND_API_URL || "http://empire.test").replace(/\/$/, "");
         const isGuest = !data.customer_id;
         const endpoint = isGuest ? "/api/guest/orders" : "/api/account/orders";
@@ -380,19 +357,8 @@ export async function placeOrderAction(data: any) {
 
         const paymentValue = totalAmount.toFixed(2);
 
-        // If Invoice Payment, skip Mollie and set status to processing immediately
+        // Approved B2B invoice orders are validated and processed immediately by Empire.
         if (data.mollie_method_id === 'invoice') {
-            try {
-                const patchPayload = !data.customer_id
-                    ? { status: "processing", email: data.billing?.email }
-                    : { status: "processing" };
-                await axios.patch(`${empireUrl}${endpoint}/${finalOrderReference}/status`, patchPayload, { headers });
-                empirePayload.status = "processing";
-                await saveCheckoutSession(finalOrderReference, empirePayload);
-            } catch (e: any) {
-                console.error("Failed to update status for invoice payment:", e?.response?.data || e.message);
-                return { success: false, message: "De bestelling is opgeslagen, maar kon niet worden bevestigd. Neem contact op met de klantenservice en vermeld je ordernummer." };
-            }
             return { success: true, redirectUrl: `${siteUrl}/checkout/success?orderId=${finalOrderReference}` };
         }
 
