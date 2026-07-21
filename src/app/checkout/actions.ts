@@ -275,12 +275,13 @@ export async function placeOrderAction(data: any) {
             }
         }
 
+        const activeTaxRate = pricesIncludeTax ? taxRate : 0;
         const checkoutTotals = calculateCheckoutTotals({
             subtotalExVat: subtotal,
             discountExVat: discount,
             shippingExVat: shippingTotalExTax,
             feesExVat: totalFees,
-            vatRate: taxRate,
+            vatRate: activeTaxRate,
         });
         const totalTax = checkoutTotals.tax;
         const totalAmount = checkoutTotals.grossTotal;

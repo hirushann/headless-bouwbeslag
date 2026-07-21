@@ -56,6 +56,7 @@ export default function Header() {
   useEffect(() => {
     if (isCartOpen) {
       document.body.style.overflow = "hidden";
+      setHasOpenedCart(true);
     } else {
       document.body.style.overflow = "";
     }

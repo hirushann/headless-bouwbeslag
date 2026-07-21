@@ -806,7 +806,7 @@ export default function NewCheckoutPage() {
     shippingExVat: shippingCost || 0,
     feesExVat: cardPaymentFee - consolidationDiscountAmount,
   });
-  const total = checkoutTotals.grossTotal;
+  const total = isB2B ? checkoutTotals.netTotal : checkoutTotals.grossTotal;
     
   // Display Helpers -- Adjusted for discount
   // Note: Discount is usually applied to item prices (subtotal).
@@ -816,7 +816,7 @@ export default function NewCheckoutPage() {
   const displayConsolidationDiscount = isB2B ? consolidationDiscountAmount : consolidationDiscountAmount * 1.21;
   const displayShipping = isB2B ? (shippingCost || 0) : (shippingCost || 0) * 1.21;
   const displayCardFee = isB2B ? cardPaymentFee : cardPaymentFee * 1.21;
-  const displayTax = checkoutTotals.tax;
+  const displayTax = isB2B ? 0 : checkoutTotals.tax;
   // Header shows: Totaal + (incl. BTW) label.
   
   const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
@@ -1823,7 +1823,7 @@ export default function NewCheckoutPage() {
                         <span>BTW (21%)</span>
                          {/* Calculate actual tax amount for the whole order including card fee and freight */}
                          {/* Freight Ex VAT = lengthFreightCost / 1.21 */}
-                        <span className="font-medium text-gray-900">€ {(((subtotal - discountAmount - consolidationDiscountAmount) + (shippingCost || 0) + cardPaymentFee) * 0.21).toFixed(2).replace('.', ',')}</span>
+                        <span className="font-medium text-gray-900">€ {displayTax.toFixed(2).replace('.', ',')}</span>
                     </div>
 
                     {isConsolidated && (
