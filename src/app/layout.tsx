@@ -7,6 +7,7 @@ import { Toaster } from "react-hot-toast";
 import { UserProvider } from "@/context/UserContext";
 import { ProductAddedModalProvider } from "@/context/ProductAddedModalContext";
 import ProductAddedModalWrapper from "@/components/ProductAddedModalWrapper";
+import CookieBanner from "@/components/CookieBanner";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl"),
@@ -51,6 +52,8 @@ export default function RootLayout({
 
         <Footer />
 
+        <CookieBanner />
+        
         <Script id="deferred-gtm" strategy="afterInteractive">
           {`(function(w,d,l,i){
   w[l]=w[l]||[];
@@ -59,15 +62,23 @@ export default function RootLayout({
   var events=['pointerdown','keydown','touchstart','scroll'];
   function load(){
     if(loaded)return;
+    // Only load if the user has accepted cookies
+    if(window.localStorage.getItem('cookie_consent') !== 'accepted') return;
+    
     loaded=true;
     clearTimeout(timer);
     events.forEach(function(event){w.removeEventListener(event,load);});
+    w.removeEventListener('cookie_consent_accepted', load);
+    
     var script=d.createElement('script');
     script.async=true;
     script.src='https://www.googletagmanager.com/gtm.js?id='+i;
     d.head.appendChild(script);
   }
+  
   events.forEach(function(event){w.addEventListener(event,load,{once:true,passive:true});});
+  w.addEventListener('cookie_consent_accepted', load);
+  
   var timer=setTimeout(load,30000);
 })(window,document,'dataLayer','GTM-NBGNBVR3');`}
         </Script>

@@ -1849,14 +1849,27 @@ export default function NewCheckoutPage() {
 
               {/* Guarantees */}
                <div className="flex flex-col gap-2 opacity-70">
+                 {/* 1. Shown to EVERYONE */}
                  <div className="flex items-center gap-2 text-xs text-gray-500">
                     <ShieldCheck className="w-4 h-4 text-green-600"/>
                     <span>Veilig betalen met SSL-beveiliging</span>
                  </div>
-                 <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <Truck className="w-4 h-4 text-blue-600"/>
-                    <span>Gratis verzending boven €75</span>
-                 </div>
+                 
+                 {/* 2. Shown ONLY to regular customers (Hidden for B2B) */}
+                 {!isB2B && (
+                   <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <Truck className="w-4 h-4 text-blue-600"/>
+                      <span>Gratis verzending boven €75</span>
+                   </div>
+                 )}
+
+                 {/* 3. Shown ONLY to B2B customers */}
+                 {isB2B && (
+                   <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <Truck className="w-4 h-4 text-blue-600"/>
+                      <span>B2B Verzending: €7,50 (Gratis vanaf €250). Lengtevracht uitgesloten.</span>
+                   </div>
+                 )}
                </div>
 
           </div>
