@@ -4,6 +4,7 @@ import Link from "next/link";
 import { fetchBlogBySlugAction } from "../../actions";
 
 import BlockRenderer from "@/components/blog/BlockRenderer";
+import { getAbsoluteImageUrl } from "@/lib/image-utils";
 
 export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> }
@@ -23,7 +24,7 @@ export async function generateMetadata(
 
     const seoTitle = post.seo_title || post.title;
     const seoDescription = post.seo_description || (post.excerpt ? post.excerpt.replace(/<[^>]+>/g, "") : "");
-    const image = post.featured_image;
+    const image = getAbsoluteImageUrl(post.featured_image);
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
 
@@ -40,6 +41,12 @@ export async function generateMetadata(
         url: `${siteUrl}/kennisbank/${slug}`,
         images: image ? [{ url: image, width: 1200, height: 630 }] : [],
       },
+      twitter: {
+        card: "summary_large_image",
+        title: seoTitle,
+        description: seoDescription,
+        images: [image],
+      }
     };
   } catch {
     return {

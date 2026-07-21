@@ -5,6 +5,7 @@ import api from "@/lib/woocommerce";
 import ProductPageClientV2 from "./ProductPageClientV2";
 import CategoryClient from "@/components/CategoryClient";
 import { extractRelatedIdentifiers } from "@/lib/productUtils";
+import { getAbsoluteImageUrl } from "@/lib/image-utils";
 import { fetchRelatedProductsBatchAction, resolveSlugAction } from "@/app/actions";
 
 /* ----------------------------------------------------
@@ -501,7 +502,8 @@ export async function generateMetadata(
       }
     }
 
-    const imageUrl = product.images?.[0]?.src || "https://bouwbeslag.nl/ogimg-new.png";
+    const rawImageUrl = product.images?.[0]?.src || product.images?.[0]?.url;
+    const imageUrl = getAbsoluteImageUrl(rawImageUrl);
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl";
     const result = {
@@ -557,7 +559,8 @@ export async function generateMetadata(
     }
 
     const correctPath = await traverseCategoryPath(category);
-    const catImageUrl = category.image?.src || "https://bouwbeslag.nl/logo.webp";
+    const rawCatImageUrl = (category as any).image?.src || (category as any).image;
+    const catImageUrl = getAbsoluteImageUrl(typeof rawCatImageUrl === 'string' ? rawCatImageUrl : rawCatImageUrl?.src);
 
     return {
       title,

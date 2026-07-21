@@ -3,6 +3,10 @@ export function fixImageSrc(src: string | undefined | null): string {
 
     let finalSrc = src.trim();
 
+    if (finalSrc.toLowerCase().endsWith(".pdf")) {
+        return "/default-fallback-image.webp";
+    }
+
     // Fix protocol-relative URLs
     if (finalSrc.startsWith("//")) {
         finalSrc = `https:${finalSrc}`;
@@ -54,6 +58,53 @@ export function fixImageSrc(src: string | undefined | null): string {
 
     if (!finalSrc.startsWith("/") && !finalSrc.startsWith("http")) {
         return "/default-fallback-image.webp";
+    }
+
+    return finalSrc;
+}
+
+export function getAbsoluteImageUrl(src: string | undefined | null): string {
+    if (!src || typeof src !== "string" || src.trim() === "") return "https://bouwbeslag.nl/ogimg-new.png";
+
+    let finalSrc = src.trim();
+
+    if (finalSrc.toLowerCase().endsWith(".pdf")) {
+        return "https://bouwbeslag.nl/ogimg-new.png";
+    }
+
+    if (finalSrc.startsWith("//")) {
+        finalSrc = `https:${finalSrc}`;
+    }
+
+    if (finalSrc.includes("http://empire.test")) {
+        finalSrc = finalSrc.replace("http://empire.test", "https://empire.dayzsolutions.nl");
+    }
+
+    if (finalSrc.startsWith("empireFiles/")) {
+        const backendUrl = "https://empire.dayzsolutions.nl";
+        const filenameWithExt = finalSrc.replace("empireFiles/", "");
+        const lastDotIndex = filenameWithExt.lastIndexOf(".");
+        let name = filenameWithExt;
+        let ext = "";
+        if (lastDotIndex !== -1) {
+            name = filenameWithExt.substring(0, lastDotIndex);
+            ext = filenameWithExt.substring(lastDotIndex);
+        }
+        const slugifiedName = name
+            .toString()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9\- ]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/\-+/g, '-');
+            
+        return `${backendUrl}/storage/products/${slugifiedName}${ext}`;
+    }
+
+    if (finalSrc.startsWith("/")) {
+        return `https://bouwbeslag.nl${finalSrc}`;
     }
 
     return finalSrc;
