@@ -819,7 +819,7 @@ export default function NewCheckoutPage() {
   const displayTax = checkoutTotals.tax;
   // Header shows: Totaal + (incl. BTW) label.
   
-  const taxLabel = "(incl. BTW)";
+  const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
 
   // VAT Validation Handler
   const handleVatBlur = async () => {
@@ -1837,8 +1837,14 @@ export default function NewCheckoutPage() {
                     )}
                     <div className="pt-3 mt-3 border-t border-gray-100 flex justify-between items-center text-lg font-bold text-gray-900">
                         <span>Totaal <span className="text-xs font-normal text-gray-500">{taxLabel}</span></span>
-                        <span>€ {total.toFixed(2).replace('.', ',')}</span>
+                        <span>€ {(isB2B ? checkoutTotals.netTotal : checkoutTotals.grossTotal).toFixed(2).replace('.', ',')}</span>
                     </div>
+                    {isB2B && (
+                        <div className="flex justify-between items-center text-sm font-medium text-gray-500 mt-2">
+                            <span>Totaal (incl. BTW)</span>
+                            <span>€ {checkoutTotals.grossTotal.toFixed(2).replace('.', ',')}</span>
+                        </div>
+                    )}
                </div>
 
               {/* Guarantees */}
