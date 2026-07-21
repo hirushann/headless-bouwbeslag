@@ -9,6 +9,13 @@ import Image from "next/image";
 
 export default function ProductAddedModal() {
   const { isOpen, closeModal, modalData } = useProductAddedModal();
+  const isCartOpen = useCartStore((state) => state.isCartOpen);
+
+  React.useEffect(() => {
+    if (isCartOpen && isOpen) {
+      closeModal();
+    }
+  }, [isCartOpen, isOpen, closeModal]);
 
   // We rely on AnimatePresence so we render null if not open INSIDE the AnimatePresence check usually,
   // but here we want to wrap the whole thing.
