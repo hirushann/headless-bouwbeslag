@@ -17,7 +17,6 @@ export default function FallbackImage({ src, fallbackSrc = "/default-fallback-im
       onError={() => {
         setImgSrc(fallbackSrc);
       }}
-      fetchPriority={rest.priority ? "high" : "low"}
     />
   );
 }
