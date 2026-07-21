@@ -76,7 +76,7 @@ export default function CategoriesSidebar({ categories }: CategoriesSidebarProps
 
   return (
     <div
-      className="bg-[#FFFFFF] shadow-[0px_20px_24px_0px_#0000000A] rounded-[4px] w-[27%] hidden lg:flex flex-col lg:h-[80vh]"
+      className="bg-[#FFFFFF] shadow-[0px_20px_24px_0px_#0000000A] rounded-[4px] w-[27%] hidden lg:flex flex-col lg:h-[80vh] flex-shrink-0"
     >
       <div className="border-b border-[#F1F1F1] flex items-center p-5 shrink-0">
         <p className="font-bold text-[22px]">Bekijk ons assortiment</p>
