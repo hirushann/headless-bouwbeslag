@@ -38,7 +38,7 @@ export default function HeroSection() {
           height={400}
           priority
           fetchPriority="high"
-          decoding="sync"
+          decoding="async"
           unoptimized
         />
       </div>

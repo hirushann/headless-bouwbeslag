@@ -129,7 +129,7 @@ async function BlogSection() {
               <Link href={`/kennisbank/${post.slug}`}>
                 <Image
                   className="mb-3 rounded-sm h-[250px] w-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                  src={post.featured_image || "/default-fallback-image.webp"}
+                  src={fixImageSrc(post.featured_image)}
                   alt={post.title}
                   width={500}
                   height={200}
@@ -197,7 +197,7 @@ function CategoriesDisplay({ categories }: { categories: any[] }) {
                   <div className="w-[120px] h-[120px] flex-shrink-0 relative">
                     <Image 
                       className="mb-3 rounded-sm object-cover" 
-                      src={imgSrc || "/default-fallback-image.webp"} 
+                      src={fixImageSrc(imgSrc)} 
                       alt={displayName} 
                       fill
                       sizes="120px"
