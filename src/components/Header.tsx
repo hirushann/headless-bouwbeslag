@@ -138,7 +138,7 @@ export default function Header() {
                 width={256}
                 height={41}
                 className="w-56 lg:w-64"
-                loading="eager"
+                priority
               />
             </Link>
             <div className="hidden lg:flex justify-center items-center w-[30%]">
