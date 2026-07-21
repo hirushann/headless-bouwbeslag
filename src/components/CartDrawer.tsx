@@ -87,7 +87,8 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods, shippingR
   const hasLengthFreight = items.some((i) => i.hasLengthFreight);
   
   // Use dynamic free shipping threshold
-  const cartTotalForShipping = isB2B ? subtotal : subtotal * 1.21;
+  const rawExVatSubtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const cartTotalForShipping = isB2B ? rawExVatSubtotal : rawExVatSubtotal * 1.21;
   const isFreeShipping = freeShippingThreshold !== null && cartTotalForShipping >= freeShippingThreshold;
   
   const shipping = hasLengthFreight ? lengthFreightCost / 1.21 : isFreeShipping ? 0 : flatRate;

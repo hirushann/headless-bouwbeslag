@@ -15,6 +15,7 @@ function AccountContent() {
     refreshUser,
     updateUser,
     signOut,
+    isB2B,
   } = useUserContext();
 
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -44,6 +45,15 @@ function AccountContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const EMPIRE_API_URL = (process.env.NEXT_PUBLIC_EMPIRE_API_URL || "http://empire.test").replace(/\/$/, "");
+  
+  const getOrderTotal = (order: any) => {
+    const total = parseFloat(order.totals?.net_total_with_tax || order.total || 0);
+    if (isB2B) {
+      const tax = parseFloat(order.totals?.total_tax || order.total_tax || 0);
+      return Math.max(0, total - tax);
+    }
+    return total;
+  };
   
   // Forms are editable projections of the provider-owned customer record.
   useEffect(() => {
@@ -473,12 +483,12 @@ function AccountContent() {
                   />
                   <StatCard 
                     title="Totaal Uitgegeven" 
-                    value={`€${orders.reduce((sum, o) => sum + parseFloat(o.totals?.net_total_with_tax || o.total || 0), 0).toFixed(2)}`} 
+                    value={`€${orders.reduce((sum, o) => sum + getOrderTotal(o), 0).toFixed(2)}`} 
                     desc="Totale uitgaven" 
                   />
                   <StatCard 
                     title="Gem. Bestelling" 
-                    value={`€${orders.length > 0 ? (orders.reduce((sum, o) => sum + parseFloat(o.totals?.net_total_with_tax || o.total || 0), 0) / orders.length).toFixed(2) : "0.00"}`} 
+                    value={`€${orders.length > 0 ? (orders.reduce((sum, o) => sum + getOrderTotal(o), 0) / orders.length).toFixed(2) : "0.00"}`} 
                     desc="Gemiddelde per bestelling" 
                   />
                 </div>
@@ -518,7 +528,7 @@ function AccountContent() {
                               <p className="text-sm text-gray-500">{new Date(order.created_at || order.date_created).toLocaleDateString()}</p>
                             </div>
                             <div className="text-right">
-                              <p className="font-bold text-[#1C2530]">€{parseFloat(order.totals?.net_total_with_tax || order.total || 0).toFixed(2)}</p>
+                              <p className="font-bold text-[#1C2530]">€{getOrderTotal(order).toFixed(2)}</p>
                               <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                                 order.status === "completed" ? "bg-green-100 text-green-700" :
                                 order.status === "processing" ? "bg-blue-100 text-blue-700" :
@@ -570,7 +580,7 @@ function AccountContent() {
                             <p className="text-gray-500 text-sm">Geplaatst op {new Date(order.created_at || order.date_created).toLocaleDateString()}</p>
                           </div>
                           <div className="text-right">
-                            <p className="text-xl font-bold text-[#1C2530] mb-1">€{parseFloat(order.totals?.net_total_with_tax || order.total || 0).toFixed(2)}</p>
+                            <p className="text-xl font-bold text-[#1C2530] mb-1">€{getOrderTotal(order).toFixed(2)}</p>
                             <p className="text-sm text-gray-500">{(order.items || order.line_items || []).length} artikelen</p>
                           </div>
                         </div>
