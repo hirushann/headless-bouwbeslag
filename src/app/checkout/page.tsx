@@ -230,6 +230,8 @@ function GoogleAddressSearch({ country, icon, inputClassName, onSelect }: Google
               src="https://maps.gstatic.com/mapfiles/api-3/images/powered-by-google-on-white3.png"
               alt="Powered by Google"
               className="h-4 w-auto"
+              width={144}
+              height={18}
             />
           </div>
         </div>
@@ -1506,9 +1508,9 @@ export default function NewCheckoutPage() {
                                     <div className="flex items-center gap-4">
                                         <div className="p-1 bg-white rounded-md border border-gray-100 w-12 h-8 flex items-center justify-center">
                                             {method.image?.svg ? (
-                                                <img src={method.image.svg} alt={method.description} className="max-w-full max-h-full" />
+                                                <img src={method.image.svg} alt={method.description} className="max-w-full max-h-full" width={64} height={48} />
                                             ) : method.image?.size1x ? (
-                                                <img src={method.image.size1x} alt={method.description} className="max-w-full max-h-full" />
+                                                <img src={method.image.size1x} alt={method.description} className="max-w-full max-h-full" width={64} height={48} />
                                             ) : (
                                                 <CreditCard className="w-5 h-5 text-gray-400"/>
                                             )}

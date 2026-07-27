@@ -223,7 +223,7 @@ export default function KeuzehulpModal({ categorySlug, isOpen, onClose, onComple
                           isSelected ? "border-blue-500 shadow-md ring-2 ring-blue-500/20" : "border-gray-200 hover:border-gray-300 hover:shadow-sm"
                         } ${isDisabled ? "opacity-40 grayscale cursor-not-allowed hidden md:flex" : ""}`}
                       >
-                        <img src={choice.image} alt={choice.label} className="w-full aspect-square object-cover bg-gray-50" />
+                        <img src={choice.image} alt={choice.label} className="w-full aspect-square object-cover bg-gray-50" width={400} height={400} />
                         <div className={`w-full p-4 text-center font-medium ${isSelected ? 'bg-blue-50 text-blue-700' : 'text-gray-700'}`}>
                           {choice.label}
                           {isDisabled && <span className="block text-xs text-red-500 mt-1">Niet beschikbaar</span>}
