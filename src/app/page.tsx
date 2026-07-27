@@ -56,7 +56,9 @@ const stripProductForCarousel = (p: any) => {
   const allowedMetaKeys = [
     "crucial_data_delivery_if_stock",
     "crucial_data_delivery_if_no_stock",
-    "crucial_data_total_stock"
+    "crucial_data_total_stock",
+    "assets_cat_image",
+    "cat_image"
   ];
   
   const strippedMetaData = Array.isArray(p.meta_data) 
@@ -77,6 +79,7 @@ const stripProductForCarousel = (p: any) => {
     stock_status: p.stock_status,
     stock_quantity: p.stock_quantity,
     attributes: p.attributes,
+    resolved_cat_image: p.resolved_cat_image,
   };
 };
 
@@ -268,9 +271,9 @@ export default async function Home() {
         </Suspense>
 
         {/* Recommended Products */}
-        <Suspense fallback={<div className="hidden lg:flex w-full h-[450px] bg-white rounded-sm animate-pulse flex-col p-5 gap-4"><div className="w-1/4 h-8 bg-gray-200 rounded" /><div className="w-full flex-1 bg-gray-100 rounded" /></div>}>
+        {/* <Suspense fallback={<div className="hidden lg:flex w-full h-[450px] bg-white rounded-sm animate-pulse flex-col p-5 gap-4"><div className="w-1/4 h-8 bg-gray-200 rounded" /><div className="w-full flex-1 bg-gray-100 rounded" /></div>}>
           <RecommendedSection />
-        </Suspense>
+        </Suspense> */}
 
         {/* Shop by Categories */}
         <Suspense fallback={<div className="w-full h-[500px] lg:h-[400px] bg-white rounded-sm animate-pulse flex flex-col p-5 gap-4"><div className="w-1/4 h-8 bg-gray-200 rounded" /><div className="w-full flex-1 bg-gray-100 rounded" /></div>}>

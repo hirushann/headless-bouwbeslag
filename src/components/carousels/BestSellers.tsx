@@ -48,7 +48,7 @@ export default function BestSellersCarousel({ products }: BestSellersCarouselPro
   return (
     <div className="hidden lg:block w-full py-10">
         <div className="flex justify-between items-center mb-2">
-            <h2 className="text-3xl font-bold text-[#1C2530]">Our best selling products</h2>
+            <h2 className="text-3xl font-bold text-[#1C2530]">Onze best verkochte producten</h2>
             <div className="flex gap-2">
             <button onClick={() => scroll(-1)} disabled={atStart} className="inline-flex size-10 items-center justify-center rounded-full border border-[#D7DCE2] bg-white text-[#1C2530] disabled:cursor-not-allowed disabled:opacity-40 hover:bg-[#0066FF] hover:text-white" aria-label="Previous">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="20" height="20" fill="currentColor"><path d="M201.4 297.4C188.9 309.9 188.9 330.2 201.4 342.7L361.4 502.7C373.9 515.2 394.2 515.2 406.7 502.7C419.2 490.2 419.2 469.9 406.7 457.4L269.3 320L406.6 182.6C419.1 170.1 419.1 149.8 406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3L201.3 297.3z"/></svg>
@@ -58,13 +58,13 @@ export default function BestSellersCarousel({ products }: BestSellersCarouselPro
             </button>
             </div>
         </div>
-        <p className="text-[#3D4752] mb-8">Check our best seller products on bouwbeslag.nl website right now</p>
+        <p className="text-[#3D4752] mb-8">Bekijk nu onze best verkochte producten op bouwbeslag.nl</p>
         <div className="relative">
             <div ref={trackRef} className="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 no-scrollbar">
                 <div ref={startRef} className="w-1 absolute left-0 h-1 pointer-events-none" />
                 {(Array.isArray(products) ? products : []).map((p) => (
                     <div key={p.id} className="snap-start shrink-0 w-[24%]">
-                    <ProductCard product={p} />
+                    <ProductCard product={p} useCategoryImage={true} />
                     </div>
                 ))}
                 <div ref={endRef} className="w-1 absolute right-0 h-1 pointer-events-none" />
