@@ -13,6 +13,7 @@ import { useCartStore } from "@/lib/cartStore";
 import { fetchMedia } from "@/lib/wordpress";
 import { COLOR_MAP } from "@/config/colorMap";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
+import { useHolidayStore } from "@/lib/holidayStore";
 const ReviewsSection = dynamic(() => import("@/components/ReviewsSection"), { ssr: false });
 import PhotoSwipeLightbox from 'photoswipe/lightbox';
 import 'photoswipe/dist/photoswipe.css';
@@ -77,8 +78,8 @@ export default function ProductPageClientV2({
   const [mainImageLoaded, setMainImageLoaded] = useState(false);
   const [isMainImageLoading, setIsMainImageLoading] = useState(true);
 
-
-
+  useHolidayStore(s => s.shipping); // subscribe to holiday changes
+  
   const { userRole, isLoading, isB2B } = useUserContext();
 
   useEffect(() => {
@@ -138,9 +139,36 @@ export default function ProductPageClientV2({
   const discounts = React.useMemo(() => {
     const arr: { quantity: number; percentage: number }[] = [];
     if (!product?.meta_data) return arr;
+
+    // First check if it's returned as an array (e.g., from ACF REST API plugin)
+    const discountsMeta = product.meta_data.find((m: any) => m.key === "crucial_data_discounts")?.value;
+    if (Array.isArray(discountsMeta) && discountsMeta.length > 0) {
+      discountsMeta.forEach((d: any) => {
+        const qRaw = d.discount_quantity;
+        const pRaw = d.discount_percentage;
+        const q = qRaw && !isNaN(parseInt(qRaw)) ? parseInt(qRaw) : null;
+        const p = pRaw && !isNaN(parseFloat(pRaw)) ? parseFloat(pRaw) : null;
+        if (q !== null && p !== null) {
+          arr.push({ quantity: q, percentage: p });
+        }
+      });
+      if (arr.length > 0) {
+        return arr.sort((a, b) => a.quantity - b.quantity);
+      }
+    }
+
+    // Fallback to flat meta keys
     for (let i = 1; i <= 3; i++) {
-      const qRaw = product.meta_data.find((m: any) => m.key === `crucial_data_discounts_discount_quantity_${i}`)?.value;
-      const pRaw = product.meta_data.find((m: any) => m.key === `crucial_data_discounts_discount_percentage_${i}`)?.value;
+      const qRaw = product.meta_data.find((m: any) => 
+        m.key === `crucial_data_discounts_discount_quantity_${i}` || 
+        m.key === `crucial_data_discounts_${i-1}_discount_quantity` || 
+        m.key === `crucial_data_discounts_${i}_discount_quantity`
+      )?.value;
+      const pRaw = product.meta_data.find((m: any) => 
+        m.key === `crucial_data_discounts_discount_percentage_${i}` || 
+        m.key === `crucial_data_discounts_${i-1}_discount_percentage` || 
+        m.key === `crucial_data_discounts_${i}_discount_percentage`
+      )?.value;
       const q = qRaw && !isNaN(parseInt(qRaw)) ? parseInt(qRaw) : null;
       const p = pRaw && !isNaN(parseFloat(pRaw)) ? parseFloat(pRaw) : null;
       if (q !== null && p !== null) {

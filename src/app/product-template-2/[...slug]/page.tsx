@@ -646,10 +646,10 @@ function generateStructuredData(product: any, taxRate: number, reviews: any[] = 
     "@id": `https://bouwbeslag.nl/${product.slug}#product`,
     url: `https://bouwbeslag.nl/${product.slug}`,
     name: product.name,
-    image: images,
+    image: images.length > 0 ? images : undefined,
     description: finalDescription,
-    sku: product.sku,
-    mpn: product.sku,
+    sku: product.sku || undefined,
+    mpn: product.sku || undefined,
     brand: {
       "@type": "Brand",
       name: brandName,
@@ -713,20 +713,20 @@ function generateStructuredData(product: any, taxRate: number, reviews: any[] = 
             "@type": "QuantitativeValue",
             minValue: "0",
             maxValue: "1",
-            unitCode: "d"
+            unitCode: "DAY"
           },
           transitTime: {
             "@type": "QuantitativeValue",
             minValue: "1",
             maxValue: "2",
-            unitCode: "d"
+            unitCode: "DAY"
           }
         }
       },
       hasMerchantReturnPolicy: {
         "@type": "MerchantReturnPolicy",
         applicableCountry: "NL",
-        returnPolicyCategory: "http://schema.org/MerchantReturnFiniteReturnWindow",
+        returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
         merchantReturnDays: "30",
         returnMethod: "https://schema.org/ReturnByMail",
         returnFees: "https://schema.org/FreeReturn"

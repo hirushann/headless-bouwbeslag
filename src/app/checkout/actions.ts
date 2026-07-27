@@ -6,6 +6,8 @@ import mollieClient from "@/lib/mollie";
 import axios from "axios";
 import { calculateCheckoutTotals } from "@/lib/checkout-state";
 import { reconcileMollieOrder } from "@/lib/mollie-order-processing";
+import { getDeliveryInfo } from "@/lib/deliveryUtils";
+import { getServerHolidays } from "@/lib/serverHolidays";
 
 
 export async function checkOrderStatusAction(orderId: string | number) {
@@ -230,6 +232,24 @@ export async function placeOrderAction(data: any) {
             }
 
             subtotal += (price * qty);
+
+            const deliveryInfo = getDeliveryInfo(
+                item.stockStatus || "instock",
+                qty,
+                item.stockQuantity ?? null,
+                item.leadTimeInStock || 1,
+                item.leadTimeNoStock || 30,
+                getServerHolidays()
+            );
+            
+            let fullDeliveryNotice = deliveryInfo.message;
+            if (deliveryInfo.type === "IN_STOCK") {
+                fullDeliveryNotice = `Dit product is op voorraad, ${deliveryInfo.message}`;
+            } else if (deliveryInfo.type === "PARTIAL_STOCK") {
+                fullDeliveryNotice = `Deels op voorraad, ${deliveryInfo.message}`;
+            } else {
+                fullDeliveryNotice = `Dit artikel moet besteld worden, ${deliveryInfo.message}`;
+            }
             
             return {
                 sync_id: syncId,
@@ -239,7 +259,8 @@ export async function placeOrderAction(data: any) {
                 price: invoicePrice,
                 price_ex_tax: roundMoney(price),
                 price_tax: pricesIncludeTax ? roundMoney((price * taxMultiplier) - price) : 0,
-                manual_unit_price: invoicePrice
+                manual_unit_price: invoicePrice,
+                delivery_date_notice: fullDeliveryNotice
             };
         });
 

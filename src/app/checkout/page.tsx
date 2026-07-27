@@ -10,6 +10,7 @@ import { useUserContext } from "@/context/UserContext";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
+import { useHolidayStore } from "@/lib/holidayStore";
 import { calculateCheckoutTotals, calculateCouponDiscount, createSubmissionGuard, resolveCouponValidation } from "@/lib/checkout-state";
 
 const SUPPORTED_COUNTRIES = [
@@ -242,6 +243,7 @@ function GoogleAddressSearch({ country, icon, inputClassName, onSelect }: Google
 }
 
 export default function NewCheckoutPage() {
+  useHolidayStore(s => s.shipping); // subscribe to holiday changes
   const router = useRouter();
   const orderSubmissionGuard = useRef(createSubmissionGuard());
   const [currentStep, setCurrentStep] = useState(1);

@@ -8,6 +8,7 @@ import { UserProvider } from "@/context/UserContext";
 import { ProductAddedModalProvider } from "@/context/ProductAddedModalContext";
 import ProductAddedModalWrapper from "@/components/ProductAddedModalWrapper";
 import CookieBanner from "@/components/CookieBanner";
+import { HolidayInit } from "@/components/HolidayInit";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl"),
@@ -41,6 +42,7 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased overflow-visible">
+        <HolidayInit />
         <Toaster position="top-right" />
         <UserProvider>
           <ProductAddedModalProvider>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCartStore } from "@/lib/cartStore";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
+import { useHolidayStore } from "@/lib/holidayStore";
 import { useEffect, useState } from "react";
 import { refreshCartStockAction } from "@/app/actions";
 import { fixImageSrc } from "@/lib/image-utils";
@@ -19,6 +20,7 @@ interface CartDrawerProps {
 }
 
 export default function CartDrawer({ isB2B, taxLabel, shippingMethods, shippingRules }: CartDrawerProps) {
+  useHolidayStore(s => s.shipping); // subscribe to holiday changes
   const items = useCartStore((state) => state.items);
   const isCartOpen = useCartStore((state) => state.isCartOpen);
   const setCartOpen = useCartStore((state) => state.setCartOpen);

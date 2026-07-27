@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCartStore } from "@/lib/cartStore";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
+import { useHolidayStore } from "@/lib/holidayStore";
 import { useUserContext } from "@/context/UserContext";
 import { checkStockAction } from "@/app/actions";
 import toast from "react-hot-toast";
@@ -28,6 +29,8 @@ export default function ShopProductCard({
   imageFetchPriority?: "high" | "low" | "auto";
   imageQuality?: number;
 }) {
+  useHolidayStore(s => s.shipping); // subscribe to holiday changes
+  
   // Format price safely (remove weird HTML entities)
   const cleanPrice = (price: string) =>
     price?.replace(/&#[0-9]+;|&[a-z]+;/gi, "").trim();
@@ -158,8 +161,13 @@ export default function ShopProductCard({
         sale = parseFloat(b2bPrice.amount);
       } else if (b2bPrice && !isNaN(parseFloat(b2bPrice))) {
         sale = parseFloat(b2bPrice);
-      } else if (product.price) {
-        sale = parseFloat(product.price);
+      } else {
+        const acfB2BPriceRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2b");
+        if (acfB2BPriceRaw && !isNaN(parseFloat(acfB2BPriceRaw))) {
+          sale = parseFloat(acfB2BPriceRaw);
+        } else if (product.price) {
+          sale = parseFloat(typeof product.price === 'object' ? product.price.amount : product.price);
+        }
       }
     } else {
       const b2cPrice = product.price_b2c;
@@ -167,13 +175,52 @@ export default function ShopProductCard({
         sale = parseFloat(b2cPrice.amount);
       } else if (b2cPrice && !isNaN(parseFloat(b2cPrice))) {
         sale = parseFloat(b2cPrice);
-      } else if (product.price) {
-        sale = parseFloat(product.price);
+      } else {
+        const acfPriceRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
+        if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
+          sale = parseFloat(acfPriceRaw);
+        } else if (product.price) {
+          sale = parseFloat(typeof product.price === 'object' ? product.price.amount : product.price);
+        }
       }
     }
 
-    const finalPrice = isB2B ? sale : (sale ? sale * taxMultiplier : 0);
+    let finalPrice = isB2B ? sale : (sale ? sale * taxMultiplier : 0);
     const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
+
+    let secondaryPrice = isB2B ? (sale ? sale * taxMultiplier : 0) : sale;
+    const secondaryTaxLabel = isB2B ? "(incl. BTW)" : "(excl. BTW)";
+
+    // Vanaf / Cheapest Price Logic
+    let isFromPrice = false;
+    const discounts: { quantity: number; percentage: number }[] = [];
+    if (product?.meta_data) {
+      for (let i = 1; i <= 3; i++) {
+        const qRaw = getMeta(`crucial_data_discounts_discount_quantity_${i}`) || 
+                     getMeta(`crucial_data_discounts_${i-1}_discount_quantity`) || 
+                     getMeta(`crucial_data_discounts_${i}_discount_quantity`);
+        const pRaw = getMeta(`crucial_data_discounts_discount_percentage_${i}`) || 
+                     getMeta(`crucial_data_discounts_${i-1}_discount_percentage`) || 
+                     getMeta(`crucial_data_discounts_${i}_discount_percentage`);
+        const q = qRaw && !isNaN(parseInt(qRaw)) ? parseInt(qRaw) : null;
+        const p = pRaw && !isNaN(parseFloat(pRaw)) ? parseFloat(pRaw) : null;
+        if (q !== null && p !== null) {
+          discounts.push({ quantity: q, percentage: p });
+        }
+      }
+    }
+
+    const cheapestPriceOption = getMeta("crucial_data_cheapest_price_option");
+    const isCheapestPriceEnabled = cheapestPriceOption === "1" || cheapestPriceOption === 1 || cheapestPriceOption === true || String(cheapestPriceOption).toLowerCase() === "true" || String(cheapestPriceOption).toLowerCase() === "yes";
+
+    if (isCheapestPriceEnabled && discounts.length > 0) {
+      const maxDiscount = Math.max(...discounts.map(d => d.percentage));
+      if (maxDiscount > 0) {
+        finalPrice = finalPrice - (finalPrice * maxDiscount) / 100;
+        secondaryPrice = secondaryPrice - (secondaryPrice * maxDiscount) / 100;
+        isFromPrice = true;
+      }
+    }
 
     const advisedRaw = getMeta("crucial_data_unit_price");
     const advised = advisedRaw && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
@@ -190,8 +237,11 @@ export default function ShopProductCard({
       displayPrice: finalPrice,
       finalPrice,
       taxLabel,
+      secondaryPrice,
+      secondaryTaxLabel,
       advisedDisplay,
-      showStrikeThrough
+      showStrikeThrough,
+      isFromPrice
     };
   })();
 
@@ -251,11 +301,20 @@ export default function ShopProductCard({
                         {new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(priceData.advisedDisplay)}
                     </span>
                   )} */}
-              <div className="flex items-end gap-1 flex-wrap">
-                <span className="text-base lg:text-xl font-bold text-[#1C2530]">
-                  {new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(priceData.finalPrice)}
-                </span>
-                <span className="text-[10px] text-gray-500 mb-1">{priceData.taxLabel}</span>
+              <div className="flex flex-col">
+                <div className="flex items-end gap-1 flex-wrap">
+                  {priceData.isFromPrice && <span className="text-sm font-normal text-gray-500 mr-1">Vanaf</span>}
+                  <span className="text-base lg:text-xl font-bold text-[#1C2530]">
+                    {new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(priceData.finalPrice || 0)}
+                  </span>
+                  <span className="text-[10px] text-gray-500 mb-1">{priceData.taxLabel}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-gray-500 font-normal">
+                    {new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(priceData.secondaryPrice || 0)}
+                  </span>
+                  <span className="text-[9px] text-gray-400">{priceData.secondaryTaxLabel}</span>
+                </div>
               </div>
             </div>
           </div>

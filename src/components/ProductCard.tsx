@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCartStore } from "@/lib/cartStore";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
+import { useHolidayStore } from "@/lib/holidayStore";
 import { checkStockAction } from "@/app/actions";
 import toast from "react-hot-toast";
 const WP_BASE: string =
@@ -22,6 +23,7 @@ import { useProductAddedModal } from "@/context/ProductAddedModalContext";
 const globalMediaCache: Record<string, string> = {};
 
 export default function ProductCard({ product, userRole: propUserRole, useCategoryImage = false }: { product: any; userRole?: string[] | null; useCategoryImage?: boolean }) {
+  useHolidayStore(s => s.shipping); // subscribe to holiday changes
   const { userRole: contextUserRole, isLoading, isB2B: contextIsB2B } = useUserContext();
   const userRole = propUserRole || contextUserRole;
   const { openModal } = useProductAddedModal();

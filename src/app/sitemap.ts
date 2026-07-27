@@ -25,13 +25,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const apiUrl = normalizeBaseUrl(process.env.NEXT_PUBLIC_EMPIRE_API_URL || "http://empire.test") + "/api";
   const now = new Date();
 
-  let products = [], categories = [], brands = [], blogs = [];
+  const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST || "https://ezearch.dayzsolutions.com";
+  const MEILISEARCH_KEY = process.env.MEILISEARCH_KEY || "";
+  const MEILISEARCH_PRODUCTS_INDEX = process.env.MEILISEARCH_BOUWBESLAG_PRODUCTS_INDEX || "empire-bouwbeslag-products";
+
+  let products: any[] = [], categories: any[] = [], brands: any[] = [], blogs: any[] = [];
 
   try {
     const res = await fetch(`${apiUrl}/sitemap/urls`, { next: { revalidate: 3600 } });
     if (res.ok) {
       const data = await res.json();
-      products = data.products || [];
+      products = data.products || []; // Fallback in case Meili fails
       categories = data.categories || [];
       brands = data.brands || [];
       blogs = data.blogs || [];
@@ -40,6 +44,35 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   } catch (e: any) {
     console.error("Sitemap: Failed to fetch URLs", e.message);
+  }
+
+  // Fetch all products from Meilisearch to ensure grouped/set products are included
+  try {
+    const meiliEndpoint = `${MEILISEARCH_HOST}/indexes/${MEILISEARCH_PRODUCTS_INDEX}/search`;
+    const meiliRes = await fetch(meiliEndpoint, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${MEILISEARCH_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        q: "",
+        limit: 10000,
+        attributesToRetrieve: ["slug", "updated_at"]
+      }),
+      next: { revalidate: 3600 }
+    });
+
+    if (meiliRes.ok) {
+      const meiliData = await meiliRes.json();
+      if (meiliData.hits && meiliData.hits.length > 0) {
+        products = meiliData.hits;
+      }
+    } else {
+      console.error(`Sitemap: Failed to fetch Meilisearch products, status ${meiliRes.status}`);
+    }
+  } catch (e: any) {
+    console.error("Sitemap: Failed to fetch Meilisearch products", e.message);
   }
 
   const catMap = new Map();

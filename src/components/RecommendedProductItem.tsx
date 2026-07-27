@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useCartStore } from "@/lib/cartStore";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
+import { useHolidayStore } from "@/lib/holidayStore";
 import { checkStockAction } from "@/app/actions";
 import toast from "react-hot-toast";
 import { useUserContext } from "@/context/UserContext";
@@ -11,6 +12,7 @@ import { fixImageSrc } from "@/lib/image-utils";
 import Image from "next/image";
 
 export default function RecommendedProductItem({ item, onAddToCart }: { item: any, onAddToCart?: () => void }) {
+    useHolidayStore(s => s.shipping); // subscribe to holiday changes
     const { userRole, isLoading, isB2B } = useUserContext();
     const [quantity, setQuantity] = useState(1);
     const [isAdding, setIsAdding] = useState(false);

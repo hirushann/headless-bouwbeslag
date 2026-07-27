@@ -13,6 +13,7 @@ import { useCartStore } from "@/lib/cartStore";
 import { fetchMedia } from "@/lib/wordpress";
 import { COLOR_MAP } from "@/config/colorMap";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
+import { useHolidayStore } from "@/lib/holidayStore";
 const ReviewsSection = dynamic(() => import("@/components/ReviewsSection"), { ssr: false });
 import PhotoSwipeLightbox from 'photoswipe/lightbox';
 import 'photoswipe/dist/photoswipe.css';
@@ -78,8 +79,8 @@ export default function ProductPageClient({
   const [mainImageLoaded, setMainImageLoaded] = useState(false);
   const [isMainImageLoading, setIsMainImageLoading] = useState(true);
 
-
-
+  useHolidayStore(s => s.shipping); // subscribe to holiday changes
+  
   const { userRole, isLoading, isB2B } = useUserContext();
 
   useEffect(() => {
@@ -137,9 +138,36 @@ export default function ProductPageClient({
   const discounts = React.useMemo(() => {
     const arr: { quantity: number; percentage: number }[] = [];
     if (!product?.meta_data) return arr;
+
+    // First check if it's returned as an array (e.g., from ACF REST API plugin)
+    const discountsMeta = product.meta_data.find((m: any) => m.key === "crucial_data_discounts")?.value;
+    if (Array.isArray(discountsMeta) && discountsMeta.length > 0) {
+      discountsMeta.forEach((d: any) => {
+        const qRaw = d.discount_quantity;
+        const pRaw = d.discount_percentage;
+        const q = qRaw && !isNaN(parseInt(qRaw)) ? parseInt(qRaw) : null;
+        const p = pRaw && !isNaN(parseFloat(pRaw)) ? parseFloat(pRaw) : null;
+        if (q !== null && p !== null) {
+          arr.push({ quantity: q, percentage: p });
+        }
+      });
+      if (arr.length > 0) {
+        return arr.sort((a, b) => a.quantity - b.quantity);
+      }
+    }
+
+    // Fallback to flat meta keys
     for (let i = 1; i <= 3; i++) {
-      const qRaw = product.meta_data.find((m: any) => m.key === `crucial_data_discounts_discount_quantity_${i}`)?.value;
-      const pRaw = product.meta_data.find((m: any) => m.key === `crucial_data_discounts_discount_percentage_${i}`)?.value;
+      const qRaw = product.meta_data.find((m: any) => 
+        m.key === `crucial_data_discounts_discount_quantity_${i}` || 
+        m.key === `crucial_data_discounts_${i-1}_discount_quantity` || 
+        m.key === `crucial_data_discounts_${i}_discount_quantity`
+      )?.value;
+      const pRaw = product.meta_data.find((m: any) => 
+        m.key === `crucial_data_discounts_discount_percentage_${i}` || 
+        m.key === `crucial_data_discounts_${i-1}_discount_percentage` || 
+        m.key === `crucial_data_discounts_${i}_discount_percentage`
+      )?.value;
       const q = qRaw && !isNaN(parseInt(qRaw)) ? parseInt(qRaw) : null;
       const p = pRaw && !isNaN(parseFloat(pRaw)) ? parseFloat(pRaw) : null;
       if (q !== null && p !== null) {
@@ -1447,128 +1475,6 @@ export default function ProductPageClient({
               );
             })()}
 
-            {/* Dynamic Order Colors */}
-            {(orderColors.length > 0 || isOrderColorsLoading) && (
-              <div className="mb-4">
-                <div className="flex justify-between items-center mb-2">
-                  <p className="font-semibold text-base lg:text-lg">Andere kleuren van dit product:</p>
-                  {(orderColors.length > 8 || isOrderColorsLoading) && (
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => scrollCarousel(colorScrollRef, "left")}
-                        className="w-8 h-8 flex items-center justify-center rounded-full border border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer"
-                        aria-label="Previous colors"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => scrollCarousel(colorScrollRef, "right")}
-                        className="w-8 h-8 flex items-center justify-center rounded-full border border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer"
-                        aria-label="Next colors"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <div ref={colorScrollRef} className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 scroll-smooth">
-                  {isOrderColorsLoading ? (
-                      Array.from({ length: 8 }).map((_, i) => (
-                          <div key={i} className="w-8 h-8 rounded-full bg-gray-200 animate-pulse shrink-0" />
-                      ))
-                  ) : (
-                      orderColors.map((colorItem, index) => (
-                        <Link
-                          key={index}
-                          href={`/${colorItem.slug}`}
-                          prefetch={true}
-                          title={colorItem.name}
-                          className="w-8 h-8 rounded-full border border-gray-300 shadow-sm cursor-pointer hover:scale-110 transition-transform block shrink-0"
-                          style={{ backgroundColor: colorItem.color }}
-                        />
-                      ))
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Dynamic Order Models Carousel */}
-            {(orderModels.length > 0 || isOrderModelsLoading) && (
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="font-semibold text-base lg:text-lg">Zoek je soms een ander model?</p>
-                  {!isOrderModelsLoading && orderModels.length > 5 && (
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => scrollBy(-200)}
-                        className="w-8 h-8 flex items-center justify-center rounded-full border border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer"
-                        aria-label="Previous models"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => scrollBy(200)}
-                        className="w-8 h-8 flex items-center justify-center rounded-full border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer"
-                        aria-label="Next models"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <div
-                  ref={scrollRef}
-                  className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 scroll-smooth"
-                >
-                  {isOrderModelsLoading ? (
-                      // Skeleton for Order Models
-                      Array.from({ length: 4 }).map((_, i) => (
-                          <div key={i} className="flex-shrink-0 w-32 flex flex-col items-center gap-2 animate-pulse">
-                              <div className="h-32 w-full bg-gray-200 rounded-sm"></div>
-                              <div className="h-4 w-20 bg-gray-200 rounded"></div>
-                          </div>
-                      ))
-                  ) : (
-                      orderModels.map((model: any, index: number) => (
-                        <Link
-                          href={`/${model.slug}`}
-                          prefetch={true}
-                          key={`${model.id}-${index}`}
-                          className="flex-shrink-0 w-32 flex flex-col items-center gap-2 group"
-                        >
-                          <div className="h-32 w-full border border-[#E8E1DC] rounded-sm bg-white flex items-center justify-center overflow-hidden relative">
-                            <Image
-                              src={fixImageSrc(model?.images?.[0]?.src || model?.resolved_cat_image)}
-                              alt={model?.name || "Model"}
-                              fill
-                              sizes="128px"
-                              className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
-                            />
-                          </div>
-                          <p className="text-xs text-center text-[#3D4752] leading-tight font-medium group-hover:text-blue-600 transition-colors mt-2">
-                            {model.displayText || model.name}
-                          </p>
-                        </Link>
-                      ))
-                  )}
-                </div>
-              </div>
-            )}
-
             {/* Volume Discount Section - B2C Only */}
             {discounts.length > 0 && !isB2B && (
               <div className="bg-white border border-white rounded-lg p-4 flex items-center gap-8">
@@ -1597,27 +1503,6 @@ export default function ProductPageClient({
                 </div>
               </div>
             )}
-
-            {/* B2B Upsell - Hide for existing B2B users */}
-            {!isB2B && (
-              <div className='bg-[#E4EFFF] py-3 px-5 rounded-md'>
-                <p className='text-[#3D4752] font-normal text-base'>Heb jij beroepsmatig op regelmatige basis bouwbeslag nodig? <a href="/zakelijk-aanmelden" className='text-[#0050D1] font-bold'>Klik hier </a> en meld je aan voor een zakelijk account met de scherpste inkoopprijzen.</p>
-              </div>
-            )}
-
-            {/* Maatwerk Warning */}
-            {(() => {
-              const isMaatwerk = getMetaValue("crucial_data_maatwerk") === "1";
-              if (!isMaatwerk) return null;
-              return (
-                <div className="bg-amber-50 border border-amber-200 text-amber-900 px-5 py-3 rounded-md mt-4 text-base font-medium flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6 text-amber-600">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
-                  </svg>
-                  <span>Let op:  dit is een maatwerk product dat speciaal voor u wordt besteld en dit kan zodoende niet geretourneerd worden.</span>
-                </div>
-              );
-            })()}
 
             {/* Quantity Selector and Add to Cart */}
             <div className="flex flex-wrap lg:flex-nowrap items-center gap-3 lg:gap-4 mt-4 justify-between">
@@ -1788,6 +1673,155 @@ export default function ProductPageClient({
                 );
               }
             })()}
+
+            {/* Dynamic Order Colors */}
+            {(orderColors.length > 0 || isOrderColorsLoading) && (
+              <div className="mb-4 flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-4">
+                <p className="font-semibold text-base lg:text-lg whitespace-nowrap">Andere kleuren:</p>
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <div ref={colorScrollRef} className="flex gap-2 overflow-x-auto scrollbar-hide scroll-smooth flex-1 py-1">
+                    {isOrderColorsLoading ? (
+                        Array.from({ length: 8 }).map((_, i) => (
+                            <div key={i} className="w-8 h-8 rounded-full bg-gray-200 animate-pulse shrink-0" />
+                        ))
+                    ) : (
+                        orderColors.map((colorItem, index) => (
+                          <Link
+                            key={index}
+                            href={`/${colorItem.slug}`}
+                            prefetch={true}
+                            title={colorItem.name}
+                            className="w-8 h-8 rounded-full border border-gray-300 shadow-sm cursor-pointer hover:scale-110 transition-transform block shrink-0"
+                            style={{ backgroundColor: colorItem.color }}
+                          />
+                        ))
+                    )}
+                  </div>
+                  {(orderColors.length > 8 || isOrderColorsLoading) && (
+                    <div className="flex gap-2 shrink-0 ml-2">
+                      <button
+                        type="button"
+                        onClick={() => scrollCarousel(colorScrollRef, "left")}
+                        className="w-8 h-8 flex items-center justify-center rounded-full border border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer"
+                        aria-label="Previous colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => scrollCarousel(colorScrollRef, "right")}
+                        className="w-8 h-8 flex items-center justify-center rounded-full border border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer"
+                        aria-label="Next colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Dynamic Order Models Carousel */}
+            {(orderModels.length > 0 || isOrderModelsLoading) && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-semibold text-base lg:text-lg">Zoek je soms een ander model?</p>
+                  {!isOrderModelsLoading && orderModels.length > 5 && (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => scrollBy(-200)}
+                        className="w-8 h-8 flex items-center justify-center rounded-full border border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer"
+                        aria-label="Previous models"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => scrollBy(200)}
+                        className="w-8 h-8 flex items-center justify-center rounded-full border-white hover:border-gray-300 bg-gray-300 hover:bg-gray-100 cursor-pointer"
+                        aria-label="Next models"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div
+                  ref={scrollRef}
+                  className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 scroll-smooth"
+                >
+                  {isOrderModelsLoading ? (
+                      // Skeleton for Order Models
+                      Array.from({ length: 4 }).map((_, i) => (
+                          <div key={i} className="flex-shrink-0 w-32 flex flex-col items-center gap-2 animate-pulse">
+                              <div className="h-32 w-full bg-gray-200 rounded-sm"></div>
+                              <div className="h-4 w-20 bg-gray-200 rounded"></div>
+                          </div>
+                      ))
+                  ) : (
+                      orderModels.map((model: any, index: number) => (
+                        <Link
+                          href={`/${model.slug}`}
+                          prefetch={true}
+                          key={`${model.id}-${index}`}
+                          className="flex-shrink-0 w-32 flex flex-col items-center gap-2 group"
+                        >
+                          <div className="h-32 w-full border border-[#E8E1DC] rounded-sm bg-white flex items-center justify-center overflow-hidden relative">
+                            <Image
+                              src={fixImageSrc(model?.images?.[0]?.src || model?.resolved_cat_image)}
+                              alt={model?.name || "Model"}
+                              fill
+                              sizes="128px"
+                              className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
+                            />
+                          </div>
+                          <p className="text-xs text-center text-[#3D4752] leading-tight font-medium group-hover:text-blue-600 transition-colors mt-2">
+                            {model.displayText || model.name}
+                          </p>
+                        </Link>
+                      ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            
+
+            {/* B2B Upsell - Hide for existing B2B users */}
+            {!isB2B && (
+              <div className='bg-[#E4EFFF] py-3 px-5 rounded-md'>
+                <p className='text-[#3D4752] font-normal text-base'>Heb jij beroepsmatig op regelmatige basis bouwbeslag nodig? <a href="/zakelijk-aanmelden" className='text-[#0050D1] font-bold'>Klik hier </a> en meld je aan voor een zakelijk account met de scherpste inkoopprijzen.</p>
+              </div>
+            )}
+
+            {/* Maatwerk Warning */}
+            {(() => {
+              const isMaatwerk = getMetaValue("crucial_data_maatwerk") === "1";
+              if (!isMaatwerk) return null;
+              return (
+                <div className="bg-amber-50 border border-amber-200 text-amber-900 px-5 py-3 rounded-md mt-4 text-base font-medium flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6 text-amber-600">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+                  </svg>
+                  <span>Let op:  dit is een maatwerk product dat speciaal voor u wordt besteld en dit kan zodoende niet geretourneerd worden.</span>
+                </div>
+              );
+            })()}
+
+            
+
+            
 
             <div>
               <p className='text-[#212121] font-medium text-lg mb-3 hidden lg:block'>Heb je vragen over dit product? Wij helpen je graag!</p>

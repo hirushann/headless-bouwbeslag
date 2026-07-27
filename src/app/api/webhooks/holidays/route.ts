@@ -33,19 +33,37 @@ export async function POST(req: Request) {
             );
         }
 
-        // It's common the data might be wrapped in `{ dates: { shipping: [], delivery: [] } }`
-        // or just placed directly in the body `{ shipping: [], delivery: [] }`
-        const extractData = (key: string) => {
-            if (body[key]) return body[key];
-            if (body.dates && body.dates[key]) return body.dates[key];
-            if (body.data && body.data[key]) return body.data[key];
-            return undefined;
-        };
-
         // Helper to handle PHP arrays that might serialize into objects { "0": "...", "1": "..." }
         const getArray = (val: any) => Array.isArray(val) ? val : (val && typeof val === 'object' ? Object.values(val) : []);
-        const rawShipping = getArray(extractData('shipping'));
-        const rawDelivery = getArray(extractData('delivery'));
+
+        let rawShipping: any[] = [];
+        let rawDelivery: any[] = [];
+
+        if (Array.isArray(body)) {
+            rawShipping = body;
+            rawDelivery = body;
+        } else if (body && typeof body === 'object') {
+            const extractData = (key: string) => {
+                if (body[key]) return body[key];
+                if (body.dates && body.dates[key]) return body.dates[key];
+                if (body.data && body.data[key]) return body.data[key];
+                return undefined;
+            };
+
+            rawShipping = getArray(extractData('shipping'));
+            rawDelivery = getArray(extractData('delivery'));
+
+            // Fallback if they sent a flat 'dates' array inside an object
+            if (rawShipping.length === 0 && rawDelivery.length === 0) {
+                if (body.dates && Array.isArray(body.dates)) {
+                    rawShipping = body.dates;
+                    rawDelivery = body.dates;
+                } else if (body.data && Array.isArray(body.data)) {
+                    rawShipping = body.data;
+                    rawDelivery = body.data;
+                }
+            }
+        }
 
         // Basic date format validation (YYYY-MM-DD)
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
