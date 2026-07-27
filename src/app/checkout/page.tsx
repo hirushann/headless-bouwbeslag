@@ -285,11 +285,15 @@ export default function NewCheckoutPage() {
         return (current.days > prev.days) ? current : prev;
     }, infos[0] || { days: 0, short: "Onbekend", type: "IN_STOCK" });
 
+    const earliest = infos.reduce((prev, current) => {
+        return (current.days < prev.days) ? current : prev;
+    }, infos[0] || { days: 0, short: "Onbekend", type: "IN_STOCK" });
+
     // Consolidation is only possible if there is more than one unique delivery date
     const uniqueDays = new Set(infos.map(i => i.days));
     const canConsolidate = uniqueDays.size > 1;
 
-    return { infos, latest, canConsolidate };
+    return { infos, latest, earliest, canConsolidate };
   }, [cartItems]);
 
   // If consolidation is no longer possible (e.g. item removed), turn it off
@@ -996,15 +1000,22 @@ export default function NewCheckoutPage() {
                 tax_class: ""
             }] : [])
         ],
-        meta_data: formData.vatNumber ? [
-            { key: "vat_number", value: formData.vatNumber },
-            { key: "_billing_vat_number", value: formData.vatNumber },
-            { key: "BTW Nummer", value: formData.vatNumber }
-        ] : [],
+        meta_data: [
+            ...(formData.vatNumber ? [
+                { key: "vat_number", value: formData.vatNumber },
+                { key: "_billing_vat_number", value: formData.vatNumber },
+                { key: "BTW Nummer", value: formData.vatNumber }
+            ] : []),
+            { 
+                key: "Verwachte leverdatum", 
+                value: (isConsolidated ? deliveryState.latest.short : deliveryState.earliest.short).replace('Levering: ', '') 
+            }
+        ],
         prices_include_tax: !isB2B,
         mollie_method_id: selectedPaymentMethod, // Pass selected method
         customer_id: user?.id || 0,
-        auth_token: token || ""
+        auth_token: token || "",
+        is_consolidated: isConsolidated
     };
 
     // console.log("🛒 Frontend: Submitting orderData:", orderData);

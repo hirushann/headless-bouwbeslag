@@ -500,6 +500,19 @@ export async function generateMetadata(
 /* ----------------------------------------------------
  | ✅ STRUCTURED DATA (JSON-LD)
  ---------------------------------------------------- */
+function generateCategoryStructuredData(category: any, currentPath: string) {
+  if (!category) return null;
+
+  return {
+    "@context": "https://schema.org/",
+    "@type": "CollectionPage",
+    "@id": `https://bouwbeslag.nl/${currentPath}#collection`,
+    url: `https://bouwbeslag.nl/${currentPath}`,
+    name: category.h1_title || category.name,
+    description: clean(category.description),
+  };
+}
+
 function generateStructuredData(product: any, taxRate: number, reviews: any[] = []) {
   if (!product) return null;
 
@@ -832,8 +845,18 @@ export default async function Page({ params, searchParams }: PageProps) {
       permanentRedirect(`/${correctPath}${query ? `?${query}` : ""}`);
     }
 
+    const structuredData = generateCategoryStructuredData(category, currentPath);
+
     return (
       <main className="min-h-screen bg-[#F7F7F7]">
+        {structuredData && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(structuredData).replace(/</g, '\\u003c'),
+            }}
+          />
+        )}
         <CategoryLoader category={category} slug={slug} sp={sp} />
       </main>
     );

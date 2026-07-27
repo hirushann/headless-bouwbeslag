@@ -220,7 +220,31 @@ export async function placeOrderAction(data: any) {
         // Laravel resolves current cart items by SKU, sync ID, or UUID.
         const itemsToProcess = [...data.cart];
 
-        const items = itemsToProcess.map((item: any) => {
+        const holidays = getServerHolidays();
+        const isConsolidated = data.is_consolidated === true;
+
+        // Calculate delivery info for all items first
+        const deliveryInfos = itemsToProcess.map((item: any) => {
+            const qty = parseInt(item.quantity || 1);
+            return getDeliveryInfo(
+                item.stockStatus || "instock",
+                qty,
+                item.stockQuantity ?? null,
+                item.leadTimeInStock || 1,
+                item.leadTimeNoStock || 30,
+                holidays
+            );
+        });
+
+        // Find the latest delivery info (most days = latest delivery)
+        let latestDeliveryInfo = deliveryInfos[0];
+        deliveryInfos.forEach((info: any) => {
+            if (info.days > latestDeliveryInfo.days) {
+                latestDeliveryInfo = info;
+            }
+        });
+
+        const items = itemsToProcess.map((item: any, index: number) => {
             const price = parseFloat(item.price || 0);
             const qty = parseInt(item.quantity || 1);
             const invoicePrice = pricesIncludeTax ? roundMoney(price * taxMultiplier) : roundMoney(price);
@@ -233,22 +257,17 @@ export async function placeOrderAction(data: any) {
 
             subtotal += (price * qty);
 
-            const deliveryInfo = getDeliveryInfo(
-                item.stockStatus || "instock",
-                qty,
-                item.stockQuantity ?? null,
-                item.leadTimeInStock || 1,
-                item.leadTimeNoStock || 30,
-                getServerHolidays()
-            );
+            const originalDeliveryInfo = deliveryInfos[index];
+            const deliveryInfo = isConsolidated ? latestDeliveryInfo : originalDeliveryInfo;
             
+            const messageLower = deliveryInfo.message.charAt(0).toLowerCase() + deliveryInfo.message.slice(1);
             let fullDeliveryNotice = deliveryInfo.message;
-            if (deliveryInfo.type === "IN_STOCK") {
-                fullDeliveryNotice = `Dit product is op voorraad, ${deliveryInfo.message}`;
-            } else if (deliveryInfo.type === "PARTIAL_STOCK") {
-                fullDeliveryNotice = `Deels op voorraad, ${deliveryInfo.message}`;
+            if (originalDeliveryInfo.type === "IN_STOCK") {
+                fullDeliveryNotice = `Dit product is op voorraad, ${messageLower}`;
+            } else if (originalDeliveryInfo.type === "PARTIAL_STOCK") {
+                fullDeliveryNotice = `Deels op voorraad, ${messageLower}`;
             } else {
-                fullDeliveryNotice = `Dit artikel moet besteld worden, ${deliveryInfo.message}`;
+                fullDeliveryNotice = `Dit artikel moet besteld worden, ${messageLower}`;
             }
             
             return {
