@@ -7,6 +7,7 @@ import CategoryClient from "@/components/CategoryClient";
 import { extractRelatedIdentifiers } from "@/lib/productUtils";
 import { getAbsoluteImageUrl } from "@/lib/image-utils";
 import { fetchRelatedProductsBatchAction, resolveSlugAction } from "@/app/actions";
+import { getProductPricing } from "@/lib/pricing";
 
 /* ----------------------------------------------------
  | Types
@@ -604,15 +605,7 @@ function generateStructuredData(product: any, taxRate: number, reviews: any[] = 
 
   const meta = product.meta_data || [];
 
-  // Price Calculation Logic
-  let salePrice = product.price ? parseFloat(product.price) : 0;
-  const b2cPrice = meta.find((m: any) => m.key === "crucial_data_b2b_and_b2c_sales_price_b2c")?.value;
-  if (b2cPrice && !isNaN(parseFloat(b2cPrice))) {
-      salePrice = parseFloat(b2cPrice);
-  }
-
-  const taxMultiplier = 1 + (taxRate / 100);
-  const priceWithVat = salePrice * taxMultiplier;
+  const priceWithVat = getProductPricing(product, { isB2B: false, vatRate: taxRate }).finalPrice;
   
   const currency = "EUR"; 
   

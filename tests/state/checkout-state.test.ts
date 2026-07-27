@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { calculateCheckoutTotals, calculateCouponDiscount, createSubmissionGuard, resolveCouponValidation, resolveOrderVerification } from "../../src/lib/checkout-state.ts";
+import { calculateCheckoutTotals, calculateCouponDiscount, calculateOrderAmounts, centsPerQuantityToPrecision, createSubmissionGuard, resolveCouponValidation, resolveOrderVerification } from "../../src/lib/checkout-state.ts";
 import { resolveMollieOrderOutcome } from "../../src/lib/mollie-payment-state.ts";
 
 test("applying and removing percentage coupons updates totals immediately", () => {
@@ -35,6 +35,76 @@ test("frontend and order payload totals share shipping, VAT, discount, and fees"
       feesExVat: 2.5,
     }),
     { netTotal: 97.5, tax: 20.48, grossTotal: 117.98 },
+  );
+});
+
+test("B2C email and Moneybird use the stored per-line half-up total", () => {
+  const amounts = calculateOrderAmounts({
+    items: [{ unitPriceExVat: "81.84", quantity: 1 }],
+    vatRate: 21,
+  });
+
+  assert.equal(amounts.lines[0].unitInclVat, "99.03");
+  assert.equal(amounts.lines[0].lineExVat, "81.84");
+  assert.equal(amounts.lines[0].lineVat, "17.19");
+  assert.equal(amounts.lines[0].lineTotal, "99.03");
+  assert.equal(amounts.total, "99.03");
+});
+
+test("multiple quantities round VAT per line, not rounded gross unit times quantity", () => {
+  const amounts = calculateOrderAmounts({
+    items: [{ unitPriceExVat: "33.01", quantity: 3 }],
+    vatRate: 21,
+  });
+
+  assert.equal(amounts.lines[0].unitInclVat, "39.94");
+  assert.equal(amounts.lines[0].lineExVat, "99.03");
+  assert.equal(amounts.lines[0].lineVat, "20.80");
+  assert.equal(amounts.lines[0].lineTotal, "119.83");
+  assert.notEqual(amounts.lines[0].lineTotal, "119.82");
+  assert.equal(centsPerQuantityToPrecision(amounts.lines[0].lineTotalCents, 3), "39.9433333333");
+});
+
+test("B2C discounts and shipping share the same stored totals", () => {
+  const amounts = calculateOrderAmounts({
+    items: [
+      { unitPriceExVat: "33.01", quantity: 3 },
+      { unitPriceExVat: "10.00", quantity: 2 },
+    ],
+    shippingExVat: "7.50",
+    discountExVat: "5.00",
+    vatRate: 21,
+  });
+
+  assert.deepEqual(
+    {
+      subtotal: amounts.subtotalExVat,
+      shipping: amounts.shippingTotal,
+      discountVat: amounts.discountVat,
+      vat: amounts.tax,
+      total: amounts.total,
+    },
+    {
+      subtotal: "119.03",
+      shipping: "9.08",
+      discountVat: "1.05",
+      vat: "25.53",
+      total: "147.06",
+    },
+  );
+});
+
+test("B2B VAT-exclusive orders preserve net line, shipping, and grand totals", () => {
+  const amounts = calculateOrderAmounts({
+    items: [{ unitPriceExVat: "33.01", quantity: 3 }],
+    shippingExVat: "7.50",
+    discountExVat: "5.00",
+    vatRate: 0,
+  });
+
+  assert.deepEqual(
+    { line: amounts.lines[0].lineTotal, vat: amounts.tax, total: amounts.total },
+    { line: "99.03", vat: "0.00", total: "101.53" },
   );
 });
 

@@ -6,6 +6,7 @@ import RecommendedProductItem from "@/components/RecommendedProductItem";
 import { useProductAddedModal } from "@/context/ProductAddedModalContext";
 import { fixImageSrc } from "@/lib/image-utils";
 import Image from "next/image";
+import { formatPrice } from "@/lib/pricing";
 
 export default function ProductAddedModal() {
   const { isOpen, closeModal, modalData } = useProductAddedModal();
@@ -83,7 +84,7 @@ export default function ProductAddedModal() {
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-base sm:text-xl lg:text-2xl font-bold text-[#0050D1] tracking-tight">
-                    {modalData.currency || "€"}{modalData.totalPrice?.toFixed(2).replace('.', ',')}
+                    {formatPrice(modalData.totalPrice || 0)}
                   </p>
                   <p className="text-[10px] sm:text-xs text-[#64748B] font-medium mt-0.5">
                     {modalData.userRole && (modalData.userRole.includes("b2b_customer") || modalData.userRole.includes("administrator")) ? "Excl. BTW" : "Incl. BTW"}

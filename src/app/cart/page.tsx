@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useCartStore } from "@/lib/cartStore";
 import Image from "next/image";
 import { useUserContext } from "@/context/UserContext";
+import { formatPrice, getDisplayTotal } from "@/lib/pricing";
+import { calculateOrderAmounts, centsToNumber } from "@/lib/checkout-state";
 
 interface CartItem {
   id: string;
@@ -23,10 +25,15 @@ export default function CartPage() {
   const removeItem = useCartStore((state) => state.removeItem);
   const updateQty = useCartStore((state) => state.updateQty);
   const clearCart = useCartStore((state) => state.clearCart);
-  const totalExVat = useCartStore((state) => state.total());
   const hasHydrated = useCartStore((state) => state.hasHydrated);
-  const priceMultiplier = isB2B ? 1 : 1.21;
-  const displayTotal = totalExVat * priceMultiplier;
+  const totals = calculateOrderAmounts({
+    items: items.map((item) => ({
+      unitPriceExVat: item.price,
+      quantity: item.quantity,
+    })),
+    vatRate: isB2B ? 0 : 21,
+  });
+  const displayTotal = centsToNumber(totals.totalCents);
 
   if (!hasHydrated || isUserLoading) {
     return (
@@ -91,7 +98,7 @@ export default function CartPage() {
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <p className="font-semibold">€{(item.price * item.quantity * priceMultiplier).toFixed(2)}</p>
+                <p className="font-semibold">{formatPrice(getDisplayTotal(item.price, item.quantity, isB2B))}</p>
                 <button
                   className="text-red-500"
                   onClick={() => removeItem(item.id)}
@@ -106,7 +113,7 @@ export default function CartPage() {
             <div className="w-full sm:w-96 border rounded p-4">
               <div className="flex justify-between">
                 <span className="text-[#3D4752]">Subtotaal</span>
-                <span className="font-semibold">€{displayTotal.toFixed(2)}</span>
+                <span className="font-semibold">{formatPrice(displayTotal)}</span>
               </div>
               <p className="text-xs text-gray-500 mt-1">
                 {isB2B ? "Exclusief btw. Verzendkosten worden berekend bij het afrekenen." : "Inclusief btw. Verzendkosten worden berekend bij het afrekenen."}

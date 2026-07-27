@@ -9,6 +9,13 @@ import {
   removeCartItem,
   updateCartQuantity,
 } from "@/lib/cart-state";
+import { applyVolumeDiscount } from "@/lib/pricing";
+
+const applyVolumePricing = (items: CartItem[]) =>
+  items.map((item) => {
+    if (item.basePrice === undefined || !item.volumeDiscounts) return item;
+    return { ...item, price: applyVolumeDiscount(item.basePrice, item.volumeDiscounts, item.quantity) };
+  });
 
 interface CartState {
   items: CartItem[];
@@ -35,10 +42,10 @@ export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
-      addItem: (item) => set((state) => ({ items: addCartItem(state.items, item) })),
-      addToCart: (item) => set((state) => ({ items: addCartItem(state.items, item) })),
+      addItem: (item) => set((state) => ({ items: applyVolumePricing(addCartItem(state.items, item)) })),
+      addToCart: (item) => set((state) => ({ items: applyVolumePricing(addCartItem(state.items, item)) })),
       removeItem: (id) => set((state) => ({ items: removeCartItem(state.items, id) })),
-      updateQty: (id, qty) => set((state) => ({ items: updateCartQuantity(state.items, id, qty) })),
+      updateQty: (id, qty) => set((state) => ({ items: applyVolumePricing(updateCartQuantity(state.items, id, qty)) })),
       updateStockForItems: (updates) => {
         set((state) => ({
           items: state.items.map((i) => {

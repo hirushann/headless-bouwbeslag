@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 
 import { useProductAddedModal } from "@/context/ProductAddedModalContext";
 import { fixImageSrc } from "@/lib/image-utils";
+import { formatPrice, getProductPricing, getVolumeDiscounts } from "@/lib/pricing";
 
 const globalMediaCache: Record<string, string> = {};
 
@@ -31,20 +32,6 @@ export default function ShopProductCard({
 }) {
   useHolidayStore(s => s.shipping); // subscribe to holiday changes
   
-  // Format price safely (remove weird HTML entities)
-  const cleanPrice = (price: string) =>
-    price?.replace(/&#[0-9]+;|&[a-z]+;/gi, "").trim();
-
-  const discount =
-    product.regular_price && product.sale_price
-      ? Math.round(
-        ((parseFloat(product.regular_price) -
-          parseFloat(product.sale_price)) /
-          parseFloat(product.regular_price)) *
-        100
-      )
-      : null;
-
   const addItem = useCartStore((state) => state.addItem);
 
   // Title logic
@@ -147,103 +134,7 @@ export default function ShopProductCard({
 
   
 
-  // Unified pricing logic
-  const priceData = (() => {
-    const getMeta = (k: string) => product?.meta_data?.find((m: any) => m.key === k)?.value;
-    const taxRate = 21;
-    const taxMultiplier = 1 + (taxRate / 100);
-
-    let sale = 0;
-
-    if (isB2B) {
-      const b2bPrice = product.price_b2b;
-      if (b2bPrice && typeof b2bPrice === 'object' && b2bPrice.amount) {
-        sale = parseFloat(b2bPrice.amount);
-      } else if (b2bPrice && !isNaN(parseFloat(b2bPrice))) {
-        sale = parseFloat(b2bPrice);
-      } else {
-        const acfB2BPriceRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2b");
-        if (acfB2BPriceRaw && !isNaN(parseFloat(acfB2BPriceRaw))) {
-          sale = parseFloat(acfB2BPriceRaw);
-        } else if (product.price) {
-          sale = parseFloat(typeof product.price === 'object' ? product.price.amount : product.price);
-        }
-      }
-    } else {
-      const b2cPrice = product.price_b2c;
-      if (b2cPrice && typeof b2cPrice === 'object' && b2cPrice.amount) {
-        sale = parseFloat(b2cPrice.amount);
-      } else if (b2cPrice && !isNaN(parseFloat(b2cPrice))) {
-        sale = parseFloat(b2cPrice);
-      } else {
-        const acfPriceRaw = getMeta("crucial_data_b2b_and_b2c_sales_price_b2c");
-        if (acfPriceRaw && !isNaN(parseFloat(acfPriceRaw))) {
-          sale = parseFloat(acfPriceRaw);
-        } else if (product.price) {
-          sale = parseFloat(typeof product.price === 'object' ? product.price.amount : product.price);
-        }
-      }
-    }
-
-    let finalPrice = isB2B ? sale : (sale ? sale * taxMultiplier : 0);
-    const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
-
-    let secondaryPrice = isB2B ? (sale ? sale * taxMultiplier : 0) : sale;
-    const secondaryTaxLabel = isB2B ? "(incl. BTW)" : "(excl. BTW)";
-
-    // Vanaf / Cheapest Price Logic
-    let isFromPrice = false;
-    const discounts: { quantity: number; percentage: number }[] = [];
-    if (product?.meta_data) {
-      for (let i = 1; i <= 3; i++) {
-        const qRaw = getMeta(`crucial_data_discounts_discount_quantity_${i}`) || 
-                     getMeta(`crucial_data_discounts_${i-1}_discount_quantity`) || 
-                     getMeta(`crucial_data_discounts_${i}_discount_quantity`);
-        const pRaw = getMeta(`crucial_data_discounts_discount_percentage_${i}`) || 
-                     getMeta(`crucial_data_discounts_${i-1}_discount_percentage`) || 
-                     getMeta(`crucial_data_discounts_${i}_discount_percentage`);
-        const q = qRaw && !isNaN(parseInt(qRaw)) ? parseInt(qRaw) : null;
-        const p = pRaw && !isNaN(parseFloat(pRaw)) ? parseFloat(pRaw) : null;
-        if (q !== null && p !== null) {
-          discounts.push({ quantity: q, percentage: p });
-        }
-      }
-    }
-
-    const cheapestPriceOption = getMeta("crucial_data_cheapest_price_option");
-    const isCheapestPriceEnabled = cheapestPriceOption === "1" || cheapestPriceOption === 1 || cheapestPriceOption === true || String(cheapestPriceOption).toLowerCase() === "true" || String(cheapestPriceOption).toLowerCase() === "yes";
-
-    if (isCheapestPriceEnabled && discounts.length > 0) {
-      const maxDiscount = Math.max(...discounts.map(d => d.percentage));
-      if (maxDiscount > 0) {
-        finalPrice = finalPrice - (finalPrice * maxDiscount) / 100;
-        secondaryPrice = secondaryPrice - (secondaryPrice * maxDiscount) / 100;
-        isFromPrice = true;
-      }
-    }
-
-    const advisedRaw = getMeta("crucial_data_unit_price");
-    const advised = advisedRaw && !isNaN(parseFloat(advisedRaw)) ? parseFloat(advisedRaw) : null;
-
-    let advisedDisplay: number | null = null;
-    if (advised) {
-      advisedDisplay = isB2B ? advised : advised * taxMultiplier;
-    }
-
-    const showStrikeThrough = advisedDisplay !== null && finalPrice < advisedDisplay;
-
-    return {
-      cartPrice: sale,
-      displayPrice: finalPrice,
-      finalPrice,
-      taxLabel,
-      secondaryPrice,
-      secondaryTaxLabel,
-      advisedDisplay,
-      showStrikeThrough,
-      isFromPrice
-    };
-  })();
+  const priceData = getProductPricing(product, { isB2B });
 
   return (
     <div className="snap-start shrink-0 w-[100%] border border-[#E2E2E2] rounded-lg shadow-sm bg-[#F7F7F7] flex flex-col h-full">
@@ -303,15 +194,14 @@ export default function ShopProductCard({
                   )} */}
               <div className="flex flex-col">
                 <div className="flex items-end gap-1 flex-wrap">
-                  {priceData.isFromPrice && <span className="text-sm font-normal text-gray-500 mr-1">Vanaf</span>}
                   <span className="text-base lg:text-xl font-bold text-[#1C2530]">
-                    {new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(priceData.finalPrice || 0)}
+                    {formatPrice(priceData.finalPrice)}
                   </span>
                   <span className="text-[10px] text-gray-500 mb-1">{priceData.taxLabel}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="text-xs text-gray-500 font-normal">
-                    {new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(priceData.secondaryPrice || 0)}
+                    {formatPrice(priceData.secondaryPrice)}
                   </span>
                   <span className="text-[9px] text-gray-400">{priceData.secondaryTaxLabel}</span>
                 </div>
@@ -403,6 +293,8 @@ export default function ShopProductCard({
                 productId: Number.isFinite(Number(product.model_id)) ? Number(product.model_id) : undefined,
                 name: customTitle,
                 price: cartPrice,
+                basePrice: priceData.unitExVat,
+                volumeDiscounts: getVolumeDiscounts(product),
                 quantity: 1,
                 image: targetImgSrc || product.images?.[0]?.src,
                 deliveryText: deliveryInfo.short,

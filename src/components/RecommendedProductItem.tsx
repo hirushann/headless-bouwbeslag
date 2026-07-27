@@ -10,6 +10,12 @@ import toast from "react-hot-toast";
 import { useUserContext } from "@/context/UserContext";
 import { fixImageSrc } from "@/lib/image-utils";
 import Image from "next/image";
+import {
+    formatPrice,
+    getProductPricing,
+    getVolumeDiscount,
+    getVolumeDiscounts,
+} from "@/lib/pricing";
 
 export default function RecommendedProductItem({ item, onAddToCart }: { item: any, onAddToCart?: () => void }) {
     useHolidayStore(s => s.shipping); // subscribe to holiday changes
@@ -75,35 +81,13 @@ export default function RecommendedProductItem({ item, onAddToCart }: { item: an
 
     const mImg = fixImageSrc(targetImgSrc);
 
-    // Price Logic
-    let sale = 0;
-
-    if (isB2B) {
-        const b2bPrice = item.price_b2b;
-        if (b2bPrice && typeof b2bPrice === 'object' && b2bPrice.amount) {
-            sale = parseFloat(b2bPrice.amount);
-        } else if (b2bPrice && !isNaN(parseFloat(b2bPrice))) {
-            sale = parseFloat(b2bPrice);
-        } else if (item.price) {
-            sale = parseFloat(item.price);
-        }
-    } else {
-        const b2cPrice = item.price_b2c;
-        if (b2cPrice && typeof b2cPrice === 'object' && b2cPrice.amount) {
-            sale = parseFloat(b2cPrice.amount);
-        } else if (b2cPrice && !isNaN(parseFloat(b2cPrice))) {
-            sale = parseFloat(b2cPrice);
-        } else if (item.price) {
-            sale = parseFloat(item.price);
-        }
-    }
-
-    // Calculate total price based on quantity
-    const TAX_RATE = 21;
-    const taxMultiplier = 1 + (TAX_RATE / 100);
-    const unitPrice = sale ? (isB2B ? sale : sale * taxMultiplier) : 0;
-    const finalPrice = unitPrice * quantity;
-    const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
+    const discounts = getVolumeDiscounts(item);
+    const basePricing = getProductPricing(item, { isB2B });
+    const pricing = getProductPricing(item, {
+        isB2B,
+        quantity,
+        discountPercentage: getVolumeDiscount(discounts, quantity),
+    });
 
     // Delivery Info Logic
     const stockLeadRaw = getMeta("crucial_data_delivery_if_stock");
@@ -155,7 +139,9 @@ export default function RecommendedProductItem({ item, onAddToCart }: { item: an
                 id: String(item.id),
                 productId: Number.isFinite(Number((item as any).model_id)) ? Number((item as any).model_id) : undefined,
                 name: item.name,
-                price: sale, // Use the Ex-VAT 'sale' price base
+                price: pricing.cartPrice,
+                basePrice: basePricing.unitExVat,
+                volumeDiscounts: discounts,
                 quantity: quantity,
                 image: targetImgSrc || item.images?.[0]?.src || item.images?.[0] || "",
                 deliveryText: deliveryInfo.short,
@@ -216,8 +202,8 @@ export default function RecommendedProductItem({ item, onAddToCart }: { item: an
                                 <div className="h-4 w-12 bg-gray-200 animate-pulse rounded"></div>
                             ) : (
                                 <>
-                                    <div className="text-sm sm:text-base font-bold text-gray-900 whitespace-nowrap">€ {finalPrice.toFixed(2).replace('.', ',')}</div>
-                                    <div className="text-[10px] sm:text-xs text-gray-500 font-medium">{taxLabel}</div>
+                                    <div className="text-sm sm:text-base font-bold text-gray-900 whitespace-nowrap">{formatPrice(pricing.totalPrice)}</div>
+                                    <div className="text-[10px] sm:text-xs text-gray-500 font-medium">{pricing.taxLabel}</div>
                                 </>
                             )}
                         </div>

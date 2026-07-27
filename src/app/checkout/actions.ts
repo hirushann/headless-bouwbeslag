@@ -4,7 +4,14 @@ import { getShippingSettings, getCouponByCode, getShippingRules } from "@/lib/em
 import { getCheckoutSession, saveCheckoutSession } from "@/lib/checkout-session";
 import mollieClient from "@/lib/mollie";
 import axios from "axios";
-import { calculateCheckoutTotals } from "@/lib/checkout-state";
+import {
+    calculateOrderAmounts,
+    centsToAmount,
+    centsPerQuantityToPrecision,
+    grossToNetCents,
+    percentageOfCents,
+    toCents,
+} from "@/lib/checkout-state";
 import { reconcileMollieOrder } from "@/lib/mollie-order-processing";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
 import { getServerHolidays } from "@/lib/serverHolidays";
@@ -201,37 +208,57 @@ export async function getPaymentMethodsAction() {
 export async function placeOrderAction(data: any) {
     try {
         const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, "");
-        const taxRate = 0.21;
-        const taxMultiplier = 1 + taxRate;
         const pricesIncludeTax = data.prices_include_tax !== false;
-        const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+        const vatRate = pricesIncludeTax ? 21 : 0;
         
         // Generate a unique order reference
         const orderReference = `BW-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
-        // Calculate totals for Empire Payload
         const shippingLine = data.shipping_line?.[0];
-        const shippingTotalExTax = shippingLine ? parseFloat(shippingLine.total) : 0;
-        const shippingTotal = pricesIncludeTax ? roundMoney(shippingTotalExTax * taxMultiplier) : roundMoney(shippingTotalExTax);
-        const shippingTax = roundMoney(shippingTotal - shippingTotalExTax);
-        
-        let subtotal = 0;
-        
-        // Laravel resolves current cart items by SKU, sync ID, or UUID.
+        const shippingTotalExTax = shippingLine?.total || "0";
         const itemsToProcess = [...data.cart];
+        const feeInputs = (data.fee_lines || []).map((fee: any) => ({
+            amountExVat: fee.total || "0",
+        }));
+        const pricingInput = {
+            items: itemsToProcess.map((item: any) => ({
+                unitPriceExVat: item.price ?? "0",
+                quantity: item.quantity,
+            })),
+            shippingExVat: shippingTotalExTax,
+            fees: feeInputs,
+            vatRate,
+        };
+        const preliminaryPricing = calculateOrderAmounts(pricingInput);
 
-        const items = itemsToProcess.map((item: any) => {
-            const price = parseFloat(item.price || 0);
-            const qty = parseInt(item.quantity || 1);
-            const invoicePrice = pricesIncludeTax ? roundMoney(price * taxMultiplier) : roundMoney(price);
+        let discountExVatCents = 0;
+        if (data.coupon_lines?.length) {
+            const coupon = await getCouponByCode(data.coupon_lines[0].code);
+            if (coupon?.discount_type === "percent") {
+                discountExVatCents = percentageOfCents(
+                    preliminaryPricing.subtotalExVatCents,
+                    coupon.amount || "0",
+                );
+            } else if (coupon?.discount_type === "fixed_cart") {
+                discountExVatCents = grossToNetCents(coupon.amount || "0", 21);
+            }
+        }
+
+        const pricing = calculateOrderAmounts({
+            ...pricingInput,
+            discountExVat: centsToAmount(discountExVatCents),
+        });
+
+        const items = itemsToProcess.map((item: any, index: number) => {
+            const qty = Math.max(1, Math.floor(Number(item.quantity) || 1));
+            const amounts = pricing.lines[index];
+            const invoicePrice = pricesIncludeTax ? amounts.unitInclVat : amounts.unitExVat;
             const syncId = item.sync_id || item.sku;
             const sku = item.sku || item.sync_id;
 
             if (!syncId && !sku) {
                 throw new Error(`Product "${item.name || item.id}" mist een SKU en kan niet worden besteld.`);
             }
-
-            subtotal += (price * qty);
 
             const deliveryInfo = getDeliveryInfo(
                 item.stockStatus || "instock",
@@ -257,55 +284,35 @@ export async function placeOrderAction(data: any) {
                 name: item.name,
                 quantity: qty,
                 price: invoicePrice,
-                price_ex_tax: roundMoney(price),
-                price_tax: pricesIncludeTax ? roundMoney((price * taxMultiplier) - price) : 0,
+                price_ex_tax: amounts.unitExVat,
+                price_tax: amounts.unitVat,
                 manual_unit_price: invoicePrice,
+                unit_price_ex_tax: amounts.unitExVat,
+                unit_price_tax: amounts.unitVat,
+                unit_price_incl_tax: amounts.unitInclVat,
+                line_total_ex_tax: amounts.lineExVat,
+                line_tax: amounts.lineVat,
+                line_total: amounts.lineTotal,
+                moneybird_price: centsPerQuantityToPrecision(
+                    pricesIncludeTax
+                        ? amounts.lineTotalCents
+                        : amounts.lineExVatCents,
+                    qty,
+                ),
+                moneybird_prices_are_incl_tax: pricesIncludeTax,
                 delivery_date_notice: fullDeliveryNotice
             };
         });
 
-        // Add fee lines to total calculation
-        let totalFees = 0;
-        const feeLines = (data.fee_lines || []).map((fee: any) => {
-            const feeTotalExTax = parseFloat(fee.total || 0);
-            totalFees += feeTotalExTax;
-
+        const feeLines = (data.fee_lines || []).map((fee: any, index: number) => {
+            const amounts = pricing.feeLines[index];
             return {
                 ...fee,
-                total: pricesIncludeTax
-                    ? roundMoney(feeTotalExTax * taxMultiplier).toFixed(2)
-                    : roundMoney(feeTotalExTax).toFixed(2),
-                total_ex_tax: roundMoney(feeTotalExTax),
-                total_tax: pricesIncludeTax ? roundMoney((feeTotalExTax * taxMultiplier) - feeTotalExTax) : 0
+                total: pricesIncludeTax ? amounts.total : amounts.exVat,
+                total_ex_tax: amounts.exVat,
+                total_tax: amounts.vat,
             };
         });
-
-        let discount = 0;
-        if (data.coupon_lines && data.coupon_lines.length > 0) {
-            const couponCode = data.coupon_lines[0].code;
-            const coupon = await getCouponByCode(couponCode);
-            if (coupon) {
-                if (coupon.discount_type === 'percent') {
-                    const amount = parseFloat(coupon.amount || "0");
-                    discount = (subtotal * amount) / 100;
-                } else if (coupon.discount_type === 'fixed_cart') {
-                    const amount = parseFloat(coupon.amount || "0");
-                    // Assuming amount is gross (Inc VAT), we need Ex VAT amount to deduct
-                    discount = amount / 1.21;
-                }
-            }
-        }
-
-        const activeTaxRate = pricesIncludeTax ? taxRate : 0;
-        const checkoutTotals = calculateCheckoutTotals({
-            subtotalExVat: subtotal,
-            discountExVat: discount,
-            shippingExVat: shippingTotalExTax,
-            feesExVat: totalFees,
-            vatRate: activeTaxRate,
-        });
-        const totalTax = checkoutTotals.tax;
-        const totalAmount = checkoutTotals.grossTotal;
 
         // Build Empire API payload
         const empirePayload: Record<string, any> = {
@@ -315,13 +322,14 @@ export async function placeOrderAction(data: any) {
             billing: data.billing,
             shipping: data.shipping,
             items: items,
-            shipping_total: shippingTotal,
-            shipping_total_ex_tax: roundMoney(shippingTotalExTax),
-            shipping_tax: shippingTax,
-            subtotal_ex_tax: roundMoney(subtotal),
+            shipping_total: pricesIncludeTax ? pricing.shippingTotal : pricing.shippingExVat,
+            shipping_total_ex_tax: pricing.shippingExVat,
+            shipping_tax: pricing.shippingVat,
+            subtotal_ex_tax: pricing.subtotalExVat,
             prices_include_tax: pricesIncludeTax,
-            total: totalAmount,
-            total_tax: totalTax,
+            total: pricing.total,
+            total_ex_tax: pricing.netTotal,
+            total_tax: pricing.tax,
             payment_method: data.mollie_method_id || "mollie",
             payment_method_title: data.mollie_method_id === "invoice" ? "Op factuur" : "Mollie",
             customer_note: data.customer_note || "",
@@ -330,9 +338,30 @@ export async function placeOrderAction(data: any) {
             auth_token: data.auth_token || "",
             coupon_lines: data.coupon_lines || [],
             fee_lines: feeLines,
-            discount_total: pricesIncludeTax ? roundMoney(discount * taxMultiplier) : roundMoney(discount),
-            discount_total_ex_tax: roundMoney(discount),
-            discount_tax: pricesIncludeTax ? roundMoney((discount * taxMultiplier) - discount) : 0
+            discount_total: pricesIncludeTax
+                ? centsToAmount(toCents(pricing.discountExVat) + toCents(pricing.discountVat))
+                : pricing.discountExVat,
+            discount_total_ex_tax: pricing.discountExVat,
+            discount_tax: pricing.discountVat,
+            calculated_amounts: {
+                rounding: "HALF_UP_PER_LINE",
+                currency: "EUR",
+                subtotal_ex_tax: pricing.subtotalExVat,
+                subtotal_tax: pricing.subtotalVat,
+                subtotal_total: pricing.subtotalTotal,
+                shipping_ex_tax: pricing.shippingExVat,
+                shipping_tax: pricing.shippingVat,
+                shipping_total: pricing.shippingTotal,
+                discount_ex_tax: pricing.discountExVat,
+                discount_tax: pricing.discountVat,
+                discount_total: centsToAmount(toCents(pricing.discountExVat) + toCents(pricing.discountVat)),
+                fees_ex_tax: pricing.feesExVat,
+                fees_tax: pricing.feesVat,
+                fees_total: centsToAmount(toCents(pricing.feesExVat) + toCents(pricing.feesVat)),
+                total_ex_tax: pricing.netTotal,
+                total_tax: pricing.tax,
+                grand_total: pricing.total,
+            },
         };
         const empireUrl = (process.env.EMPIRE_BACKEND_API_URL || "http://empire.test").replace(/\/$/, "");
         const isGuest = !data.customer_id;
@@ -377,7 +406,7 @@ export async function placeOrderAction(data: any) {
         const isLocal = siteUrl.includes('localhost');
         const webhookUrl = isLocal ? undefined : `${siteUrl}/api/webhooks/mollie`;
 
-        const paymentValue = totalAmount.toFixed(2);
+        const paymentValue = pricing.total;
 
         // Approved B2B invoice orders are validated and processed immediately by Empire.
         if (data.mollie_method_id === 'invoice') {

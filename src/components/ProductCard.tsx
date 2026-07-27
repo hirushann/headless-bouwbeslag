@@ -12,6 +12,7 @@ const WP_BASE: string =
   "";
 
 import { fixImageSrc } from "@/lib/image-utils";
+import { formatPrice, getProductPricing, getVolumeDiscounts } from "@/lib/pricing";
 
 function normalizeImageUrl(url?: string): string {
   return fixImageSrc(url);
@@ -32,57 +33,8 @@ export default function ProductCard({ product, userRole: propUserRole, useCatego
   useEffect(() => setMounted(true), []);
   const showLoadingState = !mounted || isLoading;
 
-  // Format price safely (remove weird HTML entities)
-  const cleanPrice = (price: string) =>
-    price?.replace(/&#[0-9]+;|&[a-z]+;/gi, "").trim();
-
-  // Dynamic Price Logic
-  const getMeta = (key: string) => product?.meta_data?.find((m: any) => m.key === key)?.value;
   const isB2B = propUserRole ? (propUserRole.includes("b2b_customer") || propUserRole.includes("administrator")) : contextIsB2B;
-
-  // Default to standard product.price
-  let sale = null;
-
-  if (isB2B) {
-       // B2B: Use price_b2b field (Ex-VAT)
-       const b2bPrice = product.price_b2b;
-       if (b2bPrice && typeof b2bPrice === 'object' && b2bPrice.amount) {
-           sale = parseFloat(b2bPrice.amount);
-       } else if (b2bPrice && !isNaN(parseFloat(b2bPrice))) {
-           sale = parseFloat(b2bPrice);
-       } else if (product.price) {
-           sale = parseFloat(product.price);
-       }
-  } else {
-       // B2C: Use price_b2c field
-       const b2cPrice = product.price_b2c;
-       if (b2cPrice && typeof b2cPrice === 'object' && b2cPrice.amount) {
-           sale = parseFloat(b2cPrice.amount);
-       } else if (b2cPrice && !isNaN(parseFloat(b2cPrice))) {
-           sale = parseFloat(b2cPrice);
-       } else if (product.price) {
-           sale = parseFloat(product.price);
-       }
-  }
-
-  // Use this calculated 'sale' price for everything
-  const TAX_RATE = 21;
-  const taxMultiplier = 1 + (TAX_RATE / 100);
-  
-  const finalPrice = sale !== null 
-     ? (isB2B ? sale : sale * taxMultiplier) 
-     : (product.price ? parseFloat(product.price) * (isB2B ? 1 : taxMultiplier) : null);
-     
-  const displayPrice = finalPrice !== null ? finalPrice.toFixed(2) : cleanPrice(product.price);
-  const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
-  
-  // Recalculate discount based on this new price vs regular/advised
-  // Assuming regular_price is the 'advised' or standard price for comparison
-  const regular = product.regular_price ? parseFloat(product.regular_price) : null;
-  const discount =
-    regular && sale && regular > sale
-      ? Math.round(((regular - sale) / regular) * 100)
-      : null;
+  const pricing = getProductPricing(product, { isB2B });
 
   const addItem = useCartStore((state) => state.addItem);
 
@@ -227,7 +179,7 @@ export default function ProductCard({ product, userRole: propUserRole, useCatego
           ) : (
              <>
                 <p className="text-2xl font-bold text-[#1C2530]">
-                    €{displayPrice} <span className="text-xs font-normal text-gray-500">{taxLabel}</span>
+                    {formatPrice(pricing.finalPrice)} <span className="text-xs font-normal text-gray-500">{pricing.taxLabel}</span>
                 </p>
                 {/* {discount && (
                     <>
@@ -327,7 +279,9 @@ export default function ProductCard({ product, userRole: propUserRole, useCatego
                   id: cartItemId,
                   productId: Number.isFinite(Number(product.model_id)) ? Number(product.model_id) : undefined,
                   name: product.name,
-                  price: sale !== null ? sale : Number(product.regular_price || product.price || 0),
+                  price: pricing.cartPrice,
+                  basePrice: pricing.unitExVat,
+                  volumeDiscounts: getVolumeDiscounts(product),
                   quantity: 1,
                   image: targetImgSrc || product.images?.[0]?.src,
                   deliveryText: deliveryInfo.short,
@@ -339,7 +293,7 @@ export default function ProductCard({ product, userRole: propUserRole, useCatego
                openModal({
                     product,
                     quantity: 1,
-                    totalPrice: finalPrice ?? (product.price ? parseFloat(product.price) : 0),
+                    totalPrice: pricing.displayPrice,
                     currency: product.currency_symbol || "€", 
                     userRole: userRole || undefined,
                     musthaveprodKeys: [],

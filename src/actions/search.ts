@@ -12,6 +12,9 @@ export interface SearchResult {
     slug: string;
     price?: string;
     regular_price?: string;
+    sale_price?: string;
+    price_b2b?: string | number | { amount?: string | number };
+    price_b2c?: string | number | { amount?: string | number };
     meta_data?: { key: string; value: any }[];
     resolved_cat_image?: string;
     stock_status?: string;
@@ -145,16 +148,8 @@ export async function searchProducts(
         const products = data.hits.map((hit: any) => {
             const wooProd = mapMeiliToWooProduct(hit);
             return {
-                id: wooProd.id,
-                name: wooProd.name,
-                slug: wooProd.slug,
-                price: wooProd.price,
-                regular_price: wooProd.regular_price,
-                images: wooProd.images,
-                stock_status: wooProd.stock_status,
-                stock_quantity: wooProd.stock_quantity,
+                ...wooProd,
                 resolved_cat_image: hit.category?.image?.src || hit.category?.image || "",
-                meta_data: wooProd.meta_data || []
             } as SearchResult;
         });
 
