@@ -11,7 +11,19 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
 import { useHolidayStore } from "@/lib/holidayStore";
-import { calculateCheckoutTotals, calculateCouponDiscount, createSubmissionGuard, resolveCouponValidation } from "@/lib/checkout-state";
+import {
+  calculateCouponDiscount,
+  calculateOrderAmounts,
+  centsToAmount,
+  centsToNumber,
+  createSubmissionGuard,
+  grossToNetCents,
+  percentageOfCents,
+  resolveCouponValidation,
+  toCents,
+  vatOfCents,
+} from "@/lib/checkout-state";
+import { formatPrice } from "@/lib/pricing";
 
 const SUPPORTED_COUNTRIES = [
     { iso: 'NL', name: 'Netherlands', localNames: ['Netherlands', 'Nederland'] },
@@ -269,7 +281,7 @@ export default function NewCheckoutPage() {
   const isConsolidated = useCartStore((state) => state.isConsolidated);
   const setConsolidated = useCartStore((state) => state.setConsolidated);
   const isHydrated = useCartStore((state) => state.hasHydrated);
-  const CONSOLIDATION_DISCOUNT = 3.00 / 1.21; // Exactly €3.00 including VAT (21%)
+  const CONSOLIDATION_DISCOUNT = centsToNumber(grossToNetCents(3, 21));
 
   // Combine delivery info calculation globally for the checkout view
   const deliveryState = React.useMemo(() => {
@@ -609,7 +621,18 @@ export default function NewCheckoutPage() {
   }, [currentStep, isHydrated]);
 
   // Calculate totals
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotalPricing = calculateOrderAmounts({
+    items: cartItems.map((item) => ({
+      unitPriceExVat: item.price,
+      quantity: item.quantity,
+    })),
+    vatRate: 0,
+  });
+  const subtotal = centsToNumber(subtotalPricing.subtotalExVatCents);
+  const displayOrderAmount = (amountExVat: number) => {
+    const cents = toCents(amountExVat);
+    return centsToNumber(cents + (isB2B ? 0 : vatOfCents(cents, 21)));
+  };
   
   // Update shipping cost whenever rates or selected method changes
   // Derive valid methods
@@ -643,7 +666,7 @@ export default function NewCheckoutPage() {
                 id: 9999, // distinct ID
                 methodId: 'length_freight',
                 title: 'Lengtevracht toeslag',
-                cost: lengthFreightCost / 1.21,
+                cost: centsToNumber(grossToNetCents(lengthFreightCost, 21)),
                 enabled: true
             }];
         }
@@ -658,7 +681,7 @@ export default function NewCheckoutPage() {
            }
 
            if (method.methodId === 'free_shipping') {
-             const cartTotalForShipping = isB2B ? subtotal : subtotal * 1.21;
+             const cartTotalForShipping = displayOrderAmount(subtotal);
              if (cartTotalForShipping < baseFreeShippingThreshold) return false;
            }
            
@@ -671,7 +694,7 @@ export default function NewCheckoutPage() {
     }
 
     // Custom Free Shipping Logic: Free standard shipping over dynamic threshold
-    const cartTotalForShipping = isB2B ? subtotal : subtotal * 1.21;
+    const cartTotalForShipping = displayOrderAmount(subtotal);
     if (cartTotalForShipping >= baseFreeShippingThreshold) {
         const hasNativeFreeShipping = methodsToReturn.some(m => m.methodId === 'free_shipping');
         
@@ -794,37 +817,54 @@ export default function NewCheckoutPage() {
     if (selectedPaymentMethod === 'creditcard') {
       // Calculate fee on subtotal + shipping - discount (Ex VAT)
       const orderTotal = (subtotal - discountAmount - consolidationDiscountAmount) + (shippingCost || 0);
-      return orderTotal * 0.025; // 2.5% fee
+      return centsToNumber(percentageOfCents(toCents(orderTotal), 2.5));
     }
     return 0;
   }, [selectedPaymentMethod, subtotal, discountAmount, consolidationDiscountAmount, shippingCost]);
   
-  // Header logic: Total = (subtotal + shipping) * 1.21 for B2C (Inc VAT).
+  // B2C totals include VAT; B2B totals exclude it.
   // Subtotal here (from cartStore) is Ex-VAT.
   // Shipping cost (flatRate) is Ex-VAT.
   
-  // If B2B: Show Ex-VAT prices. Total = Subtotal + Shipping + Card Fee.
-  // If B2C: Show Inc-VAT prices. Total = (Subtotal + Shipping + Card Fee) * 1.21.
-  
   // Header shows: Totaal + (incl. BTW) label.
   
-  const checkoutTotals = calculateCheckoutTotals({
-    subtotalExVat: subtotal,
+  const orderAmounts = calculateOrderAmounts({
+    items: cartItems.map((item) => ({
+      unitPriceExVat: item.price,
+      quantity: item.quantity,
+    })),
     discountExVat: discountAmount,
     shippingExVat: shippingCost || 0,
-    feesExVat: cardPaymentFee - consolidationDiscountAmount,
+    fees: [
+      ...(cardPaymentFee ? [{ amountExVat: cardPaymentFee }] : []),
+      ...(consolidationDiscountAmount ? [{ amountExVat: -consolidationDiscountAmount }] : []),
+    ],
+    vatRate: isB2B ? 0 : 21,
   });
-  const total = isB2B ? checkoutTotals.netTotal : checkoutTotals.grossTotal;
+  const checkoutTotals = {
+    netTotal: centsToNumber(toCents(orderAmounts.netTotal)),
+    tax: centsToNumber(orderAmounts.taxCents),
+    grossTotal: centsToNumber(orderAmounts.totalCents),
+  };
+  const total = checkoutTotals.grossTotal;
     
   // Display Helpers -- Adjusted for discount
   // Note: Discount is usually applied to item prices (subtotal).
   
-  const displaySubtotal = isB2B ? subtotal : subtotal * 1.21;
-  const displayDiscount = isB2B ? discountAmount : discountAmount * 1.21;
-  const displayConsolidationDiscount = isB2B ? consolidationDiscountAmount : consolidationDiscountAmount * 1.21;
-  const displayShipping = isB2B ? (shippingCost || 0) : (shippingCost || 0) * 1.21;
-  const displayCardFee = isB2B ? cardPaymentFee : cardPaymentFee * 1.21;
-  const displayTax = isB2B ? 0 : checkoutTotals.tax;
+  const displaySubtotal = centsToNumber(toCents(isB2B ? orderAmounts.subtotalExVat : orderAmounts.subtotalTotal));
+  const displayDiscount = centsToNumber(
+    toCents(isB2B
+      ? orderAmounts.discountExVat
+      : centsToAmount(toCents(orderAmounts.discountExVat) + toCents(orderAmounts.discountVat))),
+  );
+  const displayConsolidationDiscount = centsToNumber(
+    toCents(displayOrderAmount(consolidationDiscountAmount)),
+  );
+  const displayShipping = centsToNumber(toCents(isB2B ? orderAmounts.shippingExVat : orderAmounts.shippingTotal));
+  const displayCardFee = centsToNumber(
+    toCents(displayOrderAmount(cardPaymentFee)),
+  );
+  const displayTax = checkoutTotals.tax;
   // Header shows: Totaal + (incl. BTW) label.
   
   const taxLabel = isB2B ? "(excl. BTW)" : "(incl. BTW)";
@@ -979,7 +1019,7 @@ export default function NewCheckoutPage() {
         shipping_line: method ? [{
              method_id: method.methodId,
              method_title: method.title,
-             total: Number(method.cost).toFixed(2),
+             total: centsToAmount(toCents(method.cost)),
              tax_status: "taxable",
              tax_class: ""
         }] : [],
@@ -989,13 +1029,13 @@ export default function NewCheckoutPage() {
         fee_lines: [
             ...(cardPaymentFee > 0 ? [{
                 name: "Betaalkosten (Kaart)",
-                total: cardPaymentFee.toFixed(2),
+                total: centsToAmount(toCents(cardPaymentFee)),
                 tax_status: "taxable",
                 tax_class: ""
             }] : []),
             ...(isConsolidated ? [{
                 name: "Samenbundel-korting",
-                total: (-CONSOLIDATION_DISCOUNT).toFixed(2),
+                total: centsToAmount(-toCents(CONSOLIDATION_DISCOUNT)),
                 tax_status: "taxable",
                 tax_class: ""
             }] : [])
@@ -1006,9 +1046,9 @@ export default function NewCheckoutPage() {
                 { key: "_billing_vat_number", value: formData.vatNumber },
                 { key: "BTW Nummer", value: formData.vatNumber }
             ] : []),
-            { 
-                key: "Verwachte leverdatum", 
-                value: (isConsolidated ? deliveryState.latest.short : deliveryState.earliest.short).replace('Levering: ', '') 
+            {
+                key: "Verwachte leverdatum",
+                value: (isConsolidated ? deliveryState.latest.short : deliveryState.earliest.short).replace('Levering: ', '')
             }
         ],
         prices_include_tax: !isB2B,
@@ -1464,7 +1504,7 @@ export default function NewCheckoutPage() {
                                         </div>
                                     </div>
                                     <div className="font-semibold text-gray-900">
-                                        {method.cost === 0 ? "Kosteloos" : `€${(isB2B ? method.cost : method.cost * 1.21).toFixed(2)}`}
+                                        {method.cost === 0 ? "Kosteloos" : formatPrice(displayOrderAmount(method.cost))}
                                     </div>
                                 </div>
                                 );
@@ -1639,7 +1679,7 @@ export default function NewCheckoutPage() {
                                 ${(!selectedPaymentMethod || !termsAccepted || (cartItems.some(i => i.isMaatwerk) && !maatwerkAccepted) || (hasLengthFreight && !lengthFreightAccepted)) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white shadow-green-600/20'}
                             `}
                         >
-                            {isLoading ? <Loader2 className="w-5 h-5 animate-spin"/> : `Bevestig & Betalen €${total.toFixed(2)}`}
+                            {isLoading ? <Loader2 className="w-5 h-5 animate-spin"/> : `Bevestig & Betalen ${formatPrice(total)}`}
                         </button>
                         
                         {/* Tooltip for Terms Check */}
@@ -1711,7 +1751,7 @@ export default function NewCheckoutPage() {
                                         <div className="flex items-center gap-2 mt-1">
                                             <span className="text-xs text-gray-500 font-medium whitespace-nowrap">{item.quantity} stuks</span>
                                             <div className="w-1 h-1 rounded-full bg-gray-300"></div>
-                                            <span className="text-sm font-bold text-gray-900 whitespace-nowrap">€ {(isB2B ? item.price : item.price * 1.21).toFixed(2).replace('.', ',')}</span>
+                                            <span className="text-sm font-bold text-gray-900 whitespace-nowrap">{formatPrice(displayOrderAmount(item.price))}</span>
                                         </div>
 
                                         {(() => {
@@ -1753,7 +1793,7 @@ export default function NewCheckoutPage() {
                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-3 sticky top-40 z-10">
                     <div className="flex justify-between text-base text-gray-600">
                         <span>Subtotaal</span>
-                        <span className="font-medium text-gray-900">€ {displaySubtotal.toFixed(2).replace('.', ',')}</span>
+                        <span className="font-medium text-gray-900">{formatPrice(displaySubtotal)}</span>
                     </div>
 
 
@@ -1818,27 +1858,27 @@ export default function NewCheckoutPage() {
                     {appliedCoupon && (
                         <div className="flex justify-between text-base text-green-600 font-medium">
                             <span>Korting</span>
-                            <span>- € {displayDiscount.toFixed(2).replace('.', ',')}</span>
+                            <span>- {formatPrice(displayDiscount)}</span>
                         </div>
                     )}
                     <div className="flex justify-between text-base text-gray-600">
                         <span>Verzending</span>
                         <span className="font-medium text-gray-900">
-                            {shippingCost === null ? "Wordt berekend" : (shippingCost === 0 ? "Kosteloos" : `€ ${displayShipping.toFixed(2).replace('.', ',')}`)}
+                            {shippingCost === null ? "Wordt berekend" : (shippingCost === 0 ? "Kosteloos" : formatPrice(displayShipping))}
                         </span>
                     </div>
                     {cardPaymentFee > 0 && (
                         <div className="flex justify-between text-base text-orange-600">
                             <span>Betaalkosten (Kaart)</span>
-                            <span className="font-medium">€ {displayCardFee.toFixed(2).replace('.', ',')}</span>
+                            <span className="font-medium">{formatPrice(displayCardFee)}</span>
                         </div>
                     )}
                      {/* Show Tax breakdown if needed, or total tax amount? Header handles it by showing total + label */}
                     <div className="flex justify-between text-base text-gray-600">
                         <span>BTW (21%)</span>
                          {/* Calculate actual tax amount for the whole order including card fee and freight */}
-                         {/* Freight Ex VAT = lengthFreightCost / 1.21 */}
-                        <span className="font-medium text-gray-900">€ {displayTax.toFixed(2).replace('.', ',')}</span>
+                         {/* Freight is stored excluding VAT. */}
+                        <span className="font-medium text-gray-900">{formatPrice(displayTax)}</span>
                     </div>
 
                     {isConsolidated && (
@@ -1847,17 +1887,17 @@ export default function NewCheckoutPage() {
                                 <Truck className="w-4 h-4" />
                                 Samenbundel-korting
                             </span>
-                            <span>- € {displayConsolidationDiscount.toFixed(2).replace('.', ',')}</span>
+                            <span>- {formatPrice(displayConsolidationDiscount)}</span>
                         </div>
                     )}
                     <div className="pt-3 mt-3 border-t border-gray-100 flex justify-between items-center text-lg font-bold text-gray-900">
                         <span>Totaal <span className="text-xs font-normal text-gray-500">{taxLabel}</span></span>
-                        <span>€ {(isB2B ? checkoutTotals.netTotal : checkoutTotals.grossTotal).toFixed(2).replace('.', ',')}</span>
+                        <span>{formatPrice(isB2B ? checkoutTotals.netTotal : checkoutTotals.grossTotal)}</span>
                     </div>
                     {isB2B && (
                         <div className="flex justify-between items-center text-sm font-medium text-gray-500 mt-2">
                             <span>Totaal (incl. BTW)</span>
-                            <span>€ {checkoutTotals.grossTotal.toFixed(2).replace('.', ',')}</span>
+                            <span>{formatPrice(checkoutTotals.grossTotal)}</span>
                         </div>
                     )}
                </div>

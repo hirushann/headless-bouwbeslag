@@ -12,35 +12,10 @@ import DualRangeSlider from "@/components/DualRangeSlider";
 import { COLOR_MAP } from "@/config/colorMap";
 import { useUserContext } from "@/context/UserContext";
 import { getDutchFilterTitle } from "@/lib/dutchTranslations";
+import { getProductPricing } from "@/lib/pricing";
 
 export const getFinalPrice = (product: any, isB2B: boolean) => {
-  const getMeta = (k: string) => product?.meta_data?.find((m: any) => m.key === k)?.value;
-  const taxRate = 21;
-  const taxMultiplier = 1 + (taxRate / 100);
-
-  let sale = 0;
-
-  if (isB2B) {
-    const b2bPrice = product.price_b2b;
-    if (b2bPrice && typeof b2bPrice === 'object' && b2bPrice.amount) {
-      sale = parseFloat(b2bPrice.amount);
-    } else if (b2bPrice && !isNaN(parseFloat(b2bPrice))) {
-      sale = parseFloat(b2bPrice);
-    } else if (product.price) {
-      sale = parseFloat(product.price);
-    }
-  } else {
-    const b2cPrice = product.price_b2c;
-    if (b2cPrice && typeof b2cPrice === 'object' && b2cPrice.amount) {
-      sale = parseFloat(b2cPrice.amount);
-    } else if (b2cPrice && !isNaN(parseFloat(b2cPrice))) {
-      sale = parseFloat(b2cPrice);
-    } else if (product.price) {
-      sale = parseFloat(product.price);
-    }
-  }
-
-  return isB2B ? sale : (sale ? sale * taxMultiplier : 0);
+  return getProductPricing(product, { isB2B }).finalPrice;
 };
 
 const container = {

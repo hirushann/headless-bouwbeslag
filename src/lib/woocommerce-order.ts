@@ -1,4 +1,5 @@
 import api from "./woocommerce";
+import { calculateOrderAmounts } from "./checkout-state";
 
 export async function createOrder(
   cart: any[],
@@ -32,7 +33,10 @@ export async function createOrder(
       customer_note,
       customer_id,
       line_items: cart.map((item) => {
-        const linePrice = (Number(item.price) * Number(item.quantity)).toFixed(2);
+        const linePrice = calculateOrderAmounts({
+          items: [{ unitPriceExVat: item.price, quantity: item.quantity }],
+          vatRate: 0,
+        }).lines[0].lineExVat;
         return {
           product_id: item.id,
           quantity: item.quantity,

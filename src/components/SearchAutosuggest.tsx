@@ -5,8 +5,6 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 import { searchProducts, SearchResult, Facet, FilterState } from "@/actions/search";
-import { useUserContext } from "@/context/UserContext";
-import ProductCard from "./ProductCard";
 import ShopProductCard from "./ShopProductCard";
 import { getDutchFilterTitle } from "@/lib/dutchTranslations";
 
@@ -103,7 +101,6 @@ export default function SearchAutosuggest({
     initiallyExpanded?: boolean;
 }) {
     const [query, setQuery] = useState("");
-    const { userRole } = useUserContext();
     const [results, setResults] = useState<SearchResult[]>([]);
     const [facets, setFacets] = useState<Facet[]>([]);
     const [filters, setFilters] = useState<FilterState>({});

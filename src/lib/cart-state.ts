@@ -3,6 +3,8 @@ export interface CartItem {
   productId?: number;
   name: string;
   price: number;
+  basePrice?: number;
+  volumeDiscounts?: { quantity: number; percentage: number }[];
   quantity: number;
   image?: string;
   color?: string;
@@ -80,4 +82,11 @@ export const updateCartQuantity = (items: CartItem[], id: CartItemId, quantity: 
 };
 
 export const calculateCartTotal = (items: CartItem[]) =>
-  items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  centsToNumber(calculateOrderAmounts({
+    items: items.map((item) => ({
+      unitPriceExVat: item.price,
+      quantity: item.quantity,
+    })),
+    vatRate: 0,
+  }).subtotalExVatCents);
+import { calculateOrderAmounts, centsToNumber } from "./checkout-state.ts";

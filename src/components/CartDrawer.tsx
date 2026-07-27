@@ -11,6 +11,8 @@ import Image from "next/image";
 
 import { ShippingRule } from "@/lib/woocommerce";
 import type { CartItemId } from "@/lib/cart-state";
+import { formatPrice, getDisplayTotal, removeVat } from "@/lib/pricing";
+import { calculateOrderAmounts, centsToNumber } from "@/lib/checkout-state";
 
 interface CartDrawerProps {
   isB2B: boolean;
@@ -59,10 +61,14 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods, shippingR
     return () => { active = false; };
   }, [isCartOpen, stockRequestKey, updateStockForItems]);
 
-  const subtotal = items.reduce((sum, item) => {
-    const displayedItemPrice = isB2B ? item.price : item.price * 1.21;
-    return sum + displayedItemPrice * item.quantity;
-  }, 0);
+  const cartAmounts = calculateOrderAmounts({
+    items: items.map((item) => ({
+      unitPriceExVat: item.price,
+      quantity: item.quantity,
+    })),
+    vatRate: isB2B ? 0 : 21,
+  });
+  const subtotal = centsToNumber(cartAmounts.totalCents);
 
   let flatRate = 0;
   let freeShippingThreshold: number | null = null;
@@ -89,12 +95,33 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods, shippingR
   const hasLengthFreight = items.some((i) => i.hasLengthFreight);
   
   // Use dynamic free shipping threshold
-  const rawExVatSubtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const cartTotalForShipping = isB2B ? rawExVatSubtotal : rawExVatSubtotal * 1.21;
+  const rawExVatSubtotal = centsToNumber(cartAmounts.subtotalExVatCents);
+  const cartTotalForShipping = subtotal;
   const isFreeShipping = freeShippingThreshold !== null && cartTotalForShipping >= freeShippingThreshold;
   
-  const shipping = hasLengthFreight ? lengthFreightCost / 1.21 : isFreeShipping ? 0 : flatRate;
-  const displayShipping = isB2B ? shipping : shipping * 1.21;
+  const shipping = hasLengthFreight ? removeVat(lengthFreightCost) : isFreeShipping ? 0 : flatRate;
+  const totalsWithShipping = calculateOrderAmounts({
+    items: items.map((item) => ({
+      unitPriceExVat: item.price,
+      quantity: item.quantity,
+    })),
+    shippingExVat: shipping,
+    vatRate: isB2B ? 0 : 21,
+  });
+  const displayShipping = centsToNumber(
+    isB2B
+      ? totalsWithShipping.shippingExVatCents
+      : totalsWithShipping.shippingExVatCents + totalsWithShipping.shippingVatCents,
+  );
+  const totalWithShipping = centsToNumber(totalsWithShipping.totalCents);
+  const totalWithShippingInclVat = centsToNumber(calculateOrderAmounts({
+    items: items.map((item) => ({
+      unitPriceExVat: item.price,
+      quantity: item.quantity,
+    })),
+    shippingExVat: shipping,
+    vatRate: 21,
+  }).totalCents);
 
   const increaseQuantity = (id: CartItemId) => {
     const item = items.find((i) => String(i.id) === String(id));
@@ -227,7 +254,7 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods, shippingR
                       <div className="flex items-end justify-between mt-2 gap-2">
                         <div className="text-left leading-none">
                           <span className="font-bold text-base sm:text-lg tracking-tight text-[#1C2530]">
-                            €{((isB2B ? item.price : item.price * 1.21) * item.quantity).toFixed(2)}
+                            {formatPrice(getDisplayTotal(item.price, item.quantity, isB2B))}
                           </span>
                           <div className="text-[10px] text-gray-500 mt-0.5">
                             {taxLabel}
@@ -250,20 +277,20 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods, shippingR
             <div className="border-t border-[#E9E9E9] pt-6 mt-6 sticky bottom-1 bg-white p-4">
               <div className="flex justify-between mb-3 text-base font-medium text-[#3D4752]">
                 <span>Subtotaal</span>
-                <span>€{subtotal.toFixed(2)}</span>
+                <span>{formatPrice(subtotal)}</span>
               </div>
               <div className="flex justify-between mb-3 text-base font-medium text-[#3D4752]">
                 <span>Verzendkosten</span>
-                <span>{isFreeShipping ? "Gratis" : displayShipping === 0 ? "N.t.b." : `€${displayShipping.toFixed(2)}`}</span>
+                <span>{isFreeShipping ? "Gratis" : displayShipping === 0 ? "N.t.b." : formatPrice(displayShipping)}</span>
               </div>
               <div className="flex justify-between mb-4 text-base">
                 <p className="font-bold">Totaalbedrag<span className="font-normal text-xs ml-1.5">{taxLabel}</span></p>
-                <span className="font-bold">€{(subtotal + displayShipping).toFixed(2)}</span>
+                <span className="font-bold">{formatPrice(totalWithShipping)}</span>
               </div>
               {isB2B && (
                 <div className="flex justify-between mb-4 text-sm text-gray-500">
                   <span>Totaal (incl. BTW)</span>
-                  <span>€{((subtotal + shipping) * 1.21).toFixed(2)}</span>
+                  <span>{formatPrice(totalWithShippingInclVat)}</span>
                 </div>
               )}
               <Link href="/checkout" onClick={() => setCartOpen(false)} className="w-full bg-[#0066FF] text-white font-bold px-4 py-3.5 rounded-sm text-base text-center block">
