@@ -249,6 +249,20 @@ export async function placeOrderAction(data: any) {
             discountExVat: centsToAmount(discountExVatCents),
         });
 
+        const holidays = getServerHolidays();
+        const isConsolidated = data.is_consolidated === true;
+        const deliveryInfos = itemsToProcess.map((item: any) => getDeliveryInfo(
+            item.stockStatus || "instock",
+            Math.max(1, Math.floor(Number(item.quantity) || 1)),
+            item.stockQuantity ?? null,
+            item.leadTimeInStock || 1,
+            item.leadTimeNoStock || 30,
+            holidays,
+        ));
+        const latestDeliveryInfo = deliveryInfos.reduce(
+            (latest: any, info: any) => info.days > latest.days ? info : latest,
+        );
+
         const items = itemsToProcess.map((item: any, index: number) => {
             const qty = Math.max(1, Math.floor(Number(item.quantity) || 1));
             const amounts = pricing.lines[index];
@@ -260,22 +274,17 @@ export async function placeOrderAction(data: any) {
                 throw new Error(`Product "${item.name || item.id}" mist een SKU en kan niet worden besteld.`);
             }
 
-            const deliveryInfo = getDeliveryInfo(
-                item.stockStatus || "instock",
-                qty,
-                item.stockQuantity ?? null,
-                item.leadTimeInStock || 1,
-                item.leadTimeNoStock || 30,
-                getServerHolidays()
-            );
+            const originalDeliveryInfo = deliveryInfos[index];
+            const deliveryInfo = isConsolidated ? latestDeliveryInfo : originalDeliveryInfo;
             
+            const messageLower = deliveryInfo.message.charAt(0).toLowerCase() + deliveryInfo.message.slice(1);
             let fullDeliveryNotice = deliveryInfo.message;
-            if (deliveryInfo.type === "IN_STOCK") {
-                fullDeliveryNotice = `Dit product is op voorraad, ${deliveryInfo.message}`;
-            } else if (deliveryInfo.type === "PARTIAL_STOCK") {
-                fullDeliveryNotice = `Deels op voorraad, ${deliveryInfo.message}`;
+            if (originalDeliveryInfo.type === "IN_STOCK") {
+                fullDeliveryNotice = `Dit product is op voorraad, ${messageLower}`;
+            } else if (originalDeliveryInfo.type === "PARTIAL_STOCK") {
+                fullDeliveryNotice = `Deels op voorraad, ${messageLower}`;
             } else {
-                fullDeliveryNotice = `Dit artikel moet besteld worden, ${deliveryInfo.message}`;
+                fullDeliveryNotice = `Dit artikel moet besteld worden, ${messageLower}`;
             }
             
             return {
