@@ -10,5 +10,23 @@ export const metadata: Metadata = {
 };
 
 export default function AccountPage() {
-  return <AccountClient />;
+  const structuredData = {
+    "@context": "https://schema.org/",
+    "@type": "ProfilePage",
+    "name": "Mijn Account | Bouwbeslag",
+    "description": "Beheer je account, bekijk bestellingen en update je gegevens bij Bouwbeslag.nl.",
+    "url": "https://bouwbeslag.nl/account",
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData).replace(/</g, '\\u003c'),
+        }}
+      />
+      <AccountClient />
+    </>
+  );
 }
