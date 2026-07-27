@@ -878,9 +878,12 @@ export default async function Page({ params, searchParams }: PageProps) {
     // We only await the most critical pieces if absolutely necessary, 
     // but here we can actually trust the product we already have.
     
-    // For SEO structured data, we'll use defaults and not block the page.
+    // Await reviews so we can inject them into the Schema.org SEO data
+    const reviews = await reviewsPromise;
+
+    // For SEO structured data, we'll use defaults and not block the page on images/tax.
     // If we MUST have the exact tax rate for SEO, we can use a hardcoded 21 which is standard for this shop.
-    const structuredData = generateStructuredData(product, 21, []); 
+    const structuredData = generateStructuredData(product, 21, reviews); 
 
     // Related items fetch (No block)
     const relatedIds = extractRelatedIdentifiers(product);
