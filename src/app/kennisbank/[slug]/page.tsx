@@ -5,6 +5,7 @@ import { fetchBlogBySlugAction } from "../../actions";
 
 import BlockRenderer from "@/components/blog/BlockRenderer";
 import { getAbsoluteImageUrl } from "@/lib/image-utils";
+import { generateBreadcrumbSchema } from "@/lib/schemaUtils";
 
 export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> }
@@ -93,12 +94,18 @@ export default async function SingleBlogPage({
     }]
   };
 
+  const breadcrumbData = generateBreadcrumbSchema([
+    { name: "Home", url: `${siteUrl}` },
+    { name: "Kennisbank", url: `${siteUrl}/kennisbank` },
+    { name: post.title, url: `${siteUrl}/kennisbank/${slug}` },
+  ]);
+
   return (
     <div key={post.id} className="max-w-[1440px] mx-auto py-10 px-5 lg:px-0">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(structuredData).replace(/</g, '\\u003c'),
+          __html: JSON.stringify([structuredData, breadcrumbData]).replace(/</g, '\\u003c'),
         }}
       />
       <div className="text-sm text-gray-500 mb-6 flex items-center gap-3">

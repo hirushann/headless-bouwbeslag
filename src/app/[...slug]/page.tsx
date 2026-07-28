@@ -7,6 +7,7 @@ import CategoryClient from "@/components/CategoryClient";
 import { extractRelatedIdentifiers } from "@/lib/productUtils";
 import { getAbsoluteImageUrl } from "@/lib/image-utils";
 import { fetchRelatedProductsBatchAction, resolveSlugAction } from "@/app/actions";
+import { generateBreadcrumbSchema } from "@/lib/schemaUtils";
 
 /* ----------------------------------------------------
  | Types
@@ -801,6 +802,20 @@ export default async function Page({ params, searchParams }: PageProps) {
     // If we MUST have the exact tax rate for SEO, we can use a hardcoded 21 which is standard for this shop.
     const structuredData = generateStructuredData(product, 21, reviews); 
 
+    // Generate Breadcrumb Schema for Product
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl";
+    const breadcrumbItems = [{ name: "Home", url: `${siteUrl}` }];
+    if (Array.isArray(product?.categories) && product.categories.length > 0) {
+      const sortedCats = [...product.categories].sort((a: any, b: any) => (a.parent || 0) - (b.parent || 0));
+      sortedCats.forEach((cat: any) => {
+        if (cat.name && cat.slug) {
+          breadcrumbItems.push({ name: cat.name, url: `${siteUrl}/${cat.slug}` });
+        }
+      });
+    }
+    breadcrumbItems.push({ name: product.name, url: `${siteUrl}/${product.slug}` });
+    const breadcrumbData = generateBreadcrumbSchema(breadcrumbItems);
+
     // Related items fetch (No block)
     const relatedIds = extractRelatedIdentifiers(product);
     const relatedItemsPromise = fetchRelatedProductsBatchAction(relatedIds, product.id);
@@ -811,7 +826,7 @@ export default async function Page({ params, searchParams }: PageProps) {
           <script
             type="application/ld+json"
             dangerouslySetInnerHTML={{
-              __html: JSON.stringify(structuredData).replace(/</g, '\\u003c'),
+              __html: JSON.stringify([structuredData, breadcrumbData]).replace(/</g, '\\u003c'),
             }}
           />
         )}
@@ -843,13 +858,23 @@ export default async function Page({ params, searchParams }: PageProps) {
 
     const structuredData = generateCategoryStructuredData(category, currentPath);
 
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl";
+    const breadcrumbItems = [{ name: "Home", url: `${siteUrl}` }];
+    let accumPath = "";
+    slug.forEach((segment) => {
+      accumPath += `/${segment}`;
+      const name = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, " ");
+      breadcrumbItems.push({ name, url: `${siteUrl}${accumPath}` });
+    });
+    const breadcrumbData = generateBreadcrumbSchema(breadcrumbItems);
+
     return (
       <main className="min-h-screen bg-[#F7F7F7]">
         {structuredData && (
           <script
             type="application/ld+json"
             dangerouslySetInnerHTML={{
-              __html: JSON.stringify(structuredData).replace(/</g, '\\u003c'),
+              __html: JSON.stringify([structuredData, breadcrumbData]).replace(/</g, '\\u003c'),
             }}
           />
         )}
