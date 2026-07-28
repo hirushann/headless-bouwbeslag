@@ -74,8 +74,33 @@ export default async function SingleBlogPage({
     );
   }
 
+  const seoDescription = post.seo_description || (post.excerpt ? post.excerpt.replace(/<[^>]+>/g, "") : "");
+  const image = getAbsoluteImageUrl(post.featured_image);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl";
+  
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.seo_title || post.title,
+    description: seoDescription,
+    image: image ? [image] : [],
+    datePublished: post.published_at,
+    dateModified: post.updated_at || post.published_at,
+    author: [{
+      "@type": "Organization",
+      name: "Bouwbeslag",
+      url: siteUrl
+    }]
+  };
+
   return (
     <div key={post.id} className="max-w-[1440px] mx-auto py-10 px-5 lg:px-0">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData).replace(/</g, '\\u003c'),
+        }}
+      />
       <div className="text-sm text-gray-500 mb-6 flex items-center gap-3">
         <Link
           href="/"
