@@ -465,12 +465,15 @@ export async function checkPostcodeAction(postcode: string, number: string) {
             return { success: false, message: "Adrescontrole is momenteel niet beschikbaar" };
         }
 
-        // console.log(`Checking postcode with Axios: ${postcode}, number: ${number}`);
+        const cleanNumber = number.replace(/\D/g, '');
+        if (!cleanNumber) {
+            return { success: false, message: "Ongeldig huisnummer" };
+        }
 
         const config = {
             method: 'get',
             maxBodyLength: Infinity,
-            url: `https://postcode.tech/api/v1/postcode/full?postcode=${postcode}&number=${number}`,
+            url: `https://postcode.tech/api/v1/postcode/full?postcode=${postcode}&number=${cleanNumber}`,
             headers: {
                 'Authorization': `Bearer ${postcodeApiToken}`
             }
@@ -482,13 +485,14 @@ export async function checkPostcodeAction(postcode: string, number: string) {
     } catch (error: any) {
         // console.error("Failed to check postcode (Axios):", error.message);
         if (error.response) {
-            // console.error("Error response status:", error.response.status);
-            // console.error("Error response data:", JSON.stringify(error.response.data));
             if (error.response.status === 404) {
-                return { success: false, message: "Address not found" };
+                return { success: false, message: "Adres niet gevonden" };
+            }
+            if (error.response.status === 422) {
+                return { success: false, message: "Ongeldige postcode of huisnummer" };
             }
         }
-        return { success: false, message: error.message };
+        return { success: false, message: "Fout bij ophalen adres" };
     }
 }
 
