@@ -15,6 +15,8 @@ import {
 import { reconcileMollieOrder } from "@/lib/mollie-order-processing";
 import { getDeliveryInfo } from "@/lib/deliveryUtils";
 import { getServerHolidays } from "@/lib/serverHolidays";
+import { format } from "date-fns";
+import { nl } from "date-fns/locale";
 
 
 export async function checkOrderStatusAction(orderId: string | number) {
@@ -284,7 +286,8 @@ export async function placeOrderAction(data: any) {
             } else if (originalDeliveryInfo.type === "PARTIAL_STOCK") {
                 fullDeliveryNotice = `Deels op voorraad, ${messageLower}`;
             } else {
-                fullDeliveryNotice = `Dit artikel moet besteld worden, ${messageLower}`;
+                const formattedDate = deliveryInfo.date ? format(deliveryInfo.date, "d MMMM", { locale: nl }) : "";
+                fullDeliveryNotice = `Verwachte leverdatum ${formattedDate}`;
             }
             
             return {

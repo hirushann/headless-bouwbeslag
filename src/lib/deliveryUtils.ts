@@ -137,7 +137,8 @@ export const getDeliveryInfo = (
             type: "IN_STOCK", 
             message: `Bestel nu en ontvang dit product ${formatDeliveryMessage(date)} in huis`,
             short: `Levering: ${formatDeliveryMessage(date)}`,
-            days
+            days,
+            date
         };
     }
 
@@ -155,7 +156,8 @@ export const getDeliveryInfo = (
             type: "PARTIAL_STOCK",
             message: `LET OP: van dit product hebben wij momenteel maar ${stockQuantity} op voorraad voor levering ${msgDirect}. De resterende ${(quantityRequested - stockQuantity)} stuks worden ${msgBack} verzonden.`,
             short: `Levering: ${stockQuantity}x ${msgDirect}, ${(quantityRequested - stockQuantity)}x ${msgBack}`,
-            days
+            days,
+            date: dateBackorder
         };
     }
 
@@ -167,6 +169,7 @@ export const getDeliveryInfo = (
         type: "BACKORDER", 
         message: `Bestel nu en ontvang dit product ${formatDeliveryMessage(date)} in huis`,
         short: `Levering: ${formatDeliveryMessage(date)}`,
-        days
+        days,
+        date
     };
 };

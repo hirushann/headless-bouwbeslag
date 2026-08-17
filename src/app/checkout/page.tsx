@@ -1792,7 +1792,7 @@ export default function NewCheckoutPage() {
               {/* Totals Card */}
                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-3 sticky top-40 z-10">
                     <div className="flex justify-between text-base text-gray-600">
-                        <span>Subtotaal</span>
+                        <p>Subtotaal<span className="font-normal text-xs ml-1.5">{taxLabel}</span></p>
                         <span className="font-medium text-gray-900">{formatPrice(displaySubtotal)}</span>
                     </div>
 
@@ -1862,7 +1862,7 @@ export default function NewCheckoutPage() {
                         </div>
                     )}
                     <div className="flex justify-between text-base text-gray-600">
-                        <span>Verzending</span>
+                        <p>Verzending<span className="font-normal text-xs ml-1.5">{taxLabel}</span></p>
                         <span className="font-medium text-gray-900">
                             {shippingCost === null ? "Wordt berekend" : (shippingCost === 0 ? "Kosteloos" : formatPrice(displayShipping))}
                         </span>
@@ -1875,7 +1875,7 @@ export default function NewCheckoutPage() {
                     )}
                      {/* Show Tax breakdown if needed, or total tax amount? Header handles it by showing total + label */}
                     <div className="flex justify-between text-base text-gray-600">
-                        <span>BTW (21%)</span>
+                        <span>{isB2B ? "BTW (21%)" : "Waarvan BTW"}</span>
                          {/* Calculate actual tax amount for the whole order including card fee and freight */}
                          {/* Freight is stored excluding VAT. */}
                         <span className="font-medium text-gray-900">{formatPrice(displayTax)}</span>

@@ -114,14 +114,17 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods, shippingR
       : totalsWithShipping.shippingExVatCents + totalsWithShipping.shippingVatCents,
   );
   const totalWithShipping = centsToNumber(totalsWithShipping.totalCents);
-  const totalWithShippingInclVat = centsToNumber(calculateOrderAmounts({
+  
+  const amountsForTax = calculateOrderAmounts({
     items: items.map((item) => ({
       unitPriceExVat: item.price,
       quantity: item.quantity,
     })),
     shippingExVat: shipping,
     vatRate: 21,
-  }).totalCents);
+  });
+  const totalWithShippingInclVat = centsToNumber(amountsForTax.totalCents);
+  const totalTaxAmount = centsToNumber(amountsForTax.taxCents);
 
   const increaseQuantity = (id: CartItemId) => {
     const item = items.find((i) => String(i.id) === String(id));
@@ -276,16 +279,17 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods, shippingR
           {items.length > 0 && (
             <div className="border-t border-[#E9E9E9] pt-6 mt-6 sticky bottom-1 bg-white p-4">
               <div className="flex justify-between mb-3 text-base font-medium text-[#3D4752]">
-                <span>Subtotaal</span>
+                <p>Subtotaal<span className="font-normal text-xs ml-1.5">{taxLabel}</span></p>
                 <span>{formatPrice(subtotal)}</span>
               </div>
               <div className="flex justify-between mb-3 text-base font-medium text-[#3D4752]">
-                <span>Verzendkosten</span>
+                <p>Verzendkosten<span className="font-normal text-xs ml-1.5">{taxLabel}</span></p>
                 <span>{isFreeShipping ? "Gratis" : displayShipping === 0 ? "N.t.b." : formatPrice(displayShipping)}</span>
               </div>
-              <div className="flex justify-between mb-4 text-base">
-                <p className="font-bold">Totaalbedrag<span className="font-normal text-xs ml-1.5">{taxLabel}</span></p>
-                <span className="font-bold">{formatPrice(totalWithShipping)}</span>
+              
+              <div className="flex justify-between mb-4 text-sm text-gray-500">
+                <span>{isB2B ? "BTW (21%)" : "Waarvan BTW"}</span>
+                <span>{formatPrice(totalTaxAmount)}</span>
               </div>
               {isB2B && (
                 <div className="flex justify-between mb-4 text-sm text-gray-500">
@@ -293,6 +297,10 @@ export default function CartDrawer({ isB2B, taxLabel, shippingMethods, shippingR
                   <span>{formatPrice(totalWithShippingInclVat)}</span>
                 </div>
               )}
+              <div className="flex justify-between mb-4 text-base">
+                <p className="font-bold">Totaalbedrag<span className="font-normal text-xs ml-1.5">{taxLabel}</span></p>
+                <span className="font-bold">{formatPrice(totalWithShipping)}</span>
+              </div>
               <Link href="/checkout" onClick={() => setCartOpen(false)} className="w-full bg-[#0066FF] text-white font-bold px-4 py-3.5 rounded-sm text-base text-center block">
                 Afrekenen
               </Link>
