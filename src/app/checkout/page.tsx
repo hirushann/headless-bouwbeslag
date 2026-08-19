@@ -656,6 +656,11 @@ export default function NewCheckoutPage() {
         }
     }
 
+    if (isB2B) {
+        baseShippingCost = 7.5;
+        baseFreeShippingThreshold = 250;
+    }
+
     if (hasLengthFreight) {
         // Prioritize backend method if available
         const realMethod = availableMethods.find(m => m.title.toLowerCase().includes('lengtevracht'));
