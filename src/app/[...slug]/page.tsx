@@ -883,6 +883,11 @@ export default async function Page({ params, searchParams }: PageProps) {
     );
   }
 
-  // 3. Not Found
-  notFound();
+  // 3. Not Found - Redirect to parent or /categories instead of 404
+  if (slug.length > 1) {
+    const parentPath = slug.slice(0, -1).join("/");
+    redirect(`/${parentPath}`);
+  }
+  
+  redirect("/categories");
 }
