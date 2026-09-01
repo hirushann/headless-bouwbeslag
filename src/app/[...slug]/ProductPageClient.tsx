@@ -1305,20 +1305,82 @@ export default function ProductPageClient({
 
             {/* Features */}
             {(() => {
+              console.log("================== [DEBUG USP EXTRACTION START] ==================");
+              console.log("[DEBUG USP] Product Slug:", product?.slug);
+              console.log("[DEBUG USP] Product Name:", product?.name);
+              console.log("[DEBUG USP] product.meta_data count:", product?.meta_data?.length);
+              
+              if (Array.isArray(product?.meta_data)) {
+                const uspMeta = product.meta_data.filter((m: any) => m?.key && (m.key.toLowerCase().includes("usp") || m.key.toLowerCase().includes("desc")));
+                console.log("[DEBUG USP] Matching meta_data keys in product:", uspMeta);
+              }
+              if (product?.description) {
+                console.log("[DEBUG USP] product.description type:", typeof product.description, "value:", product.description);
+              }
+              if (product?.acf) {
+                console.log("[DEBUG USP] product.acf:", product.acf);
+              }
+
               const usps: string[] = [];
+
+              // 1. Check description.fields (if present as object)
               if (product?.description?.fields) {
                 for (let i = 1; i <= 8; i++) {
-                  const usp = product.description.fields[`usp_${i}`];
-                  if (isValidProductText(usp)) usps.push(String(usp).trim());
-                }
-              } else if (product?.meta_data) {
-                for (let i = 1; i <= 8; i++) {
-                  const usp = product.meta_data.find((m: any) => m.key === `description_usp_${i}`)?.value;
+                  const usp = product.description.fields[`usp_${i}`] || product.description.fields[`description_usp_${i}`];
+                  console.log(`[DEBUG USP] Checking description.fields.usp_${i}:`, usp, "isValid?", isValidProductText(usp));
                   if (isValidProductText(usp)) {
-                    usps.push(String(usp).trim());
+                    const cleaned = String(usp).trim();
+                    if (!usps.includes(cleaned)) usps.push(cleaned);
                   }
                 }
               }
+
+              // 2. Check meta_data array (description_usp_1..8, usp_1..8)
+              if (Array.isArray(product?.meta_data)) {
+                for (let i = 1; i <= 8; i++) {
+                  const item = product.meta_data.find((m: any) => 
+                    m?.key === `description_usp_${i}` || 
+                    m?.key === `usp_${i}` ||
+                    m?.key === `_description_usp_${i}`
+                  );
+                  if (item !== undefined) {
+                    console.log(`[DEBUG USP] Found meta_data key '${item?.key}':`, item?.value, "isValid?", isValidProductText(item?.value));
+                    if (isValidProductText(item?.value)) {
+                      const cleaned = String(item.value).trim();
+                      if (!usps.includes(cleaned)) usps.push(cleaned);
+                    }
+                  }
+                }
+              }
+
+              // 3. Check direct top-level / ACF properties
+              if (Array.isArray(product?.usps)) {
+                product.usps.forEach((usp: any, idx: number) => {
+                  console.log(`[DEBUG USP] Checking product.usps[${idx}]:`, usp, "isValid?", isValidProductText(usp));
+                  if (isValidProductText(usp)) {
+                    const cleaned = String(usp).trim();
+                    if (!usps.includes(cleaned)) usps.push(cleaned);
+                  }
+                });
+              }
+
+              for (let i = 1; i <= 8; i++) {
+                const topUsp = product?.[`description_usp_${i}`] || 
+                               product?.[`usp_${i}`] || 
+                               product?.acf?.[`description_usp_${i}`] || 
+                               product?.acf?.[`usp_${i}`];
+                if (topUsp !== undefined) {
+                  console.log(`[DEBUG USP] Found top-level/acf usp_${i}:`, topUsp, "isValid?", isValidProductText(topUsp));
+                  if (isValidProductText(topUsp)) {
+                    const cleaned = String(topUsp).trim();
+                    if (!usps.includes(cleaned)) usps.push(cleaned);
+                  }
+                }
+              }
+
+              console.log("[DEBUG USP] Final Extracted USPs Array:", usps);
+              console.log("================== [DEBUG USP EXTRACTION END] ====================");
+
               if (usps.length === 0) return null;
               return (
                 <div>

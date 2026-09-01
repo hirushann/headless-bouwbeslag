@@ -829,8 +829,10 @@ export default async function Page({ params, searchParams }: PageProps) {
     // We only await the most critical pieces if absolutely necessary, 
     // but here we can actually trust the product we already have.
     
-    console.log("=== Single Product Page Details ===");
-    console.log(JSON.stringify(product, null, 2));
+    console.log(`[SERVER PRODUCT] Slug: ${product.slug}, Name: ${product.name}`);
+    console.log(`[SERVER PRODUCT] meta_data keys:`, product.meta_data?.map((m: any) => m.key));
+    console.log(`[SERVER PRODUCT] USP meta entries:`, product.meta_data?.filter((m: any) => m.key?.toLowerCase().includes('usp')));
+    console.log(`[SERVER PRODUCT] Description field:`, product.description);
 
     // Await reviews so we can inject them into the Schema.org SEO data
     const reviews = await reviewsPromise;

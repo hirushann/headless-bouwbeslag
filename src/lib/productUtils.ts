@@ -38,9 +38,10 @@ export function extractRelatedIdentifiers(product: any) {
  * and is not an image path, file URL, or corrupted JSON upload string.
  */
 export function isValidProductText(text: any): boolean {
-    if (!text || typeof text !== "string") return false;
-    const trimmed = text.trim();
-    if (trimmed === "" || trimmed === "null" || trimmed === "undefined") return false;
+    if (text === null || text === undefined) return false;
+    const str = typeof text === "string" ? text : String(text);
+    const trimmed = str.trim();
+    if (trimmed === "" || trimmed === "null" || trimmed === "undefined" || trimmed === "false") return false;
 
     // Check for raw/corrupted image or file paths
     if (
