@@ -32,7 +32,7 @@ export default function RootLayout({
 
   return (
     <html lang="nl" data-theme="light">
-      <head>
+      <body className="font-sans antialiased overflow-visible">
         <link
           rel="preload"
           href="/fonts/dm-sans-latin.woff2"
@@ -40,8 +40,6 @@ export default function RootLayout({
           type="font/woff2"
           crossOrigin="anonymous"
         />
-      </head>
-      <body className="font-sans antialiased overflow-visible">
         <HolidayInit />
         <Toaster position="top-right" />
         <UserProvider>

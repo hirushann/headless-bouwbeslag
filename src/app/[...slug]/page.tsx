@@ -393,6 +393,13 @@ export async function generateMetadata(
   const { product, category } = await getPageMetadata(slug);
 
   if (product) {
+    const currentPath = slug.join("/");
+    // Product should permanently be located at /product-slug (root level)
+    if (currentPath !== product.slug) {
+      const query = sp && Object.keys(sp).length > 0 ? new URLSearchParams(sp as any).toString() : "";
+      permanentRedirect(`/${product.slug}${query ? `?${query}` : ""}`);
+    }
+
     const meta = product.meta_data || [];
     const acfTitle = meta.find((m: any) => m.key === "description_meta_title" || m.key === "meta_title")?.value;
     const acfDesc = meta.find((m: any) => m.key === "description_meta_description" || m.key === "meta_description")?.value;
@@ -416,15 +423,11 @@ export async function generateMetadata(
       const catText = categoryName ? ` uit de categorie ${categoryName}` : "";
       const skuText = product.sku ? ` (SKU: ${product.sku})` : "";
       metaDescription = `Bestel de ${clean(product.name)}${brandText}${catText}${skuText} online bij Bouwbeslag.nl. ✅ Scherpe prijzen ✅ Snelle levering ✅ 30 dagen bedenktijd.`;
-      
-      // Fallback to short description if we really want to, but the dynamic structured one is usually better for SEO and consistency.
-      // We will just use the structured one generated above.
     }
 
     const rawImageUrl = product.images?.[0]?.src || product.images?.[0]?.url;
     const imageUrl = getAbsoluteImageUrl(rawImageUrl);
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl";
     const result = {
       title: metaTitle,
       description: metaDescription,
@@ -458,25 +461,39 @@ export async function generateMetadata(
 
   // 2. Try Category next
   if (category) {
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bouwbeslag.nl";
-    const canonicalPath = slug.map(s => encodeURIComponent(s)).join('/');
+    const correctPath = await traverseCategoryPath(category);
+    const currentPath = slug.join("/");
     
-    // Dynamic Category Title
-    const acfTitle = category.meta_title || category.acf?.category_meta_title;
-    let title = clean(acfTitle) || `${clean(category.name)} | Bouwbeslag`;
+    if (currentPath !== correctPath) {
+      const query = sp && Object.keys(sp).length > 0 ? new URLSearchParams(sp as any).toString() : "";
+      permanentRedirect(`/${correctPath}${query ? `?${query}` : ""}`);
+    }
 
-    // Dynamic Category Description
+    // Resolve Parent Category for richer context
+    const allCategories = await getAllCategoriesCached();
+    const parentCategory = category.parent ? allCategories.find((c: any) => c.id === category.parent) : null;
+    const parentName = parentCategory ? clean(parentCategory.name) : null;
+
+    // Dynamic Category Title Fallback
+    const acfTitle = category.meta_title || category.acf?.category_meta_title;
+    let fallbackTitle = clean(category.name);
+    if (parentName && parentName.toLowerCase() !== fallbackTitle.toLowerCase()) {
+      fallbackTitle += ` - ${parentName}`;
+    }
+    fallbackTitle += ` | Bouwbeslag`;
+    const title = clean(acfTitle) || fallbackTitle;
+
+    // Dynamic Category Description Fallback
     const acfDesc = category.meta_description || category.acf?.category_meta_description;
     let description = clean(acfDesc);
 
     if (!description) {
-        const rawDesc = clean(category.description);
-        description = rawDesc.length > 50 
-            ? rawDesc.slice(0, 160) 
-            : `Op zoek naar ${clean(category.name)}? Bekijk ons ruime assortiment. ✅ Vóór 16:00 besteld, morgen in huis! Bestel direct online.`;
+      const parentText = parentName && parentName.toLowerCase() !== clean(category.name).toLowerCase()
+        ? ` binnen de categorie ${parentName}`
+        : "";
+      description = `Op zoek naar ${clean(category.name)}${parentText}? Bekijk ons ruime assortiment hoogwaardig bouw- en deurbeslag online bij Bouwbeslag.nl. ✅ Scherpe prijzen ✅ Snelle levering ✅ 30 dagen bedenktijd.`;
     }
 
-    const correctPath = await traverseCategoryPath(category);
     const rawCatImageUrl = (category as any).image?.src || (category as any).image;
     const catImageUrl = getAbsoluteImageUrl(typeof rawCatImageUrl === 'string' ? rawCatImageUrl : rawCatImageUrl?.src);
 
@@ -491,25 +508,32 @@ export async function generateMetadata(
         description,
         url: `/${correctPath}`,
         type: "website",
-        images: [
+        images: catImageUrl ? [
           {
             url: catImageUrl,
             width: 1200,
             height: 630,
             alt: title,
           },
-        ],
+        ] : [],
       },
       twitter: {
         card: "summary_large_image",
         title: title,
-        description: String(category.description || ""),
+        description: description,
+        images: catImageUrl ? [catImageUrl] : [],
       },
       robots: hasQueryParams ? { index: false, follow: false } : { index: true, follow: true }
     };
   }
 
-  return {};
+  // 3. Fallback redirect for missing page
+  if (slug.length > 1) {
+    const parentPath = slug.slice(0, -1).join("/");
+    permanentRedirect(`/${parentPath}`);
+  }
+  
+  permanentRedirect("/categories");
 }
 
 /* ----------------------------------------------------
@@ -899,8 +923,8 @@ export default async function Page({ params, searchParams }: PageProps) {
   // 3. Not Found - Redirect to parent or /categories instead of 404
   if (slug.length > 1) {
     const parentPath = slug.slice(0, -1).join("/");
-    redirect(`/${parentPath}`);
+    permanentRedirect(`/${parentPath}`);
   }
   
-  redirect("/categories");
+  permanentRedirect("/categories");
 }

@@ -1,11 +1,17 @@
+import React, { cache } from "react";
 import { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { fetchBlogBySlugAction } from "../../actions";
 
 import BlockRenderer from "@/components/blog/BlockRenderer";
 import { getAbsoluteImageUrl } from "@/lib/image-utils";
 import { generateBreadcrumbSchema } from "@/lib/schemaUtils";
+
+const getBlogBySlugCached = cache(async (slug: string) => {
+  return await fetchBlogBySlugAction(slug);
+});
 
 export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> }
@@ -13,13 +19,14 @@ export async function generateMetadata(
   const { slug } = await params;
 
   try {
-    const res = await fetchBlogBySlugAction(slug);
+    const res = await getBlogBySlugCached(slug);
     const post = res.success ? res.data : null;
 
     if (!post) {
       return {
-        title: "Blog niet gevonden",
+        title: "Bericht niet gevonden | Bouwbeslag",
         description: "",
+        robots: { index: false, follow: false },
       };
     }
 
@@ -51,7 +58,7 @@ export async function generateMetadata(
     };
   } catch {
     return {
-      title: "Blog",
+      title: "Blog | Bouwbeslag",
       description: "",
     };
   }
@@ -64,15 +71,11 @@ export default async function SingleBlogPage({
 }) {
   const { slug } = await params;
 
-  const res = await fetchBlogBySlugAction(slug);
+  const res = await getBlogBySlugCached(slug);
   const post = res.success ? res.data : null;
 
   if (!post) {
-    return (
-      <div className="max-w-[1440px] mx-auto py-10 px-5">
-        <h1 className="text-2xl font-semibold">Bericht niet gevonden</h1>
-      </div>
-    );
+    notFound();
   }
 
   const seoDescription = post.seo_description || (post.excerpt ? post.excerpt.replace(/<[^>]+>/g, "") : "");
