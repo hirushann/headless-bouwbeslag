@@ -21,6 +21,7 @@ import { useProductAddedModal } from "@/context/ProductAddedModalContext";
 import { useProductIndexStore } from "@/lib/productIndexStore";
 import { fixImageSrc } from "@/lib/image-utils";
 import { formatPrice, getProductPricing, getVolumeDiscounts } from "@/lib/pricing";
+import { isValidProductText } from "@/lib/productUtils";
 
 const formatSpecValue = (value: string | number | null | undefined): string => {
   if (value === null || value === undefined) return "";
@@ -1304,17 +1305,17 @@ export default function ProductPageClient({
 
             {/* Features */}
             {(() => {
-              const usps = [];
+              const usps: string[] = [];
               if (product?.description?.fields) {
                 for (let i = 1; i <= 8; i++) {
                   const usp = product.description.fields[`usp_${i}`];
-                  if (usp) usps.push(usp);
+                  if (isValidProductText(usp)) usps.push(String(usp).trim());
                 }
               } else if (product?.meta_data) {
                 for (let i = 1; i <= 8; i++) {
                   const usp = product.meta_data.find((m: any) => m.key === `description_usp_${i}`)?.value;
-                  if (usp) {
-                    usps.push(usp);
+                  if (isValidProductText(usp)) {
+                    usps.push(String(usp).trim());
                   }
                 }
               }
@@ -1811,12 +1812,22 @@ export default function ProductPageClient({
                 let descStr = "";
                 
                 if (product?.description?.fields?.description_1 || product?.description?.fields?.description_2) {
-                  hasDesc = true;
-                  descStr = [product.description.fields.description_1, product.description.fields.description_2].filter(Boolean).join("<br/>");
-                } else if (product?.meta_data?.find((m: any) => m.key === "description_description")?.value) {
-                  hasDesc = true;
-                  descStr = product.meta_data.find((m: any) => m.key === "description_description")?.value || "";
-                } else if (typeof product?.description === "string" && product.description.trim() !== "") {
+                  const parts = [product.description.fields.description_1, product.description.fields.description_2].filter(isValidProductText);
+                  if (parts.length > 0) {
+                    hasDesc = true;
+                    descStr = parts.join("<br/>");
+                  }
+                }
+                
+                if (!hasDesc && product?.meta_data?.find((m: any) => m.key === "description_description")?.value) {
+                  const rawVal = product.meta_data.find((m: any) => m.key === "description_description")?.value;
+                  if (isValidProductText(rawVal)) {
+                    hasDesc = true;
+                    descStr = String(rawVal);
+                  }
+                }
+                
+                if (!hasDesc && typeof product?.description === "string" && isValidProductText(product.description)) {
                   hasDesc = true;
                   descStr = product.description;
                 }

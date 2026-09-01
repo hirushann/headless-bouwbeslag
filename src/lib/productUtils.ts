@@ -32,3 +32,35 @@ export function extractRelatedIdentifiers(product: any) {
 
     return Array.from(identifiers);
 }
+
+/**
+ * Validate whether a text field (description or USP) contains actual readable text
+ * and is not an image path, file URL, or corrupted JSON upload string.
+ */
+export function isValidProductText(text: any): boolean {
+    if (!text || typeof text !== "string") return false;
+    const trimmed = text.trim();
+    if (trimmed === "" || trimmed === "null" || trimmed === "undefined") return false;
+
+    // Check for raw/corrupted image or file paths
+    if (
+        trimmed.startsWith("empireFiles/") ||
+        trimmed.startsWith("http://") ||
+        trimmed.startsWith("https://") ||
+        trimmed.startsWith("/storage/") ||
+        trimmed.includes("dayzsolutions.nl/storage/") ||
+        trimmed.includes("set-products/")
+    ) {
+        return false;
+    }
+
+    // Check for JSON artifacts or file extensions in file/URL-like strings
+    if (
+        /(\.webp|\.jpg|\.jpeg|\.png|\.gif|\.svg|\.pdf)($|["'\\\]\s])/i.test(trimmed) &&
+        (trimmed.includes("empireFiles") || trimmed.includes("http") || trimmed.includes("storage") || trimmed.includes("/") || trimmed.includes("\\"))
+    ) {
+        return false;
+    }
+
+    return true;
+}
