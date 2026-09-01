@@ -395,17 +395,30 @@ export async function generateMetadata(
   if (product) {
     const meta = product.meta_data || [];
     const acfTitle = meta.find((m: any) => m.key === "description_meta_title" || m.key === "meta_title")?.value;
-    const metaTitle = clean(acfTitle) || `${clean(product.name)} | Bouwbeslag`;
     const acfDesc = meta.find((m: any) => m.key === "description_meta_description" || m.key === "meta_description")?.value;
+
+    const brandFromMeta = meta.find((m: any) => m.key === "brand" || m.key === "description_bouwbeslag_brand" || m.key === "merk")?.value;
+    const productBrand = product.brands?.[0]?.name || brandFromMeta;
+    const categoryName = product.categories?.[0]?.name;
+
+    // Dynamic Title Fallback
+    let fallbackTitle = clean(product.name);
+    if (productBrand) {
+        fallbackTitle += ` - ${productBrand}`;
+    }
+    fallbackTitle += ` | Bouwbeslag`;
+    const metaTitle = clean(acfTitle) || fallbackTitle;
     
+    // Dynamic Description Fallback
     let metaDescription = clean(acfDesc);
     if (!metaDescription) {
-      if (product.short_description) {
-        metaDescription = clean(product.short_description).slice(0, 160);
-      } else {
-        const skuText = product.sku ? `(SKU: ${product.sku})` : "";
-        metaDescription = `Koop ${clean(product.name)} ${skuText} bij Bouwbeslag.nl. ✅ Scherpe prijzen ✅ Snelle levering ✅ 30 dagen bedenktijd.`;
-      }
+      const brandText = productBrand ? ` van ${productBrand}` : "";
+      const catText = categoryName ? ` uit de categorie ${categoryName}` : "";
+      const skuText = product.sku ? ` (SKU: ${product.sku})` : "";
+      metaDescription = `Bestel de ${clean(product.name)}${brandText}${catText}${skuText} online bij Bouwbeslag.nl. ✅ Scherpe prijzen ✅ Snelle levering ✅ 30 dagen bedenktijd.`;
+      
+      // Fallback to short description if we really want to, but the dynamic structured one is usually better for SEO and consistency.
+      // We will just use the structured one generated above.
     }
 
     const rawImageUrl = product.images?.[0]?.src || product.images?.[0]?.url;
