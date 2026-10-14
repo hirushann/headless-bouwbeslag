@@ -1,0 +1,38 @@
+# Bouwbeslag.nl
+
+> Bouwbeslag.nl is een Nederlandse webshop voor hoogwaardig bouwbeslag: deurbeslag, raambeslag, meubelbeslag en veiligheidsbeslag van topmerken, met laagste prijs garantie en 30 dagen retourrecht. Bouwbeslag.nl is onderdeel van DayZ Solutions.
+
+Productpagina's staan op de hoofd-URL van het product (bijvoorbeeld https://bouwbeslag.nl/deurklink-zwart-andorra) en bevatten prijs, specificaties en beschikbaarheid. Categoriepagina's zijn hiërarchisch (bijvoorbeeld /deurbeslag/scharnieren/rvs).
+
+## Productcategorieën
+
+- [Deurbeslag](https://bouwbeslag.nl/deurbeslag): scharnieren, deurgrepen, deursloten, cilinderrozetten en deurstoppers
+- [Raambeslag](https://bouwbeslag.nl/raambeslag): raamkrukken, raambomen en ander raambeslag
+- [Meubelbeslag](https://bouwbeslag.nl/meubelbeslag): meubelgrepen, meubelknoppen en leuninghouders
+- [Veiligheidsbeslag](https://bouwbeslag.nl/veiligheidsbeslag): veiligheidssloten, kerntrekbeslag en deurspionnen
+- [Deurklinken](https://bouwbeslag.nl/deurklink): deurklinken in diverse modellen en afwerkingen
+- [Sleutelrozetten](https://bouwbeslag.nl/sleutelrozet): sleutelrozetten
+- [Meubelknoppen](https://bouwbeslag.nl/meubelknoppen): meubelknoppen voor kasten en laden
+- [Overige beslag](https://bouwbeslag.nl/overige): onder andere glasplaatdragers
+- [Alle merken](https://bouwbeslag.nl/merken): overzicht van alle merken in het assortiment
+
+## Informatie
+
+- [Kennisbank](https://bouwbeslag.nl/kennisbank): artikelen en adviezen over het kiezen en monteren van bouwbeslag
+- [Laagste prijs garantie](https://bouwbeslag.nl/laagste-prijs-garantie): prijsmatch en 10% extra korting als een product elders goedkoper is
+- [Bouwbeslag groothandel](https://bouwbeslag.nl/bouwbeslag-groothandel): informatie voor zakelijke klanten
+- [Zakelijk aanmelden](https://bouwbeslag.nl/zakelijk-aanmelden): aanmelden voor een zakelijk account
+- [Hulp](https://bouwbeslag.nl/hulp): veelgestelde vragen en klantenservice
+- [Over ons](https://bouwbeslag.nl/over-ons): over Bouwbeslag.nl
+
+## Beleid en contact
+
+- [Retourbeleid](https://bouwbeslag.nl/retourbeleid): 30 dagen retourrecht
+- [Algemene voorwaarden](https://bouwbeslag.nl/algemene-voorwaarden)
+- [Klachtenregeling](https://bouwbeslag.nl/klachtenregeling)
+- [Privacybeleid](https://bouwbeslag.nl/privacy-policy)
+- [Contact](https://bouwbeslag.nl/contact): contact@bouwbeslag.nl, telefoon 0578-760508
+
+## Optioneel
+
+- [Sitemap](https://bouwbeslag.nl/sitemap.xml): volledige lijst van alle producten en categorieën
