@@ -2096,7 +2096,7 @@ export default function ProductPageClient({
                         <p className='text-[#3D4752] font-normal text-base'>
                           Wij beloven je dat je dit artikel elders niet goedkoper tegenkomt. Is dat wel zo? Dan matchen wij de prijs én geven je nog eens 10% extra korting op de prijs van de concurrent.
                           <a
-                            className='text-[#0050D1] font-bold mx-1.5' rel='nofollow'
+                            className='text-[#0050D1] font-bold mx-1.5'
                             href={`/laagste-prijs-garantie?product=${encodeURIComponent(currentUrl)}`}
                           >
                             Meld hier
