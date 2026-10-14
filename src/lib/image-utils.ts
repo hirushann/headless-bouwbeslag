@@ -12,8 +12,8 @@ export function fixImageSrc(src: string | undefined | null): string {
         finalSrc = `https:${finalSrc}`;
     }
 
-    // Rewrite Meilisearch local domains to actual staging server because local environments usually lack the FTP files
-    if (finalSrc.includes("http://empire.test")) {
+    // Rewrite Meilisearch local domains to the staging server, except in dev where empire.test serves its own storage files
+    if (process.env.NODE_ENV !== "development" && finalSrc.includes("http://empire.test")) {
         finalSrc = finalSrc.replace("http://empire.test", "https://empire.dayzsolutions.nl");
     }
 

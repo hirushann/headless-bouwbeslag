@@ -155,7 +155,6 @@ const flattenCategoryTree = (categories: any[]): any[] => {
 
 export const fetchCategories = async () => {
     try {
-        console.log(`[DEBUG] fetchCategories: Fetching from ${EMPIRE_BASE_URL}/api/categories`);
         const res = await fetch(`${EMPIRE_BASE_URL}/api/categories`, {
             next: { revalidate: 3600, tags: BOUWBESLAG_CATEGORY_TAGS }
         });
@@ -170,7 +169,6 @@ export const fetchCategories = async () => {
             console.warn(`[DEBUG] fetchCategories: Expected array but got`, typeof categories);
             return [];
         }
-        console.log(`[DEBUG] fetchCategories: Successfully fetched ${categories.length} root-level categories`);
         return flattenCategoryTree(categories);
     } catch (e: any) {
         console.error(`[DEBUG] fetchCategories: Exception occurred:`, e.message);

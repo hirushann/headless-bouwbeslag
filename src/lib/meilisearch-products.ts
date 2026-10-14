@@ -68,13 +68,11 @@ export async function fetchMeiliProducts(limit: number = 10, offset: number = 0,
  * Fetch a single product by slug
  */
 export async function fetchProductBySlug(slug: string) {
-    console.log(`[DEBUG] fetchProductBySlug: Looking for slug '${slug}' in Meilisearch`);
     const { products } = await fetchMeiliProducts(1, 0, "", [`slug = '${slug}'`]);
     if (!products || products.length === 0) {
         console.warn(`[DEBUG] fetchProductBySlug: No product found for slug '${slug}'`);
         return null;
     }
-    console.log(`[DEBUG] fetchProductBySlug: Found product for slug '${slug}'`);
     return mapMeiliToWooProduct(products[0]) || null;
 }
 
